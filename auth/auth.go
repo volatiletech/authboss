@@ -5,6 +5,10 @@ import (
 	"net/http"
 	"path"
 
+	"io/ioutil"
+
+	"bytes"
+
 	"github.com/go-authboss/authboss"
 )
 
@@ -19,27 +23,36 @@ func init() {
 }
 
 type Auth struct {
-	Routes         authboss.Routes
-	loginPage      io.Reader
+	routes         authboss.Routes
+	loginPage      *bytes.Buffer
 	logoutRedirect string
 }
 
-func (a *Auth) Initialize(c authboss.Config) error {
-	// create the reader for the default or specified file
+func (a *Auth) Initialize(c authboss.Config) (err error) {
+	var data []byte
+	if c.AuthLoginPageURI == "" {
+		if data, err = views_login_tpl_bytes(); err != nil {
+			return err
+		}
+	} else {
+		if data, err = ioutil.ReadFile(c.AuthLoginPageURI); err != nil {
+			return err
+		}
+	}
+	a.loginPage = bytes.NewBuffer(data)
 
-	var err error
-	a.loginPage, err = views_login_tpl_bytes()
-
-	a.Routes = Routes{
+	a.routes = authboss.Routes{
 		path.Join(c.MountPath, "login"):  a.loginHandler,
 		path.Join(c.MountPath, "logout"): a.logoutHandler,
 	}
+
+	a.logoutRedirect = path.Join(c.MountPath, c.AuthLogoutRedirect)
 
 	return nil
 }
 
 func (a *Auth) Routes() authboss.Routes {
-	return a.Routes
+	return a.routes
 }
 
 func (a *Auth) Storage() {

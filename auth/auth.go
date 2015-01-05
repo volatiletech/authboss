@@ -1,13 +1,14 @@
 package auth
 
 import (
-	"io"
 	"net/http"
 	"path"
 
 	"io/ioutil"
 
 	"bytes"
+
+	"html/template"
 
 	"github.com/go-authboss/authboss"
 )
@@ -39,7 +40,16 @@ func (a *Auth) Initialize(c authboss.Config) (err error) {
 			return err
 		}
 	}
-	a.loginPage = bytes.NewBuffer(data)
+
+	var tpl *template.Template
+	if tpl, err = template.New("login.html").Parse(string(data)); err != nil {
+		return err
+	} else {
+		a.loginPage = &bytes.Buffer{}
+		if err = tpl.Execute(a.loginPage, nil); err != nil {
+			return err
+		}
+	}
 
 	a.routes = authboss.Routes{
 		path.Join(c.MountPath, "login"):  a.loginHandler,
@@ -55,6 +65,10 @@ func (a *Auth) Routes() authboss.Routes {
 	return a.routes
 }
 
+func (a *Auth) Style() ([]byte, error) {
+	return views_login_css_bytes()
+}
+
 func (a *Auth) Storage() {
 
 }
@@ -62,7 +76,7 @@ func (a *Auth) Storage() {
 func (a *Auth) loginHandler(w http.ResponseWriter, r *http.Request) {
 	switch r.Method {
 	case methodGET:
-		io.Copy(w, a.loginPage)
+		w.Write(a.loginPage.Bytes())
 	case methodPOST:
 		// TODO
 	default:

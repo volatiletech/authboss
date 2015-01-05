@@ -9,6 +9,7 @@ type Routes map[string]http.HandlerFunc
 type Modularizer interface {
 	Initialize(Config) error
 	Routes() Routes
+	Style() ([]byte, error)
 	Storage()
 }
 

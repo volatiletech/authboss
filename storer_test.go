@@ -6,6 +6,12 @@ import (
 	"time"
 )
 
+type testStorer int
+
+func (t testStorer) Create(key string, attr Attributes) error                    { return nil }
+func (t testStorer) Put(key string, attr Attributes) error                       { return nil }
+func (t testStorer) Get(key string, attrMeta AttributeMeta) (interface{}, error) { return nil, nil }
+
 func TestAttributes_Bind(t *testing.T) {
 	anInteger := 5
 	aString := "string"

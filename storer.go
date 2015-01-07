@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"reflect"
 	"time"
+	"unicode"
 )
 
 // DataType represents the various types that clients must be able to store.
@@ -15,6 +16,8 @@ const (
 	String
 	DateTime
 )
+
+var dateTimeType = reflect.TypeOf(time.Time{})
 
 func (d DataType) String() string {
 	switch d {
@@ -97,7 +100,7 @@ func (a Attributes) Bind(strct interface{}) error {
 			}
 			field.SetString(v.Value.(string))
 		case DateTime:
-			timeType := reflect.TypeOf(time.Time{})
+			timeType := dateTimeType
 			if fieldType != timeType {
 				return fmt.Errorf("Bind: Field %s's type should be %s but was %s", k, timeType.String(), fieldType)
 			}
@@ -106,6 +109,47 @@ func (a Attributes) Bind(strct interface{}) error {
 	}
 
 	return nil
+}
+
+// Unbind is the opposite of Bind, taking a struct in and producing a list of attributes.
+func Unbind(intf interface{}) Attributes {
+	structValue := reflect.ValueOf(intf)
+	if structValue.Kind() == reflect.Ptr {
+		structValue = structValue.Elem()
+	}
+
+	structType := structValue.Type()
+	attr := make(Attributes)
+	for i := 0; i < structValue.NumField(); i++ {
+		field := structValue.Field(i)
+
+		name := structType.Field(i).Name
+		if unicode.IsLower(rune(name[0])) {
+			continue // Unexported
+		}
+
+		switch field.Kind() {
+		case reflect.Struct:
+			if field.Type() == dateTimeType {
+				attr[name] = Attribute{
+					Type:  DateTime,
+					Value: field.Interface(),
+				}
+			}
+		case reflect.Int:
+			attr[name] = Attribute{
+				Type:  Integer,
+				Value: field.Interface(),
+			}
+		case reflect.String:
+			attr[name] = Attribute{
+				Type:  String,
+				Value: field.Interface(),
+			}
+		}
+	}
+
+	return attr
 }
 
 // UserNotFound should be returned from Get when the record is not found.

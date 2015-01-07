@@ -104,3 +104,51 @@ func TestAttributes_BindTypeFail(t *testing.T) {
 	}
 
 }
+
+func TestAttributes_Unbind(t *testing.T) {
+	s1 := struct {
+		Integer int
+		String  string
+		Time    time.Time
+
+		SomethingElse1 int32
+		SomethingElse2 *Config
+
+		unexported int
+	}{5, "string", time.Now(), 5, nil, 5}
+
+	attr := Unbind(s1)
+	if len(attr) != 3 {
+		t.Error("Expected three fields, got:", len(attr))
+	}
+
+	if v, ok := attr["Integer"]; !ok {
+		t.Error("Could not find Integer entry.")
+	} else if v.Type != Integer {
+		t.Error("Described type is wrong:", v.Type)
+	} else if i, ok := v.Value.(int); !ok {
+		t.Errorf("Underlying type is wrong: %T", v)
+	} else if s1.Integer != i {
+		t.Error("Underlying value is wrong:", i)
+	}
+
+	if v, ok := attr["String"]; !ok {
+		t.Error("Could not find String entry.")
+	} else if v.Type != String {
+		t.Error("Described type is wrong:", v.Type)
+	} else if s, ok := v.Value.(string); !ok {
+		t.Errorf("Underlying type is wrong: %T", v)
+	} else if s1.String != s {
+		t.Error("Underlying value is wrong:", s)
+	}
+
+	if v, ok := attr["Time"]; !ok {
+		t.Error("Could not find Time entry.")
+	} else if v.Type != DateTime {
+		t.Error("Described type is wrong:", v.Type)
+	} else if i, ok := v.Value.(time.Time); !ok {
+		t.Errorf("Underlying type is wrong: %T", v)
+	} else if s1.Time != i {
+		t.Error("Underlying value is wrong:", i)
+	}
+}

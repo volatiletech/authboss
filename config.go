@@ -8,9 +8,9 @@ import (
 // Config holds all the configuration for both authboss and it's modules.
 type Config struct {
 	MountPath string `json:"mountPath" xml:"mountPath"`
+	ViewsPath string `json:"viewsPath" xml:"viewsPath"`
 
-	AuthLoginPageURI   string `json:"authLoginPage" xml:"authLoginPage"`
-	AuthLogoutRedirect string `json:"authLogoutRedirect" xml:"authLogoutRedirect"`
+	AuthLogoutRoute string `json:"authLogoutRoute" xml:"authLogoutRoute"`
 
 	Storer    Storer    `json:"-" xml:"-"`
 	LogWriter io.Writer `json:"-" xml:"-"`
@@ -19,6 +19,8 @@ type Config struct {
 // NewConfig creates a new config full of default values ready to override.
 func NewConfig() *Config {
 	return &Config{
+		MountPath: "/",
+		ViewsPath: "/",
 		LogWriter: ioutil.Discard,
 	}
 }

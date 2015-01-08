@@ -3,14 +3,14 @@ package auth
 import (
 	"net/http"
 	"path"
+	"path/filepath"
 
+	"html/template"
 	"io/ioutil"
 
 	"bytes"
 
-	"html/template"
-
-	"github.com/go-authboss/authboss"
+	"gopkg.in/authboss.v0"
 )
 
 const (
@@ -20,23 +20,22 @@ const (
 
 func init() {
 	a := &Auth{}
-	authboss.Register(a)
+	authboss.RegisterModule("auth", a)
 }
 
 type Auth struct {
-	routes         authboss.Routes
+	routes         authboss.RouteTable
 	loginPage      *bytes.Buffer
 	logoutRedirect string
 }
 
-func (a *Auth) Initialize(c authboss.Config) (err error) {
+func (a *Auth) Initialize(c *authboss.Config) (err error) {
 	var data []byte
-	if c.AuthLoginPageURI == "" {
-		if data, err = views_login_tpl_bytes(); err != nil {
-			return err
-		}
+
+	if data, err = ioutil.ReadFile(filepath.Join(c.ViewsPath, "login.html")); err != nil {
+		return err
 	} else {
-		if data, err = ioutil.ReadFile(c.AuthLoginPageURI); err != nil {
+		if data, err = views_login_tpl_bytes(); err != nil {
 			return err
 		}
 	}
@@ -51,26 +50,22 @@ func (a *Auth) Initialize(c authboss.Config) (err error) {
 		}
 	}
 
-	a.routes = authboss.Routes{
+	a.routes = authboss.RouteTable{
 		path.Join(c.MountPath, "login"):  a.loginHandler,
 		path.Join(c.MountPath, "logout"): a.logoutHandler,
 	}
 
-	a.logoutRedirect = path.Join(c.MountPath, c.AuthLogoutRedirect)
+	a.logoutRedirect = path.Join(c.MountPath, c.AuthLogoutRoute)
 
 	return nil
 }
 
-func (a *Auth) Routes() authboss.Routes {
+func (a *Auth) Routes() authboss.RouteTable {
 	return a.routes
 }
 
-func (a *Auth) Style() ([]byte, error) {
-	return views_login_css_bytes()
-}
-
-func (a *Auth) Storage() {
-
+func (a *Auth) Storage() authboss.StorageOptions {
+	return nil
 }
 
 func (a *Auth) loginHandler(w http.ResponseWriter, r *http.Request) {

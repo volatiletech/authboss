@@ -41,7 +41,7 @@ func (a *Auth) Initialize(c *authboss.Config) (err error) {
 	}
 
 	var tpl *template.Template
-	if tpl, err = template.New("login.html").Parse(string(data)); err != nil {
+	if tpl, err = template.New("login.tpl").Parse(string(data)); err != nil {
 		return err
 	} else {
 		a.loginPage = &bytes.Buffer{}

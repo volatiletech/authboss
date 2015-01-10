@@ -5,12 +5,13 @@ import (
 	"path"
 	"path/filepath"
 
+	"gopkg.in/authboss.v0"
+
 	"html/template"
 	"io/ioutil"
 
 	"bytes"
-
-	"gopkg.in/authboss.v0"
+	"io"
 )
 
 const (
@@ -25,16 +26,16 @@ func init() {
 
 type Auth struct {
 	routes         authboss.RouteTable
+	storageOptions authboss.StorageOptions
 	loginPage      *bytes.Buffer
 	logoutRedirect string
+	logger         io.Writer
 }
 
 func (a *Auth) Initialize(c *authboss.Config) (err error) {
 	var data []byte
 
 	if data, err = ioutil.ReadFile(filepath.Join(c.ViewsPath, "login.html")); err != nil {
-		return err
-	} else {
 		if data, err = views_login_tpl_bytes(); err != nil {
 			return err
 		}
@@ -51,8 +52,8 @@ func (a *Auth) Initialize(c *authboss.Config) (err error) {
 	}
 
 	a.routes = authboss.RouteTable{
-		path.Join(c.MountPath, "login"):  a.loginHandler,
-		path.Join(c.MountPath, "logout"): a.logoutHandler,
+		"login":  a.loginHandler,
+		"logout": a.logoutHandler,
 	}
 
 	a.logoutRedirect = path.Join(c.MountPath, c.AuthLogoutRoute)
@@ -65,7 +66,7 @@ func (a *Auth) Routes() authboss.RouteTable {
 }
 
 func (a *Auth) Storage() authboss.StorageOptions {
-	return nil
+	return a.storageOptions
 }
 
 func (a *Auth) loginHandler(w http.ResponseWriter, r *http.Request) {

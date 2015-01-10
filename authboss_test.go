@@ -1,6 +1,7 @@
 package authboss
 
 import (
+	"log"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -45,6 +46,8 @@ func TestAuthBossRouter(t *testing.T) {
 	response := httptest.NewRecorder()
 
 	router.ServeHTTP(response, r)
+
+	log.Println(response.HeaderMap)
 
 	if response.Header().Get("testmodule") != "test" {
 		t.Error("Expected a header to have been set.")

@@ -42,10 +42,11 @@ func Router(config *Config) http.Handler {
 
 	for name, mod := range modules {
 		for route, handler := range mod.Routes() {
-			fmt.Fprintf(logger, "[%-10s] Register Route: %s\n", name)
+			fmt.Fprintf(logger, "[%-10s] Register Route: %s\n", name, route)
 			mux.HandleFunc(path.Join(config.MountPath, route), handler)
 		}
 	}
 
-	return http.StripPrefix(config.MountPath, mux)
+	return mux
+	//return http.StripPrefix(config.MountPath, mux)
 }

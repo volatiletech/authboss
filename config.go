@@ -10,7 +10,8 @@ type Config struct {
 	MountPath string `json:"mountPath" xml:"mountPath"`
 	ViewsPath string `json:"viewsPath" xml:"viewsPath"`
 
-	AuthLogoutRoute string `json:"authLogoutRoute" xml:"authLogoutRoute"`
+	AuthLogoutRoute       string `json:"authLogoutRoute" xml:"authLogoutRoute"`
+	AuthLoginSuccessRoute string `json:"authLoginSuccessRoute" xml:"authLoginSuccessRoute"`
 
 	Storer        Storer        `json:"-" xml:"-"`
 	ClientStorer  ClientStorer  `json:"-" xml:"-"`
@@ -23,6 +24,10 @@ func NewConfig() *Config {
 	return &Config{
 		MountPath: "/",
 		ViewsPath: "/",
+
+		AuthLogoutRoute:       "/",
+		AuthLoginSuccessRoute: "http://www.google.com",
+
 		LogWriter: ioutil.Discard,
 	}
 }

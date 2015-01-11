@@ -3,7 +3,6 @@ package auth
 import (
 	"errors"
 	"net/http"
-	"path"
 	"path/filepath"
 
 	"gopkg.in/authboss.v0"
@@ -13,7 +12,6 @@ import (
 
 	"bytes"
 	"io"
-	"log"
 )
 
 const (
@@ -29,12 +27,13 @@ func init() {
 }
 
 type Auth struct {
-	routes         authboss.RouteTable
-	storageOptions authboss.StorageOptions
-	users          authboss.Storer
-	loginPage      *bytes.Buffer
-	logoutRedirect string
-	logger         io.Writer
+	routes               authboss.RouteTable
+	storageOptions       authboss.StorageOptions
+	users                authboss.Storer
+	loginPage            *bytes.Buffer
+	logoutRedirect       string
+	loginSuccessRedirect string
+	logger               io.Writer
 }
 
 func (a *Auth) Initialize(c *authboss.Config) (err error) {
@@ -66,7 +65,8 @@ func (a *Auth) Initialize(c *authboss.Config) (err error) {
 	}
 	a.users = c.Storer
 
-	a.logoutRedirect = path.Join(c.MountPath, c.AuthLogoutRoute)
+	a.logoutRedirect = c.AuthLogoutRoute
+	a.loginSuccessRedirect = c.AuthLoginSuccessRoute
 
 	return nil
 }
@@ -79,13 +79,18 @@ func (a *Auth) Storage() authboss.StorageOptions {
 	return a.storageOptions
 }
 
-func (a *Auth) loginHandler(w http.ResponseWriter, r *http.Request) {
+func (a *Auth) loginHandler(c *authboss.Context, w http.ResponseWriter, r *http.Request) {
 	switch r.Method {
 	case methodGET:
 		w.Write(a.loginPage.Bytes())
 	case methodPOST:
-		log.Println("in post")
-		a.authenticate(r.PostFormValue("username"), r.PostFormValue("password"))
+		if err := a.authenticate(r.PostFormValue("username"), r.PostFormValue("password")); err != nil {
+			//Todo : page of things
+			w.WriteHeader(http.StatusForbidden)
+			return
+		}
+
+		http.Redirect(w, r, a.loginSuccessRedirect, http.StatusFound)
 	default:
 		w.WriteHeader(http.StatusMethodNotAllowed)
 	}
@@ -108,10 +113,10 @@ func (a *Auth) authenticate(username, password string) error {
 	return nil
 }
 
-func (a *Auth) logoutHandler(w http.ResponseWriter, r *http.Request) {
+func (a *Auth) logoutHandler(c *authboss.Context, w http.ResponseWriter, r *http.Request) {
 	switch r.Method {
 	case methodGET:
-		http.Redirect(w, r, a.logoutRedirect, http.StatusTemporaryRedirect)
+		http.Redirect(w, r, a.logoutRedirect, http.StatusFound)
 	default:
 		w.WriteHeader(http.StatusMethodNotAllowed)
 	}

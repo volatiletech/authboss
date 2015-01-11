@@ -8,6 +8,45 @@ import (
 	"unicode"
 )
 
+// UserNotFound should be returned from Get when the record is not found.
+var UserNotFound = errors.New("User not found")
+
+// TokenNotFound should be returned from UseToken when the record is not found.
+var TokenNotFound = errors.New("Token not found")
+
+// StorageOptions is a map depicting the things a module must be able to store.
+type StorageOptions map[string]DataType
+
+// Storer must be implemented in order to store the user's attributes somewhere.
+// The type of store is up to the developer implementing it, and all it has to
+// do is be able to store several simple types.
+type Storer interface {
+	// Create is the same as put, except it refers to a non-existent key.
+	Create(key string, attr Attributes) error
+	// Put is for storing the attributes passed in. The type information can
+	// help serialization without using type assertions.
+	Put(key string, attr Attributes) error
+	// Get is for retrieving attributes for a given key. The return value
+	// must be a struct thot contains a field with the correct type as shown
+	// by attrMeta. If the key is not found in the data store simply
+	// return nil, UserNotFound.
+	Get(key string, attrMeta AttributeMeta) (interface{}, error)
+}
+
+// TokenStorer must be implemented in order to satisfy the remember module's
+// storage requirements.
+type TokenStorer interface {
+	Storer
+	// AddToken saves a new token for the key.
+	AddToken(key, token string) error
+	// DelTokens removes all tokens for a given key.
+	DelTokens(key string) error
+	// UseToken finds the token, removes the key/token entry in the store
+	// and returns the key that was found. If the token could not be found
+	// return "", TokenNotFound
+	UseToken(token string) (key string, err error)
+}
+
 // DataType represents the various types that clients must be able to store.
 type DataType int
 
@@ -150,25 +189,6 @@ func Unbind(intf interface{}) Attributes {
 	}
 
 	return attr
-}
-
-// UserNotFound should be returned from Get when the record is not found.
-var UserNotFound = errors.New("User Not Found")
-
-// Storer must be implemented in order to store the user's attributes somewhere.
-// The type of store is up to the developer implementing it, and all it has to
-// do is be able to store several simple types.
-type Storer interface {
-	// Create is the same as put, except it refers to a non-existent key.
-	Create(key string, attr Attributes) error
-	// Put is for storing the attributes passed in. The type information can
-	// help serialization without using type assertions.
-	Put(key string, attr Attributes) error
-	// Get is for retrieving attributes for a given key. The return value
-	// must be a struct thot contains a field with the correct type as shown
-	// by attrMeta. If the key is not found in the data store simply
-	// return nil, UserNotFound.
-	Get(key string, attrMeta AttributeMeta) (interface{}, error)
 }
 
 /*type postgresStorer struct {

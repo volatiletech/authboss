@@ -1,17 +1,8 @@
 package authboss
 
-import (
-	"net/http"
-)
-
 var modules = make(map[string]Modularizer)
 
-// RouteTable is a routing table from a path to a handlerfunc.
-type RouteTable map[string]http.HandlerFunc
-
-// StorageOptions is a map depicting the things a module must be able to store.
-type StorageOptions map[string]DataType
-
+// Modularizer should be implemented by all the authboss modules.
 type Modularizer interface {
 	Initialize(*Config) error
 	Routes() RouteTable

@@ -12,8 +12,6 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
-	"net/http"
-	"path"
 )
 
 var logger io.Writer = ioutil.Discard
@@ -34,18 +32,4 @@ func Init(config *Config) error {
 	}
 
 	return nil
-}
-
-// Router returns a router to be mounted at some mountpoint.
-func Router(config *Config) http.Handler {
-	mux := http.NewServeMux()
-
-	for name, mod := range modules {
-		for route, handler := range mod.Routes() {
-			fmt.Fprintf(logger, "[%-10s] Register Route: %s\n", name, route)
-			mux.HandleFunc(path.Join(config.MountPath, route), handler)
-		}
-	}
-
-	return mux
 }

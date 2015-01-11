@@ -19,7 +19,7 @@ var testMod = &testModule{
 	},
 }
 
-func testHandler(w http.ResponseWriter, r *http.Request) {
+func testHandler(ctx *Context, w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("testhandler", "test")
 }
 

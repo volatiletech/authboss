@@ -12,7 +12,6 @@ import (
 	"io/ioutil"
 
 	"bytes"
-	"github.com/davecgh/go-spew/spew"
 	"io"
 	"log"
 )
@@ -99,15 +98,12 @@ func (a *Auth) authenticate(username, password string) error {
 	}
 
 	userAttrs := authboss.Unbind(userInter)
-	spew.Dump(userAttrs)
 
 	if pwd, ok := userAttrs["Password"]; !ok {
 		return errAuthFailed
 	} else if pwd.Value.(string) != password {
 		return errAuthFailed
 	}
-
-	log.Println("I have all the power")
 
 	return nil
 }

@@ -1,5 +1,7 @@
 <html>
-    <link type="text/css" rel="stylesheet" href="/authboss.css" />
+<head>
+    <!--<link type="text/css" rel="stylesheet" href="/authboss.css" />-->
+</head>
 <body>
 <div class="login-card">
     <h1>Log-in</h1><br>

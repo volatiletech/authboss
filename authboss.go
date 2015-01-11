@@ -48,5 +48,4 @@ func Router(config *Config) http.Handler {
 	}
 
 	return mux
-	//return http.StripPrefix(config.MountPath, mux)
 }

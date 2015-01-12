@@ -13,10 +13,10 @@ type Config struct {
 	AuthLogoutRoute       string `json:"authLogoutRoute" xml:"authLogoutRoute"`
 	AuthLoginSuccessRoute string `json:"authLoginSuccessRoute" xml:"authLoginSuccessRoute"`
 
-	Storer        Storer        `json:"-" xml:"-"`
-	ClientStorer  ClientStorer  `json:"-" xml:"-"`
-	SessionStorer SessionStorer `json:"-" xml:"-"`
-	LogWriter     io.Writer     `json:"-" xml:"-"`
+	Storer            Storer            `json:"-" xml:"-"`
+	CookieStoreMaker  CookieStoreMaker  `json:"-" xml:"-"`
+	SessionStoreMaker SessionStoreMaker `json:"-" xml:"-"`
+	LogWriter         io.Writer         `json:"-" xml:"-"`
 }
 
 // NewConfig creates a new config full of default values ready to override.

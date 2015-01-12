@@ -41,10 +41,10 @@ type TokenStorer interface {
 	AddToken(key, token string) error
 	// DelTokens removes all tokens for a given key.
 	DelTokens(key string) error
-	// UseToken finds the token, removes the key/token entry in the store
+	// UseToken finds the key-token pair, removes the entry in the store
 	// and returns the key that was found. If the token could not be found
 	// return "", TokenNotFound
-	UseToken(token string) (key string, err error)
+	UseToken(givenKey, token string) (key string, err error)
 }
 
 // DataType represents the various types that clients must be able to store.

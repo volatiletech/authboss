@@ -56,13 +56,13 @@ func (a *Auth) Initialize(c *authboss.Config) (err error) {
 		}
 	}
 
-	a.storageOptions = authboss.StorageOptions{
-		attrUsername: authboss.String,
-		attrPassword: authboss.String,
-	}
 	a.routes = authboss.RouteTable{
 		"login":  a.loginHandlerFunc,
 		"logout": a.logoutHandlerFunc,
+	}
+	a.storageOptions = authboss.StorageOptions{
+		attrUsername: authboss.String,
+		attrPassword: authboss.String,
 	}
 	a.users = c.Storer
 	a.logoutRedirect = c.AuthLogoutRoute

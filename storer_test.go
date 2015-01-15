@@ -73,21 +73,21 @@ func TestAttributes_BindTypeFail(t *testing.T) {
 		ToBind interface{}
 	}{
 		{
-			Attr: Attributes{"Integer": 5},
+			Attr: Attributes{"integer": 5},
 			Err:  "should be int",
 			ToBind: &struct {
 				Integer string
 			}{},
 		},
 		{
-			Attr: Attributes{"String": ""},
+			Attr: Attributes{"string": ""},
 			Err:  "should be string",
 			ToBind: &struct {
 				String int
 			}{},
 		},
 		{
-			Attr: Attributes{"Date": time.Time{}},
+			Attr: Attributes{"date": time.Time{}},
 			Err:  "should be time.Time",
 			ToBind: &struct {
 				Date int
@@ -122,7 +122,7 @@ func TestAttributes_Unbind(t *testing.T) {
 		t.Error("Expected three fields, got:", len(attr))
 	}
 
-	if v, ok := attr["Integer"]; !ok {
+	if v, ok := attr["integer"]; !ok {
 		t.Error("Could not find Integer entry.")
 	} else if val, ok := v.(int); !ok {
 		t.Errorf("Underlying type is wrong: %T", v)
@@ -130,7 +130,7 @@ func TestAttributes_Unbind(t *testing.T) {
 		t.Error("Underlying value is wrong:", val)
 	}
 
-	if v, ok := attr["String"]; !ok {
+	if v, ok := attr["string"]; !ok {
 		t.Error("Could not find String entry.")
 	} else if val, ok := v.(string); !ok {
 		t.Errorf("Underlying type is wrong: %T", v)
@@ -138,7 +138,7 @@ func TestAttributes_Unbind(t *testing.T) {
 		t.Error("Underlying value is wrong:", val)
 	}
 
-	if v, ok := attr["Time"]; !ok {
+	if v, ok := attr["time"]; !ok {
 		t.Error("Could not find Time entry.")
 	} else if val, ok := v.(time.Time); !ok {
 		t.Errorf("Underlying type is wrong: %T", v)

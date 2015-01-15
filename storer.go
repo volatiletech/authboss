@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"reflect"
+	"strings"
 	"time"
 	"unicode"
 )
@@ -110,6 +111,9 @@ func (a Attributes) Bind(strct interface{}) error {
 	structVal := reflect.ValueOf(strct).Elem()
 	structType = structVal.Type()
 	for k, v := range a {
+
+		k = strings.Title(k)
+
 		if _, has := structType.FieldByName(k); !has {
 			return fmt.Errorf("Bind: Struct was missing %s field, type: %v", k, reflect.TypeOf(v).String())
 		}
@@ -160,6 +164,8 @@ func Unbind(intf interface{}) Attributes {
 		if unicode.IsLower(rune(name[0])) {
 			continue // Unexported
 		}
+
+		name = strings.ToLower(name)
 
 		switch field.Kind() {
 		case reflect.Struct:

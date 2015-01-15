@@ -84,14 +84,8 @@ func (a AttributeMeta) Names() []string {
 	return names
 }
 
-// Attribute is data along with type information.
-type Attribute struct {
-	Type  DataType
-	Value interface{}
-}
-
 // Attributes is just a key-value mapping of data.
-type Attributes map[string]Attribute
+type Attributes map[string]interface{}
 
 // Names returns the names of all the attributes.
 func (a Attributes) Names() []string {
@@ -117,7 +111,7 @@ func (a Attributes) Bind(strct interface{}) error {
 	structType = structVal.Type()
 	for k, v := range a {
 		if _, has := structType.FieldByName(k); !has {
-			return fmt.Errorf("Bind: Struct was missing %s field, type: %v", k, v.Type)
+			return fmt.Errorf("Bind: Struct was missing %s field, type: %v", k, reflect.TypeOf(v).String())
 		}
 
 		field := structVal.FieldByName(k)
@@ -127,23 +121,23 @@ func (a Attributes) Bind(strct interface{}) error {
 
 		fieldKind := field.Kind()
 		fieldType := field.Type()
-		switch v.Type {
-		case Integer:
+		switch val := v.(type) {
+		case int:
 			if fieldKind != reflect.Int {
 				return fmt.Errorf("Bind: Field %s's type should be %s but was %s", k, reflect.Int.String(), fieldType)
 			}
-			field.SetInt(int64(v.Value.(int)))
-		case String:
+			field.SetInt(int64(val))
+		case string:
 			if fieldKind != reflect.String {
 				return fmt.Errorf("Bind: Field %s's type should be %s but was %s", k, reflect.String.String(), fieldType)
 			}
-			field.SetString(v.Value.(string))
-		case DateTime:
+			field.SetString(val)
+		case time.Time:
 			timeType := dateTimeType
 			if fieldType != timeType {
 				return fmt.Errorf("Bind: Field %s's type should be %s but was %s", k, timeType.String(), fieldType)
 			}
-			field.Set(reflect.ValueOf(v.Value))
+			field.Set(reflect.ValueOf(val))
 		}
 	}
 
@@ -170,21 +164,12 @@ func Unbind(intf interface{}) Attributes {
 		switch field.Kind() {
 		case reflect.Struct:
 			if field.Type() == dateTimeType {
-				attr[name] = Attribute{
-					Type:  DateTime,
-					Value: field.Interface(),
-				}
+				attr[name] = field.Interface()
 			}
 		case reflect.Int:
-			attr[name] = Attribute{
-				Type:  Integer,
-				Value: field.Interface(),
-			}
+			attr[name] = field.Interface()
 		case reflect.String:
-			attr[name] = Attribute{
-				Type:  String,
-				Value: field.Interface(),
-			}
+			attr[name] = field.Interface()
 		}
 	}
 

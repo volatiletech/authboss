@@ -18,9 +18,9 @@ func TestAttributes_Bind(t *testing.T) {
 	aTime := time.Now()
 
 	data := Attributes{
-		"Integer": Attribute{Integer, anInteger},
-		"String":  Attribute{String, aString},
-		"Date":    Attribute{DateTime, aTime},
+		"Integer": anInteger,
+		"String":  aString,
+		"Date":    aTime,
 	}
 
 	s := struct {
@@ -56,7 +56,7 @@ func TestAttributes_BindNoPtr(t *testing.T) {
 }
 
 func TestAttributes_BindMissingField(t *testing.T) {
-	data := Attributes{"Integer": Attribute{Integer, 5}}
+	data := Attributes{"Integer": 5}
 	s := struct{}{}
 
 	if err := data.Bind(&s); err == nil {
@@ -73,21 +73,21 @@ func TestAttributes_BindTypeFail(t *testing.T) {
 		ToBind interface{}
 	}{
 		{
-			Attr: Attributes{"Integer": Attribute{Integer, 5}},
+			Attr: Attributes{"Integer": 5},
 			Err:  "should be int",
 			ToBind: &struct {
 				Integer string
 			}{},
 		},
 		{
-			Attr: Attributes{"String": Attribute{String, ""}},
+			Attr: Attributes{"String": ""},
 			Err:  "should be string",
 			ToBind: &struct {
 				String int
 			}{},
 		},
 		{
-			Attr: Attributes{"Date": Attribute{DateTime, time.Time{}}},
+			Attr: Attributes{"Date": time.Time{}},
 			Err:  "should be time.Time",
 			ToBind: &struct {
 				Date int
@@ -124,31 +124,25 @@ func TestAttributes_Unbind(t *testing.T) {
 
 	if v, ok := attr["Integer"]; !ok {
 		t.Error("Could not find Integer entry.")
-	} else if v.Type != Integer {
-		t.Error("Described type is wrong:", v.Type)
-	} else if i, ok := v.Value.(int); !ok {
+	} else if val, ok := v.(int); !ok {
 		t.Errorf("Underlying type is wrong: %T", v)
-	} else if s1.Integer != i {
-		t.Error("Underlying value is wrong:", i)
+	} else if s1.Integer != val {
+		t.Error("Underlying value is wrong:", val)
 	}
 
 	if v, ok := attr["String"]; !ok {
 		t.Error("Could not find String entry.")
-	} else if v.Type != String {
-		t.Error("Described type is wrong:", v.Type)
-	} else if s, ok := v.Value.(string); !ok {
+	} else if val, ok := v.(string); !ok {
 		t.Errorf("Underlying type is wrong: %T", v)
-	} else if s1.String != s {
-		t.Error("Underlying value is wrong:", s)
+	} else if s1.String != val {
+		t.Error("Underlying value is wrong:", val)
 	}
 
 	if v, ok := attr["Time"]; !ok {
 		t.Error("Could not find Time entry.")
-	} else if v.Type != DateTime {
-		t.Error("Described type is wrong:", v.Type)
-	} else if i, ok := v.Value.(time.Time); !ok {
+	} else if val, ok := v.(time.Time); !ok {
 		t.Errorf("Underlying type is wrong: %T", v)
-	} else if s1.Time != i {
-		t.Error("Underlying value is wrong:", i)
+	} else if s1.Time != val {
+		t.Error("Underlying value is wrong:", val)
 	}
 }

@@ -43,6 +43,7 @@ type Auth struct {
 	loginRedirect  string
 	logger         io.Writer
 	templates      *template.Template
+	callbacks      *authboss.Callbacks
 }
 
 func (a *Auth) Initialize(c *authboss.Config) (err error) {
@@ -69,6 +70,7 @@ func (a *Auth) Initialize(c *authboss.Config) (err error) {
 	a.logoutRedirect = c.AuthLogoutRoute
 	a.loginRedirect = c.AuthLoginSuccessRoute
 	a.logger = c.LogWriter
+	a.callbacks = c.Callbacks
 
 	return nil
 }
@@ -86,8 +88,20 @@ func (a *Auth) loginHandlerFunc(c *authboss.Context, w http.ResponseWriter, r *h
 	case methodGET:
 		a.templates.ExecuteTemplate(w, pageLogin, nil)
 	case methodPOST:
-		u := r.PostFormValue("username")
-		p := r.PostFormValue("password")
+		u, ok := c.FirstPostFormValue("username")
+		if !ok {
+			fmt.Fprintln(a.logger, errors.New("auth: Expected postFormValue 'username' to be in the context"))
+		}
+
+		if err := a.callbacks.FireBefore(authboss.EventAuth, c); err != nil {
+			w.WriteHeader(http.StatusForbidden)
+			a.templates.ExecuteTemplate(w, pageLogin, AuthPage{err.Error(), u})
+		}
+
+		p, ok := c.FirstPostFormValue("password")
+		if !ok {
+			fmt.Fprintln(a.logger, errors.New("auth: Expected postFormValue 'password' to be in the context"))
+		}
 
 		if err := a.authenticate(u, p); err != nil {
 			fmt.Fprintln(a.logger, err)

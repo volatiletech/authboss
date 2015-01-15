@@ -42,7 +42,7 @@ func TestAuthBossRouter(t *testing.T) {
 	t.Parallel()
 
 	c := NewConfig()
-	c.CookieStoreMaker = func(_ *http.Request) ClientStorer {
+	c.CookieStoreMaker = func(_ http.ResponseWriter, _ *http.Request) ClientStorer {
 		return clientStoreMock{}
 	}
 	c.SessionStoreMaker = SessionStoreMaker(c.CookieStoreMaker)

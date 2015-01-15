@@ -17,6 +17,7 @@ type Config struct {
 	CookieStoreMaker  CookieStoreMaker  `json:"-" xml:"-"`
 	SessionStoreMaker SessionStoreMaker `json:"-" xml:"-"`
 	LogWriter         io.Writer         `json:"-" xml:"-"`
+	Callbacks         *Callbacks        `json:"-" xml:"-"`
 }
 
 // NewConfig creates a new config full of default values ready to override.
@@ -29,5 +30,6 @@ func NewConfig() *Config {
 		AuthLoginSuccessRoute: "http://www.google.com",
 
 		LogWriter: ioutil.Discard,
+		Callbacks: NewCallbacks(),
 	}
 }

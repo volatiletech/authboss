@@ -166,7 +166,13 @@ func TestAuth_loginHandlerFunc_POST(t *testing.T) {
 		r.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 		w := httptest.NewRecorder()
 
-		a.loginHandlerFunc(nil, w, r)
+		ctx, err := authboss.ContextFromRequest(r)
+		if err != nil {
+			t.Errorf("%d> Unexpected error '%s'", i, err)
+			continue
+		}
+
+		a.loginHandlerFunc(ctx, w, r)
 
 		if test.StatusCode != w.Code {
 			t.Errorf("%d> Expected status code %d, got %d", i, test.StatusCode, w.Code)

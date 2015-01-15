@@ -14,10 +14,10 @@ type ClientStorer interface {
 
 // CookieStoreMaker is used to create a cookie storer from an http request. Keep in mind
 // security considerations for your implementation, Secure, HTTP-Only, etc flags.
-type CookieStoreMaker func(*http.Request) ClientStorer
+type CookieStoreMaker func(http.ResponseWriter, *http.Request) ClientStorer
 
 // SessionStoreMaker is used to create a session storer from an http request.
 // It must be implemented to satisfy certain modules (auth, remember primarily).
 // It should be a secure storage of the session. This means if it represents a cookie-based session
 // storage these cookies should be signed in order to prevent tampering, or they should be encrypted.
-type SessionStoreMaker func(*http.Request) ClientStorer
+type SessionStoreMaker func(http.ResponseWriter, *http.Request) ClientStorer

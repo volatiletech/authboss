@@ -38,8 +38,8 @@ func (c contextRoute) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	ctx.CookieStorer = c.config.CookieStoreMaker(r)
-	ctx.SessionStorer = c.config.SessionStoreMaker(r)
+	ctx.CookieStorer = c.config.CookieStoreMaker(w, r)
+	ctx.SessionStorer = c.config.SessionStoreMaker(w, r)
 
 	c.fn(ctx, w, r)
 }

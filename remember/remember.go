@@ -54,6 +54,7 @@ func (r *Remember) Initialize(c *authboss.Config) error {
 	}
 
 	r.logger = c.LogWriter
+	c.Callbacks.After(authboss.EventAuth, r.AfterAuth)
 
 	return nil
 }

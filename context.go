@@ -56,6 +56,28 @@ func (c *Context) PostFormValue(key string) ([]string, bool) {
 	return val, ok
 }
 
+// FirstFormValue gets the first form value from a context created with a request.
+func (c *Context) FirstFormValue(key string) (string, bool) {
+	val, ok := c.formValues[key]
+
+	if !ok || len(val) == 0 || len(val[0]) == 0 {
+		return "", false
+	}
+
+	return val[0], ok
+}
+
+// FirstPostFormValue gets the first form value from a context created with a request.
+func (c *Context) FirstPostFormValue(key string) (string, bool) {
+	val, ok := c.postFormValues[key]
+
+	if !ok || len(val) == 0 || len(val[0]) == 0 {
+		return "", false
+	}
+
+	return val[0], ok
+}
+
 // LoadUser loads the user Attributes if they haven't already been loaded.
 func (c *Context) LoadUser(key string, storer Storer) error {
 	if c.User != nil {

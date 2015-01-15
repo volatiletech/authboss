@@ -33,6 +33,8 @@ func init() {
 type AuthPage struct {
 	Error    string
 	Username string
+
+	ShowRemember bool
 }
 
 type Auth struct {
@@ -44,6 +46,8 @@ type Auth struct {
 	logger         io.Writer
 	templates      *template.Template
 	callbacks      *authboss.Callbacks
+
+	isRememberLoaded bool
 }
 
 func (a *Auth) Initialize(c *authboss.Config) (err error) {
@@ -72,6 +76,8 @@ func (a *Auth) Initialize(c *authboss.Config) (err error) {
 	a.logger = c.LogWriter
 	a.callbacks = c.Callbacks
 
+	a.isRememberLoaded = authboss.IsLoaded("remember")
+
 	return nil
 }
 
@@ -86,7 +92,7 @@ func (a *Auth) Storage() authboss.StorageOptions {
 func (a *Auth) loginHandlerFunc(c *authboss.Context, w http.ResponseWriter, r *http.Request) {
 	switch r.Method {
 	case methodGET:
-		a.templates.ExecuteTemplate(w, pageLogin, nil)
+		a.templates.ExecuteTemplate(w, pageLogin, AuthPage{ShowRemember: a.isRememberLoaded})
 	case methodPOST:
 		u, ok := c.FirstPostFormValue("username")
 		if !ok {
@@ -95,7 +101,7 @@ func (a *Auth) loginHandlerFunc(c *authboss.Context, w http.ResponseWriter, r *h
 
 		if err := a.callbacks.FireBefore(authboss.EventAuth, c); err != nil {
 			w.WriteHeader(http.StatusForbidden)
-			a.templates.ExecuteTemplate(w, pageLogin, AuthPage{err.Error(), u})
+			a.templates.ExecuteTemplate(w, pageLogin, AuthPage{err.Error(), u, a.isRememberLoaded})
 		}
 
 		p, ok := c.FirstPostFormValue("password")
@@ -103,28 +109,31 @@ func (a *Auth) loginHandlerFunc(c *authboss.Context, w http.ResponseWriter, r *h
 			fmt.Fprintln(a.logger, errors.New("auth: Expected postFormValue 'password' to be in the context"))
 		}
 
-		if err := a.authenticate(u, p); err != nil {
+		if err := a.authenticate(c, u, p); err != nil {
 			fmt.Fprintln(a.logger, err)
 			w.WriteHeader(http.StatusForbidden)
-			a.templates.ExecuteTemplate(w, pageLogin, AuthPage{"invalid username and/or password", u})
+			a.templates.ExecuteTemplate(w, pageLogin, AuthPage{"invalid username and/or password", u, a.isRememberLoaded})
 			return
 		}
+
+		a.callbacks.FireAfter(authboss.EventAuth, c)
+
 		http.Redirect(w, r, a.loginRedirect, http.StatusFound)
 	default:
 		w.WriteHeader(http.StatusMethodNotAllowed)
 	}
 }
 
-func (a *Auth) authenticate(username, password string) error {
+func (a *Auth) authenticate(c *authboss.Context, username, password string) error {
 	var userInter interface{}
 	var err error
 	if userInter, err = a.storer.Get(username, nil); err != nil {
 		return err
 	}
 
-	userAttrs := authboss.Unbind(userInter)
+	c.User = authboss.Unbind(userInter)
 
-	pwdIntf, ok := userAttrs[attrPassword]
+	pwdIntf, ok := c.User[attrPassword]
 	if !ok {
 		return errors.New("auth: User attributes did not include a password.")
 	}

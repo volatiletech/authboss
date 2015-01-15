@@ -139,8 +139,8 @@ func TestAuth_loginHandlerFunc_POST(t *testing.T) {
 		BodyData           *AuthPage
 	}{
 		{"john", "1234", http.StatusFound, "/dashboard", nil},
-		{"jane", "1234", http.StatusForbidden, "", &AuthPage{"invalid username and/or password", "jane"}},
-		{"mike", "", http.StatusForbidden, "", &AuthPage{"invalid username and/or password", "jane"}},
+		{"jane", "1234", http.StatusForbidden, "", &AuthPage{"invalid username and/or password", "jane", false}},
+		{"mike", "", http.StatusForbidden, "", &AuthPage{"invalid username and/or password", "jane", false}},
 	}
 
 	c := authboss.NewConfig()

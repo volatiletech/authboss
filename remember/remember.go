@@ -69,7 +69,7 @@ func (r *Remember) Storage() authboss.StorageOptions {
 
 // AfterAuth is called after authentication is successful.
 func (r *Remember) AfterAuth(ctx *authboss.Context) {
-	if val, ok := ctx.FormValue(ValueKey); !ok || val[0] != "true" {
+	if val, ok := ctx.FirstPostFormValue(ValueKey); !ok || val != "true" {
 		return
 	}
 
@@ -83,6 +83,7 @@ func (r *Remember) AfterAuth(ctx *authboss.Context) {
 		fmt.Fprintf(r.logger, "remember: username not present")
 		return
 	}
+
 	key, ok := keyIntf.(string)
 	if !ok {
 		fmt.Fprintf(r.logger, "remember: username not a string")

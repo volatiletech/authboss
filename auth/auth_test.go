@@ -51,8 +51,8 @@ func TestAuth_Storage(t *testing.T) {
 		Name string
 		Type authboss.DataType
 	}{
-		{"Username", authboss.String},
-		{"Password", authboss.String},
+		{"username", authboss.String},
+		{"password", authboss.String},
 	}
 
 	for i, test := range tests {
@@ -143,10 +143,9 @@ func TestAuth_loginHandlerFunc_POST(t *testing.T) {
 		{"mike", "", http.StatusForbidden, "", &AuthPage{"invalid username and/or password", "jane"}},
 	}
 
-	c := &authboss.Config{
-		Storer:                NewMockUserStorer(),
-		AuthLoginSuccessRoute: "/dashboard",
-	}
+	c := authboss.NewConfig()
+	c.Storer = NewMockUserStorer()
+	c.AuthLoginSuccessRoute = "/dashboard"
 
 	for i, test := range tests {
 		a := &Auth{}

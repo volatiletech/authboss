@@ -8,6 +8,11 @@ import (
 	"testing"
 )
 
+type clientStoreMock struct{}
+
+func (c clientStoreMock) Get(_ string) (string, bool) { return "", false }
+func (c clientStoreMock) Put(_, _ string)             {}
+
 func TestMain(main *testing.M) {
 	RegisterModule("testmodule", testMod)
 	Init(NewConfig())
@@ -37,6 +42,10 @@ func TestAuthBossRouter(t *testing.T) {
 	t.Parallel()
 
 	c := NewConfig()
+	c.CookieStoreMaker = func(_ *http.Request) ClientStorer {
+		return clientStoreMock{}
+	}
+	c.SessionStoreMaker = SessionStoreMaker(c.CookieStoreMaker)
 	c.MountPath = "/candycanes"
 	c.LogWriter = os.Stdout
 

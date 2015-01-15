@@ -74,9 +74,20 @@ func (r *Remember) AfterAuth(ctx *authboss.Context) {
 
 	if ctx.User == nil {
 		fmt.Fprintf(r.logger, "remember: AfterAuth no user loaded")
+		return
 	}
 
-	key := ctx.User["username"].(string)
+	keyIntf, ok := ctx.User["username"]
+	if !ok {
+		fmt.Fprintf(r.logger, "remember: username not present")
+		return
+	}
+	key, ok := keyIntf.(string)
+	if !ok {
+		fmt.Fprintf(r.logger, "remember: username not a string")
+		return
+	}
+
 	if _, err := r.New(ctx.CookieStorer, key); err != nil {
 		fmt.Fprintf(r.logger, "remember: Failed to create remember token: %v", err)
 	}

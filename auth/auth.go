@@ -2,6 +2,7 @@ package auth
 
 import (
 	"errors"
+	"fmt"
 	"net/http"
 	"path/filepath"
 
@@ -20,8 +21,8 @@ const (
 
 	pageLogin = "login.tpl"
 
-	attrUsername = "Username"
-	attrPassword = "Password"
+	attrUsername = "username"
+	attrPassword = "password"
 )
 
 func init() {
@@ -37,7 +38,7 @@ type AuthPage struct {
 type Auth struct {
 	routes         authboss.RouteTable
 	storageOptions authboss.StorageOptions
-	users          authboss.Storer
+	storer         authboss.Storer
 	logoutRedirect string
 	loginRedirect  string
 	logger         io.Writer
@@ -64,9 +65,10 @@ func (a *Auth) Initialize(c *authboss.Config) (err error) {
 		attrUsername: authboss.String,
 		attrPassword: authboss.String,
 	}
-	a.users = c.Storer
+	a.storer = c.Storer
 	a.logoutRedirect = c.AuthLogoutRoute
 	a.loginRedirect = c.AuthLoginSuccessRoute
+	a.logger = c.LogWriter
 
 	return nil
 }
@@ -88,6 +90,7 @@ func (a *Auth) loginHandlerFunc(c *authboss.Context, w http.ResponseWriter, r *h
 		p := r.PostFormValue("password")
 
 		if err := a.authenticate(u, p); err != nil {
+			fmt.Fprintln(a.logger, err)
 			w.WriteHeader(http.StatusForbidden)
 			a.templates.ExecuteTemplate(w, pageLogin, AuthPage{"invalid username and/or password", u})
 			return
@@ -99,13 +102,26 @@ func (a *Auth) loginHandlerFunc(c *authboss.Context, w http.ResponseWriter, r *h
 }
 
 func (a *Auth) authenticate(username, password string) error {
-	if userInter, err := a.users.Get(username, nil); err != nil {
+	var userInter interface{}
+	var err error
+	if userInter, err = a.storer.Get(username, nil); err != nil {
 		return err
-	} else {
-		userAttrs := authboss.Unbind(userInter)
-		if err := bcrypt.CompareHashAndPassword([]byte(userAttrs[attrPassword].Value.(string)), []byte(password)); err != nil {
-			return errors.New("invalid password")
-		}
+	}
+
+	userAttrs := authboss.Unbind(userInter)
+
+	pwdIntf, ok := userAttrs[attrPassword]
+	if !ok {
+		return errors.New("auth: User attributes did not include a password.")
+	}
+
+	pwd, ok := pwdIntf.(string)
+	if !ok {
+		return errors.New("auth: User password was not a string somehow.")
+	}
+
+	if err := bcrypt.CompareHashAndPassword([]byte(pwd), []byte(password)); err != nil {
+		return errors.New("invalid password")
 	}
 
 	return nil

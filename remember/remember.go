@@ -68,18 +68,17 @@ func (r *Remember) Storage() authboss.StorageOptions {
 
 // AfterAuth is called after authentication is successful.
 func (r *Remember) AfterAuth(ctx *authboss.Context) {
-	if val, ok := ctx.Get(ValueKey); ok && val != "true" {
+	if val, ok := ctx.FormValue(ValueKey); !ok || val[0] != "true" {
 		return
 	}
 
-	if err := ctx.LoadUser(r.storer); err != nil {
-		fmt.Fprintln(r.logger, "remember: Failed to load user:", err)
-		return
+	if ctx.User == nil {
+		fmt.Fprintf(r.logger, "remember: AfterAuth no user loaded")
 	}
 
-	key := ctx.User["Username"].(string)
+	key := ctx.User["username"].(string)
 	if _, err := r.New(ctx.CookieStorer, key); err != nil {
-		fmt.Fprintf(r.logger, "Failed to create remember token: %v", err)
+		fmt.Fprintf(r.logger, "remember: Failed to create remember token: %v", err)
 	}
 }
 

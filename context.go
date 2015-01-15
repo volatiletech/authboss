@@ -57,10 +57,16 @@ func (c *Context) PostFormValue(key string) ([]string, bool) {
 }
 
 // LoadUser loads the user Attributes if they haven't already been loaded.
-func (c *Context) LoadUser(storer Storer) error {
+func (c *Context) LoadUser(key string, storer Storer) error {
 	if c.User != nil {
 		return nil
 	}
 
+	intf, err := storer.Get(key, moduleAttrMeta)
+	if err != nil {
+		return err
+	}
+
+	c.User = Unbind(intf)
 	return nil
 }

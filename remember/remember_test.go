@@ -1,6 +1,8 @@
 package remember
 
 import (
+	"bytes"
+	"net/http"
 	"testing"
 
 	"gopkg.in/authboss.v0"
@@ -75,11 +77,31 @@ func TestInitialize(t *testing.T) {
 }
 
 func TestAfterAuth(t *testing.T) {
-	// TODO(aarondl): This
+	storer := &testTokenStorer{}
+	R.storer = storer
+	cookies := make(testClientStorer)
+	session := make(testClientStorer)
 
-	/*ctx := authboss.NewContext()
+	req, err := http.NewRequest("POST", "http://localhost", bytes.NewBufferString("rm=true"))
+	if err != nil {
+		t.Error("Unexpected Error:", err)
+	}
+	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+
+	ctx, err := authboss.ContextFromRequest(req)
+	if err != nil {
+		t.Error("Unexpected error:", err)
+	}
+
 	ctx.SessionStorer = session
-	ctx.CookieStorer = cookies*/
+	ctx.CookieStorer = cookies
+	ctx.User = authboss.Attributes{"username": "testuser"}
+
+	R.AfterAuth(ctx)
+
+	if _, ok := cookies[ValueKey]; !ok {
+		t.Error("Expected a cookie to have been set.")
+	}
 }
 
 func TestNew(t *testing.T) {

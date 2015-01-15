@@ -19,7 +19,7 @@ func NewRouter(config *Config) http.Handler {
 	for name, mod := range modules {
 		for route, handler := range mod.Routes() {
 			fmt.Fprintf(logger, "[%-10s] Register Route: %s\n", name, route)
-			mux.Handle(path.Join(config.MountPath, route), contextRoute{handler})
+			mux.Handle(path.Join(config.MountPath, route), contextRoute{handler, config})
 		}
 	}
 
@@ -27,11 +27,19 @@ func NewRouter(config *Config) http.Handler {
 }
 
 type contextRoute struct {
-	fn HandlerFunc
+	fn     HandlerFunc
+	config *Config
 }
 
 func (c contextRoute) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	ctx := NewContext()
+	ctx, err := ContextFromRequest(r)
+	if err != nil {
+		fmt.Fprintf(c.config.LogWriter, "route: Malformed request, could not create context: %v", err)
+		return
+	}
+
+	ctx.CookieStorer = c.config.CookieStoreMaker(r)
+	ctx.SessionStorer = c.config.SessionStoreMaker(r)
 
 	c.fn(ctx, w, r)
 }

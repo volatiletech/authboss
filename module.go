@@ -2,6 +2,8 @@ package authboss
 
 var modules = make(map[string]Modularizer)
 
+var moduleAttrMeta = make(AttributeMeta)
+
 // Modularizer should be implemented by all the authboss modules.
 type Modularizer interface {
 	Initialize(*Config) error
@@ -13,6 +15,10 @@ type Modularizer interface {
 // integrate into authboss.
 func RegisterModule(name string, m Modularizer) {
 	modules[name] = m
+
+	for k, v := range m.Storage() {
+		moduleAttrMeta[k] = v
+	}
 }
 
 // LoadedModules returns a list of modules that are currently loaded.

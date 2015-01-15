@@ -1,6 +1,9 @@
 package authboss
 
-import "testing"
+import (
+	"errors"
+	"testing"
+)
 
 func TestCallbacks(t *testing.T) {
 	afterCalled := false
@@ -34,5 +37,34 @@ func TestCallbacks(t *testing.T) {
 	c.FireAfter(EventRegister, NewContext())
 	if !afterCalled {
 		t.Error("Expected after to be called.")
+	}
+}
+
+func TestCallbacksInterrupt(t *testing.T) {
+	before1 := false
+	before2 := false
+	c := NewCallbacks()
+
+	errValue := errors.New("Problem occured.")
+
+	c.Before(EventRegister, func(ctx *Context) error {
+		before1 = true
+		return errValue
+	})
+	c.Before(EventRegister, func(ctx *Context) error {
+		before2 = true
+		return nil
+	})
+
+	err := c.FireBefore(EventRegister, NewContext())
+	if err != errValue {
+		t.Error("Expected an error to come back.")
+	}
+
+	if !before1 {
+		t.Error("Before1 should have been called.")
+	}
+	if before2 {
+		t.Error("Before2 should not have been called.")
 	}
 }

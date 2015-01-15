@@ -12,6 +12,58 @@ func (t testStorer) Create(key string, attr Attributes) error                   
 func (t testStorer) Put(key string, attr Attributes) error                       { return nil }
 func (t testStorer) Get(key string, attrMeta AttributeMeta) (interface{}, error) { return nil, nil }
 
+func TestAttributes_Names(t *testing.T) {
+	attr := Attributes{
+		"integer": 5,
+		"string":  "string",
+		"date":    time.Now(),
+	}
+	names := attr.Names()
+
+	found := map[string]bool{"integer": false, "string": false, "date": false}
+	for _, n := range names {
+		found[n] = true
+	}
+
+	for k, v := range found {
+		if !v {
+			t.Error("Could not find:", k)
+		}
+	}
+}
+
+func TestAttributeMeta_Names(t *testing.T) {
+	meta := AttributeMeta{
+		"integer": Integer,
+		"string":  String,
+		"date":    DateTime,
+	}
+	names := meta.Names()
+
+	found := map[string]bool{"integer": false, "string": false, "date": false}
+	for _, n := range names {
+		found[n] = true
+	}
+
+	for k, v := range found {
+		if !v {
+			t.Error("Could not find:", k)
+		}
+	}
+}
+
+func TestDataType_String(t *testing.T) {
+	if Integer.String() != "Integer" {
+		t.Error("Expected Integer:", Integer)
+	}
+	if String.String() != "String" {
+		t.Error("Expected String:", String)
+	}
+	if DateTime.String() != "DateTime" {
+		t.Error("Expected DateTime:", DateTime)
+	}
+}
+
 func TestAttributes_Bind(t *testing.T) {
 	anInteger := 5
 	aString := "string"
@@ -117,7 +169,7 @@ func TestAttributes_Unbind(t *testing.T) {
 		unexported int
 	}{5, "string", time.Now(), 5, nil, 5}
 
-	attr := Unbind(s1)
+	attr := Unbind(&s1)
 	if len(attr) != 3 {
 		t.Error("Expected three fields, got:", len(attr))
 	}

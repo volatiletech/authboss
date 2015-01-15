@@ -44,6 +44,10 @@ func TestRegister(t *testing.T) {
 	if _, ok := modules["testmodule"]; !ok {
 		t.Error("Expected module to be saved.")
 	}
+
+	if !IsLoaded("testmodule") {
+		t.Error("Expected module to be loaded.")
+	}
 }
 
 func TestLoadedModules(t *testing.T) {

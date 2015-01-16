@@ -18,10 +18,6 @@ import (
 const (
 	// ValueKey is used for cookies and form input names.
 	ValueKey = "rm"
-	// HalfAuthKey is used for sessions that have been authenticated by
-	// the remember module. This serves as a way to force full authentication
-	// by denying half-authed users acccess to sensitive areas.
-	HalfAuthKey = "halfauth"
 )
 
 const nRandBytes = 32
@@ -155,7 +151,7 @@ func (r *Remember) Auth(
 	}
 
 	// Ensure a half-auth.
-	sstorer.Put(HalfAuthKey, "true")
+	sstorer.Put(authboss.HalfAuthKey, "true")
 	// Log the user in.
 	sstorer.Put(authboss.SessionKey, key)
 

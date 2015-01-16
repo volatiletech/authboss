@@ -12,6 +12,7 @@ type clientStoreMock struct{}
 
 func (c clientStoreMock) Get(_ string) (string, bool) { return "", false }
 func (c clientStoreMock) Put(_, _ string)             {}
+func (c clientStoreMock) Del(_ string)                {}
 
 func TestMain(main *testing.M) {
 	RegisterModule("testmodule", testMod)

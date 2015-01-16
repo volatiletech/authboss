@@ -115,7 +115,14 @@ func TestAuth_loginHandlerFunc_GET(t *testing.T) {
 		}
 		w := httptest.NewRecorder()
 
-		a.loginHandlerFunc(nil, w, r)
+		ctx, err := authboss.ContextFromRequest(r)
+		if err != nil {
+			t.Errorf("%d> Unexpected error '%s'", i, err)
+			continue
+		}
+		ctx.SessionStorer = testClientStorer{}
+
+		a.loginHandlerFunc(ctx, w, r)
 
 		if tpl, err := getCompiledTemplate("views/login.tpl", nil); err != nil {
 			t.Errorf("%d> Unexpected error '%s'", i, err)
@@ -135,12 +142,13 @@ func TestAuth_loginHandlerFunc_POST(t *testing.T) {
 	tests := []struct {
 		Username, Password string
 		StatusCode         int
+		LoginSuccess       bool
 		Location           string
 		BodyData           *AuthPage
 	}{
-		{"john", "1234", http.StatusFound, "/dashboard", nil},
-		{"jane", "1234", http.StatusForbidden, "", &AuthPage{"invalid username and/or password", "jane", false}},
-		{"mike", "", http.StatusForbidden, "", &AuthPage{"invalid username and/or password", "jane", false}},
+		{"john", "1234", http.StatusFound, true, "/dashboard", nil},
+		{"jane", "1234", http.StatusForbidden, false, "", &AuthPage{"invalid username and/or password", "jane", false}},
+		{"mike", "", http.StatusForbidden, false, "", &AuthPage{"invalid username and/or password", "jane", false}},
 	}
 
 	c := authboss.NewConfig()
@@ -171,8 +179,17 @@ func TestAuth_loginHandlerFunc_POST(t *testing.T) {
 			t.Errorf("%d> Unexpected error '%s'", i, err)
 			continue
 		}
+		ctx.SessionStorer = testClientStorer{}
 
 		a.loginHandlerFunc(ctx, w, r)
+
+		if test.LoginSuccess {
+			if val, ok := ctx.SessionStorer.Get(authboss.SessionKey); !ok {
+				t.Errorf("%d> Expected login to be present", i)
+			} else if val != test.Username {
+				t.Errorf("%d> Expected username %s, got %s", i, test.Username, val)
+			}
+		}
 
 		if test.StatusCode != w.Code {
 			t.Errorf("%d> Expected status code %d, got %d", i, test.StatusCode, w.Code)
@@ -234,7 +251,16 @@ func TestAuth_logoutHandlerFunc_GET(t *testing.T) {
 	}
 	w := httptest.NewRecorder()
 
-	a.logoutHandlerFunc(nil, w, r)
+	ctx, err := authboss.ContextFromRequest(r)
+	if err != nil {
+		t.Errorf("Unexpected error '%s'", err)
+	}
+	ctx.SessionStorer = testClientStorer{authboss.SessionKey: "asdf"}
+	a.logoutHandlerFunc(ctx, w, r)
+
+	if _, ok := ctx.SessionStorer.Get(authboss.SessionKey); ok {
+		t.Errorf("Expected to be logged out")
+	}
 
 	if http.StatusFound != w.Code {
 		t.Errorf("Expected status code %d, got %d", http.StatusFound, w.Code)

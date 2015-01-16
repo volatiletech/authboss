@@ -42,3 +42,18 @@ func (s MockUserStorer) Get(key string, attrMeta authboss.AttributeMeta) (result
 
 	return nil, errors.New("User not found")
 }
+
+type testClientStorer map[string]string
+
+func (t testClientStorer) Put(key, value string) {
+	t[key] = value
+}
+
+func (t testClientStorer) Get(key string) (string, bool) {
+	s, ok := t[key]
+	return s, ok
+}
+
+func (t testClientStorer) Del(key string) {
+	delete(t, key)
+}

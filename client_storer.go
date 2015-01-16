@@ -2,14 +2,21 @@ package authboss
 
 import "net/http"
 
-// SessionKey is the primarily used key by authboss.
-const SessionKey = "uid"
+const (
+	// SessionKey is the primarily used key by authboss.
+	SessionKey = "uid"
+	// HalfAuthKey is used for sessions that have been authenticated by
+	// the remember module. This serves as a way to force full authentication
+	// by denying half-authed users acccess to sensitive areas.
+	HalfAuthKey = "halfauth"
+)
 
 // ClientStorer should be able to store values on the clients machine. Cookie and
 // Session storers are built with this interface.
 type ClientStorer interface {
 	Put(key, value string)
 	Get(key string) (string, bool)
+	Del(key string)
 }
 
 // CookieStoreMaker is used to create a cookie storer from an http request. Keep in mind

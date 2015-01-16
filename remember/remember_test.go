@@ -19,6 +19,10 @@ func (t testClientStorer) Get(key string) (string, bool) {
 	return s, ok
 }
 
+func (t testClientStorer) Del(key string) {
+	delete(t, key)
+}
+
 type testStorer struct {
 }
 
@@ -150,7 +154,7 @@ func TestAuth(t *testing.T) {
 		t.Error("Unexpected error:", err)
 	}
 
-	if session[HalfAuthKey] != "true" {
+	if session[authboss.HalfAuthKey] != "true" {
 		t.Error("The user should have been half-authed.")
 	}
 

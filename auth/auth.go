@@ -89,34 +89,41 @@ func (a *Auth) Storage() authboss.StorageOptions {
 	return a.storageOptions
 }
 
-func (a *Auth) loginHandlerFunc(c *authboss.Context, w http.ResponseWriter, r *http.Request) {
+func (a *Auth) loginHandlerFunc(ctx *authboss.Context, w http.ResponseWriter, r *http.Request) {
 	switch r.Method {
 	case methodGET:
+		if _, ok := ctx.SessionStorer.Get(authboss.SessionKey); ok {
+			if halfAuthed, ok := ctx.SessionStorer.Get(authboss.HalfAuthKey); !ok || halfAuthed == "false" {
+				http.Redirect(w, r, a.loginRedirect, http.StatusFound)
+			}
+		}
+
 		a.templates.ExecuteTemplate(w, pageLogin, AuthPage{ShowRemember: a.isRememberLoaded})
 	case methodPOST:
-		u, ok := c.FirstPostFormValue("username")
+		u, ok := ctx.FirstPostFormValue("username")
 		if !ok {
 			fmt.Fprintln(a.logger, errors.New("auth: Expected postFormValue 'username' to be in the context"))
 		}
 
-		if err := a.callbacks.FireBefore(authboss.EventAuth, c); err != nil {
+		if err := a.callbacks.FireBefore(authboss.EventAuth, ctx); err != nil {
 			w.WriteHeader(http.StatusForbidden)
 			a.templates.ExecuteTemplate(w, pageLogin, AuthPage{err.Error(), u, a.isRememberLoaded})
 		}
 
-		p, ok := c.FirstPostFormValue("password")
+		p, ok := ctx.FirstPostFormValue("password")
 		if !ok {
 			fmt.Fprintln(a.logger, errors.New("auth: Expected postFormValue 'password' to be in the context"))
 		}
 
-		if err := a.authenticate(c, u, p); err != nil {
+		if err := a.authenticate(ctx, u, p); err != nil {
 			fmt.Fprintln(a.logger, err)
 			w.WriteHeader(http.StatusForbidden)
 			a.templates.ExecuteTemplate(w, pageLogin, AuthPage{"invalid username and/or password", u, a.isRememberLoaded})
 			return
 		}
 
-		a.callbacks.FireAfter(authboss.EventAuth, c)
+		ctx.SessionStorer.Put(authboss.SessionKey, u)
+		a.callbacks.FireAfter(authboss.EventAuth, ctx)
 
 		http.Redirect(w, r, a.loginRedirect, http.StatusFound)
 	default:
@@ -124,16 +131,16 @@ func (a *Auth) loginHandlerFunc(c *authboss.Context, w http.ResponseWriter, r *h
 	}
 }
 
-func (a *Auth) authenticate(c *authboss.Context, username, password string) error {
+func (a *Auth) authenticate(ctx *authboss.Context, username, password string) error {
 	var userInter interface{}
 	var err error
 	if userInter, err = a.storer.Get(username, nil); err != nil {
 		return err
 	}
 
-	c.User = authboss.Unbind(userInter)
+	ctx.User = authboss.Unbind(userInter)
 
-	pwdIntf, ok := c.User[attrPassword]
+	pwdIntf, ok := ctx.User[attrPassword]
 	if !ok {
 		return errors.New("auth: User attributes did not include a password.")
 	}
@@ -150,9 +157,10 @@ func (a *Auth) authenticate(c *authboss.Context, username, password string) erro
 	return nil
 }
 
-func (a *Auth) logoutHandlerFunc(c *authboss.Context, w http.ResponseWriter, r *http.Request) {
+func (a *Auth) logoutHandlerFunc(ctx *authboss.Context, w http.ResponseWriter, r *http.Request) {
 	switch r.Method {
 	case methodGET:
+		ctx.SessionStorer.Del(authboss.SessionKey)
 		http.Redirect(w, r, a.logoutRedirect, http.StatusFound)
 	default:
 		w.WriteHeader(http.StatusMethodNotAllowed)

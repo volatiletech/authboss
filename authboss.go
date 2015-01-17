@@ -14,7 +14,10 @@ import (
 	"io/ioutil"
 )
 
-var logger io.Writer = ioutil.Discard
+var (
+	logger  io.Writer = ioutil.Discard
+	emailer mailer
+)
 
 // Init authboss and it's loaded modules with a configuration.
 func Init(config *Config) error {
@@ -23,6 +26,13 @@ func Init(config *Config) error {
 	}
 
 	logger = config.LogWriter
+
+	switch config.Mailer {
+	case MailerSMTP:
+		// dance
+	default:
+		emailer = newLogMailer(logger)
+	}
 
 	for name, mod := range modules {
 		fmt.Fprintf(logger, "[%-10s] Initializing\n", name)

@@ -35,6 +35,7 @@ type AuthPage struct {
 	Username string
 
 	ShowRemember bool
+	ShowRecover  bool
 }
 
 type Auth struct {
@@ -48,6 +49,7 @@ type Auth struct {
 	callbacks      *authboss.Callbacks
 
 	isRememberLoaded bool
+	isRecoverLoaded  bool
 }
 
 func (a *Auth) Initialize(c *authboss.Config) (err error) {
@@ -77,6 +79,7 @@ func (a *Auth) Initialize(c *authboss.Config) (err error) {
 	a.callbacks = c.Callbacks
 
 	a.isRememberLoaded = authboss.IsLoaded("remember")
+	a.isRecoverLoaded = authboss.IsLoaded("recover")
 
 	return nil
 }
@@ -98,7 +101,7 @@ func (a *Auth) loginHandlerFunc(ctx *authboss.Context, w http.ResponseWriter, r 
 			}
 		}
 
-		a.templates.ExecuteTemplate(w, pageLogin, AuthPage{ShowRemember: a.isRememberLoaded})
+		a.templates.ExecuteTemplate(w, pageLogin, AuthPage{ShowRemember: a.isRememberLoaded, ShowRecover: a.isRecoverLoaded})
 	case methodPOST:
 		u, ok := ctx.FirstPostFormValue("username")
 		if !ok {
@@ -107,7 +110,7 @@ func (a *Auth) loginHandlerFunc(ctx *authboss.Context, w http.ResponseWriter, r 
 
 		if err := a.callbacks.FireBefore(authboss.EventAuth, ctx); err != nil {
 			w.WriteHeader(http.StatusForbidden)
-			a.templates.ExecuteTemplate(w, pageLogin, AuthPage{err.Error(), u, a.isRememberLoaded})
+			a.templates.ExecuteTemplate(w, pageLogin, AuthPage{err.Error(), u, a.isRememberLoaded, a.isRecoverLoaded})
 		}
 
 		p, ok := ctx.FirstPostFormValue("password")
@@ -118,7 +121,7 @@ func (a *Auth) loginHandlerFunc(ctx *authboss.Context, w http.ResponseWriter, r 
 		if err := a.authenticate(ctx, u, p); err != nil {
 			fmt.Fprintln(a.logger, err)
 			w.WriteHeader(http.StatusForbidden)
-			a.templates.ExecuteTemplate(w, pageLogin, AuthPage{"invalid username and/or password", u, a.isRememberLoaded})
+			a.templates.ExecuteTemplate(w, pageLogin, AuthPage{"invalid username and/or password", u, a.isRememberLoaded, a.isRecoverLoaded})
 			return
 		}
 

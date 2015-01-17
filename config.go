@@ -18,6 +18,7 @@ type Config struct {
 	SessionStoreMaker SessionStoreMaker `json:"-" xml:"-"`
 	LogWriter         io.Writer         `json:"-" xml:"-"`
 	Callbacks         *Callbacks        `json:"-" xml:"-"`
+	Mailer            Mailer            `json:"-" xml:"-"`
 }
 
 // NewConfig creates a new config full of default values ready to override.
@@ -31,5 +32,6 @@ func NewConfig() *Config {
 
 		LogWriter: ioutil.Discard,
 		Callbacks: NewCallbacks(),
+		Mailer:    MailerLog,
 	}
 }

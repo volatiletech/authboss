@@ -1,11 +1,15 @@
 package recover
 
 import (
+	"crypto/rand"
 	"errors"
+	"fmt"
 	"html/template"
 	"net/http"
 	"path/filepath"
 	"strings"
+
+	"io"
 
 	"gopkg.in/authboss.v0"
 )
@@ -16,7 +20,8 @@ const (
 
 	pageRecover = "recover.tpl"
 
-	attrUsername = "Username"
+	attrUsername   = "username"
+	attrResetToken = "resettoken"
 )
 
 func init() {
@@ -25,14 +30,15 @@ func init() {
 }
 
 type RecoverPage struct {
-	Username, Error string
+	Username, ConfirmUsername, Error string
 }
 
 type RecoverModule struct {
 	templates      *template.Template
 	routes         authboss.RouteTable
 	storageOptions authboss.StorageOptions
-	users          authboss.Storer
+	storer         authboss.Storer
+	logger         io.Writer
 }
 
 func (m *RecoverModule) Initialize(c *authboss.Config) (err error) {
@@ -51,9 +57,11 @@ func (m *RecoverModule) Initialize(c *authboss.Config) (err error) {
 		"recover": m.recoverHandlerFunc,
 	}
 	m.storageOptions = authboss.StorageOptions{
-		attrUsername: authboss.String,
+		attrUsername:   authboss.String,
+		attrResetToken: authboss.String,
 	}
-	m.users = c.Storer
+	m.storer = c.Storer
+	m.logger = c.LogWriter
 
 	return nil
 }
@@ -66,17 +74,24 @@ func (m *RecoverModule) Storage() authboss.StorageOptions {
 	return m.storageOptions
 }
 
-func (m *RecoverModule) recoverHandlerFunc(c *authboss.Context, w http.ResponseWriter, r *http.Request) {
+func (m *RecoverModule) recoverHandlerFunc(ctx *authboss.Context, w http.ResponseWriter, r *http.Request) {
 	switch r.Method {
 	case methodGET:
 		m.templates.ExecuteTemplate(w, pageRecover, nil)
 	case methodPOST:
-		u := r.PostFormValue("username")
-		cu := r.PostFormValue("confirmUsername")
+		username, ok := ctx.FirstPostFormValue("username")
+		if !ok {
+			fmt.Fprintln(m.logger, errors.New("recover: Expected postFormValue 'username' to be in the context"))
+		}
 
-		if err := recoverAccount(u, cu); err != nil {
+		confirmUsername, ok := ctx.FirstPostFormValue("confirmUsername")
+		if !ok {
+			fmt.Fprintln(m.logger, errors.New("recover: Expected postFormValue 'confirmUsername' to be in the context"))
+		}
+
+		if err := m.initiateRecover(ctx, username, confirmUsername); err != nil {
 			w.WriteHeader(http.StatusBadRequest)
-			m.templates.ExecuteTemplate(w, pageRecover, RecoverPage{u, err.Error()})
+			m.templates.ExecuteTemplate(w, pageRecover, RecoverPage{username, confirmUsername, err.Error()})
 			return
 		}
 	default:
@@ -84,10 +99,21 @@ func (m *RecoverModule) recoverHandlerFunc(c *authboss.Context, w http.ResponseW
 	}
 }
 
-func recoverAccount(username, confirmUsername string) error {
+func (m *RecoverModule) initiateRecover(ctx *authboss.Context, username, confirmUsername string) error {
 	if !strings.EqualFold(username, confirmUsername) {
 		return errors.New("Confirm username does not match")
 	}
+
+	token := make([]byte, 32)
+	if _, err := rand.Read(token); err != nil {
+		return err
+	}
+
+	if err := ctx.LoadUser(username, m.storer); err != nil {
+		return err
+	}
+
+	authboss.SendEmail("", "", []byte)
 
 	return nil
 }

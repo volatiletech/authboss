@@ -8,12 +8,6 @@ import (
 	"testing"
 )
 
-type clientStoreMock struct{}
-
-func (c clientStoreMock) Get(_ string) (string, bool) { return "", false }
-func (c clientStoreMock) Put(_, _ string)             {}
-func (c clientStoreMock) Del(_ string)                {}
-
 func TestMain(main *testing.M) {
 	RegisterModule("testmodule", testMod)
 	Init(NewConfig())
@@ -29,7 +23,7 @@ func TestAuthBossInit(t *testing.T) {
 		t.Error("Expected error about a storer, got:", err)
 	}
 
-	c.Storer = testStorer(0)
+	c.Storer = mockStorer{}
 	err = Init(c)
 	if err != nil {
 		t.Error("Unexpected error:", err)
@@ -41,9 +35,9 @@ func TestAuthBossInit(t *testing.T) {
 
 func TestAuthBossRouter(t *testing.T) {
 	c := NewConfig()
-	c.Storer = testStorer(0)
+	c.Storer = mockStorer{}
 	c.CookieStoreMaker = func(_ http.ResponseWriter, _ *http.Request) ClientStorer {
-		return clientStoreMock{}
+		return mockClientStore{}
 	}
 	c.SessionStoreMaker = SessionStoreMaker(c.CookieStoreMaker)
 	c.MountPath = "/candycanes"
@@ -60,5 +54,27 @@ func TestAuthBossRouter(t *testing.T) {
 
 	if response.Header().Get("testhandler") != "test" {
 		t.Error("Expected a header to have been set.")
+	}
+}
+
+func TestAuthBossCurrentUser(t *testing.T) {
+	c := NewConfig()
+	c.Storer = mockStorer{"joe": Attributes{"email": "john@john.com", "password": "lies"}}
+	c.SessionStoreMaker = func(_ http.ResponseWriter, _ *http.Request) ClientStorer {
+		return mockClientStore{SessionKey: "joe"}
+	}
+
+	if err := Init(c); err != nil {
+		t.Error("Unexpected error:", err)
+	}
+
+	rec := httptest.NewRecorder()
+	req, _ := http.NewRequest("GET", "localhost", nil)
+
+	userStruct := CurrentUserP(rec, req)
+	us := userStruct.(*mockUser)
+
+	if us.Email != "john@john.com" || us.Password != "lies" {
+		t.Error("Wrong user found!")
 	}
 }

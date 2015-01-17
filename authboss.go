@@ -10,6 +10,7 @@ package authboss // import "gopkg.in/authboss.v0"
 import (
 	"errors"
 	"fmt"
+	"net/http"
 )
 
 var (
@@ -40,4 +41,22 @@ func Init(config *Config) error {
 	}
 
 	return nil
+}
+
+func CurrentUser(w http.ResponseWriter, r *http.Request) (interface{}, error) {
+	sessions := cfg.SessionStoreMaker(w, r)
+	key, ok := sessions.Get(SessionKey)
+	if !ok {
+		return nil, nil
+	}
+
+	return cfg.Storer.Get(key, moduleAttrMeta)
+}
+
+func CurrentUserP(w http.ResponseWriter, r *http.Request) interface{} {
+	i, err := CurrentUser(w, r)
+	if err != nil {
+		panic(err.Error())
+	}
+	return i
 }

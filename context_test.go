@@ -6,25 +6,6 @@ import (
 	"testing"
 )
 
-type mockStorer map[string]Attributes
-
-func (m mockStorer) Create(key string, attr Attributes) error {
-	m[key] = attr
-	return nil
-}
-
-func (m mockStorer) Put(key string, attr Attributes) error {
-	m[key] = attr
-	return nil
-}
-
-func (m mockStorer) Get(key string, attrMeta AttributeMeta) (result interface{}, err error) {
-	return &struct {
-		Email    string
-		Password string
-	}{m["joe"]["email"].(string), m["joe"]["password"].(string)}, nil
-}
-
 func TestContext_PutGet(t *testing.T) {
 	ctx := NewContext()
 

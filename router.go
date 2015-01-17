@@ -13,13 +13,13 @@ type HandlerFunc func(*Context, http.ResponseWriter, *http.Request)
 type RouteTable map[string]HandlerFunc
 
 // NewRouter returns a router to be mounted at some mountpoint.
-func NewRouter(config *Config) http.Handler {
+func NewRouter() http.Handler {
 	mux := http.NewServeMux()
 
 	for name, mod := range modules {
 		for route, handler := range mod.Routes() {
-			fmt.Fprintf(logger, "[%-10s] Register Route: %s\n", name, route)
-			mux.Handle(path.Join(config.MountPath, route), contextRoute{handler, config})
+			fmt.Fprintf(cfg.LogWriter, "%-10s Register Route: %s\n", "["+name+"]", route)
+			mux.Handle(path.Join(cfg.MountPath, route), contextRoute{handler})
 		}
 	}
 
@@ -27,19 +27,18 @@ func NewRouter(config *Config) http.Handler {
 }
 
 type contextRoute struct {
-	fn     HandlerFunc
-	config *Config
+	fn HandlerFunc
 }
 
 func (c contextRoute) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	ctx, err := ContextFromRequest(r)
 	if err != nil {
-		fmt.Fprintf(c.config.LogWriter, "route: Malformed request, could not create context: %v", err)
+		fmt.Fprintf(cfg.LogWriter, "route: Malformed request, could not create context: %v", err)
 		return
 	}
 
-	ctx.CookieStorer = c.config.CookieStoreMaker(w, r)
-	ctx.SessionStorer = c.config.SessionStoreMaker(w, r)
+	ctx.CookieStorer = cfg.CookieStoreMaker(w, r)
+	ctx.SessionStorer = cfg.SessionStoreMaker(w, r)
 
 	c.fn(ctx, w, r)
 }

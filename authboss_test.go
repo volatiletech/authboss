@@ -40,17 +40,18 @@ func TestAuthBossInit(t *testing.T) {
 }
 
 func TestAuthBossRouter(t *testing.T) {
-	t.Parallel()
-
 	c := NewConfig()
+	c.Storer = testStorer(0)
 	c.CookieStoreMaker = func(_ http.ResponseWriter, _ *http.Request) ClientStorer {
 		return clientStoreMock{}
 	}
 	c.SessionStoreMaker = SessionStoreMaker(c.CookieStoreMaker)
 	c.MountPath = "/candycanes"
-	c.LogWriter = os.Stdout
 
-	router := NewRouter(c)
+	if err := Init(c); err != nil {
+		t.Error("Unexpected error:", err)
+	}
+	router := NewRouter()
 
 	r, _ := http.NewRequest("GET", "/candycanes/testroute", nil)
 	response := httptest.NewRecorder()

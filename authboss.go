@@ -10,12 +10,10 @@ package authboss // import "gopkg.in/authboss.v0"
 import (
 	"errors"
 	"fmt"
-	"io"
-	"io/ioutil"
 )
 
 var (
-	logger  io.Writer = ioutil.Discard
+	cfg     *Config
 	emailer mailer
 )
 
@@ -25,17 +23,17 @@ func Init(config *Config) error {
 		return errors.New("Configuration must provide a storer.")
 	}
 
-	logger = config.LogWriter
+	cfg = config
 
 	switch config.Mailer {
 	case MailerSMTP:
 		// dance
 	default:
-		emailer = newLogMailer(logger)
+		emailer = newLogMailer(cfg.LogWriter)
 	}
 
 	for name, mod := range modules {
-		fmt.Fprintf(logger, "[%-10s] Initializing\n", name)
+		fmt.Fprintf(cfg.LogWriter, "%-10s Initializing\n", "["+name+"]")
 		if err := mod.Initialize(config); err != nil {
 			return fmt.Errorf("[%s] Error Initializing: %v", name, err)
 		}

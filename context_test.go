@@ -6,6 +6,25 @@ import (
 	"testing"
 )
 
+type mockStorer map[string]Attributes
+
+func (m mockStorer) Create(key string, attr Attributes) error {
+	m[key] = attr
+	return nil
+}
+
+func (m mockStorer) Put(key string, attr Attributes) error {
+	m[key] = attr
+	return nil
+}
+
+func (m mockStorer) Get(key string, attrMeta AttributeMeta) (result interface{}, err error) {
+	return &struct {
+		Email    string
+		Password string
+	}{m["joe"]["email"].(string), m["joe"]["password"].(string)}, nil
+}
+
 func TestContext_PutGet(t *testing.T) {
 	ctx := NewContext()
 
@@ -33,5 +52,55 @@ func TestContext_Request(t *testing.T) {
 
 	if post, ok := ctx.PostFormValue("post"); !ok || post[0] != "form" {
 		t.Error("Postform value not getting recorded correctly.")
+	}
+
+	if query, ok := ctx.FirstFormValue("query"); !ok || query != "string" {
+		t.Error("Form value not getting recorded correctly.")
+	}
+
+	if post, ok := ctx.FirstPostFormValue("post"); !ok || post != "form" {
+		t.Error("Postform value not getting recorded correctly.")
+	}
+}
+
+func TestContext_SaveUser(t *testing.T) {
+	ctx := NewContext()
+	storer := mockStorer{}
+
+	ctx.User = Attributes{"email": "hello@joe.com", "password": "mysticalhash"}
+	err := ctx.SaveUser("joe", storer)
+	if err != nil {
+		t.Error("Unexpected error:", err)
+	}
+
+	attr, ok := storer["joe"]
+	if !ok {
+		t.Error("Could not find joe!")
+	}
+
+	for k, v := range ctx.User {
+		if v != attr[k] {
+			t.Error(v, "not equal to", ctx.User[k])
+		}
+	}
+}
+
+func TestContext_LoadUser(t *testing.T) {
+	ctx := NewContext()
+	storer := mockStorer{
+		"joe": Attributes{"email": "hello@joe.com", "password": "mysticalhash"},
+	}
+
+	err := ctx.LoadUser("joe", storer)
+	if err != nil {
+		t.Error("Unexpected error:", err)
+	}
+
+	attr := storer["joe"]
+
+	for k, v := range attr {
+		if v != ctx.User[k] {
+			t.Error(v, "not equal to", ctx.User[k])
+		}
 	}
 }

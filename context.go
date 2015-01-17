@@ -92,3 +92,12 @@ func (c *Context) LoadUser(key string, storer Storer) error {
 	c.User = Unbind(intf)
 	return nil
 }
+
+// SaveUser saves the user Attributes.
+func (c *Context) SaveUser(key string, storer Storer) error {
+	if c.User == nil {
+		return nil
+	}
+
+	return storer.Put(key, c.User)
+}

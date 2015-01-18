@@ -1,6 +1,9 @@
 package authboss
 
-import "net/http"
+import (
+	"errors"
+	"net/http"
+)
 
 // Context provides context for module operations and callbacks. One obvious
 // need for context is a request's session store. It is not safe for use by
@@ -96,7 +99,7 @@ func (c *Context) LoadUser(key string, storer Storer) error {
 // SaveUser saves the user Attributes.
 func (c *Context) SaveUser(key string, storer Storer) error {
 	if c.User == nil {
-		return nil
+		return errors.New("User not initialized.")
 	}
 
 	return storer.Put(key, c.User)

@@ -1,10 +1,10 @@
 package authboss
 
 import (
+	"bytes"
 	"errors"
 	"fmt"
 	"reflect"
-	"strings"
 	"time"
 	"unicode"
 )
@@ -112,7 +112,7 @@ func (a Attributes) Bind(strct interface{}) error {
 	structType = structVal.Type()
 	for k, v := range a {
 
-		k = strings.Title(k)
+		k = underToCamel(k)
 
 		if _, has := structType.FieldByName(k); !has {
 			return fmt.Errorf("Bind: Struct was missing %s field, type: %v", k, reflect.TypeOf(v).String())
@@ -165,7 +165,7 @@ func Unbind(intf interface{}) Attributes {
 			continue // Unexported
 		}
 
-		name = strings.ToLower(name)
+		name = camelToUnder(name)
 
 		switch field.Kind() {
 		case reflect.Struct:
@@ -180,6 +180,39 @@ func Unbind(intf interface{}) Attributes {
 	}
 
 	return attr
+}
+
+func camelToUnder(in string) string {
+	out := bytes.Buffer{}
+	for i := 0; i < len(in); i++ {
+		chr := in[i]
+		if chr >= 'A' && chr <= 'Z' {
+			if i > 0 {
+				out.WriteByte('_')
+			}
+			out.WriteByte(chr + 'a' - 'A')
+		} else {
+			out.WriteByte(chr)
+		}
+	}
+	return out.String()
+}
+
+func underToCamel(in string) string {
+	out := bytes.Buffer{}
+	for i := 0; i < len(in); i++ {
+		chr := in[i]
+
+		if first := i == 0; first || chr == '_' {
+			if !first {
+				i++
+			}
+			out.WriteByte(in[i] - 'a' + 'A')
+		} else {
+			out.WriteByte(chr)
+		}
+	}
+	return out.String()
 }
 
 /*type postgresStorer struct {

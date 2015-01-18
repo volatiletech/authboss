@@ -8,13 +8,13 @@ import (
 
 func TestAttributes_Names(t *testing.T) {
 	attr := Attributes{
-		"integer": 5,
-		"string":  "string",
-		"date":    time.Now(),
+		"integer":   5,
+		"string":    "string",
+		"date_time": time.Now(),
 	}
 	names := attr.Names()
 
-	found := map[string]bool{"integer": false, "string": false, "date": false}
+	found := map[string]bool{"integer": false, "string": false, "date_time": false}
 	for _, n := range names {
 		found[n] = true
 	}
@@ -28,13 +28,13 @@ func TestAttributes_Names(t *testing.T) {
 
 func TestAttributeMeta_Names(t *testing.T) {
 	meta := AttributeMeta{
-		"integer": Integer,
-		"string":  String,
-		"date":    DateTime,
+		"integer":   Integer,
+		"string":    String,
+		"date_time": DateTime,
 	}
 	names := meta.Names()
 
-	found := map[string]bool{"integer": false, "string": false, "date": false}
+	found := map[string]bool{"integer": false, "string": false, "date_time": false}
 	for _, n := range names {
 		found[n] = true
 	}
@@ -64,15 +64,15 @@ func TestAttributes_Bind(t *testing.T) {
 	aTime := time.Now()
 
 	data := Attributes{
-		"Integer": anInteger,
-		"String":  aString,
-		"Date":    aTime,
+		"integer":   anInteger,
+		"string":    aString,
+		"date_time": aTime,
 	}
 
 	s := struct {
-		Integer int
-		String  string
-		Date    time.Time
+		Integer  int
+		String   string
+		DateTime time.Time
 	}{}
 
 	if err := data.Bind(&s); err != nil {
@@ -85,8 +85,8 @@ func TestAttributes_Bind(t *testing.T) {
 	if s.String != aString {
 		t.Error("String was not set.")
 	}
-	if s.Date != aTime {
-		t.Error("Time was not set.")
+	if s.DateTime != aTime {
+		t.Error("DateTime was not set.")
 	}
 }
 
@@ -190,5 +190,19 @@ func TestAttributes_Unbind(t *testing.T) {
 		t.Errorf("Underlying type is wrong: %T", v)
 	} else if s1.Time != val {
 		t.Error("Underlying value is wrong:", val)
+	}
+}
+
+func TestCasingStyleConversions(t *testing.T) {
+	camel := "SomethingInCamel"
+
+	got := camelToUnder(camel)
+	if got != "something_in_camel" {
+		t.Error(got)
+	}
+
+	got = underToCamel(got)
+	if got != camel {
+		t.Error(got)
 	}
 }

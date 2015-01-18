@@ -38,19 +38,19 @@ type Remember struct {
 	logger        io.Writer
 }
 
-func (r *Remember) Initialize(c *authboss.Config) error {
-	if c.Storer == nil {
+func (r *Remember) Initialize(config *authboss.Config) error {
+	if config.Storer == nil {
 		return errors.New("remember: Need a TokenStorer.")
 	}
 
-	if storer, ok := c.Storer.(authboss.TokenStorer); !ok {
+	if storer, ok := config.Storer.(authboss.TokenStorer); !ok {
 		return errors.New("remember: TokenStorer required for remember me functionality.")
 	} else {
 		r.storer = storer
 	}
 
 	r.logger = c.LogWriter
-	c.Callbacks.After(authboss.EventAuth, r.AfterAuth)
+	config.Callbacks.After(authboss.EventAuth, r.AfterAuth)
 
 	return nil
 }

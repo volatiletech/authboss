@@ -13,6 +13,10 @@ type Config struct {
 	AuthLogoutRoute       string `json:"authLogoutRoute" xml:"authLogoutRoute"`
 	AuthLoginSuccessRoute string `json:"authLoginSuccessRoute" xml:"authLoginSuccessRoute"`
 
+	ValidateEmail    Validator
+	ValidateUsername Validator
+	ValidatePassword Validator
+
 	Storer            Storer            `json:"-" xml:"-"`
 	CookieStoreMaker  CookieStoreMaker  `json:"-" xml:"-"`
 	SessionStoreMaker SessionStoreMaker `json:"-" xml:"-"`

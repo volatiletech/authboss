@@ -14,8 +14,7 @@ import (
 )
 
 var (
-	cfg     *Config
-	emailer mailer
+	cfg *Config
 )
 
 // Init authboss and it's loaded modules with a configuration.

@@ -5,6 +5,10 @@ import (
 	"io"
 )
 
+var (
+	emailer mailer
+)
+
 type Mailer int
 
 const (
@@ -12,8 +16,8 @@ const (
 	MailerSMTP
 )
 
-func SendEmail(to, from string, msg []byte) {
-
+func SendEmail(to, from string, msg []byte) (err error) {
+	return emailer.Send(to, from, msg)
 }
 
 type mailer interface {
@@ -29,6 +33,6 @@ func newLogMailer(w io.Writer) logMailer {
 }
 
 func (e logMailer) Send(to, from string, msg []byte) error {
-	fmt.Fprintf(e.writer, "email sent\n\nto:\t %s\nfrom:\t %s\nmsg: %s", to, from, msg)
+	fmt.Fprintf(e.writer, "[emailer] Sent Email => to [%s], from [%s], msg [%s]", to, from, msg)
 	return nil
 }

@@ -13,9 +13,11 @@ type Config struct {
 	AuthLogoutRoute       string `json:"authLogoutRoute" xml:"authLogoutRoute"`
 	AuthLoginSuccessRoute string `json:"authLoginSuccessRoute" xml:"authLoginSuccessRoute"`
 
-	ValidateEmail    Validator
-	ValidateUsername Validator
-	ValidatePassword Validator
+	RecoverFromEmail string `json:"recoverFromEmail" xml:"recoverFromEmail"`
+
+	ValidateEmail    Validator `json:"-" xml:"-"`
+	ValidateUsername Validator `json:"-" xml:"-"`
+	ValidatePassword Validator `json:"-" xml:"-"`
 
 	Storer            Storer            `json:"-" xml:"-"`
 	CookieStoreMaker  CookieStoreMaker  `json:"-" xml:"-"`
@@ -32,7 +34,9 @@ func NewConfig() *Config {
 		ViewsPath: "/",
 
 		AuthLogoutRoute:       "/",
-		AuthLoginSuccessRoute: "http://www.google.com",
+		AuthLoginSuccessRoute: "/",
+
+		RecoverFromEmail: "no-reply@authboss.com",
 
 		LogWriter: ioutil.Discard,
 		Callbacks: NewCallbacks(),

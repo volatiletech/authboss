@@ -4,11 +4,11 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
-	"path/filepath"
 
 	"golang.org/x/crypto/bcrypt"
 
 	"gopkg.in/authboss.v0"
+	"gopkg.in/authboss.v0/internal/views"
 
 	"html/template"
 
@@ -52,16 +52,9 @@ type Auth struct {
 	isRecoverLoaded  bool
 }
 
-func (a *Auth) Initialize(c *authboss.Config) (err error) {
-	if a.templates, err = template.ParseFiles(filepath.Join(c.ViewsPath, pageLogin)); err != nil {
-		var loginTplBytes []byte
-		if loginTplBytes, err = views_login_tpl_bytes(); err != nil {
-			return err
-		}
-
-		if a.templates, err = template.New(pageLogin).Parse(string(loginTplBytes)); err != nil {
-			return err
-		}
+func (a *Auth) Initialize(config *authboss.Config) (err error) {
+	if a.templates, err = views.Get(config.ViewsPath, pageLogin); err != nil {
+		return err
 	}
 
 	a.routes = authboss.RouteTable{
@@ -72,11 +65,11 @@ func (a *Auth) Initialize(c *authboss.Config) (err error) {
 		attrUsername: authboss.String,
 		attrPassword: authboss.String,
 	}
-	a.storer = c.Storer
-	a.logoutRedirect = c.AuthLogoutRoute
-	a.loginRedirect = c.AuthLoginSuccessRoute
-	a.logger = c.LogWriter
-	a.callbacks = c.Callbacks
+	a.storer = config.Storer
+	a.logoutRedirect = config.AuthLogoutRoute
+	a.loginRedirect = config.AuthLoginSuccessRoute
+	a.logger = config.LogWriter
+	a.callbacks = config.Callbacks
 
 	a.isRememberLoaded = authboss.IsLoaded("remember")
 	a.isRecoverLoaded = authboss.IsLoaded("recover")

@@ -6,22 +6,30 @@ import (
 	"fmt"
 	"html/template"
 	"net/http"
-	"path/filepath"
 	"strings"
 
 	"io"
 
+	"bytes"
+	"crypto/md5"
+	"encoding/base64"
+	"log"
+
 	"gopkg.in/authboss.v0"
+	"gopkg.in/authboss.v0/internal/views"
 )
 
 const (
 	methodGET  = "GET"
 	methodPOST = "POST"
 
-	pageRecover = "recover.tpl"
+	tplRecover         = "recover.tpl"
+	tplRecoverComplete = "recover-complete.tpl"
+	tplInitEmail       = "recover-init.email"
 
 	attrUsername   = "username"
 	attrResetToken = "resettoken"
+	attrEmail      = "email"
 )
 
 func init() {
@@ -39,29 +47,27 @@ type RecoverModule struct {
 	storageOptions authboss.StorageOptions
 	storer         authboss.Storer
 	logger         io.Writer
+
+	fromEmail string
 }
 
-func (m *RecoverModule) Initialize(c *authboss.Config) (err error) {
-	if m.templates, err = template.ParseFiles(filepath.Join(c.ViewsPath, pageRecover)); err != nil {
-		var recoverTplBytes []byte
-		if recoverTplBytes, err = views_recover_tpl_bytes(); err != nil {
-			return err
-		}
-
-		if m.templates, err = template.New(pageRecover).Parse(string(recoverTplBytes)); err != nil {
-			return err
-		}
+func (m *RecoverModule) Initialize(config *authboss.Config) (err error) {
+	if m.templates, err = views.Get(config.ViewsPath, tplRecover, tplRecoverComplete, tplInitEmail); err != nil {
+		return err
 	}
 
 	m.routes = authboss.RouteTable{
-		"recover": m.recoverHandlerFunc,
+		"recover":          m.recoverHandlerFunc,
+		"recover/complete": m.recoverCompleteHandlerFunc,
 	}
 	m.storageOptions = authboss.StorageOptions{
 		attrUsername:   authboss.String,
 		attrResetToken: authboss.String,
+		attrEmail:      authboss.String,
 	}
-	m.storer = c.Storer
-	m.logger = c.LogWriter
+	m.storer = config.Storer
+	m.logger = config.LogWriter
+	m.fromEmail = config.RecoverFromEmail
 
 	return nil
 }
@@ -77,7 +83,7 @@ func (m *RecoverModule) Storage() authboss.StorageOptions {
 func (m *RecoverModule) recoverHandlerFunc(ctx *authboss.Context, w http.ResponseWriter, r *http.Request) {
 	switch r.Method {
 	case methodGET:
-		m.templates.ExecuteTemplate(w, pageRecover, nil)
+		m.templates.ExecuteTemplate(w, tplRecover, nil)
 	case methodPOST:
 		username, ok := ctx.FirstPostFormValue("username")
 		if !ok {
@@ -89,9 +95,10 @@ func (m *RecoverModule) recoverHandlerFunc(ctx *authboss.Context, w http.Respons
 			fmt.Fprintln(m.logger, errors.New("recover: Expected postFormValue 'confirmUsername' to be in the context"))
 		}
 
-		if err := m.initiateRecover(ctx, username, confirmUsername); err != nil {
+		if err := m.initiateRecover(ctx, username, confirmUsername, r.Host); err != nil {
+			fmt.Fprintln(m.logger, fmt.Sprintf("recover: %s"), err.Error())
 			w.WriteHeader(http.StatusBadRequest)
-			m.templates.ExecuteTemplate(w, pageRecover, RecoverPage{username, confirmUsername, err.Error()})
+			m.templates.ExecuteTemplate(w, tplRecover, RecoverPage{username, confirmUsername, err.Error()})
 			return
 		}
 	default:
@@ -99,7 +106,7 @@ func (m *RecoverModule) recoverHandlerFunc(ctx *authboss.Context, w http.Respons
 	}
 }
 
-func (m *RecoverModule) initiateRecover(ctx *authboss.Context, username, confirmUsername string) error {
+func (m *RecoverModule) initiateRecover(ctx *authboss.Context, username, confirmUsername, host string) error {
 	if !strings.EqualFold(username, confirmUsername) {
 		return errors.New("Confirm username does not match")
 	}
@@ -113,7 +120,47 @@ func (m *RecoverModule) initiateRecover(ctx *authboss.Context, username, confirm
 		return err
 	}
 
-	authboss.SendEmail("", "", []byte)
+	emailInter, ok := ctx.User[attrEmail]
+	if !ok {
+		return errors.New("user does not have mapped email")
+	}
+
+	email, ok := emailInter.(string)
+	if !ok {
+		return errors.New("user does not have a valid email")
+	}
+
+	// TODO : email regex check on to and from
+
+	sum := md5.Sum(token)
+	ctx.User[attrResetToken] = base64.StdEncoding.EncodeToString(sum[:])
+	log.Printf("%#v", ctx.User)
+
+	if err := ctx.SaveUser(username, m.storer); err != nil {
+		return err
+	}
+
+	emailBody := &bytes.Buffer{}
+	if err := m.templates.ExecuteTemplate(emailBody, tplInitEmail, struct{ Link string }{
+		fmt.Sprintf("%s/recover/complete?token=%s", host, base64.URLEncoding.EncodeToString(token)),
+	}); err != nil {
+		return err
+	}
+
+	if err := authboss.SendEmail(email, m.fromEmail, emailBody.Bytes()); err != nil {
+		fmt.Fprintln(m.logger, err)
+	}
 
 	return nil
+}
+
+func (m *RecoverModule) recoverCompleteHandlerFunc(ctx *authboss.Context, w http.ResponseWriter, r *http.Request) {
+	switch r.Method {
+	case methodGET:
+		m.templates.ExecuteTemplate(w, tplRecoverComplete, nil)
+	case methodPOST:
+
+	default:
+		w.WriteHeader(http.StatusMethodNotAllowed)
+	}
 }

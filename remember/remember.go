@@ -49,7 +49,7 @@ func (r *Remember) Initialize(config *authboss.Config) error {
 		r.storer = storer
 	}
 
-	r.logger = c.LogWriter
+	r.logger = config.LogWriter
 	config.Callbacks.After(authboss.EventAuth, r.AfterAuth)
 
 	return nil

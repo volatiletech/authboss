@@ -7,17 +7,6 @@ import (
 
 type ErrorList []error
 
-// FieldError represents an error that occurs during validation and is always
-// attached to field on a form.
-type FieldError struct {
-	Name string
-	Err  error
-}
-
-func (f FieldError) Error() string {
-	return fmt.Sprintf("%s: %v", f.Name, f.Err)
-}
-
 // Error satisfies the error interface.
 func (e ErrorList) Error() string {
 	b := &bytes.Buffer{}
@@ -31,6 +20,33 @@ func (e ErrorList) Error() string {
 		b.WriteString(err.Error())
 	}
 	return b.String()
+}
+
+// Map groups errors by their field name
+func (e ErrorList) Map() map[string][]string {
+	m := make(map[string][]string)
+
+	for _, err := range e {
+		fieldErr, ok := err.(FieldError)
+		if !ok {
+			m[""] = append(m[""], err.Error())
+		} else {
+			m[fieldErr.Name] = append(m[fieldErr.Name], fieldErr.Err.Error())
+		}
+	}
+
+	return m
+}
+
+// FieldError represents an error that occurs during validation and is always
+// attached to field on a form.
+type FieldError struct {
+	Name string
+	Err  error
+}
+
+func (f FieldError) Error() string {
+	return fmt.Sprintf("%s: %v", f.Name, f.Err)
 }
 
 // Validator is anything that can validate a string and provide a list of errors

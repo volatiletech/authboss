@@ -31,6 +31,7 @@ func (r Rules) Errors(toValidate string) authboss.ErrorList {
 	ln := len(toValidate)
 	if ln == 0 {
 		errs = append(errs, authboss.FieldError{r.Field, errors.New("Cannot be blank")})
+		return err
 	}
 
 	if r.MustMatch != nil {

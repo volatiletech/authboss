@@ -22,6 +22,8 @@ func (v *Validate) Initialize(config *authboss.Config) error {
 	v.Password = config.ValidatePassword
 
 	config.Callbacks.Before(authboss.EventRegister, v.BeforeRegister)
+	config.Callbacks.Before(authboss.EventRecoverStart, v.BeforeRegister)
+	config.Callbacks.Before(authboss.EventRecoverEnd, v.BeforeRegister)
 
 	return nil
 }

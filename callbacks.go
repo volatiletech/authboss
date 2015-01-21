@@ -7,6 +7,8 @@ type Event int
 const (
 	EventRegister Event = iota
 	EventAuth
+	EventRecoverStart
+	EventRecoverEnd
 )
 
 // Before callbacks can interrupt the flow by returning an error. This is used to stop

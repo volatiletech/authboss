@@ -144,7 +144,7 @@ func (r *Remember) Auth(
 	sum := md5.Sum(token)
 
 	key, err := r.storer.UseToken(string(givenKey), base64.StdEncoding.EncodeToString(sum[:]))
-	if err == authboss.TokenNotFound {
+	if err == authboss.ErrTokenNotFound {
 		return "", nil
 	} else if err != nil {
 		return "", err

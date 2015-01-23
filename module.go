@@ -2,7 +2,7 @@ package authboss
 
 var modules = make(map[string]Modularizer)
 
-var moduleAttrMeta = make(AttributeMeta)
+var ModuleAttrMeta = make(AttributeMeta)
 
 // Modularizer should be implemented by all the authboss modules.
 type Modularizer interface {
@@ -17,7 +17,7 @@ func RegisterModule(name string, m Modularizer) {
 	modules[name] = m
 
 	for k, v := range m.Storage() {
-		moduleAttrMeta[k] = v
+		ModuleAttrMeta[k] = v
 	}
 }
 

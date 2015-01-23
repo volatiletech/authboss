@@ -9,11 +9,12 @@ import (
 	"unicode"
 )
 
-// UserNotFound should be returned from Get when the record is not found.
-var UserNotFound = errors.New("User not found")
-
-// TokenNotFound should be returned from UseToken when the record is not found.
-var TokenNotFound = errors.New("Token not found")
+var (
+	// UserNotFound should be returned from Get when the record is not found.
+	ErrUserNotFound = errors.New("User not found")
+	// TokenNotFound should be returned from UseToken when the record is not found.
+	ErrTokenNotFound = errors.New("Token not found")
+)
 
 // StorageOptions is a map depicting the things a module must be able to store.
 type StorageOptions map[string]DataType

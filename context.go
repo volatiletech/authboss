@@ -87,7 +87,7 @@ func (c *Context) LoadUser(key string, storer Storer) error {
 		return nil
 	}
 
-	intf, err := storer.Get(key, moduleAttrMeta)
+	intf, err := storer.Get(key, ModuleAttrMeta)
 	if err != nil {
 		return err
 	}

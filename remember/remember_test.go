@@ -55,7 +55,7 @@ func (t *testTokenStorer) UseToken(givenKey, token string) (key string, err erro
 		t.token = ""
 		return ret, nil
 	}
-	return "", authboss.TokenNotFound
+	return "", authboss.ErrTokenNotFound
 }
 
 func TestInitialize(t *testing.T) {

@@ -7,8 +7,10 @@ type Event int
 const (
 	EventRegister Event = iota
 	EventAuth
+	EventAuthFail
 	EventRecoverStart
 	EventRecoverEnd
+	EventGet
 )
 
 // Before callbacks can interrupt the flow by returning an error. This is used to stop
@@ -32,14 +34,14 @@ func NewCallbacks() *Callbacks {
 	}
 }
 
-// Before event, call callback.
+// Before event, call f.
 func (c *Callbacks) Before(e Event, f Before) {
 	callbacks := c.before[e]
 	callbacks = append(callbacks, f)
 	c.before[e] = callbacks
 }
 
-// After event, call callback.
+// After event, call f.
 func (c *Callbacks) After(e Event, f After) {
 	callbacks := c.after[e]
 	callbacks = append(callbacks, f)

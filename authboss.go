@@ -42,6 +42,7 @@ func Init(config *Config) error {
 	return nil
 }
 
+// CurrentUser retrieves the current user from the session and the database.
 func CurrentUser(w http.ResponseWriter, r *http.Request) (interface{}, error) {
 	sessions := cfg.SessionStoreMaker(w, r)
 	key, ok := sessions.Get(SessionKey)
@@ -49,9 +50,26 @@ func CurrentUser(w http.ResponseWriter, r *http.Request) (interface{}, error) {
 		return nil, nil
 	}
 
-	return cfg.Storer.Get(key, moduleAttrMeta)
+	ctx, err := ContextFromRequest(r)
+	if err != nil {
+		return nil, err
+	}
+
+	err = ctx.LoadUser(key, cfg.Storer)
+	if err != nil {
+		return nil, err
+	}
+
+	err = cfg.Callbacks.FireBefore(EventGet, ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	return cfg.Storer.Get(key, ModuleAttrMeta)
 }
 
+// CurrentUserP retrieves the current user but panics if it's not available for
+// any reason.
 func CurrentUserP(w http.ResponseWriter, r *http.Request) interface{} {
 	i, err := CurrentUser(w, r)
 	if err != nil {

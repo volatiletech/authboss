@@ -6,57 +6,14 @@ import (
 	"testing"
 
 	"gopkg.in/authboss.v0"
+	"gopkg.in/authboss.v0/internal/mocks"
 )
 
-type testClientStorer map[string]string
+type failStorer int
 
-func (t testClientStorer) Put(key, value string) {
-	t[key] = value
-}
-
-func (t testClientStorer) Get(key string) (string, bool) {
-	s, ok := t[key]
-	return s, ok
-}
-
-func (t testClientStorer) Del(key string) {
-	delete(t, key)
-}
-
-type testStorer struct {
-}
-
-func (t testStorer) Create(key string, attr authboss.Attributes) error { return nil }
-func (t testStorer) Put(key string, attr authboss.Attributes) error    { return nil }
-func (t testStorer) Get(key string, attrMeta authboss.AttributeMeta) (interface{}, error) {
-	return nil, nil
-}
-
-type testTokenStorer struct {
-	testStorer
-	key   string
-	token string
-}
-
-func (t *testTokenStorer) AddToken(key, token string) error {
-	t.key = key
-	t.token = token
-	return nil
-}
-func (t *testTokenStorer) DelTokens(key string) error {
-	t.key = ""
-	t.token = ""
-	return nil
-}
-func (t *testTokenStorer) UseToken(givenKey, token string) (key string, err error) {
-	if givenKey == t.key {
-		ret := t.key
-		t.key = ""
-		t.token = ""
-		return ret, nil
-	}
-	return "", authboss.ErrTokenNotFound
-}
+func (_ failStorer) Create(_ string, _ authboss.Attributes) error                { return nil }
+func (_ failStorer) Put(_ string, _ authboss.Attributes) error                   { return nil }
+func (_ failStorer) Get(_ string, _ authboss.AttributeMeta) (interface{}, error) { return nil, nil }
 
 func TestInitialize(t *testing.T) {
 	testConfig := authboss.NewConfig()
@@ -67,13 +24,13 @@ func TestInitialize(t *testing.T) {
 		t.Error("Expected error about token storers.")
 	}
 
-	testConfig.Storer = testStorer{}
+	testConfig.Storer = new(failStorer)
 	err = r.Initialize(testConfig)
 	if err == nil {
 		t.Error("Expected error about token storers.")
 	}
 
-	testConfig.Storer = &testTokenStorer{}
+	testConfig.Storer = mocks.NewMockStorer()
 	err = r.Initialize(testConfig)
 	if err != nil {
 		t.Error("Unexpected error:", err)
@@ -81,10 +38,10 @@ func TestInitialize(t *testing.T) {
 }
 
 func TestAfterAuth(t *testing.T) {
-	storer := &testTokenStorer{}
+	storer := mocks.NewMockStorer()
 	R.storer = storer
-	cookies := make(testClientStorer)
-	session := make(testClientStorer)
+	cookies := make(mocks.MockClientStorer)
+	session := make(mocks.MockClientStorer)
 
 	req, err := http.NewRequest("POST", "http://localhost", bytes.NewBufferString("rm=true"))
 	if err != nil {
@@ -109,9 +66,9 @@ func TestAfterAuth(t *testing.T) {
 }
 
 func TestNew(t *testing.T) {
-	storer := &testTokenStorer{}
+	storer := mocks.NewMockStorer()
 	R.storer = storer
-	cookies := make(testClientStorer)
+	cookies := make(mocks.MockClientStorer)
 
 	key := "tester"
 	token, err := R.New(cookies, key)
@@ -124,24 +81,22 @@ func TestNew(t *testing.T) {
 		t.Error("Expected a token.")
 	}
 
-	if storer.key != key {
-		t.Error("Expected it to store against the key:", storer.key)
+	if tok, ok := storer.Tokens[key]; !ok {
+		t.Error("Expected it to store against the key:", key)
+	} else if len(tok) != 1 || len(tok[0]) == 0 {
+		t.Error("Expected a token to be saved.")
 	}
 
 	if token != cookies[ValueKey] {
 		t.Error("Expected a cookie set with the token.")
 	}
-
-	if len(storer.token) == 0 {
-		t.Error("Expected a token to be saved.")
-	}
 }
 
 func TestAuth(t *testing.T) {
-	storer := &testTokenStorer{}
+	storer := mocks.NewMockStorer()
 	R.storer = storer
-	cookies := make(testClientStorer)
-	session := make(testClientStorer)
+	cookies := make(mocks.MockClientStorer)
+	session := make(mocks.MockClientStorer)
 
 	key := "tester"
 	token, err := R.New(cookies, key)

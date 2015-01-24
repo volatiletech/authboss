@@ -3,21 +3,28 @@ package authboss
 import (
 	"io"
 	"io/ioutil"
+	"time"
 )
 
 // Config holds all the configuration for both authboss and it's modules.
 type Config struct {
-	MountPath string `json:"mountPath" xml:"mountPath"`
-	ViewsPath string `json:"viewsPath" xml:"viewsPath"`
+	// MountPath is the path to mount the router at.
+	MountPath string `json:"mount_path" xml:"mountPath"`
+	// ViewsPath is the path to overiding view template files.
+	ViewsPath string `json:"views_path" xml:"viewsPath"`
 
-	AuthLogoutRoute       string `json:"authLogoutRoute" xml:"authLogoutRoute"`
-	AuthLoginSuccessRoute string `json:"authLoginSuccessRoute" xml:"authLoginSuccessRoute"`
+	AuthLogoutRoute       string `json:"auth_logout_route" xml:"authLogoutRoute"`
+	AuthLoginSuccessRoute string `json:"auth_login_success_route" xml:"authLoginSuccessRoute"`
 
-	RecoverFromEmail string `json:"recoverFromEmail" xml:"recoverFromEmail"`
+	RecoverFromEmail string `json:"recover_from_email" xml:"recoverFromEmail"`
 
 	ValidateEmail    Validator `json:"-" xml:"-"`
 	ValidateUsername Validator `json:"-" xml:"-"`
 	ValidatePassword Validator `json:"-" xml:"-"`
+
+	LockAfter    int           `json:"lock_after" xml:"lockAfter"`
+	LockWindow   time.Duration `json:"lock_window" xml:"lockWindow"`
+	LockDuration time.Duration `json:"lock_duration" xml:"lockDuration"`
 
 	Storer            Storer            `json:"-" xml:"-"`
 	CookieStoreMaker  CookieStoreMaker  `json:"-" xml:"-"`

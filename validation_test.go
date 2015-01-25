@@ -60,3 +60,32 @@ func TestErrorList_Map(t *testing.T) {
 		t.Error("Wrong unkown error at 0:", unknownErrs[0])
 	}
 }
+
+func TestValidate(t *testing.T) {
+	t.Parallel()
+
+	ctx := mockRequestContext("username", "john", "email", "john@john.com")
+
+	errList := ctx.Validate([]Validator{
+		mockValidator{
+			FieldName: "username", Errs: ErrorList{FieldError{"username", errors.New("must be longer than 4")}},
+		},
+		mockValidator{
+			FieldName: "missing_field", Errs: ErrorList{FieldError{"missing_field", errors.New("Expected field to exist.")}},
+		},
+		mockValidator{
+			FieldName: "email", Errs: nil,
+		},
+	})
+
+	errs := errList.Map()
+	if errs["username"][0] != "must be longer than 4" {
+		t.Error("Expected a different error for username:", errs["username"][0])
+	}
+	if errs["missing_field"][0] != "Expected field to exist." {
+		t.Error("Expected a different error for missing_field:", errs["missing_field"][0])
+	}
+	if _, ok := errs["email"]; ok {
+		t.Error("Expected no errors for email.")
+	}
+}

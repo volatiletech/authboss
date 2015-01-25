@@ -5,6 +5,14 @@ import (
 	"fmt"
 )
 
+// Validator is anything that can validate a string and provide a list of errors
+// and describe its set of rules.
+type Validator interface {
+	Field() string
+	Errors(in string) ErrorList
+	Rules() []string
+}
+
 type ErrorList []error
 
 // Error satisfies the error interface.
@@ -49,9 +57,18 @@ func (f FieldError) Error() string {
 	return fmt.Sprintf("%s: %v", f.Name, f.Err)
 }
 
-// Validator is anything that can validate a string and provide a list of errors
-// and describe its set of rules.
-type Validator interface {
-	Errors(in string) ErrorList
-	Rules() []string
+// Validate validates a request using the given ruleset.
+func (ctx *Context) Validate(ruleset []Validator) ErrorList {
+	errList := make(ErrorList, 0)
+
+	for _, validator := range ruleset {
+		field := validator.Field()
+
+		val, _ := ctx.FirstFormValue(field)
+		if errs := validator.Errors(val); len(errs) > 0 {
+			errList = append(errList, errs...)
+		}
+	}
+
+	return errList
 }

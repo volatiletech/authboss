@@ -1,4 +1,4 @@
-package validate
+package authboss
 
 import (
 	"regexp"
@@ -6,53 +6,55 @@ import (
 )
 
 func TestRules_Errors(t *testing.T) {
+	t.Parallel()
+
 	tests := []struct {
 		Rules Rules
 		In    string
 		Error string
 	}{
 		{
-			Rules{Field: "email"},
+			Rules{FieldName: "email"},
 			"",
 			"email: Cannot be blank",
 		},
 		{
-			Rules{Field: "email", MatchError: "Regexp must match!", MustMatch: regexp.MustCompile("abc")},
+			Rules{FieldName: "email", MatchError: "Regexp must match!", MustMatch: regexp.MustCompile("abc")},
 			"hello",
 			"email: Regexp must match!",
 		},
 		{
-			Rules{Field: "email", MinLength: 5},
+			Rules{FieldName: "email", MinLength: 5},
 			"hi",
 			"email: Must be at least 5 characters",
 		},
 		{
-			Rules{Field: "email", MaxLength: 3},
+			Rules{FieldName: "email", MaxLength: 3},
 			"hello",
 			"email: Must be at most 3 characters",
 		},
 		{
-			Rules{Field: "email", MinLength: 3, MaxLength: 5},
+			Rules{FieldName: "email", MinLength: 3, MaxLength: 5},
 			"hi",
 			"email: Must be between 3 and 5 characters",
 		},
 		{
-			Rules{Field: "email", MinLetters: 5},
+			Rules{FieldName: "email", MinLetters: 5},
 			"13345",
 			"email: Must contain at least 5 letters",
 		},
 		{
-			Rules{Field: "email", MinSymbols: 5},
+			Rules{FieldName: "email", MinSymbols: 5},
 			"hi",
 			"email: Must contain at least 5 symbols",
 		},
 		{
-			Rules{Field: "email", MinNumeric: 5},
+			Rules{FieldName: "email", MinNumeric: 5},
 			"hi",
 			"email: Must contain at least 5 numbers",
 		},
 		{
-			Rules{Field: "email"},
+			Rules{FieldName: "email"},
 			"hi whitespace",
 			"email: No whitespace permitted",
 		},
@@ -74,8 +76,10 @@ func TestRules_Errors(t *testing.T) {
 }
 
 func TestRules_Rules(t *testing.T) {
+	t.Parallel()
+
 	r := Rules{
-		Field:           "email",
+		FieldName:       "email",
 		MatchError:      "Must adhere to this regexp",
 		MustMatch:       regexp.MustCompile(""),
 		MinLength:       1,
@@ -104,7 +108,9 @@ func TestRules_Rules(t *testing.T) {
 }
 
 func TestRules_IsValid(t *testing.T) {
-	r := Rules{Field: "email"}
+	t.Parallel()
+
+	r := Rules{FieldName: "email"}
 	if r.IsValid("") {
 		t.Error("It should not be valid.")
 	}
@@ -115,6 +121,8 @@ func TestRules_IsValid(t *testing.T) {
 }
 
 func TestTallyCharacters(t *testing.T) {
+	t.Parallel()
+
 	c, n, s, w := tallyCharacters("123abcDEF@#$%^*   ")
 	if c != 6 {
 		t.Error("Number of chars:", c)

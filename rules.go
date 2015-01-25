@@ -1,18 +1,16 @@
-package validate
+package authboss
 
 import (
 	"errors"
 	"fmt"
 	"regexp"
 	"unicode"
-
-	"gopkg.in/authboss.v0"
 )
 
 // Rules defines a ruleset by which a string can be validated.
 type Rules struct {
-	// Field is the name of the field this is intended to validate.
-	Field string
+	// FieldName is the name of the field this is intended to validate.
+	FieldName string
 	// MatchError describes the MustMatch regexp to a user.
 	MatchError           string
 	MustMatch            *regexp.Regexp
@@ -23,39 +21,44 @@ type Rules struct {
 	AllowWhitespace      bool
 }
 
+// Field names the field this ruleset applies to.
+func (r Rules) Field() string {
+	return r.FieldName
+}
+
 // Errors returns an array of errors for each validation error that
 // is present in the given string. Returns nil if there are no errors.
-func (r Rules) Errors(toValidate string) authboss.ErrorList {
-	errs := make(authboss.ErrorList, 0)
+func (r Rules) Errors(toValidate string) ErrorList {
+	errs := make(ErrorList, 0)
 
 	ln := len(toValidate)
 	if ln == 0 {
-		errs = append(errs, authboss.FieldError{r.Field, errors.New("Cannot be blank")})
+		errs = append(errs, FieldError{r.FieldName, errors.New("Cannot be blank")})
 		return errs
 	}
 
 	if r.MustMatch != nil {
 		if !r.MustMatch.MatchString(toValidate) {
-			errs = append(errs, authboss.FieldError{r.Field, errors.New(r.MatchError)})
+			errs = append(errs, FieldError{r.FieldName, errors.New(r.MatchError)})
 		}
 	}
 
 	if (r.MinLength > 0 && ln < r.MinLength) || (r.MaxLength > 0 && ln > r.MaxLength) {
-		errs = append(errs, authboss.FieldError{r.Field, errors.New(r.lengthErr())})
+		errs = append(errs, FieldError{r.FieldName, errors.New(r.lengthErr())})
 	}
 
 	chars, numeric, symbols, whitespace := tallyCharacters(toValidate)
 	if chars < r.MinLetters {
-		errs = append(errs, authboss.FieldError{r.Field, errors.New(r.charErr())})
+		errs = append(errs, FieldError{r.FieldName, errors.New(r.charErr())})
 	}
 	if numeric < r.MinNumeric {
-		errs = append(errs, authboss.FieldError{r.Field, errors.New(r.numericErr())})
+		errs = append(errs, FieldError{r.FieldName, errors.New(r.numericErr())})
 	}
 	if symbols < r.MinSymbols {
-		errs = append(errs, authboss.FieldError{r.Field, errors.New(r.symbolErr())})
+		errs = append(errs, FieldError{r.FieldName, errors.New(r.symbolErr())})
 	}
 	if !r.AllowWhitespace && whitespace > 0 {
-		errs = append(errs, authboss.FieldError{r.Field, errors.New("No whitespace permitted")})
+		errs = append(errs, FieldError{r.FieldName, errors.New("No whitespace permitted")})
 	}
 
 	if len(errs) == 0 {

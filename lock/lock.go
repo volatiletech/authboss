@@ -143,8 +143,11 @@ func (l *Lock) AfterAuthFail(ctx *authboss.Context) {
 			ctx.User[UserLocked] = true
 		}
 
-		ctx.User[UserAttemptTime] = time.Now().UTC()
+		ctx.User[UserAttemptNumber] = nAttempts
+	} else {
+		ctx.User[UserAttemptNumber] = 0
 	}
+	ctx.User[UserAttemptTime] = time.Now().UTC()
 
 	if err := ctx.SaveUser(username, l.storer); err != nil {
 		fmt.Fprintf(l.logger, "lock: saving user failed %v", err)
@@ -180,8 +183,9 @@ func (l *Lock) Unlock(key string, storer authboss.Storer) error {
 		return err
 	}
 
-	// 10 Years ago should be sufficient, let's not deal with nulls.
-	attr[UserAttemptTime] = time.Now().UTC().AddDate(-10, 0, 0)
+	// Set the last attempt to be -window*2 to avoid immediately
+	// giving another login failure.
+	attr[UserAttemptTime] = time.Now().UTC().Add(-l.window * 2)
 	attr[UserAttemptNumber] = 0
 	attr[UserLocked] = false
 

@@ -1,6 +1,12 @@
 package mocks
 
-import "gopkg.in/authboss.v0"
+import (
+	"bytes"
+	"fmt"
+	"net/http"
+
+	"gopkg.in/authboss.v0"
+)
 
 type MockUser struct {
 	Email    string
@@ -25,13 +31,19 @@ func (m *MockStorer) Create(key string, attr authboss.Attributes) error {
 }
 
 func (m *MockStorer) Put(key string, attr authboss.Attributes) error {
-	m.Users[key] = attr
+	if _, ok := m.Users[key]; !ok {
+		m.Users[key] = attr
+		return nil
+	}
+	for k, v := range attr {
+		m.Users[key][k] = v
+	}
 	return nil
 }
 
 func (m *MockStorer) Get(key string, attrMeta authboss.AttributeMeta) (result interface{}, err error) {
 	return &MockUser{
-		m.Users[key]["email"].(string), m.Users[key]["password"].(string),
+		m.Users[key]["username"].(string), m.Users[key]["password"].(string),
 	}, nil
 }
 
@@ -66,3 +78,26 @@ func (m MockClientStorer) Get(key string) (string, bool) {
 }
 func (m MockClientStorer) Put(key, val string) { m[key] = val }
 func (m MockClientStorer) Del(key string)      { delete(m, key) }
+
+func MockRequestContext(postKeyValues ...string) *authboss.Context {
+	keyValues := &bytes.Buffer{}
+	for i := 0; i < len(postKeyValues); i += 2 {
+		if i != 0 {
+			keyValues.WriteByte('&')
+		}
+		fmt.Fprintf(keyValues, "%s=%s", postKeyValues[i], postKeyValues[i+1])
+	}
+
+	req, err := http.NewRequest("POST", "http://localhost", keyValues)
+	if err != nil {
+		panic(err.Error())
+	}
+	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+
+	ctx, err := authboss.ContextFromRequest(req)
+	if err != nil {
+		panic(err)
+	}
+
+	return ctx
+}

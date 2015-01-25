@@ -25,13 +25,6 @@ func Init(config *Config) error {
 
 	cfg = config
 
-	switch config.Mailer {
-	case MailerSMTP:
-		// dance
-	default:
-		emailer = newLogMailer(cfg.LogWriter)
-	}
-
 	for name, mod := range modules {
 		fmt.Fprintf(cfg.LogWriter, "%-10s Initializing\n", "["+name+"]")
 		if err := mod.Initialize(config); err != nil {

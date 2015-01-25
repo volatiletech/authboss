@@ -3,6 +3,7 @@ package authboss
 import (
 	"io"
 	"io/ioutil"
+	"net/smtp"
 	"time"
 )
 
@@ -16,8 +17,6 @@ type Config struct {
 	AuthLogoutRoute       string `json:"auth_logout_route" xml:"authLogoutRoute"`
 	AuthLoginSuccessRoute string `json:"auth_login_success_route" xml:"authLoginSuccessRoute"`
 
-	RecoverFromEmail string `json:"recover_from_email" xml:"recoverFromEmail"`
-
 	ValidateEmail    Validator `json:"-" xml:"-"`
 	ValidateUsername Validator `json:"-" xml:"-"`
 	ValidatePassword Validator `json:"-" xml:"-"`
@@ -25,6 +24,12 @@ type Config struct {
 	LockAfter    int           `json:"lock_after" xml:"lockAfter"`
 	LockWindow   time.Duration `json:"lock_window" xml:"lockWindow"`
 	LockDuration time.Duration `json:"lock_duration" xml:"lockDuration"`
+
+	EmailFrom          string `json:"email_from" xml:"emailFrom"`
+	EmailSubjectPrefix string `json:"email_subject_prefix" xml:"emailSubjectPrefix"`
+
+	SMTPAddress string    `json:"smtp_address" xml:"smtpAddress"`
+	SMTPAuth    smtp.Auth `json:"-" xml:"-"`
 
 	Storer            Storer            `json:"-" xml:"-"`
 	CookieStoreMaker  CookieStoreMaker  `json:"-" xml:"-"`
@@ -43,10 +48,8 @@ func NewConfig() *Config {
 		AuthLogoutRoute:       "/",
 		AuthLoginSuccessRoute: "/",
 
-		RecoverFromEmail: "no-reply@authboss.com",
-
 		LogWriter: ioutil.Discard,
 		Callbacks: NewCallbacks(),
-		Mailer:    MailerLog,
+		Mailer:    LogMailer(ioutil.Discard),
 	}
 }

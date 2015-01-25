@@ -68,10 +68,12 @@ func TestValidate(t *testing.T) {
 
 	errList := ctx.Validate([]Validator{
 		mockValidator{
-			FieldName: "username", Errs: ErrorList{FieldError{"username", errors.New("must be longer than 4")}},
+			FieldName: "username",
+			Errs:      ErrorList{FieldError{"username", errors.New("must be longer than 4")}},
 		},
 		mockValidator{
-			FieldName: "missing_field", Errs: ErrorList{FieldError{"missing_field", errors.New("Expected field to exist.")}},
+			FieldName: "missing_field",
+			Errs:      ErrorList{FieldError{"missing_field", errors.New("Expected field to exist.")}},
 		},
 		mockValidator{
 			FieldName: "email", Errs: nil,

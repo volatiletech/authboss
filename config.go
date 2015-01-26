@@ -21,6 +21,8 @@ type Config struct {
 	ValidateUsername Validator `json:"-" xml:"-"`
 	ValidatePassword Validator `json:"-" xml:"-"`
 
+	ExpireAfter time.Duration `json:"expire_after" xml:"expireAfter"`
+
 	LockAfter    int           `json:"lock_after" xml:"lockAfter"`
 	LockWindow   time.Duration `json:"lock_window" xml:"lockWindow"`
 	LockDuration time.Duration `json:"lock_duration" xml:"lockDuration"`

@@ -40,4 +40,12 @@ func TestMailer(t *testing.T) {
 	if !strings.Contains(str, "To: Jake <some@email.com>, Noname <a@a.com>") {
 		t.Error("To line not present.")
 	}
+
+	if !strings.Contains(str, "No html here") {
+		t.Error("Text body not present.")
+	}
+
+	if !strings.Contains(str, "<html>body</html>") {
+		t.Error("Html body not present.")
+	}
 }

@@ -9,6 +9,10 @@ const (
 	// the remember module. This serves as a way to force full authentication
 	// by denying half-authed users acccess to sensitive areas.
 	HalfAuthKey = "halfauth"
+	// FlashSuccessKey is used for storing sucess flash messages on the session
+	FlashSuccessKey = "flash_success"
+	// FlashErrorKey is used for storing sucess flash messages on the session
+	FlashErrorKey = "flash_error"
 )
 
 // ClientStorer should be able to store values on the clients machine. Cookie and

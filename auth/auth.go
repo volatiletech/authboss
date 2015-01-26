@@ -36,6 +36,8 @@ type AuthPage struct {
 
 	ShowRemember bool
 	ShowRecover  bool
+
+	FlashSuccess string
 }
 
 type Auth struct {
@@ -94,7 +96,14 @@ func (a *Auth) loginHandlerFunc(ctx *authboss.Context, w http.ResponseWriter, r 
 			}
 		}
 
-		a.templates.ExecuteTemplate(w, pageLogin, AuthPage{ShowRemember: a.isRememberLoaded, ShowRecover: a.isRecoverLoaded})
+		page := AuthPage{ShowRemember: a.isRememberLoaded, ShowRecover: a.isRecoverLoaded}
+
+		if msg, ok := ctx.SessionStorer.Get(authboss.FlashSuccessKey); ok {
+			page.FlashSuccess = msg
+			ctx.SessionStorer.Del(authboss.FlashSuccessKey)
+		}
+
+		a.templates.ExecuteTemplate(w, pageLogin, page)
 	case methodPOST:
 		u, ok := ctx.FirstPostFormValue("username")
 		if !ok {
@@ -103,7 +112,7 @@ func (a *Auth) loginHandlerFunc(ctx *authboss.Context, w http.ResponseWriter, r 
 
 		if err := a.callbacks.FireBefore(authboss.EventAuth, ctx); err != nil {
 			w.WriteHeader(http.StatusForbidden)
-			a.templates.ExecuteTemplate(w, pageLogin, AuthPage{err.Error(), u, a.isRememberLoaded, a.isRecoverLoaded})
+			a.templates.ExecuteTemplate(w, pageLogin, AuthPage{err.Error(), u, a.isRememberLoaded, a.isRecoverLoaded, ""})
 		}
 
 		p, ok := ctx.FirstPostFormValue("password")
@@ -114,7 +123,7 @@ func (a *Auth) loginHandlerFunc(ctx *authboss.Context, w http.ResponseWriter, r 
 		if err := a.authenticate(ctx, u, p); err != nil {
 			fmt.Fprintln(a.logger, err)
 			w.WriteHeader(http.StatusForbidden)
-			a.templates.ExecuteTemplate(w, pageLogin, AuthPage{"invalid username and/or password", u, a.isRememberLoaded, a.isRecoverLoaded})
+			a.templates.ExecuteTemplate(w, pageLogin, AuthPage{"invalid username and/or password", u, a.isRememberLoaded, a.isRecoverLoaded, ""})
 			return
 		}
 

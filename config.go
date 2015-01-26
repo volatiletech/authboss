@@ -10,35 +10,38 @@ import (
 // Config holds all the configuration for both authboss and it's modules.
 type Config struct {
 	// MountPath is the path to mount the router at.
-	MountPath string `json:"mount_path" xml:"mountPath"`
+	MountPath string
 	// ViewsPath is the path to overiding view template files.
-	ViewsPath string `json:"views_path" xml:"viewsPath"`
+	ViewsPath string
+	// HostName is self explanitory
+	HostName string
 
-	AuthLogoutRoute       string `json:"auth_logout_route" xml:"authLogoutRoute"`
-	AuthLoginSuccessRoute string `json:"auth_login_success_route" xml:"authLoginSuccessRoute"`
+	AuthLogoutRoute       string
+	AuthLoginSuccessRoute string
 
-	ValidateEmail    Validator `json:"-" xml:"-"`
-	ValidateUsername Validator `json:"-" xml:"-"`
-	ValidatePassword Validator `json:"-" xml:"-"`
+	RecoverInitiateRedirect     string
+	RecoverInitiateSuccessFlash string
 
-	ExpireAfter time.Duration `json:"expire_after" xml:"expireAfter"`
+	Policies      []Validator
+	ConfirmFields []string
 
-	LockAfter    int           `json:"lock_after" xml:"lockAfter"`
-	LockWindow   time.Duration `json:"lock_window" xml:"lockWindow"`
-	LockDuration time.Duration `json:"lock_duration" xml:"lockDuration"`
+	ExpireAfter  time.Duration
+	LockAfter    int
+	LockWindow   time.Duration
+	LockDuration time.Duration
 
-	EmailFrom          string `json:"email_from" xml:"emailFrom"`
-	EmailSubjectPrefix string `json:"email_subject_prefix" xml:"emailSubjectPrefix"`
+	EmailFrom          string
+	EmailSubjectPrefix string
 
-	SMTPAddress string    `json:"smtp_address" xml:"smtpAddress"`
-	SMTPAuth    smtp.Auth `json:"-" xml:"-"`
+	SMTPAddress string
+	SMTPAuth    smtp.Auth
 
-	Storer            Storer            `json:"-" xml:"-"`
-	CookieStoreMaker  CookieStoreMaker  `json:"-" xml:"-"`
-	SessionStoreMaker SessionStoreMaker `json:"-" xml:"-"`
-	LogWriter         io.Writer         `json:"-" xml:"-"`
-	Callbacks         *Callbacks        `json:"-" xml:"-"`
-	Mailer            Mailer            `json:"-" xml:"-"`
+	Storer            Storer
+	CookieStoreMaker  CookieStoreMaker
+	SessionStoreMaker SessionStoreMaker
+	LogWriter         io.Writer
+	Callbacks         *Callbacks
+	Mailer            Mailer
 }
 
 // NewConfig creates a new config full of default values ready to override.
@@ -49,6 +52,9 @@ func NewConfig() *Config {
 
 		AuthLogoutRoute:       "/",
 		AuthLoginSuccessRoute: "/",
+
+		RecoverInitiateRedirect:     "/login",
+		RecoverInitiateSuccessFlash: "An email has been sent with further insructions on how to reset your password",
 
 		LogWriter: ioutil.Discard,
 		Callbacks: NewCallbacks(),

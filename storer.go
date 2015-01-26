@@ -49,6 +49,11 @@ type TokenStorer interface {
 	UseToken(givenKey, token string) (key string, err error)
 }
 
+type RecoverStorer interface {
+	Storer
+	RecoverUser(recover string) (interface{}, error)
+}
+
 // DataType represents the various types that clients must be able to store.
 type DataType int
 
@@ -98,6 +103,37 @@ func (a Attributes) Names() []string {
 		i++
 	}
 	return names
+}
+
+// String returns a single value as a string
+func (a Attributes) String(key string) (string, bool) {
+	inter, ok := a[key]
+	if !ok {
+		return "", false
+	}
+	val, ok := inter.(string)
+	return val, ok
+}
+
+// Int returns a single value as a int
+func (a Attributes) Int(key string) (int, bool) {
+	inter, ok := a[key]
+	if !ok {
+		return 0, false
+	}
+	val, ok := inter.(int)
+	return val, ok
+}
+
+// DateTime returns a single value as a time.Time
+func (a Attributes) DateTime(key string) (time.Time, bool) {
+	inter, ok := a[key]
+	if !ok {
+		var time time.Time
+		return time, false
+	}
+	val, ok := inter.(time.Time)
+	return val, ok
 }
 
 // Bind the data in the attributes to the given struct. This means the

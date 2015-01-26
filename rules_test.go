@@ -14,8 +14,13 @@ func TestRules_Errors(t *testing.T) {
 		Error string
 	}{
 		{
-			Rules{FieldName: "email"},
+			Rules{FieldName: "email", Required: true},
 			"",
+			"email: Cannot be blank",
+		},
+		{
+			Rules{FieldName: "email", Required: true},
+			"   \t\t\n   ",
 			"email: Cannot be blank",
 		},
 		{
@@ -110,7 +115,7 @@ func TestRules_Rules(t *testing.T) {
 func TestRules_IsValid(t *testing.T) {
 	t.Parallel()
 
-	r := Rules{FieldName: "email"}
+	r := Rules{FieldName: "email", Required: true}
 	if r.IsValid("") {
 		t.Error("It should not be valid.")
 	}

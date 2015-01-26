@@ -58,7 +58,7 @@ func (f FieldError) Error() string {
 }
 
 // Validate validates a request using the given ruleset.
-func (ctx *Context) Validate(ruleset []Validator) ErrorList {
+func (ctx *Context) Validate(ruleset []Validator, confirmFields ...string) ErrorList {
 	errList := make(ErrorList, 0)
 
 	for _, validator := range ruleset {
@@ -70,5 +70,32 @@ func (ctx *Context) Validate(ruleset []Validator) ErrorList {
 		}
 	}
 
+	for i := 0; i < len(confirmFields)-1; i += 2 {
+		main, ok := ctx.FirstPostFormValue(confirmFields[i])
+		if !ok {
+			continue
+		}
+
+		confirm, ok := ctx.FirstPostFormValue(confirmFields[i+1])
+		if !ok || main != confirm {
+			errList = append(errList, FieldError{confirmFields[i+1], fmt.Errorf("Does not match %s", confirmFields[i])})
+		}
+	}
+
 	return errList
+}
+
+func FilterValidators(validators []Validator, fields ...string) []Validator {
+	var arr []Validator
+
+	for _, validator := range validators {
+		fieldName := validator.Field()
+		for _, field := range fields {
+			if fieldName == field {
+				arr = append(arr, validator)
+			}
+		}
+	}
+
+	return arr
 }

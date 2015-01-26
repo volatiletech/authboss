@@ -91,3 +91,47 @@ func TestValidate(t *testing.T) {
 		t.Error("Expected no errors for email.")
 	}
 }
+
+func TestValidate_Confirm(t *testing.T) {
+	t.Parallel()
+
+	ctx := mockRequestContext("username", "john", "confirmUsername", "johnny")
+	errs := ctx.Validate(nil, "username", "confirmUsername").Map()
+	if errs["confirmUsername"][0] != "Does not match username" {
+		t.Error("Expected a different error for confirmUsername:", errs["confirmUsername"][0])
+	}
+
+	ctx = mockRequestContext("username", "john", "confirmUsername", "john")
+	errs = ctx.Validate(nil, "username", "confirmUsername").Map()
+	if len(errs) != 0 {
+		t.Error("Expected no errors:", errs)
+	}
+
+	ctx = mockRequestContext("username", "john", "confirmUsername", "john")
+	errs = ctx.Validate(nil, "username").Map()
+	if len(errs) != 0 {
+		t.Error("Expected no errors:", errs)
+	}
+}
+
+func TestFilterValidators(t *testing.T) {
+	t.Parallel()
+
+	validators := []Validator{
+		mockValidator{
+			FieldName: "username", Errs: ErrorList{FieldError{"username", errors.New("must be longer than 4")}},
+		},
+		mockValidator{
+			FieldName: "password", Errs: ErrorList{FieldError{"password", errors.New("must be longer than 4")}},
+		},
+	}
+
+	validators = FilterValidators(validators, "username")
+
+	if len(validators) != 1 {
+		t.Error("Expected length to be 1")
+	}
+	if validators[0].Field() != "username" {
+		t.Error("Expcted validator for field username", validators[0].Field())
+	}
+}

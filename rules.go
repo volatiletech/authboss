@@ -7,11 +7,14 @@ import (
 	"unicode"
 )
 
+var blankRegex = regexp.MustCompile(`^\s*$`)
+
 // Rules defines a ruleset by which a string can be validated.
 type Rules struct {
 	// FieldName is the name of the field this is intended to validate.
 	FieldName string
 	// MatchError describes the MustMatch regexp to a user.
+	Required             bool
 	MatchError           string
 	MustMatch            *regexp.Regexp
 	MinLength, MaxLength int
@@ -32,9 +35,8 @@ func (r Rules) Errors(toValidate string) ErrorList {
 	errs := make(ErrorList, 0)
 
 	ln := len(toValidate)
-	if ln == 0 {
-		errs = append(errs, FieldError{r.FieldName, errors.New("Cannot be blank")})
-		return errs
+	if r.Required && (ln == 0 || blankRegex.MatchString(toValidate)) {
+		return append(errs, FieldError{r.FieldName, errors.New("Cannot be blank")})
 	}
 
 	if r.MustMatch != nil {
@@ -64,6 +66,7 @@ func (r Rules) Errors(toValidate string) ErrorList {
 	if len(errs) == 0 {
 		return nil
 	}
+
 	return errs
 }
 

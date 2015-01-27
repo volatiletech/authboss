@@ -39,6 +39,7 @@ type Config struct {
 	Storer            Storer
 	CookieStoreMaker  CookieStoreMaker
 	SessionStoreMaker SessionStoreMaker
+	XSRFMaker         XSRF
 	LogWriter         io.Writer
 	Callbacks         *Callbacks
 	Mailer            Mailer

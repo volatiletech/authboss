@@ -2,7 +2,11 @@ package authboss
 
 import (
 	"errors"
+	"fmt"
 	"net/http"
+	"strconv"
+	"strings"
+	"time"
 )
 
 // Context provides context for module operations and callbacks. One obvious
@@ -103,4 +107,35 @@ func (c *Context) SaveUser(key string, storer Storer) error {
 	}
 
 	return storer.Put(key, c.User)
+}
+
+// Attributes converts the post form values into an attributes map.
+func (c *Context) Attributes() (Attributes, error) {
+	attr := make(Attributes)
+
+	for name, values := range c.postFormValues {
+		if len(values) == 0 {
+			continue
+		}
+
+		val := values[0]
+		switch {
+		case strings.HasSuffix(name, "_int"):
+			integer, err := strconv.Atoi(val)
+			if err != nil {
+				return nil, fmt.Errorf("%q (%q): could not be converted to an integer: %v", name, val, err)
+			}
+			attr[strings.TrimRight(name, "_int")] = integer
+		case strings.HasSuffix(name, "_date"):
+			date, err := time.Parse(time.RFC3339, val)
+			if err != nil {
+				return nil, fmt.Errorf("%q (%q): could not be converted to a datetime: %v", name, val, err)
+			}
+			attr[strings.TrimRight(name, "_date")] = date.UTC()
+		default:
+			attr[name] = val
+		}
+	}
+
+	return attr, nil
 }

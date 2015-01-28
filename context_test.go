@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"net/http"
 	"testing"
+	"time"
 )
 
 func TestContext_PutGet(t *testing.T) {
@@ -83,5 +84,35 @@ func TestContext_LoadUser(t *testing.T) {
 		if v != ctx.User[k] {
 			t.Error(v, "not equal to", ctx.User[k])
 		}
+	}
+}
+
+func TestContext_Attributes(t *testing.T) {
+	now := time.Now().UTC()
+
+	ctx := NewContext()
+	ctx.postFormValues = map[string][]string{
+		"a":        []string{"a", "1"},
+		"b_int":    []string{"5", "hello"},
+		"wildcard": nil,
+		"c_date":   []string{now.Format(time.RFC3339)},
+	}
+
+	attr, err := ctx.Attributes()
+	if err != nil {
+		t.Error(err)
+	}
+
+	if got := attr["a"].(string); got != "a" {
+		t.Error("a's value is wrong:", got)
+	}
+	if got := attr["b"].(int); got != 5 {
+		t.Error("b's value is wrong:", got)
+	}
+	if got := attr["c"].(time.Time); got.Unix() != now.Unix() {
+		t.Error("c's value is wrong:", now, got)
+	}
+	if _, ok := attr["wildcard"]; ok {
+		t.Error("We don't need totally empty fields.")
 	}
 }

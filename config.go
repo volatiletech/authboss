@@ -32,14 +32,15 @@ type Config struct {
 
 	EmailFrom          string
 	EmailSubjectPrefix string
+	SMTPAddress        string
+	SMTPAuth           smtp.Auth
 
-	SMTPAddress string
-	SMTPAuth    smtp.Auth
+	XSRFName  string
+	XSRFMaker XSRF
 
 	Storer            Storer
 	CookieStoreMaker  CookieStoreMaker
 	SessionStoreMaker SessionStoreMaker
-	XSRFMaker         XSRF
 	LogWriter         io.Writer
 	Callbacks         *Callbacks
 	Mailer            Mailer

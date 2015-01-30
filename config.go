@@ -5,6 +5,8 @@ import (
 	"io/ioutil"
 	"net/smtp"
 	"time"
+
+	"golang.org/x/crypto/bcrypt"
 )
 
 // Config holds all the configuration for both authboss and it's modules.
@@ -15,12 +17,17 @@ type Config struct {
 	ViewsPath string
 	// HostName is self explanitory
 	HostName string
+	// BCryptPasswordCost is self explanitory.
+	BCryptCost int
 
 	AuthLogoutRoute       string
 	AuthLoginSuccessRoute string
 
-	RecoverInitiateRedirect     string
+	RecoverRedirect             string
 	RecoverInitiateSuccessFlash string
+	RecoverTokenDuration        time.Duration
+	RecoverTokenExpiredFlash    string
+	RecoverFailedErrorFlash     string
 
 	Policies      []Validator
 	ConfirmFields []string
@@ -49,14 +56,38 @@ type Config struct {
 // NewConfig creates a new config full of default values ready to override.
 func NewConfig() *Config {
 	return &Config{
-		MountPath: "/",
-		ViewsPath: "/",
+		MountPath:  "/",
+		ViewsPath:  "/",
+		HostName:   "localhost:8080",
+		BCryptCost: bcrypt.DefaultCost,
 
 		AuthLogoutRoute:       "/",
 		AuthLoginSuccessRoute: "/",
 
-		RecoverInitiateRedirect:     "/login",
+		Policies: []Validator{
+			Rules{
+				FieldName:       "username",
+				Required:        true,
+				MinLength:       2,
+				MaxLength:       4,
+				AllowWhitespace: false,
+			},
+			Rules{
+				FieldName: "password",
+				Required:  true,
+				MinLength: 4,
+				MaxLength: 8,
+
+				AllowWhitespace: false,
+			},
+		},
+		ConfirmFields: []string{"username", "confirmUsername", "password", "confirmPassword"},
+
+		RecoverRedirect:             "/login",
 		RecoverInitiateSuccessFlash: "An email has been sent with further insructions on how to reset your password",
+		RecoverTokenDuration:        time.Duration(24) * time.Hour,
+		RecoverTokenExpiredFlash:    "Account recovery request has expired.  Please try agian.",
+		RecoverFailedErrorFlash:     "Account recovery has failed.  Please contact tech support.",
 
 		LogWriter: ioutil.Discard,
 		Callbacks: NewCallbacks(),

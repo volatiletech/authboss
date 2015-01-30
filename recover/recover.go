@@ -9,10 +9,12 @@ import (
 	"fmt"
 	"html/template"
 	"net/http"
+	"time"
 
-	"io"
+	"golang.org/x/crypto/bcrypt"
 
 	"gopkg.in/authboss.v0"
+	"gopkg.in/authboss.v0/internal/httputil"
 	"gopkg.in/authboss.v0/internal/views"
 )
 
@@ -23,11 +25,16 @@ const (
 	tplLogin           = "login.tpl"
 	tplRecover         = "recover.tpl"
 	tplRecoverComplete = "recover-complete.tpl"
-	tplInitEmail       = "recover-init.email"
+	tplInitHTMLEmail   = "recover-html.email"
+	tplInitTextEmail   = "recover-text.email"
 
-	attrUsername     = "username"
-	attrRecoverToken = "recover_token"
-	attrEmail        = "email"
+	attrUsername           = "username"
+	attrRecoverToken       = "recover_token"
+	attrRecoverTokenExpiry = "recover_token_expiry"
+	attrEmail              = "email"
+	attrPassword           = "password"
+
+	errFormat = "recover [%s]: %s\n"
 )
 
 func init() {
@@ -35,23 +42,9 @@ func init() {
 	authboss.RegisterModule("recover", m)
 }
 
-type RecoverPage struct {
-	Username, ConfirmUsername string
-	ErrMap                    map[string][]string
-}
-
 type RecoverModule struct {
-	templates                   *template.Template
-	routes                      authboss.RouteTable
-	storageOptions              authboss.StorageOptions
-	storer                      authboss.RecoverStorer
-	logger                      io.Writer
-	policies                    []authboss.Validator
-	confirmFields               []string
-	hostName                    string
-	recoverInitiateRedirect     string
-	recoverInitiateSuccessFlash string
-	fromEmail                   string
+	templates *template.Template
+	config    *authboss.Config
 }
 
 func (m *RecoverModule) Initialize(config *authboss.Config) (err error) {
@@ -59,148 +52,249 @@ func (m *RecoverModule) Initialize(config *authboss.Config) (err error) {
 		return errors.New("recover: Need a RecoverStorer.")
 	}
 
-	if storer, ok := config.Storer.(authboss.RecoverStorer); !ok {
+	if _, ok := config.Storer.(authboss.RecoverStorer); !ok {
 		return errors.New("recover: RecoverStorer required for recover functionality.")
-	} else {
-		m.storer = storer
 	}
 
-	if m.templates, err = views.Get(config.ViewsPath, tplRecover, tplRecoverComplete, tplInitEmail); err != nil {
+	if m.templates, err = views.Get(config.ViewsPath, tplRecover, tplRecoverComplete, tplInitHTMLEmail, tplInitTextEmail); err != nil {
 		return err
 	}
 
-	m.routes = authboss.RouteTable{
-		"recover": m.recoverHandlerFunc,
-		//"recover/complete": m.recoverCompleteHandlerFunc,
-	}
-	m.storageOptions = authboss.StorageOptions{
-		attrUsername:     authboss.String,
-		attrRecoverToken: authboss.String,
-		attrEmail:        authboss.String,
-	}
-	m.logger = config.LogWriter
-	m.fromEmail = config.RecoverFromEmail
-	m.hostName = config.HostName
-	m.recoverInitiateRedirect = config.RecoverInitiateRedirect
-	m.recoverInitiateSuccessFlash = config.RecoverInitiateSuccessFlash
-	m.policies = config.Policies
-	m.confirmFields = config.ConfirmFields
+	m.config = config
 
 	return nil
 }
 
-func (m *RecoverModule) Routes() authboss.RouteTable      { return m.routes }
-func (m *RecoverModule) Storage() authboss.StorageOptions { return m.storageOptions }
+func (m *RecoverModule) Routes() authboss.RouteTable {
+	return authboss.RouteTable{
+		"recover":          m.recoverHandlerFunc,
+		"recover/complete": m.recoverCompleteHandlerFunc,
+	}
+}
+func (m *RecoverModule) Storage() authboss.StorageOptions {
+	return authboss.StorageOptions{
+		attrUsername:           authboss.String,
+		attrRecoverToken:       authboss.String,
+		attrEmail:              authboss.String,
+		attrRecoverTokenExpiry: authboss.String,
+		attrPassword:           authboss.String,
+	}
+}
+
+type pageRecover struct {
+	Username, ConfirmUsername string
+	ErrMap                    map[string][]string
+	FlashError                string
+}
 
 func (m *RecoverModule) recoverHandlerFunc(ctx *authboss.Context, w http.ResponseWriter, r *http.Request) {
+	execTpl := func(data interface{}) {
+		if err := m.templates.ExecuteTemplate(w, tplRecover, data); err != nil {
+			fmt.Fprintf(m.config.LogWriter, errFormat, "unable to execute template", err)
+		}
+	}
+
 	switch r.Method {
 	case methodGET:
-		m.templates.ExecuteTemplate(w, tplRecover, nil)
+		execTpl(pageRecover{FlashError: httputil.PullFlash(ctx.SessionStorer, authboss.FlashErrorKey)})
 	case methodPOST:
+		// ignore ok checks as we validate these fields anyways
 		username, _ := ctx.FirstPostFormValue("username")
 		confirmUsername, _ := ctx.FirstPostFormValue("confirmUsername")
 
-		policies := authboss.FilterValidators(m.policies, "username")
-		if validationErrs := ctx.Validate(policies, m.confirmFields...); len(validationErrs) > 0 {
-			err := m.templates.ExecuteTemplate(w, tplRecover, RecoverPage{username, confirmUsername, validationErrs.Map()})
-			if err != nil {
-				fmt.Fprintln(m.logger, "recover:", err)
-			}
+		policies := authboss.FilterValidators(m.config.Policies, "username")
+		if validationErrs := ctx.Validate(policies, m.config.ConfirmFields...); len(validationErrs) > 0 {
+			fmt.Fprintf(m.config.LogWriter, errFormat, "validation failed", validationErrs)
+			execTpl(pageRecover{username, confirmUsername, validationErrs.Map(), ""})
 			return
 		}
 
-		if err := m.initiateRecover(ctx, username, confirmUsername); err != nil {
-			fmt.Fprintln(m.logger, fmt.Sprintf("recover: %s", err.Error()))
+		if err := m.recover(ctx, username); err != nil {
+			// never reveal failed usernames to prevent sniffing
+			fmt.Fprintf(m.config.LogWriter, errFormat, "failed to recover", err)
+			execTpl(pageRecover{username, confirmUsername, nil, m.config.RecoverFailedErrorFlash})
+			return
 		}
 
-		ctx.SessionStorer.Put(authboss.FlashSuccessKey, m.recoverInitiateSuccessFlash)
-		http.Redirect(w, r, m.recoverInitiateRedirect, http.StatusFound)
+		ctx.SessionStorer.Put(authboss.FlashSuccessKey, m.config.RecoverInitiateSuccessFlash)
+		http.Redirect(w, r, m.config.RecoverRedirect, http.StatusFound)
 	default:
 		w.WriteHeader(http.StatusMethodNotAllowed)
 	}
 }
 
-func (m *RecoverModule) initiateRecover(ctx *authboss.Context, username, confirmUsername string) (err error) {
-	if err := ctx.LoadUser(username, m.storer); err != nil {
+func (m *RecoverModule) recover(ctx *authboss.Context, username string) (err error) {
+	if err := ctx.LoadUser(username, m.config.Storer); err != nil {
 		return err
-	}
-
-	email, ok := ctx.User.String(attrEmail)
-	if !ok {
-		return fmt.Errorf("missing attr: %s", email)
 	}
 
 	token := make([]byte, 32)
 	if _, err := rand.Read(token); err != nil {
 		return err
 	}
-
 	sum := md5.Sum(token)
+
 	ctx.User[attrRecoverToken] = base64.StdEncoding.EncodeToString(sum[:])
+	ctx.User[attrRecoverTokenExpiry] = time.Now().Add(m.config.RecoverTokenDuration)
 
-	if err := ctx.SaveUser(username, m.storer); err != nil {
+	if err := ctx.SaveUser(username, m.config.Storer); err != nil {
 		return err
 	}
 
-	emailBody := &bytes.Buffer{}
-	if err := m.templates.ExecuteTemplate(emailBody, tplInitEmail, struct{ Link string }{
-		fmt.Sprintf("%s/recover/complete?token=%s", m.hostName, base64.URLEncoding.EncodeToString(sum[:])),
-	}); err != nil {
-		return err
+	if email, ok := ctx.User.String(attrEmail); !ok {
+		return errors.New("email not found; unable to send email")
+	} else {
+		go m.sendRecoverEmail(email, token)
 	}
 
-	return authboss.SendEmail(email, m.fromEmail, emailBody.Bytes())
+	return nil
 }
 
-/*func (m *RecoverModule) recoverCompleteHandlerFunc(ctx *authboss.Context, w http.ResponseWriter, r *http.Request) {
+func (m *RecoverModule) sendRecoverEmail(to string, token []byte) {
+	data := struct{ Link string }{fmt.Sprintf("%s/recover/complete?token=%s", m.config.HostName, base64.URLEncoding.EncodeToString(token))}
+
+	htmlEmailBody := &bytes.Buffer{}
+	if err := m.templates.ExecuteTemplate(htmlEmailBody, tplInitHTMLEmail, data); err != nil {
+		fmt.Fprintf(m.config.LogWriter, errFormat, "failed to build html tpl", err)
+	}
+
+	textEmaiLBody := &bytes.Buffer{}
+	if err := m.templates.ExecuteTemplate(textEmaiLBody, tplInitTextEmail, data); err != nil {
+		fmt.Fprintf(m.config.LogWriter, errFormat, "failed to build plaintext tpl", err)
+	}
+
+	if err := m.config.Mailer.Send(authboss.Email{
+		To:       []string{to},
+		ToNames:  []string{""},
+		From:     m.config.EmailFrom,
+		Subject:  "Password Reset",
+		TextBody: textEmaiLBody.String(),
+		HTMLBody: htmlEmailBody.String(),
+	}); err != nil {
+		fmt.Fprintf(m.config.LogWriter, errFormat, "failed to send email", err)
+	}
+}
+
+type pageRecoverComplete struct {
+	Token      string
+	ErrMap     map[string][]string
+	FlashError string
+}
+
+func (m *RecoverModule) recoverCompleteHandlerFunc(ctx *authboss.Context, w http.ResponseWriter, r *http.Request) {
 	switch r.Method {
 	case methodGET:
+		page := pageRecoverComplete{}
+
+		if msg, ok := ctx.SessionStorer.Get(authboss.FlashErrorKey); ok {
+			page.FlashError = msg
+			ctx.SessionStorer.Del(authboss.FlashErrorKey)
+		}
 
 		token, ok := ctx.FirstFormValue("token")
 		if !ok {
-			fmt.Fprintln(m.logger, "recover: expected value token")
-			//http.Redirect(w, r, "/", http.StatusFound)
+			fmt.Fprintln(m.config.LogWriter, "recover: expected value token")
+			http.Redirect(w, r, "/", http.StatusFound)
 			return
 		}
 
-		userAttrs, err := m.verifyToken(token);
+		var err error
+		ctx.User, err = m.verifyToken(token)
 		if err != nil {
-			fmt.Fprintf(m.logger, "recover: %s", err)
-			//http.Redirect(w, r, urlStr, code)
+			fmt.Fprintln(m.config.LogWriter, "recover:", err)
+			http.Redirect(w, r, "/", http.StatusFound)
 			return
 		}
 
+		expiry, ok := ctx.User.DateTime(attrRecoverTokenExpiry)
+		if !ok || time.Now().After(expiry) {
+			fmt.Fprintln(m.config.LogWriter, "recover: token has expired:", expiry)
+			ctx.SessionStorer.Put(authboss.FlashErrorKey, m.config.RecoverTokenExpiredFlash)
+			http.Redirect(w, r, "/recover", http.StatusFound)
+			return
+		}
 
-
-		m.templates.ExecuteTemplate(w, tplRecoverComplete, nil)
+		page.Token = token
+		if err := m.templates.ExecuteTemplate(w, tplRecoverComplete, pageRecoverComplete{Token: token}); err != nil {
+			fmt.Fprintln(m.config.LogWriter, "recover:", err)
+		}
 	case methodPOST:
-		//if err := completeRecover(ctx); err :=
+		token, ok := ctx.FirstFormValue("token")
+		if !ok {
+			fmt.Fprintln(m.config.LogWriter, "recover: expected value token")
+		}
+
+		var err error
+		ctx.User, err = m.verifyToken(token)
+		if err != nil {
+			fmt.Fprintln(m.config.LogWriter, "recover:", err)
+			http.Redirect(w, r, "/", http.StatusFound)
+			return
+		}
+
+		policies := authboss.FilterValidators(m.config.Policies, "password")
+		if validationErrs := ctx.Validate(policies, m.config.ConfirmFields...); len(validationErrs) > 0 {
+			err := m.templates.ExecuteTemplate(w, tplRecoverComplete, pageRecoverComplete{Token: token, ErrMap: validationErrs.Map()})
+			if err != nil {
+				fmt.Fprintln(m.config.LogWriter, "recover:", err)
+			}
+			return
+		}
+
+		password, _ := ctx.FirstFormValue("password")
+
+		encryptedPassword, err := bcrypt.GenerateFromPassword([]byte(password), m.config.BCryptCost)
+		if err != nil {
+			fmt.Fprintln(m.config.LogWriter, "recover: failed to encrypt password")
+			err := m.templates.ExecuteTemplate(w, tplRecoverComplete, pageRecoverComplete{Token: token, FlashError: m.config.RecoverFailedErrorFlash})
+			if err != nil {
+				fmt.Fprintln(m.config.LogWriter, "recover:", err)
+			}
+			return
+		}
+
+		ctx.User[attrPassword] = string(encryptedPassword)
+
+		username, ok := ctx.User.String(attrUsername)
+		if !ok {
+			fmt.Println(m.config.LogWriter, "reover: expected user attribue missing:", attrUsername)
+			err := m.templates.ExecuteTemplate(w, tplRecoverComplete, pageRecoverComplete{Token: token, FlashError: m.config.RecoverFailedErrorFlash})
+			if err != nil {
+				fmt.Fprintln(m.config.LogWriter, "recover:", err)
+			}
+			return
+		}
+
+		ctx.User[attrRecoverToken] = ""
+		ctx.User[attrRecoverTokenExpiry] = time.Now().UTC()
+
+		if err := ctx.SaveUser(username, m.config.Storer); err != nil {
+			fmt.Fprintln(m.config.LogWriter, "recover:", err)
+			err := m.templates.ExecuteTemplate(w, tplRecoverComplete, pageRecoverComplete{Token: token, FlashError: m.config.RecoverFailedErrorFlash})
+			if err != nil {
+				fmt.Fprintln(m.config.LogWriter, "recover:", err)
+			}
+			return
+		}
+
+		ctx.SessionStorer.Put(authboss.SessionKey, username)
+		http.Redirect(w, r, m.config.AuthLoginSuccessRoute, http.StatusFound)
 	default:
 		w.WriteHeader(http.StatusMethodNotAllowed)
 	}
 }
 
-func (m *RecoverModule) verifyToken(token) (attrs authboss.Attributes, err) {
+func (m *RecoverModule) verifyToken(token string) (attrs authboss.Attributes, err error) {
 	decodedToken, err := base64.URLEncoding.DecodeString(token)
 	if err != nil {
 		return nil, err
 	}
 
 	sum := md5.Sum(decodedToken)
-
-	userInter, err := m.storer.RecoverUser(base64.StdEncoding.EncodeToString(sum[:]))
+	userInter, err := m.config.Storer.(authboss.RecoverStorer).RecoverUser(base64.StdEncoding.EncodeToString(sum[:]))
 	if err != nil {
 		return nil, err
 	}
 
 	return authboss.Unbind(userInter), nil
 }
-
-func (m *RecoverModule) completeRecover(ctx *authboss.Context, password, confirmPassword string) error {
-	if password == confirmPassword {
-		return errors.New("Passwords do not match")
-	}
-
-	return nil
-}
-*/

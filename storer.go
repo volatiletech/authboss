@@ -10,9 +10,9 @@ import (
 )
 
 var (
-	// UserNotFound should be returned from Get when the record is not found.
+	// ErrUserNotFound should be returned from Get when the record is not found.
 	ErrUserNotFound = errors.New("User not found")
-	// TokenNotFound should be returned from UseToken when the record is not found.
+	// ErrTokenNotFound should be returned from UseToken when the record is not found.
 	ErrTokenNotFound = errors.New("Token not found")
 )
 
@@ -29,9 +29,9 @@ type Storer interface {
 	// help serialization without using type assertions.
 	Put(key string, attr Attributes) error
 	// Get is for retrieving attributes for a given key. The return value
-	// must be a struct thot contains a field with the correct type as shown
+	// must be a struct that contains a field with the correct type as shown
 	// by attrMeta. If the key is not found in the data store simply
-	// return nil, UserNotFound.
+	// return nil, ErrUserNotFound.
 	Get(key string, attrMeta AttributeMeta) (interface{}, error)
 }
 
@@ -45,12 +45,16 @@ type TokenStorer interface {
 	DelTokens(key string) error
 	// UseToken finds the key-token pair, removes the entry in the store
 	// and returns the key that was found. If the token could not be found
-	// return "", TokenNotFound
+	// return "", ErrTokenNotFound
 	UseToken(givenKey, token string) (key string, err error)
 }
 
+// RecoverStorer must be implement in order to satisfy the recover module's
+// storage requirements
 type RecoverStorer interface {
 	Storer
+	//RecoverUser is for retrieving attributes for a given token.  If the key is
+	//not found in the data store, simply return nil, ErrUserNotFound.
 	RecoverUser(recover string) (interface{}, error)
 }
 

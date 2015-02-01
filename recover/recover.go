@@ -7,14 +7,13 @@ import (
 	"encoding/base64"
 	"errors"
 	"fmt"
-	"html/template"
 	"net/http"
 	"time"
 
 	"golang.org/x/crypto/bcrypt"
 
 	"gopkg.in/authboss.v0"
-	"gopkg.in/authboss.v0/internal/httputil"
+	"gopkg.in/authboss.v0/internal/flashutil"
 	"gopkg.in/authboss.v0/internal/views"
 )
 
@@ -43,8 +42,9 @@ func init() {
 }
 
 type RecoverModule struct {
-	templates *template.Template
-	config    *authboss.Config
+	templates      views.Templates
+	emailTemplates views.Templates
+	config         *authboss.Config
 }
 
 func (m *RecoverModule) Initialize(config *authboss.Config) (err error) {
@@ -56,7 +56,11 @@ func (m *RecoverModule) Initialize(config *authboss.Config) (err error) {
 		return errors.New("recover: RecoverStorer required for recover functionality.")
 	}
 
-	if m.templates, err = views.Get(config.ViewsPath, tplRecover, tplRecoverComplete, tplInitHTMLEmail, tplInitTextEmail); err != nil {
+	if m.templates, err = views.Get(config.Layout, config.ViewsPath, tplRecover, tplRecoverComplete); err != nil {
+		return err
+	}
+
+	if m.emailTemplates, err = views.Get(config.LayoutEmail, config.ViewsPath, tplInitHTMLEmail, tplInitTextEmail); err != nil {
 		return err
 	}
 
@@ -84,6 +88,7 @@ func (m *RecoverModule) Storage() authboss.StorageOptions {
 type pageRecover struct {
 	Username, ConfirmUsername string
 	ErrMap                    map[string][]string
+	FlashSuccess              string
 	FlashError                string
 }
 
@@ -96,7 +101,7 @@ func (m *RecoverModule) recoverHandlerFunc(ctx *authboss.Context, w http.Respons
 
 	switch r.Method {
 	case methodGET:
-		execTpl(pageRecover{FlashError: httputil.PullFlash(ctx.SessionStorer, authboss.FlashErrorKey)})
+		execTpl(pageRecover{FlashError: flashutil.Pull(ctx.SessionStorer, authboss.FlashErrorKey)})
 	case methodPOST:
 		// ignore ok checks as we validate these fields anyways
 		username, _ := ctx.FirstPostFormValue("username")
@@ -105,14 +110,14 @@ func (m *RecoverModule) recoverHandlerFunc(ctx *authboss.Context, w http.Respons
 		policies := authboss.FilterValidators(m.config.Policies, "username")
 		if validationErrs := ctx.Validate(policies, m.config.ConfirmFields...); len(validationErrs) > 0 {
 			fmt.Fprintf(m.config.LogWriter, errFormat, "validation failed", validationErrs)
-			execTpl(pageRecover{username, confirmUsername, validationErrs.Map(), ""})
+			execTpl(pageRecover{username, confirmUsername, validationErrs.Map(), "", ""})
 			return
 		}
 
 		if err := m.recover(ctx, username); err != nil {
 			// never reveal failed usernames to prevent sniffing
 			fmt.Fprintf(m.config.LogWriter, errFormat, "failed to recover", err)
-			execTpl(pageRecover{username, confirmUsername, nil, m.config.RecoverFailedErrorFlash})
+			execTpl(pageRecover{username, confirmUsername, nil, "", m.config.RecoverFailedErrorFlash})
 			return
 		}
 
@@ -154,12 +159,12 @@ func (m *RecoverModule) sendRecoverEmail(to string, token []byte) {
 	data := struct{ Link string }{fmt.Sprintf("%s/recover/complete?token=%s", m.config.HostName, base64.URLEncoding.EncodeToString(token))}
 
 	htmlEmailBody := &bytes.Buffer{}
-	if err := m.templates.ExecuteTemplate(htmlEmailBody, tplInitHTMLEmail, data); err != nil {
+	if err := m.emailTemplates.ExecuteTemplate(htmlEmailBody, tplInitHTMLEmail, data); err != nil {
 		fmt.Fprintf(m.config.LogWriter, errFormat, "failed to build html tpl", err)
 	}
 
 	textEmaiLBody := &bytes.Buffer{}
-	if err := m.templates.ExecuteTemplate(textEmaiLBody, tplInitTextEmail, data); err != nil {
+	if err := m.emailTemplates.ExecuteTemplate(textEmaiLBody, tplInitTextEmail, data); err != nil {
 		fmt.Fprintf(m.config.LogWriter, errFormat, "failed to build plaintext tpl", err)
 	}
 
@@ -176,24 +181,24 @@ func (m *RecoverModule) sendRecoverEmail(to string, token []byte) {
 }
 
 type pageRecoverComplete struct {
-	Token      string
-	ErrMap     map[string][]string
-	FlashError string
+	Token        string
+	ErrMap       map[string][]string
+	FlashSuccess string
+	FlashError   string
 }
 
 func (m *RecoverModule) recoverCompleteHandlerFunc(ctx *authboss.Context, w http.ResponseWriter, r *http.Request) {
+	execTpl := func(name string, data interface{}) {
+		if err := m.templates.ExecuteTemplate(w, name, data); err != nil {
+			fmt.Fprintf(m.config.LogWriter, errFormat, "unable to execute template", err)
+		}
+	}
+
 	switch r.Method {
 	case methodGET:
-		page := pageRecoverComplete{}
-
-		if msg, ok := ctx.SessionStorer.Get(authboss.FlashErrorKey); ok {
-			page.FlashError = msg
-			ctx.SessionStorer.Del(authboss.FlashErrorKey)
-		}
-
 		token, ok := ctx.FirstFormValue("token")
 		if !ok {
-			fmt.Fprintln(m.config.LogWriter, "recover: expected value token")
+			fmt.Fprintln(m.config.LogWriter, "recover: expected form value token")
 			http.Redirect(w, r, "/", http.StatusFound)
 			return
 		}
@@ -214,66 +219,53 @@ func (m *RecoverModule) recoverCompleteHandlerFunc(ctx *authboss.Context, w http
 			return
 		}
 
-		page.Token = token
-		if err := m.templates.ExecuteTemplate(w, tplRecoverComplete, pageRecoverComplete{Token: token}); err != nil {
-			fmt.Fprintln(m.config.LogWriter, "recover:", err)
-		}
+		execTpl(tplRecoverComplete, pageRecoverComplete{
+			FlashError: flashutil.Pull(ctx.SessionStorer, authboss.FlashErrorKey),
+			Token:      token,
+		})
 	case methodPOST:
 		token, ok := ctx.FirstFormValue("token")
 		if !ok {
-			fmt.Fprintln(m.config.LogWriter, "recover: expected value token")
+			fmt.Fprintln(m.config.LogWriter, "recover: expected form value token")
+			http.Redirect(w, r, "/", http.StatusFound)
+			return
 		}
 
 		var err error
 		ctx.User, err = m.verifyToken(token)
 		if err != nil {
-			fmt.Fprintln(m.config.LogWriter, "recover:", err)
+			fmt.Fprintln(m.config.LogWriter, "recover 1234:", err)
 			http.Redirect(w, r, "/", http.StatusFound)
 			return
 		}
 
 		policies := authboss.FilterValidators(m.config.Policies, "password")
 		if validationErrs := ctx.Validate(policies, m.config.ConfirmFields...); len(validationErrs) > 0 {
-			err := m.templates.ExecuteTemplate(w, tplRecoverComplete, pageRecoverComplete{Token: token, ErrMap: validationErrs.Map()})
-			if err != nil {
-				fmt.Fprintln(m.config.LogWriter, "recover:", err)
-			}
+			execTpl(tplRecoverComplete, pageRecoverComplete{Token: token, ErrMap: validationErrs.Map()})
 			return
 		}
 
 		password, _ := ctx.FirstFormValue("password")
-
 		encryptedPassword, err := bcrypt.GenerateFromPassword([]byte(password), m.config.BCryptCost)
 		if err != nil {
 			fmt.Fprintln(m.config.LogWriter, "recover: failed to encrypt password")
-			err := m.templates.ExecuteTemplate(w, tplRecoverComplete, pageRecoverComplete{Token: token, FlashError: m.config.RecoverFailedErrorFlash})
-			if err != nil {
-				fmt.Fprintln(m.config.LogWriter, "recover:", err)
-			}
+			execTpl(tplRecoverComplete, pageRecoverComplete{Token: token, FlashError: m.config.RecoverFailedErrorFlash})
 			return
 		}
-
 		ctx.User[attrPassword] = string(encryptedPassword)
 
 		username, ok := ctx.User.String(attrUsername)
 		if !ok {
 			fmt.Println(m.config.LogWriter, "reover: expected user attribue missing:", attrUsername)
-			err := m.templates.ExecuteTemplate(w, tplRecoverComplete, pageRecoverComplete{Token: token, FlashError: m.config.RecoverFailedErrorFlash})
-			if err != nil {
-				fmt.Fprintln(m.config.LogWriter, "recover:", err)
-			}
+			execTpl(tplRecoverComplete, pageRecoverComplete{Token: token, FlashError: m.config.RecoverFailedErrorFlash})
 			return
 		}
-
 		ctx.User[attrRecoverToken] = ""
 		ctx.User[attrRecoverTokenExpiry] = time.Now().UTC()
 
 		if err := ctx.SaveUser(username, m.config.Storer); err != nil {
-			fmt.Fprintln(m.config.LogWriter, "recover:", err)
-			err := m.templates.ExecuteTemplate(w, tplRecoverComplete, pageRecoverComplete{Token: token, FlashError: m.config.RecoverFailedErrorFlash})
-			if err != nil {
-				fmt.Fprintln(m.config.LogWriter, "recover:", err)
-			}
+			fmt.Fprintln(m.config.LogWriter, "recover asdf:", err)
+			execTpl(tplRecoverComplete, pageRecoverComplete{Token: token, FlashError: m.config.RecoverFailedErrorFlash})
 			return
 		}
 

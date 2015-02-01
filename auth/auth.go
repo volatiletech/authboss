@@ -38,6 +38,7 @@ type AuthPage struct {
 	ShowRecover  bool
 
 	FlashSuccess string
+	FlashError   string
 }
 
 type Auth struct {
@@ -47,7 +48,7 @@ type Auth struct {
 	logoutRedirect string
 	loginRedirect  string
 	logger         io.Writer
-	templates      *template.Template
+	templates      map[string]*template.Template
 	callbacks      *authboss.Callbacks
 
 	isRememberLoaded bool
@@ -55,7 +56,7 @@ type Auth struct {
 }
 
 func (a *Auth) Initialize(config *authboss.Config) (err error) {
-	if a.templates, err = views.Get(config.ViewsPath, pageLogin); err != nil {
+	if a.templates, err = views.Get(config.Layout, config.ViewsPath, pageLogin); err != nil {
 		return err
 	}
 
@@ -103,7 +104,9 @@ func (a *Auth) loginHandlerFunc(ctx *authboss.Context, w http.ResponseWriter, r 
 			ctx.SessionStorer.Del(authboss.FlashSuccessKey)
 		}
 
-		a.templates.ExecuteTemplate(w, pageLogin, page)
+		tpl := a.templates[pageLogin]
+		tpl.Execute(w, page)
+		// tpl.ExecuteTemplate(w, tpl.Name(), page)
 	case methodPOST:
 		u, ok := ctx.FirstPostFormValue("username")
 		if !ok {
@@ -112,7 +115,9 @@ func (a *Auth) loginHandlerFunc(ctx *authboss.Context, w http.ResponseWriter, r 
 
 		if err := a.callbacks.FireBefore(authboss.EventAuth, ctx); err != nil {
 			w.WriteHeader(http.StatusForbidden)
-			a.templates.ExecuteTemplate(w, pageLogin, AuthPage{err.Error(), u, a.isRememberLoaded, a.isRecoverLoaded, ""})
+
+			tpl := a.templates[pageLogin]
+			tpl.ExecuteTemplate(w, tpl.Name(), AuthPage{err.Error(), u, a.isRememberLoaded, a.isRecoverLoaded, "", ""})
 		}
 
 		p, ok := ctx.FirstPostFormValue("password")
@@ -123,7 +128,8 @@ func (a *Auth) loginHandlerFunc(ctx *authboss.Context, w http.ResponseWriter, r 
 		if err := a.authenticate(ctx, u, p); err != nil {
 			fmt.Fprintln(a.logger, err)
 			w.WriteHeader(http.StatusForbidden)
-			a.templates.ExecuteTemplate(w, pageLogin, AuthPage{"invalid username and/or password", u, a.isRememberLoaded, a.isRecoverLoaded, ""})
+			tpl := a.templates[pageLogin]
+			tpl.ExecuteTemplate(w, tpl.Name(), AuthPage{"invalid username and/or password", u, a.isRememberLoaded, a.isRecoverLoaded, "", ""})
 			return
 		}
 

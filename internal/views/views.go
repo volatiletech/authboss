@@ -6,15 +6,38 @@ package views
 //go:generate go-bindata -pkg=views -prefix=templates templates
 
 import (
+	"errors"
 	"html/template"
+	"io"
 	"io/ioutil"
 	"os"
 	"path/filepath"
 )
 
-// Get all specified templates grouped under single template.
-func Get(path string, files ...string) (*template.Template, error) {
-	root := template.New("")
+var (
+	// ErrTemplateNotFound should be returned from Get when the view is not found
+	ErrTemplateNotFound = errors.New("Template not found")
+)
+
+// Templates is a map depicting the forms a template needs wrapped within the specified layout
+type Templates map[string]*template.Template
+
+// ExecuteTemplate is a convenience wrapper for executing a template from the layout.  Returns
+// ErrTemplateNotFound when the template is missing, othwerise error.
+func (t Templates) ExecuteTemplate(w io.Writer, name string, data interface{}) error {
+	tpl, ok := t[name]
+	if !ok {
+		return ErrTemplateNotFound
+	}
+
+	return tpl.ExecuteTemplate(w, tpl.Name(), data)
+}
+
+// Get parses all speicified files located in path.  Each template is wrapped
+// in a unique clone of layout.  All templates are expecting {{authboss}} handlebars
+// for parsing.
+func Get(layout *template.Template, path string, files ...string) (Templates, error) {
+	m := make(Templates)
 
 	for _, file := range files {
 		b, err := ioutil.ReadFile(filepath.Join(path, file))
@@ -27,11 +50,18 @@ func Get(path string, files ...string) (*template.Template, error) {
 			}
 		}
 
-		_, err = root.New(file).Parse(string(b))
+		clone, err := layout.Clone()
 		if err != nil {
 			return nil, err
 		}
+
+		_, err = clone.New("authboss").Parse(string(b))
+		if err != nil {
+			return nil, err
+		}
+
+		m[file] = clone
 	}
 
-	return root, nil
+	return m, nil
 }

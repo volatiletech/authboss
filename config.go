@@ -1,6 +1,7 @@
 package authboss
 
 import (
+	"html/template"
 	"io"
 	"io/ioutil"
 	"net/smtp"
@@ -19,6 +20,9 @@ type Config struct {
 	HostName string
 	// BCryptPasswordCost is self explanitory.
 	BCryptCost int
+
+	Layout      *template.Template
+	LayoutEmail *template.Template
 
 	AuthLogoutRoute       string
 	AuthLoginSuccessRoute string

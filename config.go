@@ -21,8 +21,9 @@ type Config struct {
 	// BCryptPasswordCost is self explanitory.
 	BCryptCost int
 
-	Layout      *template.Template
-	LayoutEmail *template.Template
+	Layout          *template.Template
+	LayoutEmail     *template.Template
+	LayoutDataMaker ViewDataMaker
 
 	AuthLogoutRoute       string
 	AuthLoginSuccessRoute string

@@ -1,20 +1,14 @@
 package auth
 
 import (
-	"testing"
-
 	"bytes"
-
-	"io/ioutil"
-
-	"net/http"
-
 	"html/template"
-
+	"io/ioutil"
+	"net/http"
 	"net/http/httptest"
-
 	"net/url"
 	"strings"
+	"testing"
 
 	"gopkg.in/authboss.v0"
 )

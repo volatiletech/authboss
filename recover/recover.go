@@ -56,10 +56,16 @@ func (m *RecoverModule) Initialize(config *authboss.Config) (err error) {
 		return errors.New("recover: RecoverStorer required for recover functionality.")
 	}
 
+	if config.Layout == nil {
+		return errors.New("recover: Layout required for Recover functionallity.")
+	}
 	if m.templates, err = views.Get(config.Layout, config.ViewsPath, tplRecover, tplRecoverComplete); err != nil {
 		return err
 	}
 
+	if config.LayoutEmail == nil {
+		return errors.New("recover: LayoutEmail required for Recover functionallity.")
+	}
 	if m.emailTemplates, err = views.Get(config.LayoutEmail, config.ViewsPath, tplInitHTMLEmail, tplInitTextEmail); err != nil {
 		return err
 	}
@@ -93,34 +99,14 @@ type pageRecover struct {
 }
 
 func (m *RecoverModule) recoverHandlerFunc(ctx *authboss.Context, w http.ResponseWriter, r *http.Request) {
-	execTpl := func(data interface{}) {
-		if err := m.templates.ExecuteTemplate(w, tplRecover, data); err != nil {
-			fmt.Fprintf(m.config.LogWriter, errFormat, "unable to execute template", err)
-		}
-	}
-
 	switch r.Method {
 	case methodGET:
-		execTpl(pageRecover{FlashError: flashutil.Pull(ctx.SessionStorer, authboss.FlashErrorKey)})
+		m.execTpl(w, pageRecover{FlashError: flashutil.Pull(ctx.SessionStorer, authboss.FlashErrorKey)})
 	case methodPOST:
-		// ignore ok checks as we validate these fields anyways
-		username, _ := ctx.FirstPostFormValue("username")
-		confirmUsername, _ := ctx.FirstPostFormValue("confirmUsername")
-
-		policies := authboss.FilterValidators(m.config.Policies, "username")
-		if validationErrs := ctx.Validate(policies, m.config.ConfirmFields...); len(validationErrs) > 0 {
-			fmt.Fprintf(m.config.LogWriter, errFormat, "validation failed", validationErrs)
-			execTpl(pageRecover{username, confirmUsername, validationErrs.Map(), "", ""})
+		if page := m.recover(ctx); page != nil {
+			m.execTpl(w, page)
 			return
 		}
-
-		if err := m.recover(ctx, username); err != nil {
-			// never reveal failed usernames to prevent sniffing
-			fmt.Fprintf(m.config.LogWriter, errFormat, "failed to recover", err)
-			execTpl(pageRecover{username, confirmUsername, nil, "", m.config.RecoverFailedErrorFlash})
-			return
-		}
-
 		ctx.SessionStorer.Put(authboss.FlashSuccessKey, m.config.RecoverInitiateSuccessFlash)
 		http.Redirect(w, r, m.config.RecoverRedirect, http.StatusFound)
 	default:
@@ -128,14 +114,28 @@ func (m *RecoverModule) recoverHandlerFunc(ctx *authboss.Context, w http.Respons
 	}
 }
 
-func (m *RecoverModule) recover(ctx *authboss.Context, username string) (err error) {
+func (m *RecoverModule) execTpl(w http.ResponseWriter, data interface{}) {
+	if err := m.templates.ExecuteTemplate(w, tplRecover, data); err != nil {
+		fmt.Fprintf(m.config.LogWriter, errFormat, "unable to execute template", err)
+	}
+}
+
+func (m *RecoverModule) recover(ctx *authboss.Context) *pageRecover {
+	username, _ := ctx.FirstPostFormValue("username")
+	confirmUsername, _ := ctx.FirstPostFormValue("confirmUsername")
+
+	policies := authboss.FilterValidators(m.config.Policies, "username")
+	if validationErrs := ctx.Validate(policies, m.config.ConfirmFields...); len(validationErrs) > 0 {
+		return m.prepareRecoverPage(username, confirmUsername, "", "validation failed", validationErrs.Map())
+	}
+
 	if err := ctx.LoadUser(username, m.config.Storer); err != nil {
-		return err
+		return m.prepareRecoverPage(username, confirmUsername, m.config.RecoverFailedErrorFlash, "failed to recover", nil)
 	}
 
 	token := make([]byte, 32)
 	if _, err := rand.Read(token); err != nil {
-		return err
+		return m.prepareRecoverPage(username, confirmUsername, m.config.RecoverFailedErrorFlash, "failed to recover", nil)
 	}
 	sum := md5.Sum(token)
 
@@ -143,16 +143,21 @@ func (m *RecoverModule) recover(ctx *authboss.Context, username string) (err err
 	ctx.User[attrRecoverTokenExpiry] = time.Now().Add(m.config.RecoverTokenDuration)
 
 	if err := ctx.SaveUser(username, m.config.Storer); err != nil {
-		return err
+		return m.prepareRecoverPage(username, confirmUsername, m.config.RecoverFailedErrorFlash, "failed to recover", nil)
 	}
 
-	if email, ok := ctx.User.String(attrEmail); !ok {
-		return errors.New("email not found; unable to send email")
+	/*if email, ok := ctx.User.String(attrEmail); !ok {
+		return m.prepareRecoverPage(username, confirmUsername, m.config.RecoverFailedErrorFlash, "failed to recover", nil)
 	} else {
 		go m.sendRecoverEmail(email, token)
-	}
+	}*/
 
 	return nil
+}
+
+func (m *RecoverModule) prepareRecoverPage(username, confirmUsername, flashError, message string, validationErrs map[string][]string) *pageRecover {
+	fmt.Fprintf(m.config.LogWriter, errFormat, message, validationErrs)
+	return &pageRecover{username, confirmUsername, validationErrs, "", flashError}
 }
 
 func (m *RecoverModule) sendRecoverEmail(to string, token []byte) {

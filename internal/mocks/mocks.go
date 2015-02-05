@@ -70,6 +70,10 @@ func (m *MockStorer) UseToken(givenKey, token string) (key string, err error) {
 	return "", authboss.ErrTokenNotFound
 }
 
+func (m *MockStorer) RecoverUser(token string) (interface{}, error) {
+	return nil, nil
+}
+
 type MockClientStorer map[string]string
 
 func (m MockClientStorer) Get(key string) (string, bool) {

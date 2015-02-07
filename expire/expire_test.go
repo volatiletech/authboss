@@ -88,7 +88,7 @@ func TestExpire_Middleware(t *testing.T) {
 	maker := func(w http.ResponseWriter, r *http.Request) authboss.ClientStorer { return session }
 
 	handler := new(testHandler)
-	touch := TouchMiddleware(maker, handler)
+	touch := Middleware(maker, handler)
 
 	touch.ServeHTTP(nil, nil)
 	if !*handler {

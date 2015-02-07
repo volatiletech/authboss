@@ -168,7 +168,7 @@ func (m *RecoverModule) sendRecoverEmail(to string, token []byte) {
 		fmt.Fprintf(m.config.LogWriter, errFormat, "failed to build html tpl", err)
 	}
 
-	textEmaiLBody := &bytes.Buffer{}
+	textEmailBody := &bytes.Buffer{}
 	if err := m.emailTemplates.ExecuteTemplate(textEmaiLBody, tplInitTextEmail, data); err != nil {
 		fmt.Fprintf(m.config.LogWriter, errFormat, "failed to build plaintext tpl", err)
 	}
@@ -177,8 +177,8 @@ func (m *RecoverModule) sendRecoverEmail(to string, token []byte) {
 		To:       []string{to},
 		ToNames:  []string{""},
 		From:     m.config.EmailFrom,
-		Subject:  "Password Reset",
-		TextBody: textEmaiLBody.String(),
+		Subject:  m.config.EmailSubjectPrefix + "Password Reset",
+		TextBody: textEmailBody.String(),
 		HTMLBody: htmlEmailBody.String(),
 	}); err != nil {
 		fmt.Fprintf(m.config.LogWriter, errFormat, "failed to send email", err)

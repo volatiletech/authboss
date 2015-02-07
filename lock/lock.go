@@ -30,7 +30,7 @@ func init() {
 }
 
 type Lock struct {
-	storer authboss.TokenStorer
+	storer authboss.Storer
 	logger io.Writer
 
 	attempts int
@@ -66,13 +66,14 @@ func (l *Lock) Storage() authboss.StorageOptions {
 	return authboss.StorageOptions{
 		UserAttemptNumber: authboss.Integer,
 		UserAttemptTime:   authboss.DateTime,
+		UserLocked:        authboss.Bool,
 	}
 }
 
 // BeforeAuth ensures the account is not locked.
 func (l *Lock) BeforeAuth(ctx *authboss.Context) error {
 	if ctx.User == nil {
-		return nil
+		return errors.New("lock: user not loaded in before auth callback")
 	}
 
 	if intf, ok := ctx.User[UserLocked]; ok {
@@ -87,7 +88,7 @@ func (l *Lock) BeforeAuth(ctx *authboss.Context) error {
 // AfterAuth resets the attempt number field.
 func (l *Lock) AfterAuth(ctx *authboss.Context) {
 	if ctx.User == nil {
-		return
+		fmt.Fprintln(l.logger, "lock: user not loaded in after auth callback")
 	}
 
 	var username string

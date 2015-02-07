@@ -1,4 +1,6 @@
-// Package expire implements user
+// Package expire implements user session timeouts.
+// To take advantage of this the expire.Middleware must be installed
+// into your http stack.
 package expire
 
 import (
@@ -71,9 +73,9 @@ type middleware struct {
 	next         http.Handler
 }
 
-// TouchMiddleware ensures that the user's expiry information is kept up-to-date
+// Middleware ensures that the user's expiry information is kept up-to-date
 // on each request.
-func TouchMiddleware(sessionMaker authboss.SessionStoreMaker, next http.Handler) http.Handler {
+func Middleware(sessionMaker authboss.SessionStoreMaker, next http.Handler) http.Handler {
 	return middleware{sessionMaker, next}
 }
 

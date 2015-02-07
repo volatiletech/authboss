@@ -10,11 +10,12 @@ func TestAttributes_Names(t *testing.T) {
 	attr := Attributes{
 		"integer":   5,
 		"string":    "string",
+		"bool":      true,
 		"date_time": time.Now(),
 	}
 	names := attr.Names()
 
-	found := map[string]bool{"integer": false, "string": false, "date_time": false}
+	found := map[string]bool{"integer": false, "string": false, "bool": false, "date_time": false}
 	for _, n := range names {
 		found[n] = true
 	}
@@ -30,11 +31,12 @@ func TestAttributeMeta_Names(t *testing.T) {
 	meta := AttributeMeta{
 		"integer":   Integer,
 		"string":    String,
+		"bool":      Bool,
 		"date_time": DateTime,
 	}
 	names := meta.Names()
 
-	found := map[string]bool{"integer": false, "string": false, "date_time": false}
+	found := map[string]bool{"integer": false, "string": false, "bool": false, "date_time": false}
 	for _, n := range names {
 		found[n] = true
 	}
@@ -53,6 +55,9 @@ func TestDataType_String(t *testing.T) {
 	if String.String() != "String" {
 		t.Error("Expected String:", String)
 	}
+	if Bool.String() != "Bool" {
+		t.Error("Expected Bool:", String)
+	}
 	if DateTime.String() != "DateTime" {
 		t.Error("Expected DateTime:", DateTime)
 	}
@@ -61,17 +66,20 @@ func TestDataType_String(t *testing.T) {
 func TestAttributes_Bind(t *testing.T) {
 	anInteger := 5
 	aString := "string"
+	aBool := true
 	aTime := time.Now()
 
 	data := Attributes{
 		"integer":   anInteger,
 		"string":    aString,
+		"bool":      aBool,
 		"date_time": aTime,
 	}
 
 	s := struct {
 		Integer  int
 		String   string
+		Bool     bool
 		DateTime time.Time
 	}{}
 
@@ -84,6 +92,9 @@ func TestAttributes_Bind(t *testing.T) {
 	}
 	if s.String != aString {
 		t.Error("String was not set.")
+	}
+	if s.Bool != aBool {
+		t.Error("Bool was not set.")
 	}
 	if s.DateTime != aTime {
 		t.Error("DateTime was not set.")
@@ -133,6 +144,13 @@ func TestAttributes_BindTypeFail(t *testing.T) {
 			}{},
 		},
 		{
+			Attr: Attributes{"bool": true},
+			Err:  "should be bool",
+			ToBind: &struct {
+				Bool string
+			}{},
+		},
+		{
 			Attr: Attributes{"date": time.Time{}},
 			Err:  "should be time.Time",
 			ToBind: &struct {
@@ -155,16 +173,17 @@ func TestAttributes_Unbind(t *testing.T) {
 	s1 := struct {
 		Integer int
 		String  string
+		Bool    bool
 		Time    time.Time
 
 		SomethingElse1 int32
 		SomethingElse2 *Config
 
 		unexported int
-	}{5, "string", time.Now(), 5, nil, 5}
+	}{5, "string", true, time.Now(), 5, nil, 5}
 
 	attr := Unbind(&s1)
-	if len(attr) != 3 {
+	if len(attr) != 4 {
 		t.Error("Expected three fields, got:", len(attr))
 	}
 
@@ -181,6 +200,14 @@ func TestAttributes_Unbind(t *testing.T) {
 	} else if val, ok := v.(string); !ok {
 		t.Errorf("Underlying type is wrong: %T", v)
 	} else if s1.String != val {
+		t.Error("Underlying value is wrong:", val)
+	}
+
+	if v, ok := attr["bool"]; !ok {
+		t.Error("Could not find String entry.")
+	} else if val, ok := v.(bool); !ok {
+		t.Errorf("Underlying type is wrong: %T", v)
+	} else if s1.Bool != val {
 		t.Error("Underlying value is wrong:", val)
 	}
 

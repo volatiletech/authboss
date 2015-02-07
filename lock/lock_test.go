@@ -28,6 +28,7 @@ func setup(keyValuePairs interface{}) {
 
 func TestBeforeAuth(t *testing.T) {
 	ctx := authboss.NewContext()
+	L.logger = ioutil.Discard
 
 	if nil != L.BeforeAuth(ctx) {
 		t.Error("Expected it to break early.")

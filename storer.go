@@ -64,6 +64,7 @@ type DataType int
 const (
 	Integer DataType = iota
 	String
+	Bool
 	DateTime
 )
 
@@ -75,6 +76,8 @@ func (d DataType) String() string {
 		return "Integer"
 	case String:
 		return "String"
+	case Bool:
+		return "Bool"
 	case DateTime:
 		return "DateTime"
 	}
@@ -129,6 +132,18 @@ func (a Attributes) Int(key string) (int, bool) {
 	return val, ok
 }
 
+// Bool returns a single value as a bool.
+func (a Attributes) Bool(key string) (val bool, ok bool) {
+	var inter interface{}
+	inter, ok = a[key]
+	if !ok {
+		return val, ok
+	}
+
+	val, ok = inter.(bool)
+	return val, ok
+}
+
 // DateTime returns a single value as a time.Time
 func (a Attributes) DateTime(key string) (time.Time, bool) {
 	inter, ok := a[key]
@@ -177,6 +192,11 @@ func (a Attributes) Bind(strct interface{}) error {
 				return fmt.Errorf("Bind: Field %s's type should be %s but was %s", k, reflect.String.String(), fieldType)
 			}
 			field.SetString(val)
+		case bool:
+			if fieldKind != reflect.Bool {
+				return fmt.Errorf("Bind: Field %s's type should be %s but was %s", k, reflect.Bool.String(), fieldType)
+			}
+			field.SetBool(val)
 		case time.Time:
 			timeType := dateTimeType
 			if fieldType != timeType {
@@ -213,9 +233,7 @@ func Unbind(intf interface{}) Attributes {
 			if field.Type() == dateTimeType {
 				attr[name] = field.Interface()
 			}
-		case reflect.Int:
-			attr[name] = field.Interface()
-		case reflect.String:
+		case reflect.Bool, reflect.String, reflect.Int:
 			attr[name] = field.Interface()
 		}
 	}

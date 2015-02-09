@@ -9,6 +9,7 @@ import (
 )
 
 type MockUser struct {
+	Username string
 	Email    string
 	Password string
 }
@@ -42,9 +43,25 @@ func (m *MockStorer) Put(key string, attr authboss.Attributes) error {
 }
 
 func (m *MockStorer) Get(key string, attrMeta authboss.AttributeMeta) (result interface{}, err error) {
-	return &MockUser{
-		m.Users[key]["username"].(string), m.Users[key]["password"].(string),
-	}, nil
+	if _, ok := m.Users[key]; !ok {
+		return nil, authboss.ErrUserNotFound
+	}
+
+	u := &MockUser{}
+
+	if val, ok := m.Users[key]["username"]; ok {
+		u.Username = val.(string)
+	}
+
+	if val, ok := m.Users[key]["email"]; ok {
+		u.Email = val.(string)
+	}
+
+	if val, ok := m.Users[key]["password"]; ok {
+		u.Password = val.(string)
+	}
+
+	return u, nil
 }
 
 func (m *MockStorer) AddToken(key, token string) error {
@@ -104,4 +121,13 @@ func MockRequestContext(postKeyValues ...string) *authboss.Context {
 	}
 
 	return ctx
+}
+
+type MockMailer struct {
+	Last authboss.Email
+}
+
+func (m *MockMailer) Send(email authboss.Email) error {
+	m.Last = email
+	return nil
 }

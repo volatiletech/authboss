@@ -1,7 +1,6 @@
 package views
 
 import (
-	"bytes"
 	"html/template"
 	"io/ioutil"
 	"os"
@@ -15,8 +14,9 @@ func TestTemplates_ExecuteTemplate_ReturnsTemplateWhenFound(t *testing.T) {
 	tpl, _ := template.New("").Parse("<strong>{{.Val}}</strong>")
 	tpls := Templates{"a": tpl}
 
-	b := &bytes.Buffer{}
-	if err := tpls.ExecuteTemplate(b, "a", struct{ Val string }{"hi"}); err != nil {
+	//b := &bytes.Buffer{}
+	b, err := tpls.ExecuteTemplate("a", struct{ Val string }{"hi"})
+	if err != nil {
 		t.Error("Unexpected error:", err)
 	}
 
@@ -31,7 +31,7 @@ func TestTemplates_ExecuteTemplate_ReturnsErrTempalteNotFound(t *testing.T) {
 	t.Parallel()
 
 	tpls := Templates{}
-	err := tpls.ExecuteTemplate(ioutil.Discard, "shouldnotbefound", nil)
+	_, err := tpls.ExecuteTemplate("shouldnotbefound", nil)
 	if err == nil {
 		t.Error("Expected error")
 	}
@@ -65,8 +65,8 @@ func TestGet(t *testing.T) {
 		t.Error("Unexpected error:", err)
 	}
 
-	b := &bytes.Buffer{}
-	if err := tpls.ExecuteTemplate(b, filename, struct{ Val string }{"hi"}); err != nil {
+	b, err := tpls.ExecuteTemplate(filename, struct{ Val string }{"hi"})
+	if err != nil {
 		t.Error("Unexpected error:", err)
 	}
 

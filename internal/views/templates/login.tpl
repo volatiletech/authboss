@@ -1,16 +1,26 @@
-<html>
-<body>
-<div class="login-card">
-    <h1>Log-in</h1><br>
-    <form>
-        <input type="text" name="username" placeholder="Username" required="true">
-        <input type="password" name="password" placeholder="Password" required="true">
-        <input type="submit" name="login" class="login login-submit" value="Login">
-    </form>
-
-    <div class="login-help">
-        <a href="#">Register</a><a href="#">Forgot Password</a>
+<form action="/login" method="POST">
+    <div class="form-group{{if .Error}} has-error{{end}}">
+        <div class="input-group">
+            <span class="input-group-addon"><i class="fa fa-user"></i></span>
+            <input type="text" class="form-control" name="username" placeholder="Username" value="{{.Username}}">
+        </div>
     </div>
-</div>
-</body>
-</html>
+    <div class="form-group{{if .Error}} has-error{{end}}">
+        <div class="input-group">
+            <span class="input-group-addon"><i class="fa fa-lock"></i></span>
+            <input  type="password" class="form-control" name="password" placeholder="Password">
+        </div>
+        <span class="help-block">{{.Error}}</span>
+    </div>
+    {{if .ShowRemember}}
+    <div class="checkbox">
+        <label>
+            <input type="checkbox" name="rm" value="true"> Remember Me
+        </label>
+    </div>
+    {{end}}
+    <button class="btn btn-primary btn-block" type="submit">Login</button>
+    {{if .ShowRecover}}
+    <a class="btn btn-link btn-block" type="submit" href="/recover">Recover Account</a>
+    {{end}}
+</form>

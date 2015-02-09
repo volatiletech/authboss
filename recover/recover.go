@@ -1,16 +1,14 @@
 package recover
 
 import (
-	"bytes"
 	"crypto/md5"
 	"crypto/rand"
 	"encoding/base64"
 	"errors"
 	"fmt"
+	"io"
 	"net/http"
 	"time"
-
-	"golang.org/x/crypto/bcrypt"
 
 	"gopkg.in/authboss.v0"
 	"gopkg.in/authboss.v0/internal/flashutil"
@@ -78,7 +76,7 @@ func (m *RecoverModule) Initialize(config *authboss.Config) (err error) {
 func (m *RecoverModule) Routes() authboss.RouteTable {
 	return authboss.RouteTable{
 		"recover":          m.recoverHandlerFunc,
-		"recover/complete": m.recoverCompleteHandlerFunc,
+		"recover/complete": nil, // TODO : Fix
 	}
 }
 func (m *RecoverModule) Storage() authboss.StorageOptions {
@@ -88,6 +86,20 @@ func (m *RecoverModule) Storage() authboss.StorageOptions {
 		attrEmail:              authboss.String,
 		attrRecoverTokenExpiry: authboss.String,
 		attrPassword:           authboss.String,
+	}
+}
+
+func (m *RecoverModule) execTpl(tpl string, w http.ResponseWriter, page pageRecover) {
+	buffer, err := m.templates.ExecuteTemplate(tpl, page)
+	if err != nil {
+		fmt.Fprintf(m.config.LogWriter, errFormat, "unable to execute template", err)
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+
+	if _, err := io.Copy(w, buffer); err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		return
 	}
 }
 
@@ -101,12 +113,18 @@ type pageRecover struct {
 func (m *RecoverModule) recoverHandlerFunc(ctx *authboss.Context, w http.ResponseWriter, r *http.Request) {
 	switch r.Method {
 	case methodGET:
-		m.execTpl(w, pageRecover{FlashError: flashutil.Pull(ctx.SessionStorer, authboss.FlashErrorKey)})
+		page := pageRecover{}
+		page.FlashError = flashutil.Pull(ctx.SessionStorer, authboss.FlashErrorKey)
+
+		m.execTpl(tplRecover, w, page)
 	case methodPOST:
-		if page := m.recover(ctx); page != nil {
-			m.execTpl(w, page)
+		page, _ := m.recover(ctx)
+
+		if page != nil {
+			m.execTpl(tplRecover, w, *page)
 			return
 		}
+
 		ctx.SessionStorer.Put(authboss.FlashSuccessKey, m.config.RecoverInitiateSuccessFlash)
 		http.Redirect(w, r, m.config.RecoverRedirect, http.StatusFound)
 	default:
@@ -114,78 +132,91 @@ func (m *RecoverModule) recoverHandlerFunc(ctx *authboss.Context, w http.Respons
 	}
 }
 
-func (m *RecoverModule) execTpl(w http.ResponseWriter, data interface{}) {
-	if err := m.templates.ExecuteTemplate(w, tplRecover, data); err != nil {
-		fmt.Fprintf(m.config.LogWriter, errFormat, "unable to execute template", err)
-	}
-}
-
-func (m *RecoverModule) recover(ctx *authboss.Context) *pageRecover {
+func (m *RecoverModule) recover(ctx *authboss.Context) (errPage *pageRecover, emailSent <-chan struct{}) {
 	username, _ := ctx.FirstPostFormValue("username")
 	confirmUsername, _ := ctx.FirstPostFormValue("confirmUsername")
 
 	policies := authboss.FilterValidators(m.config.Policies, "username")
 	if validationErrs := ctx.Validate(policies, m.config.ConfirmFields...); len(validationErrs) > 0 {
-		return m.prepareRecoverPage(username, confirmUsername, "", "validation failed", validationErrs.Map())
+		fmt.Fprintf(m.config.LogWriter, errFormat, "validation failed", validationErrs)
+		return &pageRecover{username, confirmUsername, validationErrs.Map(), "", ""}, nil
 	}
 
-	if err := ctx.LoadUser(username, m.config.Storer); err != nil {
-		return m.prepareRecoverPage(username, confirmUsername, m.config.RecoverFailedErrorFlash, "failed to recover", nil)
+	err, emailSent := m.makeAndSendToken(ctx, username)
+	if err != nil {
+		fmt.Fprintf(m.config.LogWriter, errFormat, "failed to recover", err)
+		return &pageRecover{username, confirmUsername, nil, "", m.config.RecoverFailedErrorFlash}, nil
+	}
+
+	return nil, emailSent
+}
+
+func (m *RecoverModule) makeAndSendToken(ctx *authboss.Context, username string) (err error, emailSent <-chan struct{}) {
+	if err = ctx.LoadUser(username, m.config.Storer); err != nil {
+		return err, nil
+	}
+
+	email, ok := ctx.User.String(attrEmail)
+	if !ok || email == "" {
+		return fmt.Errorf("email required: %v", attrEmail), nil
 	}
 
 	token := make([]byte, 32)
-	if _, err := rand.Read(token); err != nil {
-		return m.prepareRecoverPage(username, confirmUsername, m.config.RecoverFailedErrorFlash, "failed to recover", nil)
+	if _, err = rand.Read(token); err != nil {
+		return err, nil
 	}
 	sum := md5.Sum(token)
 
 	ctx.User[attrRecoverToken] = base64.StdEncoding.EncodeToString(sum[:])
 	ctx.User[attrRecoverTokenExpiry] = time.Now().Add(m.config.RecoverTokenDuration)
 
-	if err := ctx.SaveUser(username, m.config.Storer); err != nil {
-		return m.prepareRecoverPage(username, confirmUsername, m.config.RecoverFailedErrorFlash, "failed to recover", nil)
+	if err = ctx.SaveUser(username, m.config.Storer); err != nil {
+		return err, nil
 	}
 
-	/*if email, ok := ctx.User.String(attrEmail); !ok {
-		return m.prepareRecoverPage(username, confirmUsername, m.config.RecoverFailedErrorFlash, "failed to recover", nil)
-	} else {
-		go m.sendRecoverEmail(email, token)
-	}*/
-
-	return nil
+	return nil, m.sendRecoverEmail(email, token)
 }
 
-func (m *RecoverModule) prepareRecoverPage(username, confirmUsername, flashError, message string, validationErrs map[string][]string) *pageRecover {
-	fmt.Fprintf(m.config.LogWriter, errFormat, message, validationErrs)
-	return &pageRecover{username, confirmUsername, validationErrs, "", flashError}
+func (m *RecoverModule) sendRecoverEmail(to string, token []byte) <-chan struct{} {
+	emailSent := make(chan struct{}, 1)
+
+	go func() {
+		data := struct{ Link string }{fmt.Sprintf("%s/recover/complete?token=%s", m.config.HostName, base64.URLEncoding.EncodeToString(token))}
+
+		htmlEmailBody, err := m.emailTemplates.ExecuteTemplate(tplInitHTMLEmail, data)
+		if err != nil {
+			fmt.Fprintf(m.config.LogWriter, errFormat, "failed to build html email", err)
+			close(emailSent)
+			return
+		}
+
+		textEmaiLBody, err := m.emailTemplates.ExecuteTemplate(tplInitTextEmail, data)
+		if err != nil {
+			fmt.Fprintf(m.config.LogWriter, errFormat, "failed to build plaintext email", err)
+			close(emailSent)
+			return
+		}
+
+		if err := m.config.Mailer.Send(authboss.Email{
+			To:       []string{to},
+			ToNames:  []string{""},
+			From:     m.config.EmailFrom,
+			Subject:  m.config.EmailSubjectPrefix + "Password Reset",
+			TextBody: textEmaiLBody.String(),
+			HTMLBody: htmlEmailBody.String(),
+		}); err != nil {
+			fmt.Fprintf(m.config.LogWriter, errFormat, "failed to send email", err)
+			close(emailSent)
+			return
+		}
+
+		emailSent <- struct{}{}
+	}()
+
+	return emailSent
 }
 
-func (m *RecoverModule) sendRecoverEmail(to string, token []byte) {
-	data := struct{ Link string }{fmt.Sprintf("%s/recover/complete?token=%s", m.config.HostName, base64.URLEncoding.EncodeToString(token))}
-
-	htmlEmailBody := &bytes.Buffer{}
-	if err := m.emailTemplates.ExecuteTemplate(htmlEmailBody, tplInitHTMLEmail, data); err != nil {
-		fmt.Fprintf(m.config.LogWriter, errFormat, "failed to build html tpl", err)
-	}
-
-	textEmailBody := &bytes.Buffer{}
-	if err := m.emailTemplates.ExecuteTemplate(textEmaiLBody, tplInitTextEmail, data); err != nil {
-		fmt.Fprintf(m.config.LogWriter, errFormat, "failed to build plaintext tpl", err)
-	}
-
-	if err := m.config.Mailer.Send(authboss.Email{
-		To:       []string{to},
-		ToNames:  []string{""},
-		From:     m.config.EmailFrom,
-		Subject:  m.config.EmailSubjectPrefix + "Password Reset",
-		TextBody: textEmailBody.String(),
-		HTMLBody: htmlEmailBody.String(),
-	}); err != nil {
-		fmt.Fprintf(m.config.LogWriter, errFormat, "failed to send email", err)
-	}
-}
-
-type pageRecoverComplete struct {
+/*type pageRecoverComplete struct {
 	Token        string
 	ErrMap       map[string][]string
 	FlashSuccess string
@@ -295,3 +326,4 @@ func (m *RecoverModule) verifyToken(token string) (attrs authboss.Attributes, er
 
 	return authboss.Unbind(userInter), nil
 }
+*/

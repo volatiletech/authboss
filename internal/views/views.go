@@ -6,9 +6,9 @@ package views
 //go:generate go-bindata -pkg=views -prefix=templates templates
 
 import (
+	"bytes"
 	"errors"
 	"html/template"
-	"io"
 	"io/ioutil"
 	"os"
 	"path/filepath"
@@ -24,13 +24,16 @@ type Templates map[string]*template.Template
 
 // ExecuteTemplate is a convenience wrapper for executing a template from the layout.  Returns
 // ErrTemplateNotFound when the template is missing, othwerise error.
-func (t Templates) ExecuteTemplate(w io.Writer, name string, data interface{}) error {
+func (t Templates) ExecuteTemplate(name string, data interface{}) (buffer *bytes.Buffer, err error) {
 	tpl, ok := t[name]
 	if !ok {
-		return ErrTemplateNotFound
+		return nil, ErrTemplateNotFound
 	}
 
-	return tpl.ExecuteTemplate(w, tpl.Name(), data)
+	buffer = &bytes.Buffer{}
+	err = tpl.ExecuteTemplate(buffer, tpl.Name(), data)
+
+	return buffer, err
 }
 
 // Get parses all speicified files located in path.  Each template is wrapped
@@ -64,4 +67,14 @@ func Get(layout *template.Template, path string, files ...string) (Templates, er
 	}
 
 	return m, nil
+}
+
+// Asset parses a specified file from the internal bindata.
+func AssetToTemplate(file string) (*template.Template, error) {
+	b, err := Asset(file)
+	if err != nil {
+		return nil, err
+	}
+
+	return template.New("").Parse(string(b))
 }

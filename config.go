@@ -8,6 +8,12 @@ import (
 	"time"
 
 	"golang.org/x/crypto/bcrypt"
+	"gopkg.in/authboss.v0/internal/views"
+)
+
+const (
+	layoutTpl      = "layout.tpl"
+	layoutEmailTpl = "layoutEmail.tpl"
 )
 
 // Config holds all the configuration for both authboss and it's modules.
@@ -60,11 +66,24 @@ type Config struct {
 
 // NewConfig creates a new config full of default values ready to override.
 func NewConfig() *Config {
+	layout, err := views.AssetToTemplate(layoutTpl)
+	if err != nil {
+		panic(err)
+	}
+
+	layoutEmail, err := views.AssetToTemplate(layoutEmailTpl)
+	if err != nil {
+		panic(err)
+	}
+
 	return &Config{
 		MountPath:  "/",
 		ViewsPath:  "/",
 		HostName:   "localhost:8080",
 		BCryptCost: bcrypt.DefaultCost,
+
+		Layout:      layout,
+		LayoutEmail: layoutEmail,
 
 		AuthLogoutRoute:       "/",
 		AuthLoginSuccessRoute: "/",

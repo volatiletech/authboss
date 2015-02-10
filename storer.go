@@ -9,6 +9,15 @@ import (
 	"unicode"
 )
 
+// Data store constants for attribute names.
+const (
+	UserEmail    = "email"
+	UserName     = "username"
+	UserPassword = "password"
+	// UserKey is used to uniquely identify the user.
+	UserKey = UserEmail
+)
+
 var (
 	// ErrUserNotFound should be returned from Get when the record is not found.
 	ErrUserNotFound = errors.New("User not found")
@@ -36,7 +45,9 @@ type Storer interface {
 }
 
 // TokenStorer must be implemented in order to satisfy the remember module's
-// storage requirements.
+// storage requirements. If the implementer is a typical database then
+// the tokens should be stored in a separate table since they require a 1-n
+// with the user for each device the user wishes to remain logged in on.
 type TokenStorer interface {
 	Storer
 	// AddToken saves a new token for the key.
@@ -49,13 +60,24 @@ type TokenStorer interface {
 	UseToken(givenKey, token string) (key string, err error)
 }
 
-// RecoverStorer must be implement in order to satisfy the recover module's
-// storage requirements
+// RecoverStorer must be implemented in order to satisfy the recover module's
+// storage requirements.
 type RecoverStorer interface {
 	Storer
-	//RecoverUser is for retrieving attributes for a given token.  If the key is
-	//not found in the data store, simply return nil, ErrUserNotFound.
-	RecoverUser(recover string) (interface{}, error)
+	// RecoverUser looks a user up by a recover token. See recover module for
+	// attribute names. If the key is not found in the data store,
+	// simply return nil, ErrUserNotFound.
+	RecoverUser(recoverToken string) (interface{}, error)
+}
+
+// ConfirmStorer must be implemented in order to satisfy the confirm module's
+// storage requirements.
+type ConfirmStorer interface {
+	Storer
+	// ConfirmUser looks up a user by a confirm token. See confirm module for
+	// attribute names. If the token is not found in the data store,
+	// simply return nil, ErrUserNotFound.
+	ConfirmUser(confirmToken string) (interface{}, error)
 }
 
 // DataType represents the various types that clients must be able to store.

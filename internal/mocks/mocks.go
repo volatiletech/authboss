@@ -23,9 +23,15 @@ type MockUser struct {
 
 // MockStorer should be valid for any module storer defined in authboss.
 type MockStorer struct {
-	Users                                                                             map[string]authboss.Attributes
-	Tokens                                                                            map[string][]string
-	CreateErr, PutErr, GetErr, AddTokenErr, DelTokensErr, UseTokenErr, RecoverUserErr string
+	Users          map[string]authboss.Attributes
+	Tokens         map[string][]string
+	CreateErr      string
+	PutErr         string
+	GetErr         string
+	AddTokenErr    string
+	DelTokensErr   string
+	UseTokenErr    string
+	RecoverUserErr string
 }
 
 func NewMockStorer() *MockStorer {

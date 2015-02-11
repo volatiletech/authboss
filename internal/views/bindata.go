@@ -61,6 +61,46 @@ func (fi bindata_file_info) Sys() interface{} {
 	return nil
 }
 
+var _confirm_email_html_tpl = []byte("\x1f\x8b\x08\x00\x00\x09\x6e\x88\x00\xff\xb2\x29\x2e\x29\xca\xcf\x4b\xb7\xab\xae\xd6\xf3\xc9\xcc\xcb\xae\xad\xb5\xd1\x87\x8a\x00\x02\x00\x00\xff\xff\xe1\x46\x1b\xff\x1a\x00\x00\x00")
+
+func confirm_email_html_tpl_bytes() ([]byte, error) {
+	return bindata_read(
+		_confirm_email_html_tpl,
+		"confirm_email.html.tpl",
+	)
+}
+
+func confirm_email_html_tpl() (*asset, error) {
+	bytes, err := confirm_email_html_tpl_bytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindata_file_info{name: "confirm_email.html.tpl", size: 26, mode: os.FileMode(438), modTime: time.Unix(1423614192, 0)}
+	a := &asset{bytes: bytes, info:  info}
+	return a, nil
+}
+
+var _confirm_email_txt_tpl = []byte("\x1f\x8b\x08\x00\x00\x09\x6e\x88\x00\xff\xaa\xae\xd6\xf3\xc9\xcc\xcb\xae\xad\x05\x04\x00\x00\xff\xff\x41\xf7\xa1\x3d\x09\x00\x00\x00")
+
+func confirm_email_txt_tpl_bytes() ([]byte, error) {
+	return bindata_read(
+		_confirm_email_txt_tpl,
+		"confirm_email.txt.tpl",
+	)
+}
+
+func confirm_email_txt_tpl() (*asset, error) {
+	bytes, err := confirm_email_txt_tpl_bytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindata_file_info{name: "confirm_email.txt.tpl", size: 9, mode: os.FileMode(438), modTime: time.Unix(1423614183, 0)}
+	a := &asset{bytes: bytes, info:  info}
+	return a, nil
+}
+
 var _layout_tpl = []byte("\x1f\x8b\x08\x00\x00\x09\x6e\x88\x00\xff\xd4\x95\xc1\x72\xd3\x30\x10\x86\xef\x79\x0a\x8d\x0e\xdc\x2c\xd1\x26\xc0\x4c\xeb\xe4\x06\x2f\xc0\x13\xc8\xd6\x3a\x56\x90\x25\xa3\x5d\xb7\xc9\x78\xfa\xee\xc8\x96\x1b\x5c\xd7\x40\x87\x03\x33\xe4\x60\x67\x37\xda\xff\xdf\xfd\x34\x52\xf2\x9a\x1a\x7b\xd8\xe4\x35\x28\x7d\xd8\xb0\xf8\xc9\xad\x71\xdf\x58\x1d\xa0\xda\x73\x29\x1d\x90\x76\x4a\x14\xde\x13\x52\x50\x6d\xa9\x9d\x28\x7d\x23\x2b\xef\x28\x53\x8f\x80\xbe\x01\xb9\x13\xef\xc5\x56\x96\x88\x2f\xd2\x22\x26\x38\x0b\x60\xf7\x1c\xe9\x62\x01\x6b\x00\xe2\x4c\xae\xd9\x34\xea\x3c\x28\xbf\xb2\xb9\x26\xe4\x56\x6c\xc5\xcd\xe8\x71\xcd\x89\xc6\xb8\x3f\x98\x60\x19\x4c\x4b\x0c\x43\xb9\xe7\x35\x51\x8b\x77\x52\xaa\x93\x3a\x8b\xa3\xf7\x47\x0b\xaa\x35\x38\xfa\x0c\x39\x69\x4d\x81\xf2\xf4\xbd\x83\x70\x91\xb7\xe2\x26\x8e\x94\x82\xd1\xe7\x84\xfc\x90\xcb\xa4\xb7\x22\xfe\xd6\x11\x6e\xe5\x69\x39\x41\x54\x66\x74\x69\x61\xcf\x09\xce\x24\x4f\xea\x41\x25\xe5\xb9\x61\x2e\xd3\x0e\xe5\x85\xd7\x97\xf8\xd2\xe6\x81\x95\x56\x21\xee\x79\x19\x99\x2b\xe3\x20\x64\x95\xed\x8c\xe6\xa9\xbb\xbe\x37\x15\x13\x5f\xe2\x92\xfa\x6b\x57\x96\x80\xf8\xf4\x94\xda\x9e\x95\x06\xff\x38\x2d\x5f\xfe\x52\x7a\x9b\x9d\x31\xf3\x55\x85\x40\xd9\x96\x0d\x71\xa3\xb3\x8f\xb3\xe5\xcb\x12\x65\x21\x10\x1b\x9f\x19\x26\xcb\x29\xd2\x06\x1b\x83\xa8\x0a\x0b\x9c\x8d\xdb\xb4\xe7\x8d\x0a\x47\xe3\x32\xf2\xed\x1d\xfb\xf4\xa1\x3d\xdf\x2f\x94\x47\xf5\xa2\x23\xf2\x6e\xa2\x93\x02\x7e\xed\xd0\x7a\x8c\x72\x5a\x91\x7a\x36\x98\x7a\x88\xdc\xb0\x55\xee\xf0\x8e\x4c\x03\x78\x1f\x21\x0e\x51\x2e\x93\xc0\x6b\x9b\xbe\x6f\x83\x71\xb4\x4a\xeb\xda\x8a\x8c\x93\xce\x50\xfd\x0c\x67\x5f\xfb\x1e\x9c\x9e\x0a\x67\xfc\x3f\x87\xe0\xc3\xbf\xa4\xaf\x95\x3b\x42\xf8\x1f\xe1\xcf\x51\xfd\x35\xfa\x25\xe3\xb5\xa9\x6f\x17\x53\x2f\xe9\x47\xda\x13\xfd\xdd\x33\xfd\xdd\x6f\xe8\xc7\x19\xc1\xb2\xf1\x99\x69\xa8\x54\x67\x69\x0d\xe9\xb2\x22\x1b\x0e\xb5\x71\xc7\xe1\xa4\xbf\x18\xf2\xd7\x15\xc3\xf9\x5f\x91\x4e\x0c\x08\x9a\xd6\x2a\x02\xc6\x55\x47\x75\xe1\x87\xbb\x51\x2c\x70\xae\x20\x7d\x13\xe5\xeb\x6b\xba\x81\x64\xfa\xe7\xd8\x6c\x7e\x04\x00\x00\xff\xff\x06\xe2\x8e\xc9\x43\x06\x00\x00")
 
 func layout_tpl_bytes() ([]byte, error) {
@@ -76,7 +116,7 @@ func layout_tpl() (*asset, error) {
 		return nil, err
 	}
 
-	info := bindata_file_info{name: "layout.tpl", size: 1603, mode: os.FileMode(438), modTime: time.Unix(1423332529, 0)}
+	info := bindata_file_info{name: "layout.tpl", size: 1603, mode: os.FileMode(438), modTime: time.Unix(1423556408, 0)}
 	a := &asset{bytes: bytes, info:  info}
 	return a, nil
 }
@@ -96,7 +136,7 @@ func layoutemail_tpl() (*asset, error) {
 		return nil, err
 	}
 
-	info := bindata_file_info{name: "layoutEmail.tpl", size: 34, mode: os.FileMode(438), modTime: time.Unix(1423334931, 0)}
+	info := bindata_file_info{name: "layoutEmail.tpl", size: 34, mode: os.FileMode(438), modTime: time.Unix(1423556408, 0)}
 	a := &asset{bytes: bytes, info:  info}
 	return a, nil
 }
@@ -116,7 +156,7 @@ func login_tpl() (*asset, error) {
 		return nil, err
 	}
 
-	info := bindata_file_info{name: "login.tpl", size: 1103, mode: os.FileMode(438), modTime: time.Unix(1423332525, 0)}
+	info := bindata_file_info{name: "login.tpl", size: 1103, mode: os.FileMode(438), modTime: time.Unix(1423556408, 0)}
 	a := &asset{bytes: bytes, info:  info}
 	return a, nil
 }
@@ -136,7 +176,7 @@ func recover_complete_tpl() (*asset, error) {
 		return nil, err
 	}
 
-	info := bindata_file_info{name: "recover-complete.tpl", size: 1163, mode: os.FileMode(438), modTime: time.Unix(1423332541, 0)}
+	info := bindata_file_info{name: "recover-complete.tpl", size: 1163, mode: os.FileMode(438), modTime: time.Unix(1423556408, 0)}
 	a := &asset{bytes: bytes, info:  info}
 	return a, nil
 }
@@ -156,7 +196,7 @@ func recover_html_email() (*asset, error) {
 		return nil, err
 	}
 
-	info := bindata_file_info{name: "recover-html.email", size: 26, mode: os.FileMode(438), modTime: time.Unix(1422773459, 0)}
+	info := bindata_file_info{name: "recover-html.email", size: 26, mode: os.FileMode(438), modTime: time.Unix(1422829950, 0)}
 	a := &asset{bytes: bytes, info:  info}
 	return a, nil
 }
@@ -176,7 +216,7 @@ func recover_text_email() (*asset, error) {
 		return nil, err
 	}
 
-	info := bindata_file_info{name: "recover-text.email", size: 9, mode: os.FileMode(438), modTime: time.Unix(1422773459, 0)}
+	info := bindata_file_info{name: "recover-text.email", size: 9, mode: os.FileMode(438), modTime: time.Unix(1422829950, 0)}
 	a := &asset{bytes: bytes, info:  info}
 	return a, nil
 }
@@ -196,7 +236,7 @@ func recover_tpl() (*asset, error) {
 		return nil, err
 	}
 
-	info := bindata_file_info{name: "recover.tpl", size: 1210, mode: os.FileMode(438), modTime: time.Unix(1423332554, 0)}
+	info := bindata_file_info{name: "recover.tpl", size: 1210, mode: os.FileMode(438), modTime: time.Unix(1423556408, 0)}
 	a := &asset{bytes: bytes, info:  info}
 	return a, nil
 }
@@ -242,6 +282,8 @@ func AssetNames() []string {
 
 // _bindata is a table, holding each asset generator, mapped to its name.
 var _bindata = map[string]func() (*asset, error){
+	"confirm_email.html.tpl": confirm_email_html_tpl,
+	"confirm_email.txt.tpl": confirm_email_txt_tpl,
 	"layout.tpl": layout_tpl,
 	"layoutEmail.tpl": layoutemail_tpl,
 	"login.tpl": login_tpl,
@@ -291,6 +333,10 @@ type _bintree_t struct {
 	Children map[string]*_bintree_t
 }
 var _bintree = &_bintree_t{nil, map[string]*_bintree_t{
+	"confirm_email.html.tpl": &_bintree_t{confirm_email_html_tpl, map[string]*_bintree_t{
+	}},
+	"confirm_email.txt.tpl": &_bintree_t{confirm_email_txt_tpl, map[string]*_bintree_t{
+	}},
 	"layout.tpl": &_bintree_t{layout_tpl, map[string]*_bintree_t{
 	}},
 	"layoutEmail.tpl": &_bintree_t{layoutemail_tpl, map[string]*_bintree_t{

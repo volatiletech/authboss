@@ -24,7 +24,7 @@ const (
 	FormValueConfirm = "cnf"
 
 	tplConfirmHTML = "confirm_email.html.tpl"
-	tplConfirmText = "confirm_email.text.tpl"
+	tplConfirmText = "confirm_email.txt.tpl"
 )
 
 var (

@@ -4,14 +4,17 @@ import (
 	"bytes"
 	"fmt"
 	"net/http"
+	"time"
 
 	"gopkg.in/authboss.v0"
 )
 
 type MockUser struct {
-	Username string
-	Email    string
-	Password string
+	Username           string
+	Email              string
+	Password           string
+	RecoverToken       string
+	RecoverTokenExpiry time.Time
 }
 
 type MockStorer struct {
@@ -87,8 +90,35 @@ func (m *MockStorer) UseToken(givenKey, token string) (key string, err error) {
 	return "", authboss.ErrTokenNotFound
 }
 
-func (m *MockStorer) RecoverUser(token string) (interface{}, error) {
-	return nil, nil
+func (m *MockStorer) RecoverUser(token string) (result interface{}, err error) {
+	for _, user := range m.Users {
+		if user["recover_token"] == token {
+			u := &MockUser{}
+
+			if val, ok := user["username"]; ok {
+				u.Username = val.(string)
+			}
+
+			if val, ok := user["email"]; ok {
+				u.Email = val.(string)
+			}
+
+			if val, ok := user["password"]; ok {
+				u.Password = val.(string)
+			}
+
+			if val, ok := user["recover_token"]; ok {
+				u.RecoverToken = val.(string)
+			}
+
+			if val, ok := user["recover_token_expiry"]; ok {
+				u.RecoverTokenExpiry = val.(time.Time)
+			}
+			return u, nil
+		}
+	}
+
+	return nil, authboss.ErrUserNotFound
 }
 
 type MockClientStorer map[string]string

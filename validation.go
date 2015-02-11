@@ -85,6 +85,7 @@ func (ctx *Context) Validate(ruleset []Validator, confirmFields ...string) Error
 	return errList
 }
 
+// FilterValidators returns a subset of registered validators
 func FilterValidators(validators []Validator, fields ...string) []Validator {
 	var arr []Validator
 

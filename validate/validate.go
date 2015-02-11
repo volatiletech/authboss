@@ -1,7 +1,11 @@
 // Package validate supports validation of usernames, email addresses, and passwords.
 package validate
 
-import "gopkg.in/authboss.v0"
+import (
+	"fmt"
+
+	"gopkg.in/authboss.v0"
+)
 
 var V *Validate
 
@@ -10,16 +14,32 @@ func init() {
 	authboss.RegisterModule("validate", V)
 }
 
+const (
+	policyEmail    = "email"
+	policyUsername = "username"
+	policyPassword = "password"
+)
+
 type Validate struct {
+	Email    authboss.Validator
 	Username authboss.Validator
 	Password authboss.Validator
-	Email    authboss.Validator
 }
 
 func (v *Validate) Initialize(config *authboss.Config) error {
-	v.Email = config.ValidateEmail
-	v.Username = config.ValidateUsername
-	v.Password = config.ValidatePassword
+	policies := authboss.FilterValidators(config.Policies, policyEmail, policyUsername, policyPassword)
+
+	if v.Email = policies[0]; v.Email.Field() != policyEmail {
+		return fmt.Errorf("validate: missing policy: %s", policyEmail)
+	}
+
+	if v.Username = policies[1]; v.Username.Field() != policyUsername {
+		return fmt.Errorf("validate: missing policy: %s", policyUsername)
+	}
+
+	if v.Password = policies[2]; v.Password.Field() != policyPassword {
+		return fmt.Errorf("validate: missing policy: %s", policyPassword)
+	}
 
 	config.Callbacks.Before(authboss.EventRegister, v.BeforeRegister)
 	config.Callbacks.Before(authboss.EventRecoverStart, v.BeforeRegister)

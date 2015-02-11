@@ -10,9 +10,11 @@ import (
 
 func TestValidate_Initialiaze(t *testing.T) {
 	cfg := authboss.NewConfig()
-	cfg.ValidateEmail = Rules{}
-	cfg.ValidateUsername = Rules{}
-	cfg.ValidatePassword = Rules{}
+	cfg.Policies = []authboss.Validator{
+		authboss.Rules{FieldName: policyEmail},
+		authboss.Rules{FieldName: policyUsername},
+		authboss.Rules{FieldName: policyPassword},
+	}
 
 	err := V.Initialize(cfg)
 	if err != nil {
@@ -32,9 +34,11 @@ func TestValidate_Initialiaze(t *testing.T) {
 
 func TestValidate_BeforeRegister(t *testing.T) {
 	cfg := authboss.NewConfig()
-	cfg.ValidateEmail = Rules{Field: "email", MinLength: 15}
-	cfg.ValidateUsername = Rules{Field: "username", MaxLength: 1}
-	cfg.ValidatePassword = Rules{Field: "password", MinLength: 8}
+	cfg.Policies = []authboss.Validator{
+		authboss.Rules{FieldName: policyEmail, MinLength: 15},
+		authboss.Rules{FieldName: policyUsername, MaxLength: 1},
+		authboss.Rules{FieldName: policyPassword, MinLength: 8},
+	}
 
 	err := V.Initialize(cfg)
 	if err != nil {

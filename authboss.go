@@ -20,7 +20,7 @@ var (
 // Init authboss and it's loaded modules with a configuration.
 func Init(config *Config) error {
 	if config.Storer == nil {
-		return errors.New("Configuration must provide a storer.")
+		return errors.New("configuration must provide a storer.")
 	}
 
 	cfg = config

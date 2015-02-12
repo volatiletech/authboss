@@ -9,12 +9,6 @@ import (
 	"gopkg.in/authboss.v0/internal/mocks"
 )
 
-type failStorer int
-
-func (_ failStorer) Create(_ string, _ authboss.Attributes) error                { return nil }
-func (_ failStorer) Put(_ string, _ authboss.Attributes) error                   { return nil }
-func (_ failStorer) Get(_ string, _ authboss.AttributeMeta) (interface{}, error) { return nil, nil }
-
 func TestInitialize(t *testing.T) {
 	testConfig := authboss.NewConfig()
 
@@ -24,7 +18,7 @@ func TestInitialize(t *testing.T) {
 		t.Error("Expected error about token storers.")
 	}
 
-	testConfig.Storer = new(failStorer)
+	testConfig.Storer = mocks.MockFailStorer{}
 	err = r.Initialize(testConfig)
 	if err == nil {
 		t.Error("Expected error about token storers.")
@@ -40,8 +34,8 @@ func TestInitialize(t *testing.T) {
 func TestAfterAuth(t *testing.T) {
 	storer := mocks.NewMockStorer()
 	R.storer = storer
-	cookies := make(mocks.MockClientStorer)
-	session := make(mocks.MockClientStorer)
+	cookies := mocks.NewMockClientStorer()
+	session := mocks.NewMockClientStorer()
 
 	req, err := http.NewRequest("POST", "http://localhost", bytes.NewBufferString("rm=true"))
 	if err != nil {
@@ -60,7 +54,7 @@ func TestAfterAuth(t *testing.T) {
 
 	R.AfterAuth(ctx)
 
-	if _, ok := cookies[ValueKey]; !ok {
+	if _, ok := cookies.Values[ValueKey]; !ok {
 		t.Error("Expected a cookie to have been set.")
 	}
 }
@@ -68,7 +62,7 @@ func TestAfterAuth(t *testing.T) {
 func TestNew(t *testing.T) {
 	storer := mocks.NewMockStorer()
 	R.storer = storer
-	cookies := make(mocks.MockClientStorer)
+	cookies := mocks.NewMockClientStorer()
 
 	key := "tester"
 	token, err := R.New(cookies, key)
@@ -87,7 +81,7 @@ func TestNew(t *testing.T) {
 		t.Error("Expected a token to be saved.")
 	}
 
-	if token != cookies[ValueKey] {
+	if token != cookies.Values[ValueKey] {
 		t.Error("Expected a cookie set with the token.")
 	}
 }
@@ -95,8 +89,8 @@ func TestNew(t *testing.T) {
 func TestAuth(t *testing.T) {
 	storer := mocks.NewMockStorer()
 	R.storer = storer
-	cookies := make(mocks.MockClientStorer)
-	session := make(mocks.MockClientStorer)
+	cookies := mocks.NewMockClientStorer()
+	session := mocks.NewMockClientStorer()
 
 	key := "tester"
 	token, err := R.New(cookies, key)
@@ -109,11 +103,11 @@ func TestAuth(t *testing.T) {
 		t.Error("Unexpected error:", err)
 	}
 
-	if session[authboss.HalfAuthKey] != "true" {
+	if session.Values[authboss.HalfAuthKey] != "true" {
 		t.Error("The user should have been half-authed.")
 	}
 
-	if session[authboss.SessionKey] != key {
+	if session.Values[authboss.SessionKey] != key {
 		t.Error("The user should have been logged in.")
 	}
 

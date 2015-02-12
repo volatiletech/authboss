@@ -9,7 +9,10 @@ import (
 func TestPull(t *testing.T) {
 	t.Parallel()
 
-	storer := mocks.MockClientStorer{"a": "1"}
+	storer := mocks.NewMockClientStorer()
+	storer.Values = map[string]string{
+		"a": "1",
+	}
 
 	v := Pull(storer, "a")
 
@@ -17,7 +20,7 @@ func TestPull(t *testing.T) {
 		t.Error(`Expected value "1", got:`, v)
 	}
 
-	if len(storer) != 0 {
+	if len(storer.Values) != 0 {
 		t.Error("Expected length of zero")
 	}
 }

@@ -24,7 +24,7 @@ func TestExpire(t *testing.T) {
 func TestExpire_Touch(t *testing.T) {
 	t.Parallel()
 
-	session := mocks.MockClientStorer{}
+	session := mocks.NewMockClientStorer()
 
 	if _, ok := session.Get(UserLastAction); ok {
 		t.Error("It should not have been set")
@@ -43,7 +43,7 @@ func TestExpire_BeforeAuth(t *testing.T) {
 	t.Parallel()
 
 	expire := &Expire{window: time.Hour}
-	session := mocks.MockClientStorer{}
+	session := mocks.NewMockClientStorer()
 
 	ctx := mocks.MockRequestContext()
 	ctx.SessionStorer = session
@@ -52,8 +52,8 @@ func TestExpire_BeforeAuth(t *testing.T) {
 		t.Error("There's no user in session, should be no-op.")
 	}
 
-	session[authboss.SessionKey] = "moo"
-	session[UserLastAction] = "cow"
+	session.Values[authboss.SessionKey] = "moo"
+	session.Values[UserLastAction] = "cow"
 	if err := expire.BeforeAuth(ctx); err != nil {
 		t.Error("There's a malformed date, this should not error, just fix it:", err)
 	}
@@ -65,12 +65,12 @@ func TestExpire_BeforeAuth(t *testing.T) {
 		t.Error("The time is set in the future.")
 	}
 
-	session[UserLastAction] = time.Now().UTC().Add(-2 * time.Hour).Format(time.RFC3339)
+	session.Values[UserLastAction] = time.Now().UTC().Add(-2 * time.Hour).Format(time.RFC3339)
 	if err := expire.BeforeAuth(ctx); err != ErrExpired {
 		t.Error("The user should have been expired, got:", err)
 	}
 
-	if _, ok := session[authboss.SessionKey]; ok {
+	if _, ok := session.Values[authboss.SessionKey]; ok {
 		t.Error("The user session should have been expired.")
 	}
 }
@@ -82,7 +82,8 @@ func (t *testHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 }
 
 func TestExpire_Middleware(t *testing.T) {
-	session := mocks.MockClientStorer{
+	session := mocks.NewMockClientStorer()
+	session.Values = map[string]string{
 		authboss.SessionKey: "username",
 	}
 	maker := func(w http.ResponseWriter, r *http.Request) authboss.ClientStorer { return session }

@@ -19,12 +19,6 @@ import (
 	"gopkg.in/authboss.v0/internal/views"
 )
 
-type failStorer int
-
-func (_ failStorer) Create(_ string, _ authboss.Attributes) error                { return nil }
-func (_ failStorer) Put(_ string, _ authboss.Attributes) error                   { return nil }
-func (_ failStorer) Get(_ string, _ authboss.AttributeMeta) (interface{}, error) { return nil, nil }
-
 func Test_Initialize(t *testing.T) {
 	t.Parallel()
 
@@ -36,7 +30,7 @@ func Test_Initialize(t *testing.T) {
 	} else if err.Error() != "recover: Need a RecoverStorer." {
 		t.Error("Got error but wrong reason:", err)
 	}
-	config.Storer = new(failStorer)
+	config.Storer = mocks.MockFailStorer{}
 
 	if err := m.Initialize(config); err == nil {
 		t.Error("Expected error")
@@ -185,7 +179,8 @@ func testHttpRequest(method, url string, data url.Values) (*httptest.ResponseRec
 	if err != nil {
 		panic(err)
 	}
-	ctx.SessionStorer = mocks.MockClientStorer{}
+	sessionStorer := mocks.NewMockClientStorer()
+	ctx.SessionStorer = sessionStorer
 
 	return w, r, ctx
 }

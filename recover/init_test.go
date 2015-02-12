@@ -3,7 +3,6 @@ package recover
 import (
 	"bytes"
 	"encoding/base64"
-	"errors"
 	"fmt"
 	"html/template"
 	"io/ioutil"
@@ -87,7 +86,7 @@ func Test_recoverHandlerFunc_POST(t *testing.T) {
 		t.Error("Unexpected redirect:", location)
 	}
 
-	successFlash := ctx.SessionStorer.(mocks.MockClientStorer)[authboss.FlashSuccessKey]
+	successFlash := ctx.SessionStorer.(*mocks.MockClientStorer).Values[authboss.FlashSuccessKey]
 	if successFlash != m.config.RecoverInitiateSuccessFlash {
 		t.Error("Unexpected success flash message:", successFlash)
 	}
@@ -316,17 +315,13 @@ func Test_sendRecoverEmail_InvalidTemplates(t *testing.T) {
 	}
 }
 
-type failMailer struct{}
-
-func (_ failMailer) Send(_ authboss.Email) error {
-	return errors.New("")
-}
-
 func Test_sendRecoverEmail_FailToSend(t *testing.T) {
 	t.Parallel()
 	m, logger := testValidRecoverModule()
 
-	m.config.Mailer = failMailer{}
+	mailer := mocks.NewMockMailer()
+	mailer.SendErr = "explode"
+	m.config.Mailer = mailer
 	<-m.sendRecoverEmail("a@b.c", []byte("abc123"))
 
 	actualLog, err := ioutil.ReadAll(logger)

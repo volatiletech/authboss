@@ -37,7 +37,7 @@ func Test_recoverCompleteHandlerFunc_GET_TokenExpired(t *testing.T) {
 	}
 
 	w, r, ctx := testHttpRequest("GET", fmt.Sprintf("/recover/complete?token=%s", testUrlBase64Token), nil)
-	clientStorer := mocks.MockClientStorer{}
+	clientStorer := mocks.NewMockClientStorer()
 	ctx.SessionStorer = clientStorer
 
 	m.recoverCompleteHandlerFunc(ctx, w, r)
@@ -50,7 +50,7 @@ func Test_recoverCompleteHandlerFunc_GET_TokenExpired(t *testing.T) {
 		t.Error("Expected logs to start with:", "recover [token expired]:")
 	}
 
-	if flash := clientStorer[authboss.FlashErrorKey]; flash != m.config.RecoverTokenExpiredFlash {
+	if flash := clientStorer.Values[authboss.FlashErrorKey]; flash != m.config.RecoverTokenExpiredFlash {
 		t.Error("Unexpected error flash:", flash)
 	}
 
@@ -96,7 +96,9 @@ func Test_recoverCompleteHandlerFunc_GET(t *testing.T) {
 	}
 
 	w, r, ctx := testHttpRequest("GET", fmt.Sprintf("/recover/complete?token=%s", testUrlBase64Token), nil)
-	ctx.SessionStorer = mocks.MockClientStorer{authboss.FlashErrorKey: "asdf"}
+	sessionStorer := mocks.NewMockClientStorer()
+	sessionStorer.Values = map[string]string{authboss.FlashErrorKey: "asdf"}
+	ctx.SessionStorer = sessionStorer
 
 	m.recoverCompleteHandlerFunc(ctx, w, r)
 
@@ -329,7 +331,7 @@ func Test_recoverComplete(t *testing.T) {
 	m, _ := testValidRecoverModule()
 	ctx := mocks.MockRequestContext("token", testUrlBase64Token, "password", "a", "confirmPassword", "a")
 
-	clientStorer := mocks.MockClientStorer{}
+	clientStorer := mocks.NewMockClientStorer()
 	ctx.SessionStorer = clientStorer
 
 	storer, ok := m.config.Storer.(*mocks.MockStorer)

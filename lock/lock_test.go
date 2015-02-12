@@ -19,13 +19,6 @@ func TestStorage(t *testing.T) {
 	}
 }
 
-func setup(keyValuePairs interface{}) {
-	storer := mocks.NewMockStorer()
-	L.storer = storer
-	_ = make(mocks.MockClientStorer)
-	_ = make(mocks.MockClientStorer)
-}
-
 func TestBeforeAuth(t *testing.T) {
 	ctx := authboss.NewContext()
 	L.logger = ioutil.Discard

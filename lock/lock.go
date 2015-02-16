@@ -10,9 +10,9 @@ import (
 )
 
 const (
-	UserAttemptNumber = "attempt_number"
-	UserAttemptTime   = "attempt_time"
-	UserLocked        = "locked"
+	StoreAttemptNumber = "attempt_number"
+	StoreAttemptTime   = "attempt_time"
+	StoreLocked        = "locked"
 )
 
 var (
@@ -51,9 +51,9 @@ func (l *Lock) Routes() authboss.RouteTable {
 
 func (l *Lock) Storage() authboss.StorageOptions {
 	return authboss.StorageOptions{
-		UserAttemptNumber: authboss.Integer,
-		UserAttemptTime:   authboss.DateTime,
-		UserLocked:        authboss.Bool,
+		StoreAttemptNumber: authboss.Integer,
+		StoreAttemptTime:   authboss.DateTime,
+		StoreLocked:        authboss.Bool,
 	}
 }
 
@@ -63,7 +63,7 @@ func (l *Lock) BeforeAuth(ctx *authboss.Context) error {
 		return errors.New("lock: user not loaded in before auth callback")
 	}
 
-	if intf, ok := ctx.User[UserLocked]; ok {
+	if intf, ok := ctx.User[StoreLocked]; ok {
 		if locked, ok := intf.(bool); ok && locked {
 			return ErrLocked
 		}
@@ -87,8 +87,8 @@ func (l *Lock) AfterAuth(ctx *authboss.Context) {
 		return
 	}
 
-	ctx.User[UserAttemptNumber] = 0
-	ctx.User[UserAttemptTime] = time.Now().UTC()
+	ctx.User[StoreAttemptNumber] = 0
+	ctx.User[StoreAttemptTime] = time.Now().UTC()
 
 	if err := ctx.SaveUser(username, authboss.Cfg.Storer); err != nil {
 		fmt.Fprintf(authboss.Cfg.LogWriter, "lock: saving user failed %v", err)
@@ -111,14 +111,14 @@ func (l *Lock) AfterAuthFail(ctx *authboss.Context) {
 	}
 
 	lastAttempt := time.Now().UTC()
-	if attemptTimeIntf, ok := ctx.User[UserAttemptTime]; ok {
+	if attemptTimeIntf, ok := ctx.User[StoreAttemptTime]; ok {
 		if attemptTime, ok := attemptTimeIntf.(time.Time); ok {
 			lastAttempt = attemptTime
 		}
 	}
 
 	nAttempts := 0
-	if attemptsIntf, ok := ctx.User[UserAttemptNumber]; ok {
+	if attemptsIntf, ok := ctx.User[StoreAttemptNumber]; ok {
 		if attempts, ok := attemptsIntf.(int); ok {
 			nAttempts = attempts
 		}
@@ -128,14 +128,14 @@ func (l *Lock) AfterAuthFail(ctx *authboss.Context) {
 
 	if time.Now().UTC().Sub(lastAttempt) <= authboss.Cfg.LockWindow {
 		if nAttempts >= authboss.Cfg.LockAfter {
-			ctx.User[UserLocked] = true
+			ctx.User[StoreLocked] = true
 		}
 
-		ctx.User[UserAttemptNumber] = nAttempts
+		ctx.User[StoreAttemptNumber] = nAttempts
 	} else {
-		ctx.User[UserAttemptNumber] = 0
+		ctx.User[StoreAttemptNumber] = 0
 	}
-	ctx.User[UserAttemptTime] = time.Now().UTC()
+	ctx.User[StoreAttemptTime] = time.Now().UTC()
 
 	if err := ctx.SaveUser(username, authboss.Cfg.Storer); err != nil {
 		fmt.Fprintf(authboss.Cfg.LogWriter, "lock: saving user failed %v", err)
@@ -154,7 +154,7 @@ func (l *Lock) Lock(key string, storer authboss.Storer) error {
 		return err
 	}
 
-	attr[UserLocked] = true
+	attr[StoreLocked] = true
 
 	return storer.Put(key, attr)
 }
@@ -173,9 +173,9 @@ func (l *Lock) Unlock(key string, storer authboss.Storer) error {
 
 	// Set the last attempt to be -window*2 to avoid immediately
 	// giving another login failure.
-	attr[UserAttemptTime] = time.Now().UTC().Add(-authboss.Cfg.LockWindow * 2)
-	attr[UserAttemptNumber] = 0
-	attr[UserLocked] = false
+	attr[StoreAttemptTime] = time.Now().UTC().Add(-authboss.Cfg.LockWindow * 2)
+	attr[StoreAttemptNumber] = 0
+	attr[StoreLocked] = false
 
 	return storer.Put(key, attr)
 }

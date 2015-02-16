@@ -11,10 +11,10 @@ import (
 func TestStorage(t *testing.T) {
 	authboss.NewConfig()
 	storage := L.Storage()
-	if _, ok := storage[UserAttemptNumber]; !ok {
+	if _, ok := storage[StoreAttemptNumber]; !ok {
 		t.Error("Expected attempt number storage option.")
 	}
-	if _, ok := storage[UserAttemptTime]; !ok {
+	if _, ok := storage[StoreAttemptTime]; !ok {
 		t.Error("Expected attempt number time option.")
 	}
 }
@@ -40,19 +40,19 @@ func TestAfterAuth(t *testing.T) {
 	ctx := authboss.NewContext()
 
 	lock.AfterAuth(ctx)
-	if _, ok := ctx.User[UserAttemptNumber]; ok {
+	if _, ok := ctx.User[StoreAttemptNumber]; ok {
 		t.Error("Expected nothing to be set, missing user.")
 	}
 
 	ctx.User = map[string]interface{}{"otherattribute": "somevalue"}
 	lock.AfterAuth(ctx)
-	if _, ok := ctx.User[UserAttemptNumber]; ok {
+	if _, ok := ctx.User[StoreAttemptNumber]; ok {
 		t.Error("Expected username not present to stop this assignment.")
 	}
 
 	ctx.User["username"] = 5
 	lock.AfterAuth(ctx)
-	if _, ok := ctx.User[UserAttemptNumber]; ok {
+	if _, ok := ctx.User[StoreAttemptNumber]; ok {
 		t.Error("Expected username wrong type stop this assignment.")
 	}
 
@@ -61,11 +61,11 @@ func TestAfterAuth(t *testing.T) {
 	ctx.User["username"] = "username"
 	lock.AfterAuth(ctx)
 
-	if storer.Users["username"][UserAttemptNumber].(int) != 0 {
-		t.Error("UserAttemptNumber set incorrectly.")
+	if storer.Users["username"][StoreAttemptNumber].(int) != 0 {
+		t.Error("StoreAttemptNumber set incorrectly.")
 	}
-	if _, ok := storer.Users["username"][UserAttemptTime].(time.Time); !ok {
-		t.Error("UserAttemptTime not set.")
+	if _, ok := storer.Users["username"][StoreAttemptTime].(time.Time); !ok {
+		t.Error("StoreAttemptTime not set.")
 	}
 }
 
@@ -86,29 +86,29 @@ func TestAfterAuthFail_Lock(t *testing.T) {
 	old = time.Now().UTC().Add(-1 * time.Hour)
 
 	for i := 0; i < 3; i++ {
-		if lockedIntf, ok := storer.Users["username"][UserLocked]; ok && lockedIntf.(bool) {
+		if lockedIntf, ok := storer.Users["username"][StoreLocked]; ok && lockedIntf.(bool) {
 			t.Errorf("%d: User should not be locked.", i)
 		}
 
 		lock.AfterAuthFail(ctx)
-		if val := storer.Users["username"][UserAttemptNumber].(int); val != i+1 {
-			t.Errorf("%d: UserAttemptNumber set incorrectly: %v", i, val)
+		if val := storer.Users["username"][StoreAttemptNumber].(int); val != i+1 {
+			t.Errorf("%d: StoreAttemptNumber set incorrectly: %v", i, val)
 		}
-		if current, ok = storer.Users["username"][UserAttemptTime].(time.Time); !ok || old.After(current) {
-			t.Error("%d: UserAttemptTime not set correctly: %v", i, current)
+		if current, ok = storer.Users["username"][StoreAttemptTime].(time.Time); !ok || old.After(current) {
+			t.Error("%d: StoreAttemptTime not set correctly: %v", i, current)
 		}
 
 		current = old
 	}
 
-	if !storer.Users["username"][UserLocked].(bool) {
+	if !storer.Users["username"][StoreLocked].(bool) {
 		t.Error("User should be locked.")
 	}
-	if val := storer.Users["username"][UserAttemptNumber].(int); val != 3 {
-		t.Error("UserAttemptNumber set incorrectly:", val)
+	if val := storer.Users["username"][StoreAttemptNumber].(int); val != 3 {
+		t.Error("StoreAttemptNumber set incorrectly:", val)
 	}
-	if _, ok = storer.Users["username"][UserAttemptTime].(time.Time); !ok {
-		t.Error("UserAttemptTime not set correctly.")
+	if _, ok = storer.Users["username"][StoreAttemptTime].(time.Time); !ok {
+		t.Error("StoreAttemptTime not set correctly.")
 	}
 }
 
@@ -126,21 +126,21 @@ func TestAfterAuthFail_Reset(t *testing.T) {
 	old = time.Now().UTC().Add(-time.Hour)
 
 	ctx.User = map[string]interface{}{
-		"username":        "username",
-		UserAttemptNumber: 2,
-		UserAttemptTime:   old,
-		UserLocked:        false,
+		"username":         "username",
+		StoreAttemptNumber: 2,
+		StoreAttemptTime:   old,
+		StoreLocked:        false,
 	}
 
 	lock.AfterAuthFail(ctx)
-	if val := storer.Users["username"][UserAttemptNumber].(int); val != 0 {
-		t.Error("UserAttemptNumber set incorrectly:", val)
+	if val := storer.Users["username"][StoreAttemptNumber].(int); val != 0 {
+		t.Error("StoreAttemptNumber set incorrectly:", val)
 	}
-	if current, ok = storer.Users["username"][UserAttemptTime].(time.Time); !ok || current.Before(old) {
-		t.Error("UserAttemptTime not set correctly.")
+	if current, ok = storer.Users["username"][StoreAttemptTime].(time.Time); !ok || current.Before(old) {
+		t.Error("StoreAttemptTime not set correctly.")
 	}
-	if locked := storer.Users["username"][UserLocked].(bool); locked {
-		t.Error("UserLocked not set correctly:", locked)
+	if locked := storer.Users["username"][StoreLocked].(bool); locked {
+		t.Error("StoreLocked not set correctly:", locked)
 	}
 }
 
@@ -150,19 +150,19 @@ func TestAfterAuthFail_Errors(t *testing.T) {
 	ctx := authboss.NewContext()
 
 	lock.AfterAuthFail(ctx)
-	if _, ok := ctx.User[UserAttemptNumber]; ok {
+	if _, ok := ctx.User[StoreAttemptNumber]; ok {
 		t.Error("Expected nothing to be set, missing user.")
 	}
 
 	ctx.User = map[string]interface{}{"otherattribute": "somevalue"}
 	lock.AfterAuthFail(ctx)
-	if _, ok := ctx.User[UserAttemptNumber]; ok {
+	if _, ok := ctx.User[StoreAttemptNumber]; ok {
 		t.Error("Expected username not present to stop this assignment.")
 	}
 
 	ctx.User["username"] = 5
 	lock.AfterAuthFail(ctx)
-	if _, ok := ctx.User[UserAttemptNumber]; ok {
+	if _, ok := ctx.User[StoreAttemptNumber]; ok {
 		t.Error("Expected username wrong type stop this assignment.")
 	}
 }
@@ -182,7 +182,7 @@ func TestLock(t *testing.T) {
 		t.Error(err)
 	}
 
-	if locked := storer.Users["username"][UserLocked].(bool); !locked {
+	if locked := storer.Users["username"][StoreLocked].(bool); !locked {
 		t.Error("User should be locked.")
 	}
 }
@@ -204,14 +204,14 @@ func TestUnlock(t *testing.T) {
 		t.Error(err)
 	}
 
-	attemptTime := storer.Users["username"][UserAttemptTime].(time.Time)
+	attemptTime := storer.Users["username"][StoreAttemptTime].(time.Time)
 	if attemptTime.After(time.Now().UTC().Add(-authboss.Cfg.LockWindow)) {
-		t.Error("UserLocked not set correctly:", attemptTime)
+		t.Error("StoreLocked not set correctly:", attemptTime)
 	}
-	if number := storer.Users["username"][UserAttemptNumber].(int); number != 0 {
-		t.Error("UserLocked not set correctly:", number)
+	if number := storer.Users["username"][StoreAttemptNumber].(int); number != 0 {
+		t.Error("StoreLocked not set correctly:", number)
 	}
-	if locked := storer.Users["username"][UserLocked].(bool); locked {
+	if locked := storer.Users["username"][StoreLocked].(bool); locked {
 		t.Error("User should not be locked.")
 	}
 }

@@ -23,12 +23,8 @@ func TestBeforeAuth(t *testing.T) {
 	authboss.NewConfig()
 	ctx := authboss.NewContext()
 
-	if nil != L.BeforeAuth(ctx) {
-		t.Error("Expected it to break early.")
-	}
-
-	if err := L.BeforeAuth(ctx); err != nil {
-		t.Error(err)
+	if err := L.BeforeAuth(ctx); err == nil {
+		t.Error("Want death because user not loaded:", err)
 	}
 
 	ctx.User = authboss.Attributes{"locked": true}

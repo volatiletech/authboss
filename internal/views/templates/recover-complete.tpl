@@ -22,4 +22,5 @@
         {{end}}
     </div>
     <button class="btn btn-primary btn-block" type="submit">Submit</button>
+    <input type="hidden" name="{{.XSRFName}}" value="{{.XSRFToken}}" />
 </form>

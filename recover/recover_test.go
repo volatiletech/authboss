@@ -68,41 +68,47 @@ func Test_Initialize(t *testing.T) {
 }
 
 func testValidTestConfig() {
-	authboss.NewConfig()
-	authboss.Cfg.Storer = mocks.NewMockStorer()
-	authboss.Cfg.EmailFrom = "auth@boss.com"
+	cfg := authboss.Config{
+		Storer:                      mocks.NewMockStorer(),
+		RecoverRedirect:             "/login",
+		RecoverInitiateSuccessFlash: "sf",
+		RecoverTokenExpiredFlash:    "exf",
+		RecoverFailedErrorFlash:     "errf",
+
+		Policies: []authboss.Validator{
+			authboss.Rules{
+				FieldName: "username",
+				Required:  true,
+			},
+			authboss.Rules{
+				FieldName: "password",
+				Required:  true,
+			},
+		},
+
+		ConfirmFields:         []string{"username", "confirmUsername", "password", "confirmPassword"},
+		LogWriter:             &bytes.Buffer{},
+		Mailer:                &mocks.MockMailer{},
+		EmailFrom:             "auth@boss.com",
+		HostName:              "localhost",
+		RecoverTokenDuration:  time.Duration(24) * time.Hour,
+		BCryptCost:            4,
+		AuthLoginSuccessRoute: "/login",
+		XSRFName:              "rofl",
+		XSRFMaker: func(_ http.ResponseWriter, _ *http.Request) string {
+			return "lawl"
+		},
+	}
 
 	var err error
-	if authboss.Cfg.Layout, err = views.AssetToTemplate("layout.tpl"); err != nil {
+	if cfg.Layout, err = views.AssetToTemplate("layout.tpl"); err != nil {
 		panic(err)
 	}
-	if authboss.Cfg.LayoutEmail, err = views.AssetToTemplate("layoutEmail.tpl"); err != nil {
+	if cfg.LayoutEmail, err = views.AssetToTemplate("layoutEmail.tpl"); err != nil {
 		panic(err)
 	}
 
-	authboss.Cfg.RecoverRedirect = "/login"
-	authboss.Cfg.RecoverInitiateSuccessFlash = "sf"
-	authboss.Cfg.RecoverTokenExpiredFlash = "exf"
-	authboss.Cfg.RecoverFailedErrorFlash = "errf"
-
-	authboss.Cfg.Policies = []authboss.Validator{
-		authboss.Rules{
-			FieldName: "username",
-			Required:  true,
-		},
-		authboss.Rules{
-			FieldName: "password",
-			Required:  true,
-		},
-	}
-	authboss.Cfg.ConfirmFields = []string{"username", "confirmUsername", "password", "confirmPassword"}
-	authboss.Cfg.LogWriter = &bytes.Buffer{}
-	authboss.Cfg.Mailer = &mocks.MockMailer{}
-	authboss.Cfg.EmailFrom = "auth@boss.com"
-	authboss.Cfg.HostName = "localhost"
-	authboss.Cfg.RecoverTokenDuration = time.Duration(24) * time.Hour
-	authboss.Cfg.BCryptCost = 4
-	authboss.Cfg.AuthLoginSuccessRoute = "/login"
+	authboss.Cfg = &cfg
 }
 
 func testValidRecoverModule() (*RecoverModule, *bytes.Buffer) {
@@ -215,7 +221,7 @@ func Test_execTpl(t *testing.T) {
 	m, _ := testValidRecoverModule()
 	w := httptest.NewRecorder()
 
-	page := pageRecover{"bobby", "bob", nil, "", authboss.Cfg.RecoverFailedErrorFlash}
+	page := pageRecover{"bobby", "bob", nil, "", authboss.Cfg.RecoverFailedErrorFlash, "", ""}
 	m.execTpl(tplRecover, w, page)
 
 	tpl := m.templates[tplRecover]

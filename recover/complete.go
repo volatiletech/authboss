@@ -19,6 +19,7 @@ type pageRecoverComplete struct {
 	Token, Password, ConfirmPassword string
 	ErrMap                           map[string][]string
 	FlashSuccess, FlashError         string
+	XSRFName, XSRFToken              string
 }
 
 func (m *RecoverModule) recoverCompleteHandlerFunc(ctx *authboss.Context, w http.ResponseWriter, r *http.Request) {
@@ -43,10 +44,12 @@ func (m *RecoverModule) recoverCompleteHandlerFunc(ctx *authboss.Context, w http
 		page := pageRecoverComplete{
 			Token:      token,
 			FlashError: flashutil.Pull(ctx.SessionStorer, authboss.FlashErrorKey),
+			XSRFName:   authboss.Cfg.XSRFName,
+			XSRFToken:  authboss.Cfg.XSRFMaker(w, r),
 		}
 		m.execTpl(tplRecoverComplete, w, page)
 	case methodPOST:
-		errPage := m.recoverComplete(ctx)
+		errPage := m.recoverComplete(ctx, authboss.Cfg.XSRFName, authboss.Cfg.XSRFMaker(w, r))
 		if errPage != nil {
 			m.execTpl(tplRecoverComplete, w, *errPage)
 			return
@@ -86,11 +89,18 @@ func verifyToken(ctx *authboss.Context, storer authboss.RecoverStorer) (attrs au
 	return attrs, nil
 }
 
-func (m *RecoverModule) recoverComplete(ctx *authboss.Context) (errPage *pageRecoverComplete) {
+func (m *RecoverModule) recoverComplete(ctx *authboss.Context, xsrfName, xsrfToken string) (errPage *pageRecoverComplete) {
 	token, _ := ctx.FirstFormValue("token")
 	password, _ := ctx.FirstPostFormValue("password")
 	confirmPassword, _ := ctx.FirstPostFormValue("confirmPassword")
-	defaultErrPage := &pageRecoverComplete{token, password, confirmPassword, nil, "", authboss.Cfg.RecoverFailedErrorFlash}
+	defaultErrPage := &pageRecoverComplete{
+		Token:           token,
+		Password:        password,
+		ConfirmPassword: confirmPassword,
+		FlashError:      authboss.Cfg.RecoverFailedErrorFlash,
+		XSRFName:        xsrfName,
+		XSRFToken:       xsrfToken,
+	}
 
 	var err error
 	ctx.User, err = verifyToken(ctx, authboss.Cfg.Storer.(authboss.RecoverStorer))
@@ -102,7 +112,14 @@ func (m *RecoverModule) recoverComplete(ctx *authboss.Context) (errPage *pageRec
 	policies := authboss.FilterValidators(authboss.Cfg.Policies, "password")
 	if validationErrs := ctx.Validate(policies, authboss.Cfg.ConfirmFields...); len(validationErrs) > 0 {
 		fmt.Fprintf(authboss.Cfg.LogWriter, errFormat, "validation failed", validationErrs)
-		return &pageRecoverComplete{token, password, confirmPassword, validationErrs.Map(), "", ""}
+		return &pageRecoverComplete{
+			Token:           token,
+			Password:        password,
+			ConfirmPassword: confirmPassword,
+			ErrMap:          validationErrs.Map(),
+			XSRFName:        xsrfName,
+			XSRFToken:       xsrfToken,
+		}
 	}
 
 	encryptedPassword, err := bcrypt.GenerateFromPassword([]byte(password), authboss.Cfg.BCryptCost)

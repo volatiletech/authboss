@@ -21,7 +21,11 @@ func Test_recoverHandlerFunc_GET(t *testing.T) {
 	m.recoverHandlerFunc(ctx, w, r)
 
 	expectedBody := &bytes.Buffer{}
-	if err := m.templates[tplRecover].Execute(expectedBody, pageRecover{}); err != nil {
+	err := m.templates[tplRecover].Execute(expectedBody, pageRecover{
+		XSRFName:  authboss.Cfg.XSRFName,
+		XSRFToken: authboss.Cfg.XSRFMaker(nil, nil),
+	})
+	if err != nil {
 		panic(err)
 	}
 
@@ -43,6 +47,8 @@ func Test_recoverHandlerFunc_POST_RecoveryFailed(t *testing.T) {
 		Username:        "a",
 		ConfirmUsername: "a",
 		FlashError:      authboss.Cfg.RecoverFailedErrorFlash,
+		XSRFName:        authboss.Cfg.XSRFName,
+		XSRFToken:       authboss.Cfg.XSRFMaker(nil, nil),
 	}); err != nil {
 		panic(err)
 	}
@@ -90,7 +96,7 @@ func Test_recover_UsernameValidationFail(t *testing.T) {
 	m, logger := testValidRecoverModule()
 	ctx := mocks.MockRequestContext()
 
-	page, emailSent := m.recover(ctx)
+	page, emailSent := m.recover(ctx, "", "")
 	if len(page.ErrMap["username"]) != 1 {
 		t.Error("Exepted single validation error for username")
 	}
@@ -114,7 +120,7 @@ func Test_recover_ConfirmUsernameCheckFail(t *testing.T) {
 	m, logger := testValidRecoverModule()
 	ctx := mocks.MockRequestContext("username", "a", "confirmUsername", "b")
 
-	page, emailSent := m.recover(ctx)
+	page, emailSent := m.recover(ctx, "", "")
 	if len(page.ErrMap["username"]) != 0 {
 		t.Error("Exepted no validation errors for username")
 	}
@@ -141,7 +147,7 @@ func Test_recover_InvalidUser(t *testing.T) {
 	m, logger := testValidRecoverModule()
 	ctx := mocks.MockRequestContext("username", "a", "confirmUsername", "a")
 
-	page, emailSent := m.recover(ctx)
+	page, emailSent := m.recover(ctx, "", "")
 	if page.ErrMap != nil {
 		t.Error("Exepted no validation errors")
 	}
@@ -172,7 +178,7 @@ func Test_recover(t *testing.T) {
 
 	ctx := mocks.MockRequestContext("username", "a", "confirmUsername", "a")
 
-	page, emailSent := m.recover(ctx)
+	page, emailSent := m.recover(ctx, "", "")
 	if page != nil {
 		t.Error("Expected nil page")
 	}

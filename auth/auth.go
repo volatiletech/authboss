@@ -36,6 +36,9 @@ type AuthPage struct {
 
 	FlashSuccess string
 	FlashError   string
+
+	XSRFName  string
+	XSRFToken string
 }
 
 type Auth struct {
@@ -84,7 +87,12 @@ func (a *Auth) loginHandlerFunc(ctx *authboss.Context, w http.ResponseWriter, r 
 			}
 		}
 
-		page := AuthPage{ShowRemember: a.isRememberLoaded, ShowRecover: a.isRecoverLoaded}
+		page := AuthPage{
+			ShowRemember: a.isRememberLoaded,
+			ShowRecover:  a.isRecoverLoaded,
+			XSRFName:     authboss.Cfg.XSRFName,
+			XSRFToken:    authboss.Cfg.XSRFMaker(w, r),
+		}
 
 		if msg, ok := ctx.SessionStorer.Get(authboss.FlashSuccessKey); ok {
 			page.FlashSuccess = msg
@@ -103,7 +111,14 @@ func (a *Auth) loginHandlerFunc(ctx *authboss.Context, w http.ResponseWriter, r 
 			w.WriteHeader(http.StatusForbidden)
 
 			tpl := a.templates[pageLogin]
-			tpl.ExecuteTemplate(w, tpl.Name(), AuthPage{err.Error(), u, a.isRememberLoaded, a.isRecoverLoaded, "", ""})
+			tpl.ExecuteTemplate(w, tpl.Name(), AuthPage{
+				Error:        err.Error(),
+				Username:     u,
+				ShowRemember: a.isRememberLoaded,
+				ShowRecover:  a.isRecoverLoaded,
+				XSRFName:     authboss.Cfg.XSRFName,
+				XSRFToken:    authboss.Cfg.XSRFMaker(w, r),
+			})
 		}
 
 		p, ok := ctx.FirstPostFormValue("password")
@@ -115,7 +130,14 @@ func (a *Auth) loginHandlerFunc(ctx *authboss.Context, w http.ResponseWriter, r 
 			fmt.Fprintln(authboss.Cfg.LogWriter, err)
 			w.WriteHeader(http.StatusForbidden)
 			tpl := a.templates[pageLogin]
-			tpl.ExecuteTemplate(w, tpl.Name(), AuthPage{"invalid username and/or password", u, a.isRememberLoaded, a.isRecoverLoaded, "", ""})
+			tpl.ExecuteTemplate(w, tpl.Name(), AuthPage{
+				Error:        "invalid username and/or password",
+				Username:     u,
+				ShowRemember: a.isRememberLoaded,
+				ShowRecover:  a.isRecoverLoaded,
+				XSRFName:     authboss.Cfg.XSRFName,
+				XSRFToken:    authboss.Cfg.XSRFMaker(w, r),
+			})
 			return
 		}
 

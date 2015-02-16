@@ -23,4 +23,5 @@
     
     <button class="btn btn-primary btn-block" type="submit">Recover</button>
     <a class="btn btn-link btn-block" type="submit" href="/login">Cancel</a>
+    <input type="hidden" name="{{.XSRFName}}" value="{{.XSRFToken}}" />
 </form>

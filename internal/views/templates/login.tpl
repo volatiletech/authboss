@@ -23,4 +23,5 @@
     {{if .ShowRecover}}
     <a class="btn btn-link btn-block" type="submit" href="/recover">Recover Account</a>
     {{end}}
+    <input type="hidden" name="{{.XSRFName}}" value="{{.XSRFToken}}" />
 </form>

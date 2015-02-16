@@ -95,7 +95,12 @@ func Test_recoverCompleteHandlerFunc_GET(t *testing.T) {
 
 	m.recoverCompleteHandlerFunc(ctx, w, r)
 
-	page := pageRecoverComplete{Token: testUrlBase64Token, FlashError: "asdf"}
+	page := pageRecoverComplete{
+		Token:      testUrlBase64Token,
+		FlashError: "asdf",
+		XSRFName:   authboss.Cfg.XSRFName,
+		XSRFToken:  authboss.Cfg.XSRFMaker(nil, nil),
+	}
 	expectedBody := &bytes.Buffer{}
 	if err := m.templates[tplRecoverComplete].Execute(expectedBody, page); err != nil {
 		panic(err)
@@ -124,6 +129,8 @@ func Test_recoverCompleteHandlerFunc_POST_RecoveryCompleteFailed(t *testing.T) {
 		Password:        "a",
 		ConfirmPassword: "a",
 		FlashError:      authboss.Cfg.RecoverFailedErrorFlash,
+		XSRFName:        authboss.Cfg.XSRFName,
+		XSRFToken:       authboss.Cfg.XSRFMaker(nil, nil),
 	}); err != nil {
 		panic(err)
 	}
@@ -245,7 +252,7 @@ func Test_recoverComplete_TokenVerificationFails(t *testing.T) {
 	m, logger := testValidRecoverModule()
 	ctx := mocks.MockRequestContext()
 
-	errPage := m.recoverComplete(ctx)
+	errPage := m.recoverComplete(ctx, "", "")
 	if errPage == nil {
 		t.Error("Expected err page")
 	}
@@ -275,7 +282,7 @@ func Test_recoverComplete_ValidationFails(t *testing.T) {
 		attrRecoverTokenExpiry: time.Now().Add(time.Duration(24) * time.Hour),
 	}
 
-	errPage := m.recoverComplete(ctx)
+	errPage := m.recoverComplete(ctx, "", "")
 	if errPage == nil {
 		t.Error("Expected err page")
 	}
@@ -317,7 +324,7 @@ func Test_recoverComplete(t *testing.T) {
 		attrRecoverTokenExpiry: time.Now().Add(time.Duration(24) * time.Hour),
 	}
 
-	if errPage := m.recoverComplete(ctx); errPage != nil {
+	if errPage := m.recoverComplete(ctx, "", ""); errPage != nil {
 		t.Error("Expected nil err page")
 	}
 

@@ -15,8 +15,8 @@ import (
 type pageRecover struct {
 	Username, ConfirmUsername string
 	ErrMap                    map[string][]string
-	FlashSuccess              string
-	FlashError                string
+	FlashSuccess, FlashError  string
+	XSRFName, XSRFToken       string
 }
 
 func (m *RecoverModule) recoverHandlerFunc(ctx *authboss.Context, w http.ResponseWriter, r *http.Request) {
@@ -24,11 +24,13 @@ func (m *RecoverModule) recoverHandlerFunc(ctx *authboss.Context, w http.Respons
 	case methodGET:
 		page := pageRecover{
 			FlashError: flashutil.Pull(ctx.SessionStorer, authboss.FlashErrorKey),
+			XSRFName:   authboss.Cfg.XSRFName,
+			XSRFToken:  authboss.Cfg.XSRFMaker(w, r),
 		}
 
 		m.execTpl(tplRecover, w, page)
 	case methodPOST:
-		errPage, _ := m.recover(ctx)
+		errPage, _ := m.recover(ctx, authboss.Cfg.XSRFName, authboss.Cfg.XSRFMaker(w, r))
 
 		if errPage != nil {
 			m.execTpl(tplRecover, w, *errPage)
@@ -42,20 +44,32 @@ func (m *RecoverModule) recoverHandlerFunc(ctx *authboss.Context, w http.Respons
 	}
 }
 
-func (m *RecoverModule) recover(ctx *authboss.Context) (errPage *pageRecover, emailSent <-chan struct{}) {
+func (m *RecoverModule) recover(ctx *authboss.Context, xsrfName, xsrfToken string) (errPage *pageRecover, emailSent <-chan struct{}) {
 	username, _ := ctx.FirstPostFormValue("username")
 	confirmUsername, _ := ctx.FirstPostFormValue("confirmUsername")
 
 	policies := authboss.FilterValidators(authboss.Cfg.Policies, "username")
 	if validationErrs := ctx.Validate(policies, authboss.Cfg.ConfirmFields...); len(validationErrs) > 0 {
 		fmt.Fprintf(authboss.Cfg.LogWriter, errFormat, "validation failed", validationErrs)
-		return &pageRecover{username, confirmUsername, validationErrs.Map(), "", ""}, nil
+		return &pageRecover{
+			Username:        username,
+			ConfirmUsername: confirmUsername,
+			ErrMap:          validationErrs.Map(),
+			XSRFName:        xsrfName,
+			XSRFToken:       xsrfToken,
+		}, nil
 	}
 
 	err, emailSent := m.makeAndSendToken(ctx, username)
 	if err != nil {
 		fmt.Fprintf(authboss.Cfg.LogWriter, errFormat, "failed to recover", err)
-		return &pageRecover{username, confirmUsername, nil, "", authboss.Cfg.RecoverFailedErrorFlash}, nil
+		return &pageRecover{
+			Username:        username,
+			ConfirmUsername: confirmUsername,
+			FlashError:      authboss.Cfg.RecoverFailedErrorFlash,
+			XSRFName:        xsrfName,
+			XSRFToken:       xsrfToken,
+		}, nil
 	}
 
 	return nil, emailSent

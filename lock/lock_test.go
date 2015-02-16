@@ -1,7 +1,6 @@
 package lock
 
 import (
-	"io/ioutil"
 	"testing"
 	"time"
 
@@ -10,6 +9,7 @@ import (
 )
 
 func TestStorage(t *testing.T) {
+	authboss.NewConfig()
 	storage := L.Storage()
 	if _, ok := storage[UserAttemptNumber]; !ok {
 		t.Error("Expected attempt number storage option.")
@@ -20,8 +20,8 @@ func TestStorage(t *testing.T) {
 }
 
 func TestBeforeAuth(t *testing.T) {
+	authboss.NewConfig()
 	ctx := authboss.NewContext()
-	L.logger = ioutil.Discard
 
 	if nil != L.BeforeAuth(ctx) {
 		t.Error("Expected it to break early.")
@@ -39,8 +39,8 @@ func TestBeforeAuth(t *testing.T) {
 }
 
 func TestAfterAuth(t *testing.T) {
+	authboss.NewConfig()
 	lock := Lock{}
-	lock.logger = ioutil.Discard
 	ctx := authboss.NewContext()
 
 	lock.AfterAuth(ctx)
@@ -61,7 +61,7 @@ func TestAfterAuth(t *testing.T) {
 	}
 
 	storer := mocks.NewMockStorer()
-	lock.storer = storer
+	authboss.Cfg.Storer = storer
 	ctx.User["username"] = "username"
 	lock.AfterAuth(ctx)
 
@@ -74,16 +74,16 @@ func TestAfterAuth(t *testing.T) {
 }
 
 func TestAfterAuthFail_Lock(t *testing.T) {
+	authboss.NewConfig()
 	var old, current time.Time
 	var ok bool
 
 	ctx := authboss.NewContext()
 	storer := mocks.NewMockStorer()
+	authboss.Cfg.Storer = storer
 	lock := Lock{}
-	lock.logger = ioutil.Discard
-	lock.storer = storer
-	lock.window = 30 * time.Minute
-	lock.attempts = 3
+	authboss.Cfg.LockWindow = 30 * time.Minute
+	authboss.Cfg.LockAfter = 3
 
 	ctx.User = map[string]interface{}{"username": "username"}
 
@@ -117,15 +117,15 @@ func TestAfterAuthFail_Lock(t *testing.T) {
 }
 
 func TestAfterAuthFail_Reset(t *testing.T) {
+	authboss.NewConfig()
 	var old, current time.Time
 	var ok bool
 
 	ctx := authboss.NewContext()
 	storer := mocks.NewMockStorer()
 	lock := Lock{}
-	lock.window = 30 * time.Minute
-	lock.logger = ioutil.Discard
-	lock.storer = storer
+	authboss.Cfg.LockWindow = 30 * time.Minute
+	authboss.Cfg.Storer = storer
 
 	old = time.Now().UTC().Add(-time.Hour)
 
@@ -149,8 +149,8 @@ func TestAfterAuthFail_Reset(t *testing.T) {
 }
 
 func TestAfterAuthFail_Errors(t *testing.T) {
+	authboss.NewConfig()
 	lock := Lock{}
-	lock.logger = ioutil.Discard
 	ctx := authboss.NewContext()
 
 	lock.AfterAuthFail(ctx)
@@ -172,6 +172,7 @@ func TestAfterAuthFail_Errors(t *testing.T) {
 }
 
 func TestLock(t *testing.T) {
+	authboss.NewConfig()
 	storer := mocks.NewMockStorer()
 	lock := Lock{}
 
@@ -191,9 +192,10 @@ func TestLock(t *testing.T) {
 }
 
 func TestUnlock(t *testing.T) {
+	authboss.NewConfig()
 	storer := mocks.NewMockStorer()
 	lock := Lock{}
-	lock.window = 1 * time.Hour
+	authboss.Cfg.LockWindow = 1 * time.Hour
 
 	storer.Users["username"] = map[string]interface{}{
 		"username": "username",
@@ -207,7 +209,7 @@ func TestUnlock(t *testing.T) {
 	}
 
 	attemptTime := storer.Users["username"][UserAttemptTime].(time.Time)
-	if attemptTime.After(time.Now().UTC().Add(-lock.window)) {
+	if attemptTime.After(time.Now().UTC().Add(-authboss.Cfg.LockWindow)) {
 		t.Error("UserLocked not set correctly:", attemptTime)
 	}
 	if number := storer.Users["username"][UserAttemptNumber].(int); number != 0 {

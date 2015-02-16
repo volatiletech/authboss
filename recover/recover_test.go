@@ -9,7 +9,6 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"net/url"
-	"os"
 	"strings"
 	"testing"
 	"time"
@@ -20,73 +19,73 @@ import (
 )
 
 func Test_Initialize(t *testing.T) {
-	t.Parallel()
-
-	config := &authboss.Config{ViewsPath: os.TempDir()}
+	authboss.NewConfig()
 	m := &RecoverModule{}
+	authboss.Cfg.Storer = nil
 
-	if err := m.Initialize(config); err == nil {
+	if err := m.Initialize(); err == nil {
 		t.Error("Expected error")
 	} else if err.Error() != "recover: Need a RecoverStorer." {
 		t.Error("Got error but wrong reason:", err)
 	}
-	config.Storer = mocks.MockFailStorer{}
+	authboss.Cfg.Storer = mocks.MockFailStorer{}
 
-	if err := m.Initialize(config); err == nil {
+	if err := m.Initialize(); err == nil {
 		t.Error("Expected error")
 	} else if err.Error() != "recover: RecoverStorer required for recover functionality." {
 		t.Error("Got error but wrong reason:", err)
 	}
-	config.Storer = mocks.NewMockStorer()
+	authboss.Cfg.Storer = mocks.NewMockStorer()
+	authboss.Cfg.Layout = nil
 
-	if err := m.Initialize(config); err == nil {
+	if err := m.Initialize(); err == nil {
 		t.Error("Expected error")
 	} else if err.Error() != "recover: Layout required for Recover functionallity." {
 		t.Error("Got error but wrong reason:", err)
 	}
 
 	var err error
-	config.Layout, err = template.New("").Parse(`{{template "authboss" .}}`)
+	authboss.Cfg.Layout, err = template.New("").Parse(`{{template "authboss" .}}`)
 	if err != nil {
 		t.Fatal("Unexpected error:", err)
 	}
+	authboss.Cfg.LayoutEmail = nil
 
-	if err := m.Initialize(config); err == nil {
+	if err := m.Initialize(); err == nil {
 		t.Error("Expected error:", err)
 	} else if err.Error() != "recover: LayoutEmail required for Recover functionallity." {
 		t.Error("Got error but wrong reason:", err)
 	}
-	config.LayoutEmail, err = template.New("").Parse(`{{template "authboss" .}}`)
+	authboss.Cfg.LayoutEmail, err = template.New("").Parse(`{{template "authboss" .}}`)
 
 	if err != nil {
 		t.Fatal("Unexpected error:", err)
 	}
 
-	if err := m.Initialize(config); err != nil {
+	if err := m.Initialize(); err != nil {
 		t.Error("Unexpected error:", err)
 	}
 }
 
-func testValidTestConfig() *authboss.Config {
-	config := &authboss.Config{}
-
-	config.Storer = mocks.NewMockStorer()
-	config.EmailFrom = "auth@boss.com"
+func testValidTestConfig() {
+	authboss.NewConfig()
+	authboss.Cfg.Storer = mocks.NewMockStorer()
+	authboss.Cfg.EmailFrom = "auth@boss.com"
 
 	var err error
-	if config.Layout, err = views.AssetToTemplate("layout.tpl"); err != nil {
+	if authboss.Cfg.Layout, err = views.AssetToTemplate("layout.tpl"); err != nil {
 		panic(err)
 	}
-	if config.LayoutEmail, err = views.AssetToTemplate("layoutEmail.tpl"); err != nil {
+	if authboss.Cfg.LayoutEmail, err = views.AssetToTemplate("layoutEmail.tpl"); err != nil {
 		panic(err)
 	}
 
-	config.RecoverRedirect = "/login"
-	config.RecoverInitiateSuccessFlash = "sf"
-	config.RecoverTokenExpiredFlash = "exf"
-	config.RecoverFailedErrorFlash = "errf"
+	authboss.Cfg.RecoverRedirect = "/login"
+	authboss.Cfg.RecoverInitiateSuccessFlash = "sf"
+	authboss.Cfg.RecoverTokenExpiredFlash = "exf"
+	authboss.Cfg.RecoverFailedErrorFlash = "errf"
 
-	config.Policies = []authboss.Validator{
+	authboss.Cfg.Policies = []authboss.Validator{
 		authboss.Rules{
 			FieldName: "username",
 			Required:  true,
@@ -96,31 +95,29 @@ func testValidTestConfig() *authboss.Config {
 			Required:  true,
 		},
 	}
-	config.ConfirmFields = []string{"username", "confirmUsername", "password", "confirmPassword"}
-	config.LogWriter = &bytes.Buffer{}
-	config.Mailer = &mocks.MockMailer{}
-	config.EmailFrom = "auth@boss.com"
-	config.HostName = "localhost"
-	config.RecoverTokenDuration = time.Duration(24) * time.Hour
-	config.BCryptCost = 4
-	config.AuthLoginSuccessRoute = "/login"
-
-	return config
+	authboss.Cfg.ConfirmFields = []string{"username", "confirmUsername", "password", "confirmPassword"}
+	authboss.Cfg.LogWriter = &bytes.Buffer{}
+	authboss.Cfg.Mailer = &mocks.MockMailer{}
+	authboss.Cfg.EmailFrom = "auth@boss.com"
+	authboss.Cfg.HostName = "localhost"
+	authboss.Cfg.RecoverTokenDuration = time.Duration(24) * time.Hour
+	authboss.Cfg.BCryptCost = 4
+	authboss.Cfg.AuthLoginSuccessRoute = "/login"
 }
 
 func testValidRecoverModule() (*RecoverModule, *bytes.Buffer) {
-	c := testValidTestConfig()
+	testValidTestConfig()
 
 	m := &RecoverModule{}
-	if err := m.Initialize(c); err != nil {
+	if err := m.Initialize(); err != nil {
 		panic(err)
 	}
 
-	return m, c.LogWriter.(*bytes.Buffer)
+	return m, authboss.Cfg.LogWriter.(*bytes.Buffer)
 }
 
 func Test_Routes(t *testing.T) {
-	t.Parallel()
+	testValidTestConfig()
 
 	m, _ := testValidRecoverModule()
 
@@ -136,7 +133,7 @@ func Test_Routes(t *testing.T) {
 }
 
 func Test_Storage(t *testing.T) {
-	t.Parallel()
+	testValidTestConfig()
 
 	m, _ := testValidRecoverModule()
 
@@ -186,7 +183,7 @@ func testHttpRequest(method, url string, data url.Values) (*httptest.ResponseRec
 }
 
 func Test_execTpl_TemplateExectionFail(t *testing.T) {
-	t.Parallel()
+	testValidTestConfig()
 
 	m, logger := testValidRecoverModule()
 	w := httptest.NewRecorder()
@@ -213,12 +210,12 @@ func Test_execTpl_TemplateExectionFail(t *testing.T) {
 }
 
 func Test_execTpl(t *testing.T) {
-	t.Parallel()
+	testValidTestConfig()
 
 	m, _ := testValidRecoverModule()
 	w := httptest.NewRecorder()
 
-	page := pageRecover{"bobby", "bob", nil, "", m.config.RecoverFailedErrorFlash}
+	page := pageRecover{"bobby", "bob", nil, "", authboss.Cfg.RecoverFailedErrorFlash}
 	m.execTpl(tplRecover, w, page)
 
 	tpl := m.templates[tplRecover]

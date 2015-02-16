@@ -29,14 +29,10 @@ func init() {
 	authboss.RegisterModule("expire", E)
 }
 
-type Expire struct {
-	window time.Duration
-}
+type Expire struct{}
 
-func (e *Expire) Initialize(config *authboss.Config) error {
-	e.window = config.ExpireAfter
-
-	config.Callbacks.Before(authboss.EventGet, e.BeforeAuth)
+func (e *Expire) Initialize() error {
+	authboss.Cfg.Callbacks.Before(authboss.EventGet, e.BeforeAuth)
 
 	return nil
 }
@@ -54,7 +50,7 @@ func (e *Expire) BeforeAuth(ctx *authboss.Context) error {
 	if ok {
 		if date, err := time.Parse(time.RFC3339, dateStr); err != nil {
 			Touch(ctx.SessionStorer)
-		} else if time.Now().UTC().After(date.Add(e.window)) {
+		} else if time.Now().UTC().After(date.Add(authboss.Cfg.ExpireAfter)) {
 			ctx.SessionStorer.Del(authboss.SessionKey)
 			return ErrExpired
 		}

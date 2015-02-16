@@ -18,8 +18,8 @@ func NewRouter() http.Handler {
 
 	for name, mod := range modules {
 		for route, handler := range mod.Routes() {
-			fmt.Fprintf(cfg.LogWriter, "%-10s Register Route: %s\n", "["+name+"]", route)
-			mux.Handle(path.Join(cfg.MountPath, route), contextRoute{handler})
+			fmt.Fprintf(Cfg.LogWriter, "%-10s Register Route: %s\n", "["+name+"]", route)
+			mux.Handle(path.Join(Cfg.MountPath, route), contextRoute{handler})
 		}
 	}
 
@@ -33,12 +33,12 @@ type contextRoute struct {
 func (c contextRoute) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	ctx, err := ContextFromRequest(r)
 	if err != nil {
-		fmt.Fprintf(cfg.LogWriter, "route: Malformed request, could not create context: %v", err)
+		fmt.Fprintf(Cfg.LogWriter, "route: Malformed request, could not create context: %v", err)
 		return
 	}
 
-	ctx.CookieStorer = cfg.CookieStoreMaker(w, r)
-	ctx.SessionStorer = cfg.SessionStoreMaker(w, r)
+	ctx.CookieStorer = Cfg.CookieStoreMaker(w, r)
+	ctx.SessionStorer = Cfg.SessionStoreMaker(w, r)
 
 	c.fn(ctx, w, r)
 }

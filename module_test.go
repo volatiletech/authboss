@@ -8,7 +8,6 @@ import (
 const testModName = "testmodule"
 
 type testModule struct {
-	c *Config
 	s StorageOptions
 	r RouteTable
 }
@@ -23,8 +22,7 @@ func testHandler(ctx *Context, w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("testhandler", "test")
 }
 
-func (t *testModule) Initialize(c *Config) error {
-	t.c = c
+func (t *testModule) Initialize() error {
 	return nil
 }
 

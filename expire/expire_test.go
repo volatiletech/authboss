@@ -9,21 +9,8 @@ import (
 	"gopkg.in/authboss.v0/internal/mocks"
 )
 
-func TestExpire(t *testing.T) {
-	t.Parallel()
-
-	config := authboss.NewConfig()
-	config.ExpireAfter = time.Hour
-	E.Initialize(config)
-
-	if E.window != time.Hour {
-		t.Error("Config not loaded properly:", E.window)
-	}
-}
-
 func TestExpire_Touch(t *testing.T) {
-	t.Parallel()
-
+	authboss.NewConfig()
 	session := mocks.NewMockClientStorer()
 
 	if _, ok := session.Get(UserLastAction); ok {
@@ -40,9 +27,9 @@ func TestExpire_Touch(t *testing.T) {
 }
 
 func TestExpire_BeforeAuth(t *testing.T) {
-	t.Parallel()
-
-	expire := &Expire{window: time.Hour}
+	authboss.NewConfig()
+	authboss.Cfg.ExpireAfter = time.Hour
+	expire := &Expire{}
 	session := mocks.NewMockClientStorer()
 
 	ctx := mocks.MockRequestContext()
@@ -82,6 +69,7 @@ func (t *testHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 }
 
 func TestExpire_Middleware(t *testing.T) {
+	authboss.NewConfig()
 	session := mocks.NewMockClientStorer()
 	session.Values = map[string]string{
 		authboss.SessionKey: "username",

@@ -3,16 +3,13 @@ package auth
 import (
 	"errors"
 	"fmt"
+	"html/template"
 	"net/http"
 
 	"golang.org/x/crypto/bcrypt"
 
 	"gopkg.in/authboss.v0"
 	"gopkg.in/authboss.v0/internal/views"
-
-	"html/template"
-
-	"io"
 )
 
 const (
@@ -44,19 +41,14 @@ type AuthPage struct {
 type Auth struct {
 	routes         authboss.RouteTable
 	storageOptions authboss.StorageOptions
-	storer         authboss.Storer
-	logoutRedirect string
-	loginRedirect  string
-	logger         io.Writer
 	templates      map[string]*template.Template
-	callbacks      *authboss.Callbacks
 
 	isRememberLoaded bool
 	isRecoverLoaded  bool
 }
 
-func (a *Auth) Initialize(config *authboss.Config) (err error) {
-	if a.templates, err = views.Get(config.Layout, config.ViewsPath, pageLogin); err != nil {
+func (a *Auth) Initialize() (err error) {
+	if a.templates, err = views.Get(authboss.Cfg.Layout, authboss.Cfg.ViewsPath, pageLogin); err != nil {
 		return err
 	}
 
@@ -68,11 +60,6 @@ func (a *Auth) Initialize(config *authboss.Config) (err error) {
 		attrUsername: authboss.String,
 		attrPassword: authboss.String,
 	}
-	a.storer = config.Storer
-	a.logoutRedirect = config.AuthLogoutRoute
-	a.loginRedirect = config.AuthLoginSuccessRoute
-	a.logger = config.LogWriter
-	a.callbacks = config.Callbacks
 
 	a.isRememberLoaded = authboss.IsLoaded("remember")
 	a.isRecoverLoaded = authboss.IsLoaded("recover")
@@ -93,7 +80,7 @@ func (a *Auth) loginHandlerFunc(ctx *authboss.Context, w http.ResponseWriter, r 
 	case methodGET:
 		if _, ok := ctx.SessionStorer.Get(authboss.SessionKey); ok {
 			if halfAuthed, ok := ctx.SessionStorer.Get(authboss.HalfAuthKey); !ok || halfAuthed == "false" {
-				http.Redirect(w, r, a.loginRedirect, http.StatusFound)
+				http.Redirect(w, r, authboss.Cfg.AuthLoginSuccessRoute, http.StatusFound)
 			}
 		}
 
@@ -106,14 +93,13 @@ func (a *Auth) loginHandlerFunc(ctx *authboss.Context, w http.ResponseWriter, r 
 
 		tpl := a.templates[pageLogin]
 		tpl.Execute(w, page)
-		// tpl.ExecuteTemplate(w, tpl.Name(), page)
 	case methodPOST:
 		u, ok := ctx.FirstPostFormValue("username")
 		if !ok {
-			fmt.Fprintln(a.logger, errors.New("auth: Expected postFormValue 'username' to be in the context"))
+			fmt.Fprintln(authboss.Cfg.LogWriter, errors.New("auth: Expected postFormValue 'username' to be in the context"))
 		}
 
-		if err := a.callbacks.FireBefore(authboss.EventAuth, ctx); err != nil {
+		if err := authboss.Cfg.Callbacks.FireBefore(authboss.EventAuth, ctx); err != nil {
 			w.WriteHeader(http.StatusForbidden)
 
 			tpl := a.templates[pageLogin]
@@ -122,11 +108,11 @@ func (a *Auth) loginHandlerFunc(ctx *authboss.Context, w http.ResponseWriter, r 
 
 		p, ok := ctx.FirstPostFormValue("password")
 		if !ok {
-			fmt.Fprintln(a.logger, errors.New("auth: Expected postFormValue 'password' to be in the context"))
+			fmt.Fprintln(authboss.Cfg.LogWriter, errors.New("auth: Expected postFormValue 'password' to be in the context"))
 		}
 
 		if err := a.authenticate(ctx, u, p); err != nil {
-			fmt.Fprintln(a.logger, err)
+			fmt.Fprintln(authboss.Cfg.LogWriter, err)
 			w.WriteHeader(http.StatusForbidden)
 			tpl := a.templates[pageLogin]
 			tpl.ExecuteTemplate(w, tpl.Name(), AuthPage{"invalid username and/or password", u, a.isRememberLoaded, a.isRecoverLoaded, "", ""})
@@ -134,9 +120,9 @@ func (a *Auth) loginHandlerFunc(ctx *authboss.Context, w http.ResponseWriter, r 
 		}
 
 		ctx.SessionStorer.Put(authboss.SessionKey, u)
-		a.callbacks.FireAfter(authboss.EventAuth, ctx)
+		authboss.Cfg.Callbacks.FireAfter(authboss.EventAuth, ctx)
 
-		http.Redirect(w, r, a.loginRedirect, http.StatusFound)
+		http.Redirect(w, r, authboss.Cfg.AuthLoginSuccessRoute, http.StatusFound)
 	default:
 		w.WriteHeader(http.StatusMethodNotAllowed)
 	}
@@ -145,7 +131,7 @@ func (a *Auth) loginHandlerFunc(ctx *authboss.Context, w http.ResponseWriter, r 
 func (a *Auth) authenticate(ctx *authboss.Context, username, password string) error {
 	var userInter interface{}
 	var err error
-	if userInter, err = a.storer.Get(username, nil); err != nil {
+	if userInter, err = authboss.Cfg.Storer.Get(username, nil); err != nil {
 		return err
 	}
 
@@ -172,7 +158,7 @@ func (a *Auth) logoutHandlerFunc(ctx *authboss.Context, w http.ResponseWriter, r
 	switch r.Method {
 	case methodGET:
 		ctx.SessionStorer.Del(authboss.SessionKey)
-		http.Redirect(w, r, a.logoutRedirect, http.StatusFound)
+		http.Redirect(w, r, authboss.Cfg.AuthLogoutRoute, http.StatusFound)
 	default:
 		w.WriteHeader(http.StatusMethodNotAllowed)
 	}

@@ -26,11 +26,11 @@ type Validate struct {
 	Password authboss.Validator
 }
 
-func (v *Validate) Initialize(config *authboss.Config) error {
-	policies := authboss.FilterValidators(config.Policies, policyEmail, policyUsername, policyPassword)
+func (v *Validate) Initialize() error {
+	policies := authboss.FilterValidators(authboss.Cfg.Policies, policyEmail, policyUsername, policyPassword)
 
 	if v.Email = policies[0]; v.Email.Field() != policyEmail {
-		return fmt.Errorf("validate: missing policy: %s", policyEmail)
+		return fmt.Errorf("validate: missin g policy: %s", policyEmail)
 	}
 
 	if v.Username = policies[1]; v.Username.Field() != policyUsername {
@@ -41,9 +41,9 @@ func (v *Validate) Initialize(config *authboss.Config) error {
 		return fmt.Errorf("validate: missing policy: %s", policyPassword)
 	}
 
-	config.Callbacks.Before(authboss.EventRegister, v.BeforeRegister)
-	config.Callbacks.Before(authboss.EventRecoverStart, v.BeforeRegister)
-	config.Callbacks.Before(authboss.EventRecoverEnd, v.BeforeRegister)
+	authboss.Cfg.Callbacks.Before(authboss.EventRegister, v.BeforeRegister)
+	authboss.Cfg.Callbacks.Before(authboss.EventRecoverStart, v.BeforeRegister)
+	authboss.Cfg.Callbacks.Before(authboss.EventRecoverEnd, v.BeforeRegister)
 
 	return nil
 }

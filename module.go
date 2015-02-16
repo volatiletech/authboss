@@ -6,7 +6,7 @@ var ModuleAttrMeta = make(AttributeMeta)
 
 // Modularizer should be implemented by all the authboss modules.
 type Modularizer interface {
-	Initialize(*Config) error
+	Initialize() error
 	Routes() RouteTable
 	Storage() StorageOptions
 }

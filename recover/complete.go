@@ -24,15 +24,15 @@ type pageRecoverComplete struct {
 func (m *RecoverModule) recoverCompleteHandlerFunc(ctx *authboss.Context, w http.ResponseWriter, r *http.Request) {
 	switch r.Method {
 	case methodGET:
-		_, err := verifyToken(ctx, m.config.Storer.(authboss.RecoverStorer))
+		_, err := verifyToken(ctx, authboss.Cfg.Storer.(authboss.RecoverStorer))
 		if err != nil {
 			if err.Error() == errRecoveryTokenExpired.Error() {
-				fmt.Fprintln(m.config.LogWriter, "recover [token expired]:", err)
-				ctx.SessionStorer.Put(authboss.FlashErrorKey, m.config.RecoverTokenExpiredFlash)
+				fmt.Fprintln(authboss.Cfg.LogWriter, "recover [token expired]:", err)
+				ctx.SessionStorer.Put(authboss.FlashErrorKey, authboss.Cfg.RecoverTokenExpiredFlash)
 				http.Redirect(w, r, "/recover", http.StatusFound)
 				return
 			} else {
-				fmt.Fprintln(m.config.LogWriter, "recover:", err)
+				fmt.Fprintln(authboss.Cfg.LogWriter, "recover:", err)
 				http.Redirect(w, r, "/", http.StatusFound)
 				return
 			}
@@ -52,7 +52,7 @@ func (m *RecoverModule) recoverCompleteHandlerFunc(ctx *authboss.Context, w http
 			return
 		}
 
-		http.Redirect(w, r, m.config.AuthLoginSuccessRoute, http.StatusFound)
+		http.Redirect(w, r, authboss.Cfg.AuthLoginSuccessRoute, http.StatusFound)
 	default:
 		w.WriteHeader(http.StatusMethodNotAllowed)
 	}
@@ -90,24 +90,24 @@ func (m *RecoverModule) recoverComplete(ctx *authboss.Context) (errPage *pageRec
 	token, _ := ctx.FirstFormValue("token")
 	password, _ := ctx.FirstPostFormValue("password")
 	confirmPassword, _ := ctx.FirstPostFormValue("confirmPassword")
-	defaultErrPage := &pageRecoverComplete{token, password, confirmPassword, nil, "", m.config.RecoverFailedErrorFlash}
+	defaultErrPage := &pageRecoverComplete{token, password, confirmPassword, nil, "", authboss.Cfg.RecoverFailedErrorFlash}
 
 	var err error
-	ctx.User, err = verifyToken(ctx, m.config.Storer.(authboss.RecoverStorer))
+	ctx.User, err = verifyToken(ctx, authboss.Cfg.Storer.(authboss.RecoverStorer))
 	if err != nil {
-		fmt.Fprintf(m.config.LogWriter, errFormat, "failed to verify token", err)
+		fmt.Fprintf(authboss.Cfg.LogWriter, errFormat, "failed to verify token", err)
 		return defaultErrPage
 	}
 
-	policies := authboss.FilterValidators(m.config.Policies, "password")
-	if validationErrs := ctx.Validate(policies, m.config.ConfirmFields...); len(validationErrs) > 0 {
-		fmt.Fprintf(m.config.LogWriter, errFormat, "validation failed", validationErrs)
+	policies := authboss.FilterValidators(authboss.Cfg.Policies, "password")
+	if validationErrs := ctx.Validate(policies, authboss.Cfg.ConfirmFields...); len(validationErrs) > 0 {
+		fmt.Fprintf(authboss.Cfg.LogWriter, errFormat, "validation failed", validationErrs)
 		return &pageRecoverComplete{token, password, confirmPassword, validationErrs.Map(), "", ""}
 	}
 
-	encryptedPassword, err := bcrypt.GenerateFromPassword([]byte(password), m.config.BCryptCost)
+	encryptedPassword, err := bcrypt.GenerateFromPassword([]byte(password), authboss.Cfg.BCryptCost)
 	if err != nil {
-		fmt.Fprintf(m.config.LogWriter, errFormat, "failed to encrypt password", err)
+		fmt.Fprintf(authboss.Cfg.LogWriter, errFormat, "failed to encrypt password", err)
 		return defaultErrPage
 	}
 	ctx.User[attrPassword] = string(encryptedPassword)
@@ -116,8 +116,8 @@ func (m *RecoverModule) recoverComplete(ctx *authboss.Context) (errPage *pageRec
 	ctx.User[attrRecoverTokenExpiry] = nullTime
 
 	username, _ := ctx.User.String(attrUsername)
-	if err := ctx.SaveUser(username, m.config.Storer); err != nil {
-		fmt.Fprintf(m.config.LogWriter, errFormat, "failed to save user", err)
+	if err := ctx.SaveUser(username, authboss.Cfg.Storer); err != nil {
+		fmt.Fprintf(authboss.Cfg.LogWriter, errFormat, "failed to save user", err)
 		return defaultErrPage
 	}
 

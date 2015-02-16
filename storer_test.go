@@ -7,6 +7,8 @@ import (
 )
 
 func TestAttributes_Names(t *testing.T) {
+	t.Parallel()
+
 	attr := Attributes{
 		"integer":   5,
 		"string":    "string",
@@ -28,6 +30,8 @@ func TestAttributes_Names(t *testing.T) {
 }
 
 func TestAttributeMeta_Names(t *testing.T) {
+	t.Parallel()
+
 	meta := AttributeMeta{
 		"integer":   Integer,
 		"string":    String,
@@ -49,6 +53,8 @@ func TestAttributeMeta_Names(t *testing.T) {
 }
 
 func TestDataType_String(t *testing.T) {
+	t.Parallel()
+
 	if Integer.String() != "Integer" {
 		t.Error("Expected Integer:", Integer)
 	}
@@ -64,6 +70,8 @@ func TestDataType_String(t *testing.T) {
 }
 
 func TestAttributes_Bind(t *testing.T) {
+	t.Parallel()
+
 	anInteger := 5
 	aString := "string"
 	aBool := true
@@ -102,6 +110,8 @@ func TestAttributes_Bind(t *testing.T) {
 }
 
 func TestAttributes_BindNoPtr(t *testing.T) {
+	t.Parallel()
+
 	data := Attributes{}
 	s := struct{}{}
 
@@ -113,6 +123,8 @@ func TestAttributes_BindNoPtr(t *testing.T) {
 }
 
 func TestAttributes_BindMissingField(t *testing.T) {
+	t.Parallel()
+
 	data := Attributes{"Integer": 5}
 	s := struct{}{}
 
@@ -124,6 +136,8 @@ func TestAttributes_BindMissingField(t *testing.T) {
 }
 
 func TestAttributes_BindTypeFail(t *testing.T) {
+	t.Parallel()
+
 	tests := []struct {
 		Attr   Attributes
 		Err    string
@@ -170,6 +184,8 @@ func TestAttributes_BindTypeFail(t *testing.T) {
 }
 
 func TestAttributes_Unbind(t *testing.T) {
+	t.Parallel()
+
 	s1 := struct {
 		Integer int
 		String  string
@@ -221,6 +237,8 @@ func TestAttributes_Unbind(t *testing.T) {
 }
 
 func TestCasingStyleConversions(t *testing.T) {
+	t.Parallel()
+
 	camel := "SomethingInCamel"
 
 	got := camelToUnder(camel)

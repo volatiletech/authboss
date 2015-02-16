@@ -4,7 +4,6 @@ package lock
 import (
 	"errors"
 	"fmt"
-	"io"
 	"time"
 
 	"gopkg.in/authboss.v0"
@@ -30,30 +29,18 @@ func init() {
 }
 
 type Lock struct {
-	storer authboss.Storer
-	logger io.Writer
-
-	attempts int
-	window   time.Duration
-	duration time.Duration
 }
 
-func (l *Lock) Initialize(config *authboss.Config) error {
-	if config.Storer == nil {
+func (l *Lock) Initialize() error {
+	if authboss.Cfg.Storer == nil {
 		return errors.New("lock: Need a Storer.")
 	}
 
-	l.logger = config.LogWriter
-
-	l.attempts = config.LockAfter
-	l.window = config.LockWindow
-	l.duration = config.LockDuration
-
 	// Events
-	config.Callbacks.Before(authboss.EventGet, l.BeforeAuth)
-	config.Callbacks.Before(authboss.EventAuth, l.BeforeAuth)
-	config.Callbacks.After(authboss.EventAuth, l.AfterAuth)
-	config.Callbacks.After(authboss.EventAuthFail, l.AfterAuthFail)
+	authboss.Cfg.Callbacks.Before(authboss.EventGet, l.BeforeAuth)
+	authboss.Cfg.Callbacks.Before(authboss.EventAuth, l.BeforeAuth)
+	authboss.Cfg.Callbacks.After(authboss.EventAuth, l.AfterAuth)
+	authboss.Cfg.Callbacks.After(authboss.EventAuthFail, l.AfterAuthFail)
 
 	return nil
 }
@@ -88,23 +75,23 @@ func (l *Lock) BeforeAuth(ctx *authboss.Context) error {
 // AfterAuth resets the attempt number field.
 func (l *Lock) AfterAuth(ctx *authboss.Context) {
 	if ctx.User == nil {
-		fmt.Fprintln(l.logger, "lock: user not loaded in after auth callback")
+		fmt.Fprintln(authboss.Cfg.LogWriter, "lock: user not loaded in after auth callback")
 	}
 
 	var username string
 	if intf, ok := ctx.User["username"]; !ok {
-		fmt.Fprintf(l.logger, "lock: username not present")
+		fmt.Fprintf(authboss.Cfg.LogWriter, "lock: username not present")
 		return
 	} else if username, ok = intf.(string); !ok {
-		fmt.Fprintf(l.logger, "lock: username wrong type")
+		fmt.Fprintf(authboss.Cfg.LogWriter, "lock: username wrong type")
 		return
 	}
 
 	ctx.User[UserAttemptNumber] = 0
 	ctx.User[UserAttemptTime] = time.Now().UTC()
 
-	if err := ctx.SaveUser(username, l.storer); err != nil {
-		fmt.Fprintf(l.logger, "lock: saving user failed %v", err)
+	if err := ctx.SaveUser(username, authboss.Cfg.Storer); err != nil {
+		fmt.Fprintf(authboss.Cfg.LogWriter, "lock: saving user failed %v", err)
 	}
 }
 
@@ -116,10 +103,10 @@ func (l *Lock) AfterAuthFail(ctx *authboss.Context) {
 
 	var username string
 	if intf, ok := ctx.User["username"]; !ok {
-		fmt.Fprintf(l.logger, "lock: username not present")
+		fmt.Fprintf(authboss.Cfg.LogWriter, "lock: username not present")
 		return
 	} else if username, ok = intf.(string); !ok {
-		fmt.Fprintf(l.logger, "lock: username wrong type")
+		fmt.Fprintf(authboss.Cfg.LogWriter, "lock: username wrong type")
 		return
 	}
 
@@ -139,8 +126,8 @@ func (l *Lock) AfterAuthFail(ctx *authboss.Context) {
 
 	nAttempts++
 
-	if time.Now().UTC().Sub(lastAttempt) <= l.window {
-		if nAttempts >= l.attempts {
+	if time.Now().UTC().Sub(lastAttempt) <= authboss.Cfg.LockWindow {
+		if nAttempts >= authboss.Cfg.LockAfter {
 			ctx.User[UserLocked] = true
 		}
 
@@ -150,8 +137,8 @@ func (l *Lock) AfterAuthFail(ctx *authboss.Context) {
 	}
 	ctx.User[UserAttemptTime] = time.Now().UTC()
 
-	if err := ctx.SaveUser(username, l.storer); err != nil {
-		fmt.Fprintf(l.logger, "lock: saving user failed %v", err)
+	if err := ctx.SaveUser(username, authboss.Cfg.Storer); err != nil {
+		fmt.Fprintf(authboss.Cfg.LogWriter, "lock: saving user failed %v", err)
 	}
 }
 
@@ -186,7 +173,7 @@ func (l *Lock) Unlock(key string, storer authboss.Storer) error {
 
 	// Set the last attempt to be -window*2 to avoid immediately
 	// giving another login failure.
-	attr[UserAttemptTime] = time.Now().UTC().Add(-l.window * 2)
+	attr[UserAttemptTime] = time.Now().UTC().Add(-authboss.Cfg.LockWindow * 2)
 	attr[UserAttemptNumber] = 0
 	attr[UserLocked] = false
 

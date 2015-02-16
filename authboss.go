@@ -8,26 +8,15 @@ Remember Me tokens, or passwords.
 package authboss // import "gopkg.in/authboss.v0"
 
 import (
-	"errors"
 	"fmt"
 	"net/http"
 )
 
-var (
-	cfg *Config
-)
-
-// Init authboss and it's loaded modules with a configuration.
-func Init(config *Config) error {
-	if config.Storer == nil {
-		return errors.New("configuration must provide a storer.")
-	}
-
-	cfg = config
-
+// Init authboss and it's loaded modules.
+func Init() error {
 	for name, mod := range modules {
-		fmt.Fprintf(cfg.LogWriter, "%-10s Initializing\n", "["+name+"]")
-		if err := mod.Initialize(config); err != nil {
+		fmt.Fprintf(Cfg.LogWriter, "%-10s Initializing\n", "["+name+"]")
+		if err := mod.Initialize(); err != nil {
 			return fmt.Errorf("[%s] Error Initializing: %v", name, err)
 		}
 	}
@@ -37,7 +26,7 @@ func Init(config *Config) error {
 
 // CurrentUser retrieves the current user from the session and the database.
 func CurrentUser(w http.ResponseWriter, r *http.Request) (interface{}, error) {
-	sessions := cfg.SessionStoreMaker(w, r)
+	sessions := Cfg.SessionStoreMaker(w, r)
 	key, ok := sessions.Get(SessionKey)
 	if !ok {
 		return nil, nil
@@ -48,17 +37,17 @@ func CurrentUser(w http.ResponseWriter, r *http.Request) (interface{}, error) {
 		return nil, err
 	}
 
-	err = ctx.LoadUser(key, cfg.Storer)
+	err = ctx.LoadUser(key, Cfg.Storer)
 	if err != nil {
 		return nil, err
 	}
 
-	err = cfg.Callbacks.FireBefore(EventGet, ctx)
+	err = Cfg.Callbacks.FireBefore(EventGet, ctx)
 	if err != nil {
 		return nil, err
 	}
 
-	return cfg.Storer.Get(key, ModuleAttrMeta)
+	return Cfg.Storer.Get(key, ModuleAttrMeta)
 }
 
 // CurrentUserP retrieves the current user but panics if it's not available for

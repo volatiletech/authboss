@@ -15,8 +15,6 @@ import (
 )
 
 func Test_recoverHandlerFunc_GET(t *testing.T) {
-	t.Parallel()
-
 	m, _ := testValidRecoverModule()
 	w, r, ctx := testHttpRequest("GET", "/recover", nil)
 
@@ -36,8 +34,6 @@ func Test_recoverHandlerFunc_GET(t *testing.T) {
 }
 
 func Test_recoverHandlerFunc_POST_RecoveryFailed(t *testing.T) {
-	t.Parallel()
-
 	m, _ := testValidRecoverModule()
 	w, r, ctx := testHttpRequest("POST", "/login", url.Values{"username": []string{"a"}, "confirmUsername": []string{"a"}})
 
@@ -46,7 +42,7 @@ func Test_recoverHandlerFunc_POST_RecoveryFailed(t *testing.T) {
 	if err := tpl.Execute(expectedBody, pageRecover{
 		Username:        "a",
 		ConfirmUsername: "a",
-		FlashError:      m.config.RecoverFailedErrorFlash,
+		FlashError:      authboss.Cfg.RecoverFailedErrorFlash,
 	}); err != nil {
 		panic(err)
 	}
@@ -64,12 +60,10 @@ func Test_recoverHandlerFunc_POST_RecoveryFailed(t *testing.T) {
 }
 
 func Test_recoverHandlerFunc_POST(t *testing.T) {
-	t.Parallel()
-
 	m, _ := testValidRecoverModule()
 	w, r, ctx := testHttpRequest("POST", "/login", url.Values{"username": []string{"a"}, "confirmUsername": []string{"a"}})
 
-	storer, ok := m.config.Storer.(*mocks.MockStorer)
+	storer, ok := authboss.Cfg.Storer.(*mocks.MockStorer)
 	if !ok {
 		panic("Failed to get storer")
 	}
@@ -87,14 +81,12 @@ func Test_recoverHandlerFunc_POST(t *testing.T) {
 	}
 
 	successFlash := ctx.SessionStorer.(*mocks.MockClientStorer).Values[authboss.FlashSuccessKey]
-	if successFlash != m.config.RecoverInitiateSuccessFlash {
+	if successFlash != authboss.Cfg.RecoverInitiateSuccessFlash {
 		t.Error("Unexpected success flash message:", successFlash)
 	}
 }
 
 func Test_recover_UsernameValidationFail(t *testing.T) {
-	t.Parallel()
-
 	m, logger := testValidRecoverModule()
 	ctx := mocks.MockRequestContext()
 
@@ -119,8 +111,6 @@ func Test_recover_UsernameValidationFail(t *testing.T) {
 }
 
 func Test_recover_ConfirmUsernameCheckFail(t *testing.T) {
-	t.Parallel()
-
 	m, logger := testValidRecoverModule()
 	ctx := mocks.MockRequestContext("username", "a", "confirmUsername", "b")
 
@@ -148,8 +138,6 @@ func Test_recover_ConfirmUsernameCheckFail(t *testing.T) {
 }
 
 func Test_recover_InvalidUser(t *testing.T) {
-	t.Parallel()
-
 	m, logger := testValidRecoverModule()
 	ctx := mocks.MockRequestContext("username", "a", "confirmUsername", "a")
 
@@ -157,8 +145,8 @@ func Test_recover_InvalidUser(t *testing.T) {
 	if page.ErrMap != nil {
 		t.Error("Exepted no validation errors")
 	}
-	if page.FlashError != m.config.RecoverFailedErrorFlash {
-		t.Error("Expected flash error:", m.config.RecoverFailedErrorFlash)
+	if page.FlashError != authboss.Cfg.RecoverFailedErrorFlash {
+		t.Error("Expected flash error:", authboss.Cfg.RecoverFailedErrorFlash)
 	}
 
 	actualLog, err := ioutil.ReadAll(logger)
@@ -174,11 +162,9 @@ func Test_recover_InvalidUser(t *testing.T) {
 }
 
 func Test_recover(t *testing.T) {
-	t.Parallel()
-
 	m, _ := testValidRecoverModule()
 
-	storer, ok := m.config.Storer.(*mocks.MockStorer)
+	storer, ok := authboss.Cfg.Storer.(*mocks.MockStorer)
 	if !ok {
 		panic("Failed to get storer")
 	}
@@ -196,8 +182,6 @@ func Test_recover(t *testing.T) {
 }
 
 func Test_makeAndSendToken_MissingStorer(t *testing.T) {
-	t.Parallel()
-
 	m, _ := testValidRecoverModule()
 	ctx := mocks.MockRequestContext()
 
@@ -211,12 +195,10 @@ func Test_makeAndSendToken_MissingStorer(t *testing.T) {
 }
 
 func Test_makeAndSendToken_CheckEmail(t *testing.T) {
-	t.Parallel()
-
 	m, _ := testValidRecoverModule()
 	ctx := mocks.MockRequestContext()
 
-	storer, ok := m.config.Storer.(*mocks.MockStorer)
+	storer, ok := authboss.Cfg.Storer.(*mocks.MockStorer)
 	if !ok {
 		panic("Failed to get storer")
 	}
@@ -244,12 +226,10 @@ func Test_makeAndSendToken_CheckEmail(t *testing.T) {
 }
 
 func Test_makeAndSendToken(t *testing.T) {
-	t.Parallel()
-
 	m, _ := testValidRecoverModule()
 	ctx := mocks.MockRequestContext()
 
-	storer, ok := m.config.Storer.(*mocks.MockStorer)
+	storer, ok := authboss.Cfg.Storer.(*mocks.MockStorer)
 	if !ok {
 		panic("Failed to get storer")
 	}
@@ -276,7 +256,6 @@ func Test_makeAndSendToken(t *testing.T) {
 }
 
 func Test_sendRecoverEmail_InvalidTemplates(t *testing.T) {
-	t.Parallel()
 	m, logger := testValidRecoverModule()
 
 	failTpl, err := template.New("").Parse("{{.Fail}}")
@@ -316,12 +295,11 @@ func Test_sendRecoverEmail_InvalidTemplates(t *testing.T) {
 }
 
 func Test_sendRecoverEmail_FailToSend(t *testing.T) {
-	t.Parallel()
 	m, logger := testValidRecoverModule()
 
 	mailer := mocks.NewMockMailer()
 	mailer.SendErr = "explode"
-	m.config.Mailer = mailer
+	authboss.Cfg.Mailer = mailer
 	<-m.sendRecoverEmail("a@b.c", []byte("abc123"))
 
 	actualLog, err := ioutil.ReadAll(logger)
@@ -335,12 +313,11 @@ func Test_sendRecoverEmail_FailToSend(t *testing.T) {
 }
 
 func Test_sendRecoverEmail(t *testing.T) {
-	t.Parallel()
 	m, _ := testValidRecoverModule()
 
 	<-m.sendRecoverEmail("a@b.c", []byte("abc123"))
 
-	mailer, ok := m.config.Mailer.(*mocks.MockMailer)
+	mailer, ok := authboss.Cfg.Mailer.(*mocks.MockMailer)
 	if !ok {
 		panic("Failed to assert mock mailer")
 	}
@@ -353,7 +330,7 @@ func Test_sendRecoverEmail(t *testing.T) {
 		t.Error("Unexpected to email:", sent.To[0])
 	}
 
-	if sent.From != m.config.EmailFrom {
+	if sent.From != authboss.Cfg.EmailFrom {
 		t.Error("Unexpected from email:", sent.From)
 	}
 
@@ -365,7 +342,7 @@ func Test_sendRecoverEmail(t *testing.T) {
 		Link string
 	}{
 		fmt.Sprintf("%s/recover/complete?token=%s",
-			m.config.HostName,
+			authboss.Cfg.HostName,
 			base64.URLEncoding.EncodeToString([]byte("abc123")),
 		),
 	}
@@ -387,8 +364,6 @@ func Test_sendRecoverEmail(t *testing.T) {
 }
 
 func Test_recoverHandlerFunc_OtherMethods(t *testing.T) {
-	t.Parallel()
-
 	m, _ := testValidRecoverModule()
 
 	for i, method := range []string{"HEAD", "PUT", "DELETE", "TRACE", "CONNECT"} {

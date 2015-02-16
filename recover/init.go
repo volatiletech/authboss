@@ -35,8 +35,8 @@ func (m *RecoverModule) recoverHandlerFunc(ctx *authboss.Context, w http.Respons
 			return
 		}
 
-		ctx.SessionStorer.Put(authboss.FlashSuccessKey, m.config.RecoverInitiateSuccessFlash)
-		http.Redirect(w, r, m.config.RecoverRedirect, http.StatusFound)
+		ctx.SessionStorer.Put(authboss.FlashSuccessKey, authboss.Cfg.RecoverInitiateSuccessFlash)
+		http.Redirect(w, r, authboss.Cfg.RecoverRedirect, http.StatusFound)
 	default:
 		w.WriteHeader(http.StatusMethodNotAllowed)
 	}
@@ -46,23 +46,23 @@ func (m *RecoverModule) recover(ctx *authboss.Context) (errPage *pageRecover, em
 	username, _ := ctx.FirstPostFormValue("username")
 	confirmUsername, _ := ctx.FirstPostFormValue("confirmUsername")
 
-	policies := authboss.FilterValidators(m.config.Policies, "username")
-	if validationErrs := ctx.Validate(policies, m.config.ConfirmFields...); len(validationErrs) > 0 {
-		fmt.Fprintf(m.config.LogWriter, errFormat, "validation failed", validationErrs)
+	policies := authboss.FilterValidators(authboss.Cfg.Policies, "username")
+	if validationErrs := ctx.Validate(policies, authboss.Cfg.ConfirmFields...); len(validationErrs) > 0 {
+		fmt.Fprintf(authboss.Cfg.LogWriter, errFormat, "validation failed", validationErrs)
 		return &pageRecover{username, confirmUsername, validationErrs.Map(), "", ""}, nil
 	}
 
 	err, emailSent := m.makeAndSendToken(ctx, username)
 	if err != nil {
-		fmt.Fprintf(m.config.LogWriter, errFormat, "failed to recover", err)
-		return &pageRecover{username, confirmUsername, nil, "", m.config.RecoverFailedErrorFlash}, nil
+		fmt.Fprintf(authboss.Cfg.LogWriter, errFormat, "failed to recover", err)
+		return &pageRecover{username, confirmUsername, nil, "", authboss.Cfg.RecoverFailedErrorFlash}, nil
 	}
 
 	return nil, emailSent
 }
 
 func (m *RecoverModule) makeAndSendToken(ctx *authboss.Context, username string) (err error, emailSent <-chan struct{}) {
-	if err = ctx.LoadUser(username, m.config.Storer); err != nil {
+	if err = ctx.LoadUser(username, authboss.Cfg.Storer); err != nil {
 		return err, nil
 	}
 
@@ -78,9 +78,9 @@ func (m *RecoverModule) makeAndSendToken(ctx *authboss.Context, username string)
 	sum := md5.Sum(token)
 
 	ctx.User[attrRecoverToken] = base64.StdEncoding.EncodeToString(sum[:])
-	ctx.User[attrRecoverTokenExpiry] = time.Now().Add(m.config.RecoverTokenDuration)
+	ctx.User[attrRecoverTokenExpiry] = time.Now().Add(authboss.Cfg.RecoverTokenDuration)
 
-	if err = ctx.SaveUser(username, m.config.Storer); err != nil {
+	if err = ctx.SaveUser(username, authboss.Cfg.Storer); err != nil {
 		return err, nil
 	}
 
@@ -91,31 +91,31 @@ func (m *RecoverModule) sendRecoverEmail(to string, token []byte) <-chan struct{
 	emailSent := make(chan struct{}, 1)
 
 	go func() {
-		data := struct{ Link string }{fmt.Sprintf("%s/recover/complete?token=%s", m.config.HostName, base64.URLEncoding.EncodeToString(token))}
+		data := struct{ Link string }{fmt.Sprintf("%s/recover/complete?token=%s", authboss.Cfg.HostName, base64.URLEncoding.EncodeToString(token))}
 
 		htmlEmailBody, err := m.emailTemplates.ExecuteTemplate(tplInitHTMLEmail, data)
 		if err != nil {
-			fmt.Fprintf(m.config.LogWriter, errFormat, "failed to build html email", err)
+			fmt.Fprintf(authboss.Cfg.LogWriter, errFormat, "failed to build html email", err)
 			close(emailSent)
 			return
 		}
 
 		textEmaiLBody, err := m.emailTemplates.ExecuteTemplate(tplInitTextEmail, data)
 		if err != nil {
-			fmt.Fprintf(m.config.LogWriter, errFormat, "failed to build plaintext email", err)
+			fmt.Fprintf(authboss.Cfg.LogWriter, errFormat, "failed to build plaintext email", err)
 			close(emailSent)
 			return
 		}
 
-		if err := m.config.Mailer.Send(authboss.Email{
+		if err := authboss.Cfg.Mailer.Send(authboss.Email{
 			To:       []string{to},
 			ToNames:  []string{""},
-			From:     m.config.EmailFrom,
-			Subject:  m.config.EmailSubjectPrefix + "Password Reset",
+			From:     authboss.Cfg.EmailFrom,
+			Subject:  authboss.Cfg.EmailSubjectPrefix + "Password Reset",
 			TextBody: textEmaiLBody.String(),
 			HTMLBody: htmlEmailBody.String(),
 		}); err != nil {
-			fmt.Fprintf(m.config.LogWriter, errFormat, "failed to send email", err)
+			fmt.Fprintf(authboss.Cfg.LogWriter, errFormat, "failed to send email", err)
 			close(emailSent)
 			return
 		}

@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"fmt"
 	"io/ioutil"
-	"log"
 	"net/http"
 	"net/url"
 	"reflect"
@@ -22,11 +21,9 @@ const (
 )
 
 func Test_recoverCompleteHandlerFunc_GET_TokenExpired(t *testing.T) {
-	t.Parallel()
-
 	m, logger := testValidRecoverModule()
 
-	storer, ok := m.config.Storer.(*mocks.MockStorer)
+	storer, ok := authboss.Cfg.Storer.(*mocks.MockStorer)
 	if !ok {
 		panic("Failed to get storer")
 	}
@@ -50,7 +47,7 @@ func Test_recoverCompleteHandlerFunc_GET_TokenExpired(t *testing.T) {
 		t.Error("Expected logs to start with:", "recover [token expired]:")
 	}
 
-	if flash := clientStorer.Values[authboss.FlashErrorKey]; flash != m.config.RecoverTokenExpiredFlash {
+	if flash := clientStorer.Values[authboss.FlashErrorKey]; flash != authboss.Cfg.RecoverTokenExpiredFlash {
 		t.Error("Unexpected error flash:", flash)
 	}
 
@@ -60,8 +57,6 @@ func Test_recoverCompleteHandlerFunc_GET_TokenExpired(t *testing.T) {
 }
 
 func Test_recoverCompleteHandlerFunc_GET_OtherErrors(t *testing.T) {
-	t.Parallel()
-
 	m, logger := testValidRecoverModule()
 	w, r, ctx := testHttpRequest("GET", "/recover/complete?token=asdf", nil)
 
@@ -81,11 +76,9 @@ func Test_recoverCompleteHandlerFunc_GET_OtherErrors(t *testing.T) {
 }
 
 func Test_recoverCompleteHandlerFunc_GET(t *testing.T) {
-	t.Parallel()
-
 	m, _ := testValidRecoverModule()
 
-	storer, ok := m.config.Storer.(*mocks.MockStorer)
+	storer, ok := authboss.Cfg.Storer.(*mocks.MockStorer)
 	if !ok {
 		panic("Failed to get storer")
 	}
@@ -117,8 +110,6 @@ func Test_recoverCompleteHandlerFunc_GET(t *testing.T) {
 }
 
 func Test_recoverCompleteHandlerFunc_POST_RecoveryCompleteFailed(t *testing.T) {
-	t.Parallel()
-
 	m, _ := testValidRecoverModule()
 	w, r, ctx := testHttpRequest(
 		"POST",
@@ -132,16 +123,13 @@ func Test_recoverCompleteHandlerFunc_POST_RecoveryCompleteFailed(t *testing.T) {
 		Token:           testUrlBase64Token,
 		Password:        "a",
 		ConfirmPassword: "a",
-		FlashError:      m.config.RecoverFailedErrorFlash,
+		FlashError:      authboss.Cfg.RecoverFailedErrorFlash,
 	}); err != nil {
 		panic(err)
 	}
 
 	// missing storer will cause this to fail
 	m.recoverCompleteHandlerFunc(ctx, w, r)
-
-	// spew.Dump(expectedBody.Bytes())
-	// spew.Dump(w.Body.Bytes())
 
 	if w.Code != http.StatusOK {
 		t.Error("Unexpected code:", w.Code)
@@ -153,16 +141,14 @@ func Test_recoverCompleteHandlerFunc_POST_RecoveryCompleteFailed(t *testing.T) {
 }
 
 func Test_recoverCompleteHandlerFunc_POST(t *testing.T) {
-	t.Parallel()
-
-	m, logger := testValidRecoverModule()
+	m, _ := testValidRecoverModule()
 	w, r, ctx := testHttpRequest(
 		"POST",
 		fmt.Sprintf("/recover/complete?token=%s", testUrlBase64Token),
 		url.Values{"password": []string{"a"}, "confirmPassword": []string{"a"}},
 	)
 
-	storer, ok := m.config.Storer.(*mocks.MockStorer)
+	storer, ok := authboss.Cfg.Storer.(*mocks.MockStorer)
 	if !ok {
 		panic("Failed to get storer")
 	}
@@ -173,8 +159,6 @@ func Test_recoverCompleteHandlerFunc_POST(t *testing.T) {
 	}
 
 	m.recoverCompleteHandlerFunc(ctx, w, r)
-
-	log.Println(logger)
 
 	if w.Code != http.StatusFound {
 		t.Error("Unexpected code:", w.Code)
@@ -187,8 +171,7 @@ func Test_recoverCompleteHandlerFunc_POST(t *testing.T) {
 }
 
 func Test_verifyToken_MissingToken(t *testing.T) {
-	t.Parallel()
-
+	authboss.NewConfig()
 	ctx := mocks.MockRequestContext()
 	_, err := verifyToken(ctx, nil)
 
@@ -198,10 +181,9 @@ func Test_verifyToken_MissingToken(t *testing.T) {
 }
 
 func Test_verifyToken_InvalidToken(t *testing.T) {
-	t.Parallel()
-
-	config := testValidTestConfig()
-	storer, ok := config.Storer.(*mocks.MockStorer)
+	authboss.NewConfig()
+	testValidTestConfig()
+	storer, ok := authboss.Cfg.Storer.(*mocks.MockStorer)
 	if !ok {
 		panic("Failed to get storer")
 	}
@@ -218,10 +200,8 @@ func Test_verifyToken_InvalidToken(t *testing.T) {
 }
 
 func Test_verifyToken_ExpiredToken(t *testing.T) {
-	t.Parallel()
-
-	config := testValidTestConfig()
-	storer, ok := config.Storer.(*mocks.MockStorer)
+	testValidTestConfig()
+	storer, ok := authboss.Cfg.Storer.(*mocks.MockStorer)
 	if !ok {
 		panic("Failed to get storer")
 	}
@@ -239,10 +219,9 @@ func Test_verifyToken_ExpiredToken(t *testing.T) {
 }
 
 func Test_verifyToken(t *testing.T) {
-	t.Parallel()
-	config := testValidTestConfig()
+	testValidTestConfig()
 
-	storer, ok := config.Storer.(*mocks.MockStorer)
+	storer, ok := authboss.Cfg.Storer.(*mocks.MockStorer)
 	if !ok {
 		panic("Failed to get storer")
 	}
@@ -263,8 +242,6 @@ func Test_verifyToken(t *testing.T) {
 }
 
 func Test_recoverComplete_TokenVerificationFails(t *testing.T) {
-	t.Parallel()
-
 	m, logger := testValidRecoverModule()
 	ctx := mocks.MockRequestContext()
 
@@ -272,7 +249,7 @@ func Test_recoverComplete_TokenVerificationFails(t *testing.T) {
 	if errPage == nil {
 		t.Error("Expected err page")
 	}
-	if !reflect.DeepEqual(*errPage, pageRecoverComplete{FlashError: m.config.RecoverFailedErrorFlash}) {
+	if !reflect.DeepEqual(*errPage, pageRecoverComplete{FlashError: authboss.Cfg.RecoverFailedErrorFlash}) {
 		t.Error("Unexpected err page:", errPage)
 	}
 
@@ -286,12 +263,10 @@ func Test_recoverComplete_TokenVerificationFails(t *testing.T) {
 }
 
 func Test_recoverComplete_ValidationFails(t *testing.T) {
-	t.Parallel()
-
 	m, logger := testValidRecoverModule()
 	ctx := mocks.MockRequestContext("token", testUrlBase64Token, "password", "a", "confirmPassword", "b")
 
-	storer, ok := m.config.Storer.(*mocks.MockStorer)
+	storer, ok := authboss.Cfg.Storer.(*mocks.MockStorer)
 	if !ok {
 		panic("Failed to get storer")
 	}
@@ -326,15 +301,13 @@ func Test_recoverComplete_ValidationFails(t *testing.T) {
 }
 
 func Test_recoverComplete(t *testing.T) {
-	t.Parallel()
-
 	m, _ := testValidRecoverModule()
 	ctx := mocks.MockRequestContext("token", testUrlBase64Token, "password", "a", "confirmPassword", "a")
 
 	clientStorer := mocks.NewMockClientStorer()
 	ctx.SessionStorer = clientStorer
 
-	storer, ok := m.config.Storer.(*mocks.MockStorer)
+	storer, ok := authboss.Cfg.Storer.(*mocks.MockStorer)
 	if !ok {
 		panic("Failed to get storer")
 	}
@@ -375,8 +348,6 @@ func Test_recoverComplete(t *testing.T) {
 }
 
 func Test_recoverCompleteHandlerFunc_OtherMethods(t *testing.T) {
-	t.Parallel()
-
 	m, _ := testValidRecoverModule()
 
 	for i, method := range []string{"HEAD", "PUT", "DELETE", "TRACE", "CONNECT"} {

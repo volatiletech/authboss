@@ -10,30 +10,32 @@ import (
 )
 
 func TestInitialize(t *testing.T) {
-	testConfig := authboss.NewConfig()
+	authboss.NewConfig()
 
 	r := &Remember{}
-	err := r.Initialize(testConfig)
+	err := r.Initialize()
 	if err == nil {
 		t.Error("Expected error about token storers.")
 	}
 
-	testConfig.Storer = mocks.MockFailStorer{}
-	err = r.Initialize(testConfig)
+	authboss.Cfg.Storer = mocks.MockFailStorer{}
+	err = r.Initialize()
 	if err == nil {
 		t.Error("Expected error about token storers.")
 	}
 
-	testConfig.Storer = mocks.NewMockStorer()
-	err = r.Initialize(testConfig)
+	authboss.Cfg.Storer = mocks.NewMockStorer()
+	err = r.Initialize()
 	if err != nil {
 		t.Error("Unexpected error:", err)
 	}
 }
 
 func TestAfterAuth(t *testing.T) {
+	authboss.NewConfig()
 	storer := mocks.NewMockStorer()
-	R.storer = storer
+	authboss.Cfg.Storer = storer
+
 	cookies := mocks.NewMockClientStorer()
 	session := mocks.NewMockClientStorer()
 
@@ -60,8 +62,9 @@ func TestAfterAuth(t *testing.T) {
 }
 
 func TestNew(t *testing.T) {
+	authboss.NewConfig()
 	storer := mocks.NewMockStorer()
-	R.storer = storer
+	authboss.Cfg.Storer = storer
 	cookies := mocks.NewMockClientStorer()
 
 	key := "tester"
@@ -87,8 +90,9 @@ func TestNew(t *testing.T) {
 }
 
 func TestAuth(t *testing.T) {
+	authboss.NewConfig()
 	storer := mocks.NewMockStorer()
-	R.storer = storer
+	authboss.Cfg.Storer = storer
 	cookies := mocks.NewMockClientStorer()
 	session := mocks.NewMockClientStorer()
 

@@ -7,12 +7,12 @@ import (
 )
 
 func TestMailer(t *testing.T) {
+	NewConfig()
 	mailServer := &bytes.Buffer{}
 
-	config := NewConfig()
-	config.Mailer = LogMailer(mailServer)
-	config.Storer = mockStorer{}
-	Init(config)
+	Cfg.Mailer = LogMailer(mailServer)
+	Cfg.Storer = mockStorer{}
+	Init()
 
 	err := SendMail(Email{
 		To:       []string{"some@email.com", "a@a.com"},

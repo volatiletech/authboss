@@ -16,6 +16,9 @@ const (
 	layoutEmailTpl = "layoutEmail.tpl"
 )
 
+// Cfg is the singleton instance of Config
+var Cfg *Config = NewConfig()
+
 // Config holds all the configuration for both authboss and it's modules.
 type Config struct {
 	// MountPath is the path to mount the router at.
@@ -64,7 +67,6 @@ type Config struct {
 	Mailer            Mailer
 }
 
-// NewConfig creates a new config full of default values ready to override.
 func NewConfig() *Config {
 	layout, err := views.AssetToTemplate(layoutTpl)
 	if err != nil {

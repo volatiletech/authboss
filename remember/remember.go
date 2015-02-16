@@ -10,7 +10,6 @@ import (
 	"encoding/base64"
 	"errors"
 	"fmt"
-	"io"
 
 	"gopkg.in/authboss.v0"
 )
@@ -31,26 +30,18 @@ func init() {
 	authboss.RegisterModule("remember", R)
 }
 
-type Remember struct {
-	storer        authboss.TokenStorer
-	cookieStorer  authboss.ClientStorer
-	sessionStorer authboss.ClientStorer
-	logger        io.Writer
-}
+type Remember struct{}
 
-func (r *Remember) Initialize(config *authboss.Config) error {
-	if config.Storer == nil {
+func (r *Remember) Initialize() error {
+	if authboss.Cfg.Storer == nil {
 		return errors.New("remember: Need a TokenStorer.")
 	}
 
-	if storer, ok := config.Storer.(authboss.TokenStorer); !ok {
+	if _, ok := authboss.Cfg.Storer.(authboss.TokenStorer); !ok {
 		return errors.New("remember: TokenStorer required for remember me functionality.")
-	} else {
-		r.storer = storer
 	}
 
-	r.logger = config.LogWriter
-	config.Callbacks.After(authboss.EventAuth, r.AfterAuth)
+	authboss.Cfg.Callbacks.After(authboss.EventAuth, r.AfterAuth)
 
 	return nil
 }
@@ -70,24 +61,24 @@ func (r *Remember) AfterAuth(ctx *authboss.Context) {
 	}
 
 	if ctx.User == nil {
-		fmt.Fprintf(r.logger, "remember: AfterAuth no user loaded")
+		fmt.Fprintf(authboss.Cfg.LogWriter, "remember: AfterAuth no user loaded")
 		return
 	}
 
 	keyIntf, ok := ctx.User["username"]
 	if !ok {
-		fmt.Fprintf(r.logger, "remember: username not present")
+		fmt.Fprintf(authboss.Cfg.LogWriter, "remember: username not present")
 		return
 	}
 
 	key, ok := keyIntf.(string)
 	if !ok {
-		fmt.Fprintf(r.logger, "remember: username not a string")
+		fmt.Fprintf(authboss.Cfg.LogWriter, "remember: username not a string")
 		return
 	}
 
 	if _, err := r.New(ctx.CookieStorer, key); err != nil {
-		fmt.Fprintf(r.logger, "remember: Failed to create remember token: %v", err)
+		fmt.Fprintf(authboss.Cfg.LogWriter, "remember: Failed to create remember token: %v", err)
 	}
 }
 
@@ -108,7 +99,7 @@ func (r *Remember) New(cstorer authboss.ClientStorer, storageKey string) (string
 	storageToken := base64.StdEncoding.EncodeToString(sum[:])
 
 	// Save the token in the DB
-	if err := r.storer.AddToken(storageKey, storageToken); err != nil {
+	if err := authboss.Cfg.Storer.(authboss.TokenStorer).AddToken(storageKey, storageToken); err != nil {
 		return "", err
 	}
 
@@ -143,7 +134,7 @@ func (r *Remember) Auth(
 	// Verify the tokens match.
 	sum := md5.Sum(token)
 
-	key, err := r.storer.UseToken(string(givenKey), base64.StdEncoding.EncodeToString(sum[:]))
+	key, err := authboss.Cfg.Storer.(authboss.TokenStorer).UseToken(string(givenKey), base64.StdEncoding.EncodeToString(sum[:]))
 	if err == authboss.ErrTokenNotFound {
 		return "", nil
 	} else if err != nil {

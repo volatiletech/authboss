@@ -37,33 +37,30 @@ func init() {
 type RecoverModule struct {
 	templates      views.Templates
 	emailTemplates views.Templates
-	config         *authboss.Config
 }
 
-func (m *RecoverModule) Initialize(config *authboss.Config) (err error) {
-	if config.Storer == nil {
+func (m *RecoverModule) Initialize() (err error) {
+	if authboss.Cfg.Storer == nil {
 		return errors.New("recover: Need a RecoverStorer.")
 	}
 
-	if _, ok := config.Storer.(authboss.RecoverStorer); !ok {
+	if _, ok := authboss.Cfg.Storer.(authboss.RecoverStorer); !ok {
 		return errors.New("recover: RecoverStorer required for recover functionality.")
 	}
 
-	if config.Layout == nil {
+	if authboss.Cfg.Layout == nil {
 		return errors.New("recover: Layout required for Recover functionallity.")
 	}
-	if m.templates, err = views.Get(config.Layout, config.ViewsPath, tplRecover, tplRecoverComplete); err != nil {
+	if m.templates, err = views.Get(authboss.Cfg.Layout, authboss.Cfg.ViewsPath, tplRecover, tplRecoverComplete); err != nil {
 		return err
 	}
 
-	if config.LayoutEmail == nil {
+	if authboss.Cfg.LayoutEmail == nil {
 		return errors.New("recover: LayoutEmail required for Recover functionallity.")
 	}
-	if m.emailTemplates, err = views.Get(config.LayoutEmail, config.ViewsPath, tplInitHTMLEmail, tplInitTextEmail); err != nil {
+	if m.emailTemplates, err = views.Get(authboss.Cfg.LayoutEmail, authboss.Cfg.ViewsPath, tplInitHTMLEmail, tplInitTextEmail); err != nil {
 		return err
 	}
-
-	m.config = config
 
 	return nil
 }
@@ -87,7 +84,7 @@ func (m *RecoverModule) Storage() authboss.StorageOptions {
 func (m *RecoverModule) execTpl(tpl string, w http.ResponseWriter, data interface{}) {
 	buffer, err := m.templates.ExecuteTemplate(tpl, data)
 	if err != nil {
-		fmt.Fprintf(m.config.LogWriter, errFormat, "unable to execute template", err)
+		fmt.Fprintf(authboss.Cfg.LogWriter, errFormat, "unable to execute template", err)
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}

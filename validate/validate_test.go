@@ -9,14 +9,14 @@ import (
 )
 
 func TestValidate_Initialiaze(t *testing.T) {
-	cfg := authboss.NewConfig()
-	cfg.Policies = []authboss.Validator{
+	authboss.NewConfig()
+	authboss.Cfg.Policies = []authboss.Validator{
 		authboss.Rules{FieldName: policyEmail},
 		authboss.Rules{FieldName: policyUsername},
 		authboss.Rules{FieldName: policyPassword},
 	}
 
-	err := V.Initialize(cfg)
+	err := V.Initialize()
 	if err != nil {
 		t.Error("Unexpected error:", err)
 	}
@@ -33,14 +33,14 @@ func TestValidate_Initialiaze(t *testing.T) {
 }
 
 func TestValidate_BeforeRegister(t *testing.T) {
-	cfg := authboss.NewConfig()
-	cfg.Policies = []authboss.Validator{
+	authboss.NewConfig()
+	authboss.Cfg.Policies = []authboss.Validator{
 		authboss.Rules{FieldName: policyEmail, MinLength: 15},
 		authboss.Rules{FieldName: policyUsername, MaxLength: 1},
 		authboss.Rules{FieldName: policyPassword, MinLength: 8},
 	}
 
-	err := V.Initialize(cfg)
+	err := V.Initialize()
 	if err != nil {
 		t.Error("Unexpected error:", err)
 	}

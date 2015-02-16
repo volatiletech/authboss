@@ -4,45 +4,34 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"os"
-	"strings"
 	"testing"
 )
 
 func TestMain(main *testing.M) {
 	RegisterModule("testmodule", testMod)
-	Init(NewConfig())
+	Init()
 	code := main.Run()
 	os.Exit(code)
 }
 
 func TestAuthBossInit(t *testing.T) {
-	c := NewConfig()
-
-	err := Init(c)
-	if err == nil || !strings.Contains(err.Error(), "storer") {
-		t.Error("Expected error about a storer, got:", err)
-	}
-
-	c.Storer = mockStorer{}
-	err = Init(c)
+	NewConfig()
+	err := Init()
 	if err != nil {
 		t.Error("Unexpected error:", err)
-	}
-	if testMod.c == nil {
-		t.Error("Expected the modules to be passed the config.")
 	}
 }
 
 func TestAuthBossRouter(t *testing.T) {
-	c := NewConfig()
-	c.Storer = mockStorer{}
-	c.CookieStoreMaker = func(_ http.ResponseWriter, _ *http.Request) ClientStorer {
+	NewConfig()
+	Cfg.Storer = mockStorer{}
+	Cfg.CookieStoreMaker = func(_ http.ResponseWriter, _ *http.Request) ClientStorer {
 		return mockClientStore{}
 	}
-	c.SessionStoreMaker = SessionStoreMaker(c.CookieStoreMaker)
-	c.MountPath = "/candycanes"
+	Cfg.SessionStoreMaker = SessionStoreMaker(Cfg.CookieStoreMaker)
+	Cfg.MountPath = "/candycanes"
 
-	if err := Init(c); err != nil {
+	if err := Init(); err != nil {
 		t.Error("Unexpected error:", err)
 	}
 	router := NewRouter()
@@ -58,13 +47,13 @@ func TestAuthBossRouter(t *testing.T) {
 }
 
 func TestAuthBossCurrentUser(t *testing.T) {
-	c := NewConfig()
-	c.Storer = mockStorer{"joe": Attributes{"email": "john@john.com", "password": "lies"}}
-	c.SessionStoreMaker = func(_ http.ResponseWriter, _ *http.Request) ClientStorer {
+	NewConfig()
+	Cfg.Storer = mockStorer{"joe": Attributes{"email": "john@john.com", "password": "lies"}}
+	Cfg.SessionStoreMaker = func(_ http.ResponseWriter, _ *http.Request) ClientStorer {
 		return mockClientStore{SessionKey: "joe"}
 	}
 
-	if err := Init(c); err != nil {
+	if err := Init(); err != nil {
 		t.Error("Unexpected error:", err)
 	}
 

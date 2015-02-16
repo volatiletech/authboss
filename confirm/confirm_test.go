@@ -9,37 +9,25 @@ import (
 )
 
 func setup() *Confirm {
-	config := authboss.NewConfig()
-	config.Storer = mocks.NewMockStorer()
-
-	config.LayoutEmail = template.Must(template.New("").Parse(`email ^_^`))
+	authboss.NewConfig()
+	authboss.Cfg.Storer = mocks.NewMockStorer()
+	authboss.Cfg.LayoutEmail = template.Must(template.New("").Parse(`email ^_^`))
 
 	c := &Confirm{}
-	if err := c.Initialize(config); err != nil {
+	if err := c.Initialize(); err != nil {
 		panic(err)
 	}
 	return c
 }
 
 func TestConfirm_Initialize(t *testing.T) {
+	authboss.NewConfig()
 	c := &Confirm{}
-	if err := c.Initialize(authboss.NewConfig()); err == nil {
+	if err := c.Initialize(); err == nil {
 		t.Error("Should cry about not having a storer.")
 	}
 
 	c = setup()
-
-	if c.config == nil {
-		t.Error("Missing config")
-	}
-
-	if c.logger == nil {
-		t.Error("Missing logger")
-	}
-
-	if c.storer == nil {
-		t.Error("Missing storer")
-	}
 
 	if c.emailTemplates == nil {
 		t.Error("Missing email templates")

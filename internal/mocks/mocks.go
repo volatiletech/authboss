@@ -32,6 +32,7 @@ type MockStorer struct {
 	DelTokensErr   string
 	UseTokenErr    string
 	RecoverUserErr string
+	ConfirmUserErr string
 }
 
 func NewMockStorer() *MockStorer {
@@ -125,6 +126,26 @@ func (m *MockStorer) RecoverUser(token string) (result interface{}, err error) {
 
 	for _, user := range m.Users {
 		if user["recover_token"] == token {
+
+			u := &MockUser{}
+			if err = user.Bind(u); err != nil {
+				panic(err)
+			}
+
+			return u, nil
+		}
+	}
+
+	return nil, authboss.ErrUserNotFound
+}
+
+func (m *MockStorer) ConfirmUser(confirmToken string) (result interface{}, err error) {
+	if len(m.ConfirmUserErr) > 0 {
+		return nil, errors.New(m.ConfirmUserErr)
+	}
+
+	for _, user := range m.Users {
+		if user["confirm_token"] == confirmToken {
 
 			u := &MockUser{}
 			if err = user.Bind(u); err != nil {

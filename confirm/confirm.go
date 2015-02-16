@@ -16,9 +16,8 @@ import (
 )
 
 const (
-	UserConfirmToken = "confirmToken"
-	UserConfirmed    = "confirmed"
-	UserEmail        = "email"
+	StoreConfirmToken = "confirm_token"
+	StoreConfirmed    = "confirmed"
 
 	FormValueConfirm = "cnf"
 
@@ -71,25 +70,26 @@ func (c *Confirm) Routes() authboss.RouteTable {
 
 func (c *Confirm) Storage() authboss.StorageOptions {
 	return authboss.StorageOptions{
-		UserConfirmToken: authboss.String,
-		UserConfirmed:    authboss.Bool,
+		StoreConfirmToken: authboss.String,
+		StoreConfirmed:    authboss.Bool,
 	}
 }
 
 func (c *Confirm) BeforeGet(ctx *authboss.Context) error {
-	if intf, ok := ctx.User[UserConfirmed]; ok {
-		if confirmed, ok := intf.(bool); !ok && !confirmed {
-			return ErrNotConfirmed
+	if intf, ok := ctx.User[StoreConfirmed]; ok {
+		if confirmed, ok := intf.(bool); ok && confirmed {
+			return nil
 		}
 	}
 
-	return nil
+	return ErrNotConfirmed
 }
 
 // AfterRegister ensures the account is not activated.
 func (c *Confirm) AfterRegister(ctx *authboss.Context) {
 	if ctx.User == nil {
 		fmt.Fprintln(authboss.Cfg.LogWriter, "confirm: user not loaded in AfterRegister callback")
+		return
 	}
 
 	token := make([]byte, 32)
@@ -98,16 +98,19 @@ func (c *Confirm) AfterRegister(ctx *authboss.Context) {
 	}
 	sum := md5.Sum(token)
 
-	ctx.User[UserConfirmToken] = base64.StdEncoding.EncodeToString(sum[:])
+	ctx.User[StoreConfirmToken] = base64.StdEncoding.EncodeToString(sum[:])
 
-	username, _ := ctx.User.String(authboss.UserName)
+	username, ok := ctx.User.String(authboss.StoreUsername)
+	if !ok {
+		fmt.Fprintln(authboss.Cfg.LogWriter, "confirm: failed to save confirm token, username doesn't exist")
+	}
 
 	if err := ctx.SaveUser(username, authboss.Cfg.Storer); err != nil {
 		fmt.Fprintln(authboss.Cfg.LogWriter, "confirm: failed to save user's token:", err)
 		return
 	}
 
-	if email, ok := ctx.User.String(UserEmail); !ok {
+	if email, ok := ctx.User.String(authboss.StoreEmail); !ok {
 		fmt.Fprintln(authboss.Cfg.LogWriter, "confirm: user has no e-mail address to send to, could not send confirm e-mail")
 	} else {
 		goConfirmEmail(c, email, base64.URLEncoding.EncodeToString(sum[:]))
@@ -149,22 +152,24 @@ func (c *Confirm) confirmHandler(ctx *authboss.Context, w http.ResponseWriter, r
 	token, ok := ctx.FirstFormValue(FormValueConfirm)
 	if len(token) == 0 || !ok {
 		http.Redirect(w, r, "/", http.StatusTemporaryRedirect)
-		fmt.Fprintln(authboss.Cfg.LogWriter, "confirm: no confirm token found in get")
+		fmt.Fprintln(authboss.Cfg.LogWriter, "confirm: no confirm token found in request")
 		return
 	}
 
-	tok, err := base64.URLEncoding.DecodeString(token)
+	toHash, err := base64.URLEncoding.DecodeString(token)
 	if err != nil {
 		http.Redirect(w, r, "/", http.StatusTemporaryRedirect)
 		fmt.Fprintf(authboss.Cfg.LogWriter, "confirm: confirm token failed to decode %q => %v\n", token, err)
 		return
 	}
 
-	dbTok := base64.StdEncoding.EncodeToString(tok)
+	sum := md5.Sum(toHash)
+
+	dbTok := base64.StdEncoding.EncodeToString(sum[:])
 	user, err := authboss.Cfg.Storer.(authboss.ConfirmStorer).ConfirmUser(dbTok)
 	if err == authboss.ErrUserNotFound {
 		http.Redirect(w, r, "/", http.StatusTemporaryRedirect)
-		fmt.Fprintln(authboss.Cfg.LogWriter, "confirm: token not found", err)
+		fmt.Fprintln(authboss.Cfg.LogWriter, "confirm: token not found:", err)
 		return
 	} else if err != nil {
 		w.WriteHeader(500)
@@ -174,16 +179,10 @@ func (c *Confirm) confirmHandler(ctx *authboss.Context, w http.ResponseWriter, r
 
 	ctx.User = authboss.Unbind(user)
 
-	ctx.User[UserConfirmToken] = ""
-	ctx.User[UserConfirmed] = true
+	ctx.User[StoreConfirmToken] = ""
+	ctx.User[StoreConfirmed] = true
 
-	key, ok := ctx.User.String(authboss.UserName)
-	if !ok {
-		w.WriteHeader(500)
-		fmt.Fprintln(authboss.Cfg.LogWriter, "confirm: user had no key field")
-		return
-	}
-
+	key, _ := ctx.User.String(authboss.StoreUsername)
 	ctx.SessionStorer.Put(authboss.SessionKey, key)
 	ctx.SessionStorer.Put(authboss.FlashSuccessKey, "Successfully confirmed your account.")
 

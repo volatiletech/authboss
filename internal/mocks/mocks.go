@@ -18,6 +18,8 @@ type MockUser struct {
 	Password           string
 	RecoverToken       string
 	RecoverTokenExpiry time.Time
+	ConfirmToken       string
+	Confirmed          bool
 	Locked             bool
 }
 

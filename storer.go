@@ -11,11 +11,11 @@ import (
 
 // Data store constants for attribute names.
 const (
-	UserEmail    = "email"
-	UserName     = "username"
-	UserPassword = "password"
+	StoreEmail    = "email"
+	StoreUsername = "username"
+	StorePassword = "password"
 	// UserKey is used to uniquely identify the user.
-	UserKey = UserEmail
+	StoreKey = StoreEmail
 )
 
 var (

@@ -76,7 +76,7 @@ func (m *RecoverModule) recover(ctx *authboss.Context, xsrfName, xsrfToken strin
 }
 
 func (m *RecoverModule) makeAndSendToken(ctx *authboss.Context, username string) (err error, emailSent <-chan struct{}) {
-	if err = ctx.LoadUser(username, authboss.Cfg.Storer); err != nil {
+	if err = ctx.LoadUser(username); err != nil {
 		return err, nil
 	}
 

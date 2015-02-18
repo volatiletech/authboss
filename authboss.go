@@ -37,7 +37,7 @@ func CurrentUser(w http.ResponseWriter, r *http.Request) (interface{}, error) {
 		return nil, err
 	}
 
-	err = ctx.LoadUser(key, Cfg.Storer)
+	err = ctx.LoadUser(key)
 	if err != nil {
 		return nil, err
 	}

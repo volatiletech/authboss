@@ -46,11 +46,13 @@ func TestContext_Request(t *testing.T) {
 }
 
 func TestContext_SaveUser(t *testing.T) {
+	Cfg = NewConfig()
 	ctx := NewContext()
 	storer := mockStorer{}
+	Cfg.Storer = storer
+	ctx.User = Attributes{"username": "joe", "email": "hello@joe.com", "password": "mysticalhash"}
 
-	ctx.User = Attributes{"email": "hello@joe.com", "password": "mysticalhash"}
-	err := ctx.SaveUser("joe", storer)
+	err := ctx.SaveUser()
 	if err != nil {
 		t.Error("Unexpected error:", err)
 	}
@@ -68,12 +70,39 @@ func TestContext_SaveUser(t *testing.T) {
 }
 
 func TestContext_LoadUser(t *testing.T) {
+	Cfg = NewConfig()
 	ctx := NewContext()
 	storer := mockStorer{
 		"joe": Attributes{"email": "hello@joe.com", "password": "mysticalhash"},
 	}
+	Cfg.Storer = storer
 
-	err := ctx.LoadUser("joe", storer)
+	err := ctx.LoadUser("joe")
+	if err != nil {
+		t.Error("Unexpected error:", err)
+	}
+
+	attr := storer["joe"]
+
+	for k, v := range attr {
+		if v != ctx.User[k] {
+			t.Error(v, "not equal to", ctx.User[k])
+		}
+	}
+}
+
+func TestContext_LoadSessionUser(t *testing.T) {
+	Cfg = NewConfig()
+	ctx := NewContext()
+	storer := mockStorer{
+		"joe": Attributes{"email": "hello@joe.com", "password": "mysticalhash"},
+	}
+	Cfg.Storer = storer
+	ctx.SessionStorer = mockClientStore{
+		SessionKey: "joe",
+	}
+
+	err := ctx.LoadSessionUser()
 	if err != nil {
 		t.Error("Unexpected error:", err)
 	}

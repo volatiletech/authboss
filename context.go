@@ -86,12 +86,12 @@ func (c *Context) FirstPostFormValue(key string) (string, bool) {
 }
 
 // LoadUser loads the user Attributes if they haven't already been loaded.
-func (c *Context) LoadUser(key string, storer Storer) error {
+func (c *Context) LoadUser(key string) error {
 	if c.User != nil {
 		return nil
 	}
 
-	intf, err := storer.Get(key, ModuleAttrMeta)
+	intf, err := Cfg.Storer.Get(key, ModuleAttrMeta)
 	if err != nil {
 		return err
 	}
@@ -100,13 +100,33 @@ func (c *Context) LoadUser(key string, storer Storer) error {
 	return nil
 }
 
+// LoadSessionUser loads the user from the session if the user has not already been
+// loaded.
+func (c *Context) LoadSessionUser() error {
+	if c.User != nil {
+		return nil
+	}
+
+	key, ok := c.SessionStorer.Get(SessionKey)
+	if !ok {
+		return ErrUserNotFound
+	}
+
+	return c.LoadUser(key)
+}
+
 // SaveUser saves the user Attributes.
-func (c *Context) SaveUser(key string, storer Storer) error {
+func (c *Context) SaveUser() error {
 	if c.User == nil {
 		return errors.New("User not initialized.")
 	}
 
-	return storer.Put(key, c.User)
+	key, ok := c.User.String("username")
+	if !ok {
+		return errors.New("User improperly initialized, primary ID missing")
+	}
+
+	return Cfg.Storer.Put(key, c.User)
 }
 
 // Attributes converts the post form values into an attributes map.

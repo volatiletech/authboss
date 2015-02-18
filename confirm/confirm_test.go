@@ -107,14 +107,7 @@ func TestConfirm_AfterRegister(t *testing.T) {
 		t.Error("Expected it to die with loading error:", str)
 	}
 
-	ctx.User = authboss.Attributes{}
-	log.Reset()
-	c.AfterRegister(ctx)
-	if str := log.String(); !strings.Contains(str, "username doesn't exist") {
-		t.Error("Expected it to die with username error:", str)
-	}
-
-	ctx.User[authboss.StoreUsername] = "uname"
+	ctx.User = authboss.Attributes{authboss.StoreUsername: "uname"}
 	log.Reset()
 	c.AfterRegister(ctx)
 	if str := log.String(); !strings.Contains(str, "no e-mail address to send to") {

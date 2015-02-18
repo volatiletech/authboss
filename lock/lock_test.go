@@ -44,23 +44,11 @@ func TestAfterAuth(t *testing.T) {
 		t.Error("Expected nothing to be set, missing user.")
 	}
 
-	ctx.User = map[string]interface{}{"otherattribute": "somevalue"}
-	lock.AfterAuth(ctx)
-	if _, ok := ctx.User[StoreAttemptNumber]; ok {
-		t.Error("Expected username not present to stop this assignment.")
-	}
-
-	ctx.User["username"] = 5
-	lock.AfterAuth(ctx)
-	if _, ok := ctx.User[StoreAttemptNumber]; ok {
-		t.Error("Expected username wrong type stop this assignment.")
-	}
-
 	storer := mocks.NewMockStorer()
 	authboss.Cfg.Storer = storer
-	ctx.User["username"] = "username"
-	lock.AfterAuth(ctx)
+	ctx.User = authboss.Attributes{"username": "username"}
 
+	lock.AfterAuth(ctx)
 	if storer.Users["username"][StoreAttemptNumber].(int) != 0 {
 		t.Error("StoreAttemptNumber set incorrectly.")
 	}
@@ -152,18 +140,6 @@ func TestAfterAuthFail_Errors(t *testing.T) {
 	lock.AfterAuthFail(ctx)
 	if _, ok := ctx.User[StoreAttemptNumber]; ok {
 		t.Error("Expected nothing to be set, missing user.")
-	}
-
-	ctx.User = map[string]interface{}{"otherattribute": "somevalue"}
-	lock.AfterAuthFail(ctx)
-	if _, ok := ctx.User[StoreAttemptNumber]; ok {
-		t.Error("Expected username not present to stop this assignment.")
-	}
-
-	ctx.User["username"] = 5
-	lock.AfterAuthFail(ctx)
-	if _, ok := ctx.User[StoreAttemptNumber]; ok {
-		t.Error("Expected username wrong type stop this assignment.")
 	}
 }
 

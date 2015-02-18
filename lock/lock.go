@@ -76,21 +76,13 @@ func (l *Lock) BeforeAuth(ctx *authboss.Context) error {
 func (l *Lock) AfterAuth(ctx *authboss.Context) {
 	if ctx.User == nil {
 		fmt.Fprintln(authboss.Cfg.LogWriter, "lock: user not loaded in after auth callback")
-	}
-
-	var username string
-	if intf, ok := ctx.User["username"]; !ok {
-		fmt.Fprintf(authboss.Cfg.LogWriter, "lock: username not present")
-		return
-	} else if username, ok = intf.(string); !ok {
-		fmt.Fprintf(authboss.Cfg.LogWriter, "lock: username wrong type")
 		return
 	}
 
 	ctx.User[StoreAttemptNumber] = 0
 	ctx.User[StoreAttemptTime] = time.Now().UTC()
 
-	if err := ctx.SaveUser(username, authboss.Cfg.Storer); err != nil {
+	if err := ctx.SaveUser(); err != nil {
 		fmt.Fprintf(authboss.Cfg.LogWriter, "lock: saving user failed %v", err)
 	}
 }
@@ -98,15 +90,6 @@ func (l *Lock) AfterAuth(ctx *authboss.Context) {
 // AfterAuthFail adjusts the attempt number and time.
 func (l *Lock) AfterAuthFail(ctx *authboss.Context) {
 	if ctx.User == nil {
-		return
-	}
-
-	var username string
-	if intf, ok := ctx.User["username"]; !ok {
-		fmt.Fprintf(authboss.Cfg.LogWriter, "lock: username not present")
-		return
-	} else if username, ok = intf.(string); !ok {
-		fmt.Fprintf(authboss.Cfg.LogWriter, "lock: username wrong type")
 		return
 	}
 
@@ -137,7 +120,7 @@ func (l *Lock) AfterAuthFail(ctx *authboss.Context) {
 	}
 	ctx.User[StoreAttemptTime] = time.Now().UTC()
 
-	if err := ctx.SaveUser(username, authboss.Cfg.Storer); err != nil {
+	if err := ctx.SaveUser(); err != nil {
 		fmt.Fprintf(authboss.Cfg.LogWriter, "lock: saving user failed %v", err)
 	}
 }

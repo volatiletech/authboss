@@ -133,7 +133,7 @@ func (m *RecoverModule) recoverComplete(ctx *authboss.Context, xsrfName, xsrfTok
 	ctx.User[attrRecoverTokenExpiry] = nullTime
 
 	username, _ := ctx.User.String(attrUsername)
-	if err := ctx.SaveUser(username, authboss.Cfg.Storer); err != nil {
+	if err := ctx.SaveUser(); err != nil {
 		fmt.Fprintf(authboss.Cfg.LogWriter, errFormat, "failed to save user", err)
 		return defaultErrPage
 	}

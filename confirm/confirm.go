@@ -100,12 +100,7 @@ func (c *Confirm) AfterRegister(ctx *authboss.Context) {
 
 	ctx.User[StoreConfirmToken] = base64.StdEncoding.EncodeToString(sum[:])
 
-	username, ok := ctx.User.String(authboss.StoreUsername)
-	if !ok {
-		fmt.Fprintln(authboss.Cfg.LogWriter, "confirm: failed to save confirm token, username doesn't exist")
-	}
-
-	if err := ctx.SaveUser(username, authboss.Cfg.Storer); err != nil {
+	if err := ctx.SaveUser(); err != nil {
 		fmt.Fprintln(authboss.Cfg.LogWriter, "confirm: failed to save user's token:", err)
 		return
 	}
@@ -186,7 +181,7 @@ func (c *Confirm) confirmHandler(ctx *authboss.Context, w http.ResponseWriter, r
 	ctx.SessionStorer.Put(authboss.SessionKey, key)
 	ctx.SessionStorer.Put(authboss.FlashSuccessKey, "Successfully confirmed your account.")
 
-	if err := ctx.SaveUser(key, authboss.Cfg.Storer); err != nil {
+	if err := ctx.SaveUser(); err != nil {
 		fmt.Fprintln(authboss.Cfg.LogWriter, "confirm: failed to clear the user's token:", err)
 		return
 	}

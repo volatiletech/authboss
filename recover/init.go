@@ -94,7 +94,7 @@ func (m *RecoverModule) makeAndSendToken(ctx *authboss.Context, username string)
 	ctx.User[attrRecoverToken] = base64.StdEncoding.EncodeToString(sum[:])
 	ctx.User[attrRecoverTokenExpiry] = time.Now().Add(authboss.Cfg.RecoverTokenDuration)
 
-	if err = ctx.SaveUser(username, authboss.Cfg.Storer); err != nil {
+	if err = ctx.SaveUser(); err != nil {
 		return err, nil
 	}
 

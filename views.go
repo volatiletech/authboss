@@ -36,6 +36,8 @@ func (h HTMLData) Merge(data ...interface{}) HTMLData {
 		if !ok {
 			panic("Keys must be strings.")
 		}
+
+		h[k] = data[i+1]
 	}
 
 	return h

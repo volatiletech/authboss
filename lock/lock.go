@@ -94,17 +94,13 @@ func (l *Lock) AfterAuthFail(ctx *authboss.Context) {
 	}
 
 	lastAttempt := time.Now().UTC()
-	if attemptTimeIntf, ok := ctx.User[StoreAttemptTime]; ok {
-		if attemptTime, ok := attemptTimeIntf.(time.Time); ok {
-			lastAttempt = attemptTime
-		}
+	if attemptTime, ok := ctx.User.DateTime(StoreAttemptTime); ok {
+		lastAttempt = attemptTime
 	}
 
 	nAttempts := 0
-	if attemptsIntf, ok := ctx.User[StoreAttemptNumber]; ok {
-		if attempts, ok := attemptsIntf.(int); ok {
-			nAttempts = attempts
-		}
+	if attempts, ok := ctx.User.Int(StoreAttemptNumber); ok {
+		nAttempts = attempts
 	}
 
 	nAttempts++

@@ -1,21 +1,42 @@
 package authboss
 
-import "net/http"
+// HTMLData is used to render templates with.
+type HTMLData map[string]interface{}
 
-// ViewDataMaker is set in the config and is called before
-// template rendering to help correctly render the layout page.
-type ViewDataMaker func(r *http.Request) ViewHelper
+// NewHTMLData creates HTMLData from key-value pairs. The input is a key-value
+// slice, where odd elements are keys, and the following even element is their value.
+func NewHTMLData(data ...interface{}) HTMLData {
+	if len(data)%2 != 0 {
+		panic("It should be a key value list of arguments.")
+	}
 
-// ViewData is the data authboss uses for rendering a page.
-// Typically this goes on your layout page's data struct.
-type ViewData interface{}
+	h := make(HTMLData)
 
-// ViewHelper is a type that implements a Put() and Get() method for
-// authboss's view data. Before a template is rendered
-// by the authboss http handlers, it will call the config's ViewDataMaker
-// callback to get a ViewHelper containing data that will be useful for the
-// layout page, then use Put to set it, and inside the template use Get to get it.
-type ViewHelper interface {
-	Put(ViewData)
-	Get() ViewData
+	for i := 0; i < len(data)-1; i += 2 {
+		k, ok := data[i].(string)
+		if !ok {
+			panic("Keys must be strings.")
+		}
+
+		h[k] = data[i+1]
+	}
+
+	return h
+}
+
+// Merge adds extra key-values to the HTMLData. The input is a key-value
+// slice, where odd elements are keys, and the following even element is their value.
+func (h HTMLData) Merge(data ...interface{}) HTMLData {
+	if len(data)%2 != 0 {
+		panic("It should be a key value list of arguments.")
+	}
+
+	for i := 0; i < len(data)-1; i += 2 {
+		k, ok := data[i].(string)
+		if !ok {
+			panic("Keys must be strings.")
+		}
+	}
+
+	return h
 }

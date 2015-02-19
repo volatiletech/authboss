@@ -177,6 +177,58 @@ func (a Attributes) DateTime(key string) (time.Time, bool) {
 	return val, ok
 }
 
+// StringErr returns a single value as a string
+func (a Attributes) StringErr(key string) (val string, err error) {
+	inter, ok := a[key]
+	if !ok {
+		return "", AttributeErr{Name: key}
+	}
+	val, ok = inter.(string)
+	if !ok {
+		return val, MakeAttributeErr(key, String, inter)
+	}
+	return val, nil
+}
+
+// IntErr returns a single value as a int
+func (a Attributes) IntErr(key string) (val int, err error) {
+	inter, ok := a[key]
+	if !ok {
+		return "", AttributeErr{Name: key}
+	}
+	val, ok = inter.(int)
+	if !ok {
+		return val, MakeAttributeErr(key, Integer, inter)
+	}
+	return val, nil
+}
+
+// BoolErr returns a single value as a bool.
+func (a Attributes) BoolErr(key string) (val bool, err error) {
+	inter, ok := a[key]
+	if !ok {
+		return "", AttributeErr{Name: key}
+	}
+	val, ok = inter.(int)
+	if !ok {
+		return val, MakeAttributeErr(key, Integer, inter)
+	}
+	return val, nil
+}
+
+// DateTimeErr returns a single value as a time.Time
+func (a Attributes) DateTimeErr(key string) (val time.Time, err error) {
+	inter, ok := a[key]
+	if !ok {
+		return val, AttributeErr{Name: key}
+	}
+	val, ok = inter.(time.Time)
+	if !ok {
+		return val, MakeAttributeErr(key, DateTime, inter)
+	}
+	return val, nil
+}
+
 // Bind the data in the attributes to the given struct. This means the
 // struct creator must have read the documentation and decided what fields
 // will be needed ahead of time.

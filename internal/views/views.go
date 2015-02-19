@@ -9,9 +9,13 @@ import (
 	"bytes"
 	"errors"
 	"html/template"
+	"io"
 	"io/ioutil"
+	"net/http"
 	"os"
 	"path/filepath"
+
+	"gopkg.in/authboss.v0"
 )
 
 var (
@@ -22,21 +26,48 @@ var (
 // Templates is a map depicting the forms a template needs wrapped within the specified layout
 type Templates map[string]*template.Template
 
-// ExecuteTemplate is a convenience wrapper for executing a template from the layout.  Returns
-// ErrTemplateNotFound when the template is missing, othwerise error.
-func (t Templates) ExecuteTemplate(name string, data interface{}) (buffer *bytes.Buffer, err error) {
+// Render renders a view with xsrf and flash attributes.
+func (t Templates) Render(ctx *authboss.Context, w http.ResponseWriter, r *http.Request, name string, data authboss.HTMLData) error {
 	tpl, ok := t[name]
 	if !ok {
-		return nil, ErrTemplateNotFound
+		return authboss.RenderErr{tpl.Name(), data, ErrTemplateNotFound}
+	}
+
+	data.Merge("xsrfName", authboss.Cfg.XSRFName, "xsrfToken", authboss.Cfg.XSRFMaker(w, r))
+
+	if flash, ok := ctx.CookieStorer.Get(authboss.FlashSuccessKey); ok {
+		ctx.CookieStorer.Del(authboss.FlashSuccessKey)
+		data.Merge(authboss.FlashSuccessKey, flash)
+	}
+	if flash, ok := ctx.CookieStorer.Get(authboss.FlashErrorKey); ok {
+		ctx.CookieStorer.Del(authboss.FlashErrorKey)
+		data.Merge(authboss.FlashErrorKey, flash)
 	}
 
 	buffer = &bytes.Buffer{}
 	err = tpl.ExecuteTemplate(buffer, tpl.Name(), data)
+	if err != nil {
+		return authboss.RenderErr{tpl.Name(), data, err}
+	}
 
-	return buffer, err
+	err = io.Copy(w, buffer)
+	if err != nil {
+		return authboss.RenderErr{tpl.Name(), data, err}
+	}
 }
 
-// Get parses all speicified files located in path.  Each template is wrapped
+// FlashRedirect sets any flash messages given and redirects the user.
+func FlashRedirect(ctx *authboss.Context, w http.ResponseWriter, r *http.Request, path, flashSuccess, flashError string) {
+	if len(flashSuccess) > 0 {
+		ctx.CookieStorer.Put(authboss.FlashSuccessKey, flashSuccess)
+	}
+	if len(flashError) > 0 {
+		ctx.CookieStorer.Put(authboss.FlashErrorKey, flashError)
+	}
+	http.Redirect(w, r, path, http.StatusTemporaryRedirect)
+}
+
+// Get parses all specified files located in path.  Each template is wrapped
 // in a unique clone of layout.  All templates are expecting {{authboss}} handlebars
 // for parsing.
 func Get(layout *template.Template, path string, files ...string) (Templates, error) {

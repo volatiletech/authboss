@@ -15,10 +15,10 @@ const (
 
 // Before callbacks can interrupt the flow by returning an error. This is used to stop
 // the callback chain and the original handler from executing.
-type Before func(*Context) error
+type Before func(*Context) (bool, error)
 
 // After is a request callback that happens after the event.
-type After func(*Context)
+type After func(*Context) error
 
 // Callbacks is a collection of callbacks that fire before and after certain
 // methods.
@@ -49,22 +49,27 @@ func (c *Callbacks) After(e Event, f After) {
 }
 
 // FireBefore event to all the callbacks with a context.
-func (c *Callbacks) FireBefore(e Event, ctx *Context) error {
+func (c *Callbacks) FireBefore(e Event, ctx *Context) (interrupted bool, err error) {
 	callbacks := c.before[e]
 	for _, fn := range callbacks {
-		err := fn(ctx)
+		interrupted, err = fn(ctx)
 		if err != nil {
-			return err
+			return false, err
+		}
+		if interrupted {
+			return true, nil
 		}
 	}
 
-	return nil
+	return false, nil
 }
 
 // FireAfter event to all the callbacks with a context.
-func (c *Callbacks) FireAfter(e Event, ctx *Context) {
+func (c *Callbacks) FireAfter(e Event, ctx *Context) (err error) {
 	callbacks := c.after[e]
 	for _, fn := range callbacks {
-		fn(ctx)
+		if err = fn(ctx); err != nil {
+			return err
+		}
 	}
 }

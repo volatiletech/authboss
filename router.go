@@ -7,7 +7,7 @@ import (
 )
 
 // Handler augments http.HandlerFunc with a context.
-type HandlerFunc func(*Context, http.ResponseWriter, *http.Request)
+type HandlerFunc func(*Context, http.ResponseWriter, *http.Request) error
 
 // RouteTable is a routing table from a path to a handlerfunc.
 type RouteTable map[string]HandlerFunc
@@ -40,5 +40,26 @@ func (c contextRoute) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	ctx.CookieStorer = Cfg.CookieStoreMaker(w, r)
 	ctx.SessionStorer = Cfg.SessionStoreMaker(w, r)
 
-	c.fn(ctx, w, r)
+	err = c.fn(ctx, w, r)
+	if err == nil {
+		return
+	}
+
+	fmt.Fprintf(Cfg.LogWriter, "Error Occurred at %s: %v", r.URL.Path, err)
+	switch e := err.(type) {
+	case AttributeErr:
+		w.WriteHeader(http.StatusInternalServerError)
+	case ClientDataErr:
+		w.WriteHeader(http.StatusBadRequest)
+	case RedirectErr:
+		if len(e.FlashSuccess) > 0 {
+			ctx.CookieStorer.Put(FlashSuccessKey, e.FlashSuccess)
+		}
+		if len(e.FlashError) > 0 {
+			ctx.CookieStorer.Put(FlashErrorKey, e.FlashError)
+		}
+		http.Redirect(w, r, e.Endpoint, http.StatusTemporaryRedirect)
+	case RenderErr:
+		w.WriteHeader(http.StatusInternalServerError)
+	}
 }

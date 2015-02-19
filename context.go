@@ -19,13 +19,10 @@ type Context struct {
 
 	postFormValues map[string][]string
 	formValues     map[string][]string
-	keyValues      map[string]interface{}
 }
 
 func NewContext() *Context {
-	return &Context{
-		keyValues: make(map[string]interface{}),
-	}
+	return &Context{}
 }
 
 // ContextFromRequest creates a context from an http request.
@@ -38,17 +35,6 @@ func ContextFromRequest(r *http.Request) (*Context, error) {
 	c.formValues = map[string][]string(r.Form)
 	c.postFormValues = map[string][]string(r.PostForm)
 	return c, nil
-}
-
-// Put an arbitrary key-value into the context.
-func (c *Context) Put(key string, thing interface{}) {
-	c.keyValues[key] = thing
-}
-
-// Get an arbitrary key-value from the context.
-func (c *Context) Get(key string) (thing interface{}, ok bool) {
-	thing, ok = c.keyValues[key]
-	return thing, ok
 }
 
 // FormValue gets a form value from a context created with a request.
@@ -83,6 +69,29 @@ func (c *Context) FirstPostFormValue(key string) (string, bool) {
 	}
 
 	return val[0], ok
+}
+
+// FirstFormValueErrr gets the first form value from a context created with a request
+// and additionally returns an error not a bool if it's not found.
+func (c *Context) FirstFormValueErr(key string) (string, error) {
+	val, ok := c.formValues[key]
+
+	if !ok || len(val) == 0 || len(val[0]) == 0 {
+		return "", ClientDataErr{key}
+	}
+
+	return val[0], nil
+}
+
+// FirstPostFormValue gets the first form value from a context created with a request.
+func (c *Context) FirstPostFormValueErr(key string) (string, error) {
+	val, ok := c.postFormValues[key]
+
+	if !ok || len(val) == 0 || len(val[0]) == 0 {
+		return "", ClientDataErr{key}
+	}
+
+	return val[0], nil
 }
 
 // LoadUser loads the user Attributes if they haven't already been loaded.

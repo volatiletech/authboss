@@ -7,15 +7,6 @@ import (
 	"time"
 )
 
-func TestContext_PutGet(t *testing.T) {
-	ctx := NewContext()
-
-	ctx.Put("key", "value")
-	if v, has := ctx.Get("key"); !has || v.(string) != "value" {
-		t.Error("Not retrieving key values correctly.")
-	}
-}
-
 func TestContext_Request(t *testing.T) {
 	req, err := http.NewRequest("POST", "http://localhost?query=string", bytes.NewBufferString("post=form"))
 	if err != nil {

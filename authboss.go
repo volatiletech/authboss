@@ -42,7 +42,7 @@ func CurrentUser(w http.ResponseWriter, r *http.Request) (interface{}, error) {
 		return nil, err
 	}
 
-	err = Cfg.Callbacks.FireBefore(EventGet, ctx)
+	_, err = Cfg.Callbacks.FireBefore(EventGet, ctx)
 	if err != nil {
 		return nil, err
 	}

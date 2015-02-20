@@ -10,7 +10,7 @@ type AttributeErr struct {
 	GotKind  string
 }
 
-func MakeAttributeErr(name, kind DataType, val interface{}) AttributeErr {
+func MakeAttributeErr(name string, kind DataType, val interface{}) AttributeErr {
 	return AttributeErr{
 		Name:     name,
 		WantKind: kind,
@@ -19,7 +19,7 @@ func MakeAttributeErr(name, kind DataType, val interface{}) AttributeErr {
 }
 
 func (a AttributeErr) Error() string {
-	if len(a.KindIssue) == 0 {
+	if len(a.GotKind) == 0 {
 		return fmt.Sprintf("Failed to retrieve database attribute: %s", a.Name)
 	}
 

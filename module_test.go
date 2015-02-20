@@ -18,8 +18,9 @@ var testMod = &testModule{
 	},
 }
 
-func testHandler(ctx *Context, w http.ResponseWriter, r *http.Request) {
+func testHandler(ctx *Context, w http.ResponseWriter, r *http.Request) error {
 	w.Header().Set("testhandler", "test")
+	return nil
 }
 
 func (t *testModule) Initialize() error {

@@ -51,7 +51,7 @@ func (c contextRoute) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusInternalServerError)
 	case ClientDataErr:
 		w.WriteHeader(http.StatusBadRequest)
-	case RedirectErr:
+	case ErrAndRedirect:
 		if len(e.FlashSuccess) > 0 {
 			ctx.CookieStorer.Put(FlashSuccessKey, e.FlashSuccess)
 		}

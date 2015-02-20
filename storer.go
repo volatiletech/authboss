@@ -194,7 +194,7 @@ func (a Attributes) StringErr(key string) (val string, err error) {
 func (a Attributes) IntErr(key string) (val int, err error) {
 	inter, ok := a[key]
 	if !ok {
-		return "", AttributeErr{Name: key}
+		return val, AttributeErr{Name: key}
 	}
 	val, ok = inter.(int)
 	if !ok {
@@ -207,9 +207,9 @@ func (a Attributes) IntErr(key string) (val int, err error) {
 func (a Attributes) BoolErr(key string) (val bool, err error) {
 	inter, ok := a[key]
 	if !ok {
-		return "", AttributeErr{Name: key}
+		return val, AttributeErr{Name: key}
 	}
-	val, ok = inter.(int)
+	val, ok = inter.(bool)
 	if !ok {
 		return val, MakeAttributeErr(key, Integer, inter)
 	}

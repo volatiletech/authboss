@@ -1,5 +1,10 @@
 package authboss
 
+import "net/http"
+
+// ViewDataMaker asks for an HTMLData object to assist with rendering.
+type ViewDataMaker func(http.ResponseWriter, *http.Request) HTMLData
+
 // HTMLData is used to render templates with.
 type HTMLData map[string]interface{}
 

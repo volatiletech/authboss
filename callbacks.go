@@ -72,4 +72,6 @@ func (c *Callbacks) FireAfter(e Event, ctx *Context) (err error) {
 			return err
 		}
 	}
+
+	return nil
 }

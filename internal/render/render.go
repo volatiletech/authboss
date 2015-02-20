@@ -2,6 +2,7 @@ package render
 
 import (
 	"bytes"
+	"html/template"
 	"io"
 	"net/http"
 
@@ -13,34 +14,36 @@ import (
 func View(ctx *authboss.Context, w http.ResponseWriter, r *http.Request, t views.Templates, name string, data authboss.HTMLData) error {
 	tpl, ok := t[name]
 	if !ok {
-		return authboss.RenderErr{tpl.Name(), data, ErrTemplateNotFound}
+		return authboss.RenderErr{tpl.Name(), data, views.ErrTemplateNotFound}
 	}
 
-	data.Merge("xsrfName", authboss.Cfg.XSRFName, "xsrfToken", authboss.Cfg.XSRFMaker(w, r))
-
-	if flash, ok := ctx.CookieStorer.Get(authboss.FlashSuccessKey); ok {
-		ctx.CookieStorer.Del(authboss.FlashSuccessKey)
-		data.Merge(authboss.FlashSuccessKey, flash)
-	}
-	if flash, ok := ctx.CookieStorer.Get(authboss.FlashErrorKey); ok {
-		ctx.CookieStorer.Del(authboss.FlashErrorKey)
-		data.Merge(authboss.FlashErrorKey, flash)
-	}
+	data.MergeKV("xsrfName", template.HTML(authboss.Cfg.XSRFName), "xsrfToken", template.HTML(authboss.Cfg.XSRFMaker(w, r)))
 
 	if authboss.Cfg.LayoutDataMaker != nil {
 		data.Merge(authboss.Cfg.LayoutDataMaker(w, r))
 	}
 
-	buffer = &bytes.Buffer{}
-	err = tpl.ExecuteTemplate(buffer, tpl.Name(), data)
+	if flash, ok := ctx.CookieStorer.Get(authboss.FlashSuccessKey); ok {
+		ctx.CookieStorer.Del(authboss.FlashSuccessKey)
+		data.MergeKV(authboss.FlashSuccessKey, flash)
+	}
+	if flash, ok := ctx.CookieStorer.Get(authboss.FlashErrorKey); ok {
+		ctx.CookieStorer.Del(authboss.FlashErrorKey)
+		data.MergeKV(authboss.FlashErrorKey, flash)
+	}
+
+	buffer := &bytes.Buffer{}
+	err := tpl.ExecuteTemplate(buffer, tpl.Name(), data)
 	if err != nil {
 		return authboss.RenderErr{tpl.Name(), data, err}
 	}
 
-	err = io.Copy(w, buffer)
+	_, err = io.Copy(w, buffer)
 	if err != nil {
 		return authboss.RenderErr{tpl.Name(), data, err}
 	}
+
+	return nil
 }
 
 // Redirect sets any flash messages given and redirects the user.

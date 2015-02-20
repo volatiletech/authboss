@@ -33,7 +33,7 @@ type ClientDataErr struct {
 }
 
 func (c ClientDataErr) Error() string {
-	return fmt.Sprintf("Failed to retrieve client attribute: %s (%v)", c.Name)
+	return fmt.Sprintf("Failed to retrieve client attribute: %s", c.Name)
 }
 
 // ErrAndRedirect represents a general error whose response should
@@ -46,7 +46,7 @@ type ErrAndRedirect struct {
 }
 
 func (e ErrAndRedirect) Error() string {
-	return fmt.Sprintf("Error: %v, Redirecting to: %s", e.Error, e.Endpoint)
+	return fmt.Sprintf("Error: %v, Redirecting to: %s", e.Err, e.Endpoint)
 }
 
 // RenderErr represents an error that occured during rendering
@@ -58,5 +58,5 @@ type RenderErr struct {
 }
 
 func (r RenderErr) Error() string {
-	return fmt.Sprintf("Error rendering template %q (%#v): %v", r.TemplateName, r.Data, r.Err)
+	return fmt.Sprintf("Error rendering template %q: %v, data: %#v", r.TemplateName, r.Err, r.Data)
 }

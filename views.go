@@ -29,9 +29,18 @@ func NewHTMLData(data ...interface{}) HTMLData {
 	return h
 }
 
-// Merge adds extra key-values to the HTMLData. The input is a key-value
+// Merge adds the data from other to h. If there are conflicting keys
+// they are overwritten by other's values.
+func (h HTMLData) Merge(other HTMLData) HTMLData {
+	for k, v := range other {
+		h[k] = v
+	}
+	return h
+}
+
+// MergeKV adds extra key-values to the HTMLData. The input is a key-value
 // slice, where odd elements are keys, and the following even element is their value.
-func (h HTMLData) Merge(data ...interface{}) HTMLData {
+func (h HTMLData) MergeKV(data ...interface{}) HTMLData {
 	if len(data)%2 != 0 {
 		panic("It should be a key value list of arguments.")
 	}

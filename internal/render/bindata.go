@@ -1,4 +1,4 @@
-package views
+package render
 
 import (
 	"bytes"

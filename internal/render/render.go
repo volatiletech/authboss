@@ -1,17 +1,66 @@
+// Package render is responsible for loading and rendering authboss templates.
 package render
+
+//go:generate go-bindata -pkg=render -prefix=templates templates
 
 import (
 	"bytes"
+	"errors"
 	"html/template"
 	"io"
+	"io/ioutil"
 	"net/http"
+	"os"
+	"path/filepath"
 
 	"gopkg.in/authboss.v0"
 	"gopkg.in/authboss.v0/internal/views"
 )
 
-// View renders a view with xsrf and flash attributes.
-func View(ctx *authboss.Context, w http.ResponseWriter, r *http.Request, t views.Templates, name string, data authboss.HTMLData) error {
+var (
+	// ErrTemplateNotFound should be returned from Get when the view is not found
+	ErrTemplateNotFound = errors.New("Template not found")
+)
+
+// Templates is a map depicting the forms a template needs wrapped within the specified layout
+type Templates map[string]*template.Template
+
+// LoadTemplates parses all specified files located in path.  Each template is wrapped
+// in a unique clone of layout.  All templates are expecting {{authboss}} handlebars
+// for parsing. It will check the override directory specified in the config, replacing any
+// templates as necessary.
+func LoadTemplates(layout *template.Template, path string, files ...string) (Templates, error) {
+	m := make(Templates)
+
+	for _, file := range files {
+		b, err := ioutil.ReadFile(filepath.Join(path, file))
+		if exists := !os.IsNotExist(err); err != nil && exists {
+			return nil, err
+		} else if !exists {
+			b, err = Asset(file)
+			if err != nil {
+				return nil, err
+			}
+		}
+
+		clone, err := layout.Clone()
+		if err != nil {
+			return nil, err
+		}
+
+		_, err = clone.New("authboss").Parse(string(b))
+		if err != nil {
+			return nil, err
+		}
+
+		m[file] = clone
+	}
+
+	return m, nil
+}
+
+// Render renders a view with xsrf and flash attributes.
+func (t Templates) Render(ctx *authboss.Context, w http.ResponseWriter, r *http.Request, name string, data authboss.HTMLData) error {
 	tpl, ok := t[name]
 	if !ok {
 		return authboss.RenderErr{tpl.Name(), data, views.ErrTemplateNotFound}

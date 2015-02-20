@@ -8,7 +8,6 @@ import (
 	"time"
 
 	"golang.org/x/crypto/bcrypt"
-	"gopkg.in/authboss.v0/internal/views"
 )
 
 const (
@@ -68,24 +67,14 @@ type Config struct {
 }
 
 func NewConfig() *Config {
-	layout, err := views.AssetToTemplate(layoutTpl)
-	if err != nil {
-		panic(err)
-	}
-
-	layoutEmail, err := views.AssetToTemplate(layoutEmailTpl)
-	if err != nil {
-		panic(err)
-	}
-
 	return &Config{
 		MountPath:  "/",
 		ViewsPath:  "/",
 		HostName:   "localhost:8080",
 		BCryptCost: bcrypt.DefaultCost,
 
-		Layout:      layout,
-		LayoutEmail: layoutEmail,
+		Layout:      template.Must(template.New("").Parse(`{{template "authboss" .}}`)),
+		LayoutEmail: template.Must(template.New("").Parse(`{{template "authboss" .}}`)),
 
 		AuthLogoutRoute:       "/",
 		AuthLoginSuccessRoute: "/",

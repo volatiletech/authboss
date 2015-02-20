@@ -2,18 +2,52 @@ package render
 
 import (
 	"html/template"
+	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
+	"os"
+	"path/filepath"
 	"testing"
 
 	"gopkg.in/authboss.v0"
 	"gopkg.in/authboss.v0/internal/mocks"
-	"gopkg.in/authboss.v0/internal/views"
 )
 
 var testViewTemplate = template.Must(template.New("").Parse(`{{.external}} {{.fun}} {{.flash_success}} {{.flash_error}} {{.xsrfName}} {{.xsrfToken}}`))
 
-func TestView(t *testing.T) {
+func TestLoadTemplates(t *testing.T) {
+	t.Parallel()
+
+	file, err := ioutil.TempFile(os.TempDir(), "authboss")
+	if err != nil {
+		t.Error("Unexpected error:", err)
+	}
+	if _, err := file.Write([]byte("{{.Val}}")); err != nil {
+		t.Error("Error writing to temp file", err)
+	}
+
+	layout, err := template.New("").Parse(`<strong>{{template "authboss" .}}</strong>`)
+	if err != nil {
+		t.Error("Unexpected error:", err)
+	}
+
+	filename := filepath.Base(file.Name())
+
+	tpls, err := LoadTemplates(layout, filepath.Dir(file.Name()), filename)
+	if err != nil {
+		t.Error("Unexpected error:", err)
+	}
+
+	if len(tpls) != 1 {
+		t.Error("Expected 1 template:", len(tpls))
+	}
+
+	if _, ok := tpls[filename]; !ok {
+		t.Error("Expected tpl with name:", filename)
+	}
+}
+
+func TestTemplates_Render(t *testing.T) {
 	cookies := mocks.NewMockClientStorer()
 	authboss.Cfg = &authboss.Config{
 		LayoutDataMaker: func(_ http.ResponseWriter, _ *http.Request) authboss.HTMLData {
@@ -34,11 +68,11 @@ func TestView(t *testing.T) {
 	ctx, _ := authboss.ContextFromRequest(r)
 	ctx.CookieStorer = cookies
 
-	tpls := views.Templates{
+	tpls := Templates{
 		"hello": testViewTemplate,
 	}
 
-	err := View(ctx, w, r, tpls, "hello", authboss.HTMLData{"external": "there"})
+	err := tpls.Render(ctx, w, r, "hello", authboss.HTMLData{"external": "there"})
 	if err != nil {
 		t.Error(err)
 	}

@@ -1,1 +1,0 @@
-<em>{{template "authboss" .}}</em>

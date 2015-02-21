@@ -61,5 +61,7 @@ func (c contextRoute) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		http.Redirect(w, r, e.Endpoint, http.StatusTemporaryRedirect)
 	case RenderErr:
 		w.WriteHeader(http.StatusInternalServerError)
+	default:
+		w.WriteHeader(http.StatusInternalServerError)
 	}
 }

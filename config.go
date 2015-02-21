@@ -73,10 +73,10 @@ func NewConfig() *Config {
 		HostName:   "localhost:8080",
 		BCryptCost: bcrypt.DefaultCost,
 
-		Layout:      template.Must(template.New("").Parse(`{{template "authboss" .}}`)),
-		LayoutEmail: template.Must(template.New("").Parse(`{{template "authboss" .}}`)),
+		Layout:      template.Must(template.New("").Parse(`<html><body>{{template "authboss" .}}</body></html>`)),
+		LayoutEmail: template.Must(template.New("").Parse(`<html><body>{{template "authboss" .}}</body></html>`)),
 
-		AuthLogoutRoute:       "/",
+		AuthLogoutRoute:       "/login",
 		AuthLoginSuccessRoute: "/",
 
 		Policies: []Validator{

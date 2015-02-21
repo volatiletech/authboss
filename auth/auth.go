@@ -3,66 +3,42 @@ package auth
 import (
 	"errors"
 	"fmt"
-	"html/template"
 	"net/http"
 
 	"golang.org/x/crypto/bcrypt"
-
 	"gopkg.in/authboss.v0"
-	"gopkg.in/authboss.v0/internal/views"
+	"gopkg.in/authboss.v0/internal/render"
 )
 
 const (
 	methodGET  = "GET"
 	methodPOST = "POST"
 
-	pageLogin = "login.tpl"
+	tplLogin = "login.tpl"
 
-	attrUsername = "username"
-	attrPassword = "password"
+	storeUsername = "username"
+	storePassword = "password"
 )
 
 func init() {
-	a := &Auth{}
+	a := &AuthModule{}
 	authboss.RegisterModule("auth", a)
 }
 
-type AuthPage struct {
-	Error    string
-	Username string
-
-	ShowRemember bool
-	ShowRecover  bool
-
-	FlashSuccess string
-	FlashError   string
-
-	XSRFName  string
-	XSRFToken string
-}
-
-type Auth struct {
-	routes         authboss.RouteTable
-	storageOptions authboss.StorageOptions
-	templates      map[string]*template.Template
-
+type AuthModule struct {
+	templates        render.Templates
+	policies         []authboss.Validator
 	isRememberLoaded bool
 	isRecoverLoaded  bool
 }
 
-func (a *Auth) Initialize() (err error) {
-	if a.templates, err = views.Get(authboss.Cfg.Layout, authboss.Cfg.ViewsPath, pageLogin); err != nil {
+func (a *AuthModule) Initialize() (err error) {
+	a.templates, err = render.LoadTemplates(authboss.Cfg.Layout, authboss.Cfg.ViewsPath, tplLogin)
+	if err != nil {
 		return err
 	}
 
-	a.routes = authboss.RouteTable{
-		"login":  a.loginHandlerFunc,
-		"logout": a.logoutHandlerFunc,
-	}
-	a.storageOptions = authboss.StorageOptions{
-		attrUsername: authboss.String,
-		attrPassword: authboss.String,
-	}
+	a.policies = authboss.FilterValidators(authboss.Cfg.Policies, "username", "password")
 
 	a.isRememberLoaded = authboss.IsLoaded("remember")
 	a.isRecoverLoaded = authboss.IsLoaded("recover")
@@ -70,15 +46,21 @@ func (a *Auth) Initialize() (err error) {
 	return nil
 }
 
-func (a *Auth) Routes() authboss.RouteTable {
-	return a.routes
+func (a *AuthModule) Routes() authboss.RouteTable {
+	return authboss.RouteTable{
+		"login":  a.loginHandlerFunc,
+		"logout": a.logoutHandlerFunc,
+	}
 }
 
-func (a *Auth) Storage() authboss.StorageOptions {
-	return a.storageOptions
+func (a *AuthModule) Storage() authboss.StorageOptions {
+	return authboss.StorageOptions{
+		storeUsername: authboss.String,
+		storePassword: authboss.String,
+	}
 }
 
-func (a *Auth) loginHandlerFunc(ctx *authboss.Context, w http.ResponseWriter, r *http.Request) {
+func (a *AuthModule) loginHandlerFunc(ctx *authboss.Context, w http.ResponseWriter, r *http.Request) error {
 	switch r.Method {
 	case methodGET:
 		if _, ok := ctx.SessionStorer.Get(authboss.SessionKey); ok {
@@ -87,96 +69,64 @@ func (a *Auth) loginHandlerFunc(ctx *authboss.Context, w http.ResponseWriter, r 
 			}
 		}
 
-		page := AuthPage{
-			ShowRemember: a.isRememberLoaded,
-			ShowRecover:  a.isRecoverLoaded,
-			XSRFName:     authboss.Cfg.XSRFName,
-			XSRFToken:    authboss.Cfg.XSRFMaker(w, r),
-		}
-
-		if msg, ok := ctx.SessionStorer.Get(authboss.FlashSuccessKey); ok {
-			page.FlashSuccess = msg
-			ctx.SessionStorer.Del(authboss.FlashSuccessKey)
-		}
-
-		tpl := a.templates[pageLogin]
-		tpl.Execute(w, page)
+		data := authboss.NewHTMLData("showRemember", a.isRememberLoaded, "showRecover", a.isRecoverLoaded)
+		return a.templates.Render(ctx, w, r, tplLogin, data)
 	case methodPOST:
-		u, ok := ctx.FirstPostFormValue("username")
-		if !ok {
-			fmt.Fprintln(authboss.Cfg.LogWriter, errors.New("auth: Expected postFormValue 'username' to be in the context"))
+		interrupted, err := authboss.Cfg.Callbacks.FireBefore(authboss.EventAuth, ctx)
+		if err != nil {
+			return err
+		} else if interrupted {
+			return errors.New("auth interrupted")
 		}
 
-		if err := authboss.Cfg.Callbacks.FireBefore(authboss.EventAuth, ctx); err != nil {
-			w.WriteHeader(http.StatusForbidden)
+		username, _ := ctx.FirstPostFormValue("username")
+		password, _ := ctx.FirstPostFormValue("password")
 
-			tpl := a.templates[pageLogin]
-			tpl.ExecuteTemplate(w, tpl.Name(), AuthPage{
-				Error:        err.Error(),
-				Username:     u,
-				ShowRemember: a.isRememberLoaded,
-				ShowRecover:  a.isRecoverLoaded,
-				XSRFName:     authboss.Cfg.XSRFName,
-				XSRFToken:    authboss.Cfg.XSRFMaker(w, r),
-			})
+		errData := authboss.NewHTMLData(
+			"error", "invalid username and/or password",
+			"username", username,
+			"showRemember", a.isRememberLoaded,
+			"showRecover", a.isRecoverLoaded,
+		)
+
+		if validationErrs := ctx.Validate(a.policies); len(validationErrs) > 0 {
+			fmt.Fprintln(authboss.Cfg.LogWriter, "auth: form validation failed:", validationErrs.Map())
+			return a.templates.Render(ctx, w, r, tplLogin, errData)
 		}
 
-		p, ok := ctx.FirstPostFormValue("password")
-		if !ok {
-			fmt.Fprintln(authboss.Cfg.LogWriter, errors.New("auth: Expected postFormValue 'password' to be in the context"))
+		if err := validateCredentials(ctx, username, password); err != nil {
+			fmt.Fprintln(authboss.Cfg.LogWriter, "auth: failed to validate credentials:", err)
+			return a.templates.Render(ctx, w, r, tplLogin, errData)
 		}
 
-		if err := a.authenticate(ctx, u, p); err != nil {
-			fmt.Fprintln(authboss.Cfg.LogWriter, err)
-			w.WriteHeader(http.StatusForbidden)
-			tpl := a.templates[pageLogin]
-			tpl.ExecuteTemplate(w, tpl.Name(), AuthPage{
-				Error:        "invalid username and/or password",
-				Username:     u,
-				ShowRemember: a.isRememberLoaded,
-				ShowRecover:  a.isRecoverLoaded,
-				XSRFName:     authboss.Cfg.XSRFName,
-				XSRFToken:    authboss.Cfg.XSRFMaker(w, r),
-			})
-			return
-		}
-
-		ctx.SessionStorer.Put(authboss.SessionKey, u)
+		ctx.SessionStorer.Put(authboss.SessionKey, username)
 		authboss.Cfg.Callbacks.FireAfter(authboss.EventAuth, ctx)
-
 		http.Redirect(w, r, authboss.Cfg.AuthLoginSuccessRoute, http.StatusFound)
 	default:
 		w.WriteHeader(http.StatusMethodNotAllowed)
-	}
-}
-
-func (a *Auth) authenticate(ctx *authboss.Context, username, password string) error {
-	var userInter interface{}
-	var err error
-	if userInter, err = authboss.Cfg.Storer.Get(username, nil); err != nil {
-		return err
-	}
-
-	ctx.User = authboss.Unbind(userInter)
-
-	pwdIntf, ok := ctx.User[attrPassword]
-	if !ok {
-		return errors.New("auth: User attributes did not include a password.")
-	}
-
-	pwd, ok := pwdIntf.(string)
-	if !ok {
-		return errors.New("auth: User password was not a string somehow.")
-	}
-
-	if err := bcrypt.CompareHashAndPassword([]byte(pwd), []byte(password)); err != nil {
-		return errors.New("invalid password")
 	}
 
 	return nil
 }
 
-func (a *Auth) logoutHandlerFunc(ctx *authboss.Context, w http.ResponseWriter, r *http.Request) {
+func validateCredentials(ctx *authboss.Context, username, password string) error {
+	if err := ctx.LoadUser(username); err != nil {
+		return err
+	}
+
+	actualPassword, err := ctx.User.StringErr(storePassword)
+	if err != nil {
+		return err
+	}
+
+	if err := bcrypt.CompareHashAndPassword([]byte(actualPassword), []byte(password)); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (a *AuthModule) logoutHandlerFunc(ctx *authboss.Context, w http.ResponseWriter, r *http.Request) error {
 	switch r.Method {
 	case methodGET:
 		ctx.SessionStorer.Del(authboss.SessionKey)
@@ -184,4 +134,6 @@ func (a *Auth) logoutHandlerFunc(ctx *authboss.Context, w http.ResponseWriter, r
 	default:
 		w.WriteHeader(http.StatusMethodNotAllowed)
 	}
+
+	return nil
 }

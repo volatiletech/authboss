@@ -14,7 +14,6 @@ import (
 	"path/filepath"
 
 	"gopkg.in/authboss.v0"
-	"gopkg.in/authboss.v0/internal/views"
 )
 
 var (
@@ -63,7 +62,7 @@ func LoadTemplates(layout *template.Template, path string, files ...string) (Tem
 func (t Templates) Render(ctx *authboss.Context, w http.ResponseWriter, r *http.Request, name string, data authboss.HTMLData) error {
 	tpl, ok := t[name]
 	if !ok {
-		return authboss.RenderErr{tpl.Name(), data, views.ErrTemplateNotFound}
+		return authboss.RenderErr{tpl.Name(), data, ErrTemplateNotFound}
 	}
 
 	data.MergeKV("xsrfName", template.HTML(authboss.Cfg.XSRFName), "xsrfToken", template.HTML(authboss.Cfg.XSRFMaker(w, r)))

@@ -35,6 +35,13 @@ func (m mockClientStore) Get(key string) (string, bool) {
 	v, ok := m[key]
 	return v, ok
 }
+func (m mockClientStore) GetErr(key string) (string, error) {
+	v, ok := m[key]
+	if !ok {
+		return v, ClientDataErr{key}
+	}
+	return v, nil
+}
 func (m mockClientStore) Put(key, val string) { m[key] = val }
 func (m mockClientStore) Del(key string)      { delete(m, key) }
 

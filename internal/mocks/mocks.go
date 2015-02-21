@@ -194,6 +194,17 @@ func (m *MockClientStorer) Get(key string) (string, bool) {
 	v, ok := m.Values[key]
 	return v, ok
 }
+func (m *MockClientStorer) GetErr(key string) (string, error) {
+	if m.GetShouldFail {
+		return "", authboss.ClientDataErr{key}
+	}
+
+	v, ok := m.Values[key]
+	if !ok {
+		return v, authboss.ClientDataErr{key}
+	}
+	return v, ok
+}
 func (m *MockClientStorer) Put(key, val string) { m.Values[key] = val }
 func (m *MockClientStorer) Del(key string)      { delete(m.Values, key) }
 

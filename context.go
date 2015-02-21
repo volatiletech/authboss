@@ -13,8 +13,8 @@ import (
 // need for context is a request's session store. It is not safe for use by
 // multiple goroutines.
 type Context struct {
-	SessionStorer ClientStorer
-	CookieStorer  ClientStorer
+	SessionStorer ClientStorerErr
+	CookieStorer  ClientStorerErr
 	User          Attributes
 
 	postFormValues map[string][]string

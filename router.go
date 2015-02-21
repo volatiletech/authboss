@@ -37,8 +37,8 @@ func (c contextRoute) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	ctx.CookieStorer = Cfg.CookieStoreMaker(w, r)
-	ctx.SessionStorer = Cfg.SessionStoreMaker(w, r)
+	ctx.CookieStorer = clientStoreWrapper{Cfg.CookieStoreMaker(w, r)}
+	ctx.SessionStorer = clientStoreWrapper{Cfg.SessionStoreMaker(w, r)}
 
 	err = c.fn(ctx, w, r)
 	if err == nil {

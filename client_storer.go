@@ -23,6 +23,26 @@ type ClientStorer interface {
 	Del(key string)
 }
 
+// ClientStorerErr is a wrapper to return error values from failed Gets.
+type ClientStorerErr interface {
+	ClientStorer
+	GetErr(key string) (string, error)
+}
+
+type clientStoreWrapper struct {
+	ClientStorer
+}
+
+// GetErr returns a value or an error.
+func (c clientStoreWrapper) GetErr(key string) (string, error) {
+	str, ok := c.Get(key)
+	if !ok {
+		return str, ClientDataErr{key}
+	}
+
+	return str, nil
+}
+
 // CookieStoreMaker is used to create a cookie storer from an http request. Keep in mind
 // security considerations for your implementation, Secure, HTTP-Only, etc flags.
 type CookieStoreMaker func(http.ResponseWriter, *http.Request) ClientStorer

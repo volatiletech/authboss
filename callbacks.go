@@ -1,5 +1,11 @@
 package authboss
 
+import (
+	"fmt"
+	"reflect"
+	"runtime"
+)
+
 // Event is used for callback registration.
 type Event int
 
@@ -13,8 +19,10 @@ const (
 	EventGet
 )
 
-// Before callbacks can interrupt the flow by returning an error. This is used to stop
-// the callback chain and the original handler from executing.
+// Before callbacks can interrupt the flow by returning a bool. This is used to stop
+// the callback chain and the original handler from continuing execution.
+// The execution should also stopped if there is an error (and therefore if error is set
+// the bool is automatically considered set).
 type Before func(*Context) (bool, error)
 
 // After is a request callback that happens after the event.
@@ -48,13 +56,18 @@ func (c *Callbacks) After(e Event, f After) {
 	c.after[e] = callbacks
 }
 
-// FireBefore event to all the callbacks with a context.
+// FireBefore event to all the callbacks with a context. The error
+// can be safely ignored since it is logged here and considered finished with
+// but under all circumstances handlers should not proceed if the interrupted
+// bool has been set (either via a callback naturally, or via FireBefore as a result
+// of receiving an error).
 func (c *Callbacks) FireBefore(e Event, ctx *Context) (interrupted bool, err error) {
 	callbacks := c.before[e]
 	for _, fn := range callbacks {
 		interrupted, err = fn(ctx)
 		if err != nil {
-			return false, err
+			fmt.Fprintf(Cfg.LogWriter, "Callback error (%s): %v\n", runtime.FuncForPC(reflect.ValueOf(fn).Pointer()).Name(), err)
+			return true, err
 		}
 		if interrupted {
 			return true, nil
@@ -64,11 +77,13 @@ func (c *Callbacks) FireBefore(e Event, ctx *Context) (interrupted bool, err err
 	return false, nil
 }
 
-// FireAfter event to all the callbacks with a context.
+// FireAfter event to all the callbacks with a context. The error can safely be
+// ignored as it is logged.
 func (c *Callbacks) FireAfter(e Event, ctx *Context) (err error) {
 	callbacks := c.after[e]
 	for _, fn := range callbacks {
 		if err = fn(ctx); err != nil {
+			fmt.Fprintf(Cfg.LogWriter, "Callback error (%s): %v\n", runtime.FuncForPC(reflect.ValueOf(fn).Pointer()).Name(), err)
 			return err
 		}
 	}

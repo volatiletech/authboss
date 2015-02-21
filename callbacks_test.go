@@ -1,7 +1,9 @@
 package authboss
 
 import (
+	"bytes"
 	"errors"
+	"strings"
 	"testing"
 )
 
@@ -74,12 +76,16 @@ func TestCallbacksInterrupt(t *testing.T) {
 	}
 }
 
-func TestCallbacksErrors(t *testing.T) {
+func TestCallbacksBeforeErrors(t *testing.T) {
+	log := &bytes.Buffer{}
+	Cfg = &Config{
+		LogWriter: log,
+	}
 	before1 := false
 	before2 := false
 	c := NewCallbacks()
 
-	errValue := errors.New("Problem occured.")
+	errValue := errors.New("Problem occured")
 
 	c.Before(EventRegister, func(ctx *Context) (bool, error) {
 		before1 = true
@@ -94,8 +100,8 @@ func TestCallbacksErrors(t *testing.T) {
 	if err != errValue {
 		t.Error("Expected an error to come back.")
 	}
-	if stopped {
-		t.Error("It should not have been stopped.")
+	if !stopped {
+		t.Error("It should have been stopped.")
 	}
 
 	if !before1 {
@@ -103,5 +109,46 @@ func TestCallbacksErrors(t *testing.T) {
 	}
 	if before2 {
 		t.Error("Before2 should not have been called.")
+	}
+
+	if estr := log.String(); !strings.Contains(estr, errValue.Error()) {
+		t.Error("Error string wrong:", estr)
+	}
+}
+
+func TestCallbacksAfterErrors(t *testing.T) {
+	log := &bytes.Buffer{}
+	Cfg = &Config{
+		LogWriter: log,
+	}
+	after1 := false
+	after2 := false
+	c := NewCallbacks()
+
+	errValue := errors.New("Problem occured")
+
+	c.After(EventRegister, func(ctx *Context) error {
+		after1 = true
+		return errValue
+	})
+	c.After(EventRegister, func(ctx *Context) error {
+		after2 = true
+		return nil
+	})
+
+	err := c.FireAfter(EventRegister, NewContext())
+	if err != errValue {
+		t.Error("Expected an error to come back.")
+	}
+
+	if !after1 {
+		t.Error("After1 should have been called.")
+	}
+	if after2 {
+		t.Error("After2 should not have been called.")
+	}
+
+	if estr := log.String(); !strings.Contains(estr, errValue.Error()) {
+		t.Error("Error string wrong:", estr)
 	}
 }

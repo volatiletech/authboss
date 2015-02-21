@@ -14,6 +14,8 @@ import (
 )
 
 var testViewTemplate = template.Must(template.New("").Parse(`{{.external}} {{.fun}} {{.flash_success}} {{.flash_error}} {{.xsrfName}} {{.xsrfToken}}`))
+var testEmailHTMLTempalte = template.Must(template.New("").Parse(`<h2>{{.}}</h2>`))
+var testEmailPlainTempalte = template.Must(template.New("").Parse(`i am a {{.}}`))
 
 func TestLoadTemplates(t *testing.T) {
 	t.Parallel()
@@ -79,6 +81,40 @@ func TestTemplates_Render(t *testing.T) {
 
 	if w.Body.String() != "there is no spoon do you think that's air you're breathing now?" {
 		t.Error("Body was wrong:", w.Body.String())
+	}
+}
+
+func TestTemplates_RenderEmail(t *testing.T) {
+	mockMailer := &mocks.MockMailer{}
+	authboss.Cfg.Mailer = mockMailer
+
+	tpls := Templates{
+		"html":  testEmailHTMLTempalte,
+		"plain": testEmailPlainTempalte,
+	}
+
+	email := authboss.Email{
+		To: []string{"a@b.c"},
+	}
+
+	err := tpls.RenderEmail(email, "html", "plain", "spoon")
+	if err != nil {
+		t.Error(err)
+	}
+
+	if len(mockMailer.Last.To) != 1 {
+		t.Error("Expected 1 to addr")
+	}
+	if mockMailer.Last.To[0] != "a@b.c" {
+		t.Error("Unexpected to addr @ 0:", mockMailer.Last.To[0])
+	}
+
+	if mockMailer.Last.HTMLBody != "<h2>spoon</h2>" {
+		t.Error("Unexpected HTMLBody:", mockMailer.Last.HTMLBody)
+	}
+
+	if mockMailer.Last.TextBody != "i am a spoon" {
+		t.Error("Unexpected TextBody:", mockMailer.Last.TextBody)
 	}
 }
 

@@ -1,4 +1,12 @@
 <form action="/recover" method="POST">
+    <input type="text" name="username" placeholder="Username" value="{{.username}}" /><br />
+    <input type="text" name="confirmUsername" placeholder="Confirm Username" value="{{.confirmUsername}}" /><br />
+    <button type="submit">Recover</button>
+    <a href="/login">Cancel</a>
+</form>
+
+
+<!-- <form action="/recover" method="POST">
     {{$usernameErrs := .ErrMap.username}}
     <div class="form-group{{if $usernameErrs}} has-error{{end}}">
         <div class="input-group">
@@ -24,4 +32,4 @@
     <button class="btn btn-primary btn-block" type="submit">Recover</button>
     <a class="btn btn-link btn-block" type="submit" href="/login">Cancel</a>
     <input type="hidden" name="{{.XSRFName}}" value="{{.XSRFToken}}" />
-</form>
+</form> -->

@@ -94,6 +94,37 @@ func (t Templates) Render(ctx *authboss.Context, w http.ResponseWriter, r *http.
 	return nil
 }
 
+// RenderEmail renders the html and plaintext views for an email and sends it
+func (t Templates) RenderEmail(email authboss.Email, nameHTML, namePlain string, data interface{}) error {
+	tplHTML, ok := t[nameHTML]
+	if !ok {
+		return authboss.RenderErr{tplHTML.Name(), data, ErrTemplateNotFound}
+	}
+
+	tplPlain, ok := t[namePlain]
+	if !ok {
+		return authboss.RenderErr{tplPlain.Name(), data, ErrTemplateNotFound}
+	}
+
+	htmlBuffer := &bytes.Buffer{}
+	if err := tplHTML.ExecuteTemplate(htmlBuffer, tplHTML.Name(), data); err != nil {
+		return authboss.RenderErr{tplHTML.Name(), data, err}
+	}
+	email.HTMLBody = htmlBuffer.String()
+
+	plainBuffer := &bytes.Buffer{}
+	if err := tplPlain.ExecuteTemplate(plainBuffer, tplPlain.Name(), data); err != nil {
+		return authboss.RenderErr{tplPlain.Name(), data, err}
+	}
+	email.TextBody = plainBuffer.String()
+
+	if err := authboss.Cfg.Mailer.Send(email); err != nil {
+		return err
+	}
+
+	return nil
+}
+
 // Redirect sets any flash messages given and redirects the user.
 func Redirect(ctx *authboss.Context, w http.ResponseWriter, r *http.Request, path, flashSuccess, flashError string) {
 	if len(flashSuccess) > 0 {

@@ -100,8 +100,8 @@ func TestCallbacksBeforeErrors(t *testing.T) {
 	if err != errValue {
 		t.Error("Expected an error to come back.")
 	}
-	if !stopped {
-		t.Error("It should have been stopped.")
+	if stopped {
+		t.Error("It should not have been stopped.")
 	}
 
 	if !before1 {

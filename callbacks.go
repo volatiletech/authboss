@@ -57,17 +57,17 @@ func (c *Callbacks) After(e Event, f After) {
 }
 
 // FireBefore event to all the callbacks with a context. The error
-// can be safely ignored since it is logged here and considered finished with
-// but under all circumstances handlers should not proceed if the interrupted
-// bool has been set (either via a callback naturally, or via FireBefore as a result
-// of receiving an error).
+// should be passed up despite being logged once here already so it
+// can write an error out to the HTTP Client. If err is nil then
+// check the value of interrupted. If interrupted is false
+// then the handler can continue it's task otherwise it must stop.
 func (c *Callbacks) FireBefore(e Event, ctx *Context) (interrupted bool, err error) {
 	callbacks := c.before[e]
 	for _, fn := range callbacks {
 		interrupted, err = fn(ctx)
 		if err != nil {
 			fmt.Fprintf(Cfg.LogWriter, "Callback error (%s): %v\n", runtime.FuncForPC(reflect.ValueOf(fn).Pointer()).Name(), err)
-			return true, err
+			return false, err
 		}
 		if interrupted {
 			return true, nil

@@ -2,7 +2,6 @@
 package confirm
 
 import (
-	"bytes"
 	"crypto/md5"
 	"crypto/rand"
 	"encoding/base64"
@@ -12,7 +11,7 @@ import (
 	"net/url"
 
 	"gopkg.in/authboss.v0"
-	"gopkg.in/authboss.v0/internal/views"
+	"gopkg.in/authboss.v0/internal/render"
 )
 
 const (
@@ -26,9 +25,7 @@ const (
 )
 
 var (
-	// ErrNotConfirmed happens when the account is there, but
-	// not yet confirmed.
-	ErrNotConfirmed = errors.New("Account is not confirmed.")
+	errUserMissing = errors.New("confirm: After registration user must be loaded")
 )
 
 // C is the singleton instance of the confirm module which will have been
@@ -41,7 +38,7 @@ func init() {
 }
 
 type Confirm struct {
-	emailTemplates views.Templates
+	emailTemplates render.Templates
 }
 
 func (c *Confirm) Initialize() (err error) {
@@ -51,7 +48,7 @@ func (c *Confirm) Initialize() (err error) {
 		return errors.New("confirm: Need a ConfirmStorer.")
 	}
 
-	c.emailTemplates, err = views.Get(authboss.Cfg.LayoutEmail, authboss.Cfg.ViewsPath, tplConfirmHTML, tplConfirmText)
+	c.emailTemplates, err = render.LoadTemplates(authboss.Cfg.LayoutEmail, authboss.Cfg.ViewsPath, tplConfirmHTML, tplConfirmText)
 	if err != nil {
 		return err
 	}
@@ -75,41 +72,42 @@ func (c *Confirm) Storage() authboss.StorageOptions {
 	}
 }
 
-func (c *Confirm) BeforeGet(ctx *authboss.Context) error {
-	if intf, ok := ctx.User[StoreConfirmed]; ok {
-		if confirmed, ok := intf.(bool); ok && confirmed {
-			return nil
-		}
+func (c *Confirm) BeforeGet(ctx *authboss.Context) (authboss.Interrupt, error) {
+	if confirmed, err := ctx.User.BoolErr(StoreConfirmed); err != nil {
+		return authboss.InterruptNone, err
+	} else if !confirmed {
+		return authboss.InterruptAccountNotConfirmed, nil
 	}
 
-	return ErrNotConfirmed
+	return authboss.InterruptNone, nil
 }
 
 // AfterRegister ensures the account is not activated.
-func (c *Confirm) AfterRegister(ctx *authboss.Context) {
+func (c *Confirm) AfterRegister(ctx *authboss.Context) error {
 	if ctx.User == nil {
-		fmt.Fprintln(authboss.Cfg.LogWriter, "confirm: user not loaded in AfterRegister callback")
-		return
+		return errUserMissing
 	}
 
 	token := make([]byte, 32)
 	if _, err := rand.Read(token); err != nil {
-		fmt.Fprintln(authboss.Cfg.LogWriter, "confirm: failed to produce random token:", err)
+		return err
 	}
 	sum := md5.Sum(token)
 
 	ctx.User[StoreConfirmToken] = base64.StdEncoding.EncodeToString(sum[:])
 
 	if err := ctx.SaveUser(); err != nil {
-		fmt.Fprintln(authboss.Cfg.LogWriter, "confirm: failed to save user's token:", err)
-		return
+		return err
 	}
 
-	if email, ok := ctx.User.String(authboss.StoreEmail); !ok {
-		fmt.Fprintln(authboss.Cfg.LogWriter, "confirm: user has no e-mail address to send to, could not send confirm e-mail")
-	} else {
-		goConfirmEmail(c, email, base64.URLEncoding.EncodeToString(sum[:]))
+	email, err := ctx.User.StringErr(authboss.StoreEmail)
+	if err != nil {
+		return err
 	}
+
+	goConfirmEmail(c, email, base64.URLEncoding.EncodeToString(sum[:]))
+
+	return nil
 }
 
 var goConfirmEmail = func(c *Confirm, to, token string) {
@@ -120,42 +118,29 @@ var goConfirmEmail = func(c *Confirm, to, token string) {
 func (c *Confirm) confirmEmail(to, token string) {
 	url := fmt.Sprintf("%s/confirm?%s=%s", authboss.Cfg.HostName, url.QueryEscape(FormValueConfirm), url.QueryEscape(token))
 
-	var htmlEmailBody, textEmailBody *bytes.Buffer
-	var err error
-	if htmlEmailBody, err = c.emailTemplates.ExecuteTemplate(tplConfirmHTML, url); err != nil {
-		fmt.Fprintln(authboss.Cfg.LogWriter, "confirm: failed to build html template:", err)
-		return
+	email := authboss.Email{
+		To:      []string{to},
+		From:    authboss.Cfg.EmailFrom,
+		Subject: authboss.Cfg.EmailSubjectPrefix + "Confirm New Account",
 	}
 
-	if textEmailBody, err = c.emailTemplates.ExecuteTemplate(tplConfirmText, url); err != nil {
-		fmt.Fprintln(authboss.Cfg.LogWriter, "confirm: failed to build plaintext template:", err)
-		return
-	}
-
-	if err := authboss.Cfg.Mailer.Send(authboss.Email{
-		To:       []string{to},
-		From:     authboss.Cfg.EmailFrom,
-		Subject:  authboss.Cfg.EmailSubjectPrefix + "Confirm New Account",
-		TextBody: textEmailBody.String(),
-		HTMLBody: htmlEmailBody.String(),
-	}); err != nil {
-		fmt.Fprintln(authboss.Cfg.LogWriter, "confirm: failed to build plaintext template:", err)
+	err := c.emailTemplates.RenderEmail(email, tplConfirmHTML, tplConfirmText, url)
+	if err != nil {
+		fmt.Fprintf(authboss.Cfg.LogWriter, "confirm: Failed to send e-mail: %v", err)
 	}
 }
 
-func (c *Confirm) confirmHandler(ctx *authboss.Context, w http.ResponseWriter, r *http.Request) {
-	token, ok := ctx.FirstFormValue(FormValueConfirm)
-	if len(token) == 0 || !ok {
-		http.Redirect(w, r, "/", http.StatusTemporaryRedirect)
-		fmt.Fprintln(authboss.Cfg.LogWriter, "confirm: no confirm token found in request")
-		return
+func (c *Confirm) confirmHandler(ctx *authboss.Context, w http.ResponseWriter, r *http.Request) error {
+	token, err := ctx.FirstFormValueErr(FormValueConfirm)
+	if err != nil {
+		return err
 	}
 
 	toHash, err := base64.URLEncoding.DecodeString(token)
 	if err != nil {
-		http.Redirect(w, r, "/", http.StatusTemporaryRedirect)
-		fmt.Fprintf(authboss.Cfg.LogWriter, "confirm: confirm token failed to decode %q => %v\n", token, err)
-		return
+		return authboss.ErrAndRedirect{
+			Endpoint: "/", Err: fmt.Errorf("confirm: token failed to decode %q => %v\n", token, err),
+		}
 	}
 
 	sum := md5.Sum(toHash)
@@ -163,13 +148,9 @@ func (c *Confirm) confirmHandler(ctx *authboss.Context, w http.ResponseWriter, r
 	dbTok := base64.StdEncoding.EncodeToString(sum[:])
 	user, err := authboss.Cfg.Storer.(authboss.ConfirmStorer).ConfirmUser(dbTok)
 	if err == authboss.ErrUserNotFound {
-		http.Redirect(w, r, "/", http.StatusTemporaryRedirect)
-		fmt.Fprintln(authboss.Cfg.LogWriter, "confirm: token not found:", err)
-		return
+		return authboss.ErrAndRedirect{Endpoint: "/", Err: errors.New("confirm: token not found")}
 	} else if err != nil {
-		w.WriteHeader(500)
-		fmt.Fprintln(authboss.Cfg.LogWriter, "confirm: error retrieving user token:", err)
-		return
+		return err
 	}
 
 	ctx.User = authboss.Unbind(user)
@@ -177,14 +158,17 @@ func (c *Confirm) confirmHandler(ctx *authboss.Context, w http.ResponseWriter, r
 	ctx.User[StoreConfirmToken] = ""
 	ctx.User[StoreConfirmed] = true
 
-	key, _ := ctx.User.String(authboss.StoreUsername)
-	ctx.SessionStorer.Put(authboss.SessionKey, key)
-	ctx.SessionStorer.Put(authboss.FlashSuccessKey, "Successfully confirmed your account.")
-
-	if err := ctx.SaveUser(); err != nil {
-		fmt.Fprintln(authboss.Cfg.LogWriter, "confirm: failed to clear the user's token:", err)
-		return
+	key, err := ctx.User.StringErr(authboss.StoreUsername)
+	if err != nil {
+		return err
 	}
 
-	http.Redirect(w, r, "/", http.StatusTemporaryRedirect)
+	if err := ctx.SaveUser(); err != nil {
+		return err
+	}
+
+	ctx.SessionStorer.Put(authboss.SessionKey, key)
+	render.Redirect(ctx, w, r, "/", "You have successfully confirmed your account.", "")
+
+	return nil
 }

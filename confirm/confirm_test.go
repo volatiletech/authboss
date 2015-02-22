@@ -4,9 +4,11 @@ import (
 	"bytes"
 	"crypto/md5"
 	"encoding/base64"
+	"errors"
 	"html/template"
 	"net/http"
 	"net/http/httptest"
+	"reflect"
 	"strings"
 	"testing"
 
@@ -67,24 +69,26 @@ func TestConfirm_BeforeGet(t *testing.T) {
 	c := setup()
 	ctx := authboss.NewContext()
 
-	if err := c.BeforeGet(ctx); err == nil {
-		t.Error("Should stop the get due to non-confirm.")
+	if _, err := c.BeforeGet(ctx); err == nil {
+		t.Error("Should stop the get due to attribute missing:", err)
 	}
 
 	ctx.User = authboss.Attributes{
 		StoreConfirmed: false,
 	}
 
-	if err := c.BeforeGet(ctx); err == nil {
-		t.Error("Should stop the get due to non-confirm.")
+	if interrupt, err := c.BeforeGet(ctx); interrupt != authboss.InterruptAccountNotConfirmed {
+		t.Error("Should stop the get due to non-confirm:", interrupt)
+	} else if err != nil {
+		t.Error(err)
 	}
 
 	ctx.User = authboss.Attributes{
 		StoreConfirmed: true,
 	}
 
-	if err := c.BeforeGet(ctx); err != nil {
-		t.Error(err)
+	if interrupt, err := c.BeforeGet(ctx); interrupt != authboss.InterruptNone || err != nil {
+		t.Error(interrupt, err)
 	}
 }
 
@@ -102,16 +106,13 @@ func TestConfirm_AfterRegister(t *testing.T) {
 		sentEmail = true
 	}
 
-	c.AfterRegister(ctx)
-	if str := log.String(); !strings.Contains(str, "user not loaded") {
-		t.Error("Expected it to die with loading error:", str)
+	if err := c.AfterRegister(ctx); err != errUserMissing {
+		t.Error("Expected it to die with user error:", err)
 	}
 
 	ctx.User = authboss.Attributes{authboss.StoreUsername: "uname"}
-	log.Reset()
-	c.AfterRegister(ctx)
-	if str := log.String(); !strings.Contains(str, "no e-mail address to send to") {
-		t.Error("Expected it to die with e-mail address error:", str)
+	if err := c.AfterRegister(ctx); err == nil || err.(authboss.AttributeErr).Name != "email" {
+		t.Error("Expected it to die with e-mail address error:", err)
 	}
 
 	ctx.User[authboss.StoreEmail] = "a@a.com"
@@ -135,12 +136,15 @@ func TestConfirm_ConfirmHandlerErrors(t *testing.T) {
 	tests := []struct {
 		URL       string
 		Confirmed bool
-		Redirect  bool
-		Error     string
+		Error     error
 	}{
-		{"http://localhost", false, true, "no confirm token found in request"},
-		{"http://localhost?cnf=c$ats", false, true, "confirm token failed to decode"},
-		{"http://localhost?cnf=SGVsbG8sIHBsYXlncm91bmQ=", false, true, "token not found"},
+		{"http://localhost", false, authboss.ClientDataErr{FormValueConfirm}},
+		{"http://localhost?cnf=c$ats", false,
+			authboss.ErrAndRedirect{Endpoint: "/", Err: errors.New("confirm: token failed to decode \"c$ats\" => illegal base64 data at input byte 1\n")},
+		},
+		{"http://localhost?cnf=SGVsbG8sIHBsYXlncm91bmQ=", false,
+			authboss.ErrAndRedirect{Endpoint: "/", Err: errors.New(`confirm: token not found`)},
+		},
 	}
 
 	for i, test := range tests {
@@ -148,22 +152,18 @@ func TestConfirm_ConfirmHandlerErrors(t *testing.T) {
 		w := httptest.NewRecorder()
 		ctx, _ := authboss.ContextFromRequest(r)
 
-		log.Reset()
-		c.confirmHandler(ctx, w, r)
+		err := c.confirmHandler(ctx, w, r)
+		if err == nil {
+			t.Fatal("%d) Expected an error", i)
+		}
 
-		if len(test.Error) != 0 {
-			if str := log.String(); !strings.Contains(str, test.Error) {
-				t.Errorf("%d) Expected: %q, got: %q", i, test.Error, str)
-			}
+		if !reflect.DeepEqual(err, test.Error) {
+			t.Errorf("Expected: %v, got: %v", test.Error, err)
 		}
 
 		is, ok := ctx.User.Bool(StoreConfirmed)
 		if ok && is {
 			t.Error("The user should not be confirmed.")
-		}
-
-		if test.Redirect && w.Code != http.StatusTemporaryRedirect {
-			t.Error("Expected a redirect, got:", w.Header)
 		}
 	}
 }
@@ -192,6 +192,7 @@ func TestConfirm_Confirm(t *testing.T) {
 	r, _ := http.NewRequest("GET", "http://localhost?cnf="+base64.URLEncoding.EncodeToString(token), nil)
 	w := httptest.NewRecorder()
 	ctx, _ = authboss.ContextFromRequest(r)
+	ctx.CookieStorer = mocks.NewMockClientStorer()
 	session := mocks.NewMockClientStorer()
 	ctx.User = user
 	ctx.SessionStorer = session
@@ -218,7 +219,7 @@ func TestConfirm_Confirm(t *testing.T) {
 	if key, ok := ctx.SessionStorer.Get(authboss.SessionKey); !ok || len(key) == 0 {
 		t.Error("Should have logged the user in.")
 	}
-	if success, ok := ctx.SessionStorer.Get(authboss.FlashSuccessKey); !ok || len(success) == 0 {
+	if success, ok := ctx.CookieStorer.Get(authboss.FlashSuccessKey); !ok || len(success) == 0 {
 		t.Error("Should have left a nice message.")
 	}
 }

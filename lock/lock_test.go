@@ -49,15 +49,15 @@ func TestAfterAuth(t *testing.T) {
 
 	storer := mocks.NewMockStorer()
 	authboss.Cfg.Storer = storer
-	ctx.User = authboss.Attributes{"username": "username"}
+	ctx.User = authboss.Attributes{authboss.Cfg.PrimaryID: "john@john.com"}
 
 	if err := lock.AfterAuth(ctx); err != nil {
 		t.Error(err)
 	}
-	if storer.Users["username"][StoreAttemptNumber].(int) != 0 {
+	if storer.Users["john@john.com"][StoreAttemptNumber].(int) != 0 {
 		t.Error("StoreAttemptNumber set incorrectly.")
 	}
-	if _, ok := storer.Users["username"][StoreAttemptTime].(time.Time); !ok {
+	if _, ok := storer.Users["john@john.com"][StoreAttemptTime].(time.Time); !ok {
 		t.Error("StoreAttemptTime not set.")
 	}
 }
@@ -74,35 +74,37 @@ func TestAfterAuthFail_Lock(t *testing.T) {
 	authboss.Cfg.LockWindow = 30 * time.Minute
 	authboss.Cfg.LockAfter = 3
 
-	ctx.User = map[string]interface{}{"username": "username"}
+	email := "john@john.com"
+
+	ctx.User = map[string]interface{}{authboss.Cfg.PrimaryID: email}
 
 	old = time.Now().UTC().Add(-1 * time.Hour)
 
 	for i := 0; i < 3; i++ {
-		if lockedIntf, ok := storer.Users["username"][StoreLocked]; ok && lockedIntf.(bool) {
+		if lockedIntf, ok := storer.Users["john@john.com"][StoreLocked]; ok && lockedIntf.(bool) {
 			t.Errorf("%d: User should not be locked.", i)
 		}
 
 		if err := lock.AfterAuthFail(ctx); err != nil {
 			t.Error(err)
 		}
-		if val := storer.Users["username"][StoreAttemptNumber].(int); val != i+1 {
+		if val := storer.Users[email][StoreAttemptNumber].(int); val != i+1 {
 			t.Errorf("%d: StoreAttemptNumber set incorrectly: %v", i, val)
 		}
-		if current, ok = storer.Users["username"][StoreAttemptTime].(time.Time); !ok || old.After(current) {
+		if current, ok = storer.Users[email][StoreAttemptTime].(time.Time); !ok || old.After(current) {
 			t.Error("%d: StoreAttemptTime not set correctly: %v", i, current)
 		}
 
 		current = old
 	}
 
-	if !storer.Users["username"][StoreLocked].(bool) {
+	if !storer.Users[email][StoreLocked].(bool) {
 		t.Error("User should be locked.")
 	}
-	if val := storer.Users["username"][StoreAttemptNumber].(int); val != 3 {
+	if val := storer.Users[email][StoreAttemptNumber].(int); val != 3 {
 		t.Error("StoreAttemptNumber set incorrectly:", val)
 	}
-	if _, ok = storer.Users["username"][StoreAttemptTime].(time.Time); !ok {
+	if _, ok = storer.Users[email][StoreAttemptTime].(time.Time); !ok {
 		t.Error("StoreAttemptTime not set correctly.")
 	}
 }
@@ -120,21 +122,22 @@ func TestAfterAuthFail_Reset(t *testing.T) {
 
 	old = time.Now().UTC().Add(-time.Hour)
 
+	email := "john@john.com"
 	ctx.User = map[string]interface{}{
-		"username":         "username",
-		StoreAttemptNumber: 2,
-		StoreAttemptTime:   old,
-		StoreLocked:        false,
+		authboss.Cfg.PrimaryID: email,
+		StoreAttemptNumber:     2,
+		StoreAttemptTime:       old,
+		StoreLocked:            false,
 	}
 
 	lock.AfterAuthFail(ctx)
-	if val := storer.Users["username"][StoreAttemptNumber].(int); val != 0 {
+	if val := storer.Users[email][StoreAttemptNumber].(int); val != 0 {
 		t.Error("StoreAttemptNumber set incorrectly:", val)
 	}
-	if current, ok = storer.Users["username"][StoreAttemptTime].(time.Time); !ok || current.Before(old) {
+	if current, ok = storer.Users[email][StoreAttemptTime].(time.Time); !ok || current.Before(old) {
 		t.Error("StoreAttemptTime not set correctly.")
 	}
-	if locked := storer.Users["username"][StoreLocked].(bool); locked {
+	if locked := storer.Users[email][StoreLocked].(bool); locked {
 		t.Error("StoreLocked not set correctly:", locked)
 	}
 }
@@ -156,17 +159,18 @@ func TestLock(t *testing.T) {
 	authboss.Cfg.Storer = storer
 	lock := Lock{}
 
-	storer.Users["username"] = map[string]interface{}{
-		"username": "username",
-		"password": "password",
+	email := "john@john.com"
+	storer.Users[email] = map[string]interface{}{
+		authboss.Cfg.PrimaryID: email,
+		"password":             "password",
 	}
 
-	err := lock.Lock("username")
+	err := lock.Lock(email)
 	if err != nil {
 		t.Error(err)
 	}
 
-	if locked := storer.Users["username"][StoreLocked].(bool); !locked {
+	if locked := storer.Users[email][StoreLocked].(bool); !locked {
 		t.Error("User should be locked.")
 	}
 }
@@ -178,25 +182,26 @@ func TestUnlock(t *testing.T) {
 	lock := Lock{}
 	authboss.Cfg.LockWindow = 1 * time.Hour
 
-	storer.Users["username"] = map[string]interface{}{
-		"username": "username",
-		"password": "password",
-		"locked":   true,
+	email := "john@john.com"
+	storer.Users[email] = map[string]interface{}{
+		authboss.Cfg.PrimaryID: email,
+		"password":             "password",
+		"locked":               true,
 	}
 
-	err := lock.Unlock("username")
+	err := lock.Unlock(email)
 	if err != nil {
 		t.Error(err)
 	}
 
-	attemptTime := storer.Users["username"][StoreAttemptTime].(time.Time)
+	attemptTime := storer.Users[email][StoreAttemptTime].(time.Time)
 	if attemptTime.After(time.Now().UTC().Add(-authboss.Cfg.LockWindow)) {
 		t.Error("StoreLocked not set correctly:", attemptTime)
 	}
-	if number := storer.Users["username"][StoreAttemptNumber].(int); number != 0 {
+	if number := storer.Users[email][StoreAttemptNumber].(int); number != 0 {
 		t.Error("StoreLocked not set correctly:", number)
 	}
-	if locked := storer.Users["username"][StoreLocked].(bool); locked {
+	if locked := storer.Users[email][StoreLocked].(bool); locked {
 		t.Error("User should not be locked.")
 	}
 }

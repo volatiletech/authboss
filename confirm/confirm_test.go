@@ -98,6 +98,7 @@ func TestConfirm_AfterRegister(t *testing.T) {
 	log := &bytes.Buffer{}
 	authboss.Cfg.LogWriter = log
 	authboss.Cfg.Mailer = authboss.LogMailer(log)
+	authboss.Cfg.PrimaryID = authboss.StoreUsername
 
 	sentEmail := false
 
@@ -110,7 +111,7 @@ func TestConfirm_AfterRegister(t *testing.T) {
 		t.Error("Expected it to die with user error:", err)
 	}
 
-	ctx.User = authboss.Attributes{authboss.StoreUsername: "uname"}
+	ctx.User = authboss.Attributes{authboss.Cfg.PrimaryID: "username"}
 	if err := c.AfterRegister(ctx); err == nil || err.(authboss.AttributeErr).Name != "email" {
 		t.Error("Expected it to die with e-mail address error:", err)
 	}

@@ -130,7 +130,7 @@ func (c *Context) SaveUser() error {
 		return errors.New("User not initialized.")
 	}
 
-	key, ok := c.User.String("username")
+	key, ok := c.User.String(Cfg.PrimaryID)
 	if !ok {
 		return errors.New("User improperly initialized, primary ID missing")
 	}

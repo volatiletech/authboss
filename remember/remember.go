@@ -68,7 +68,7 @@ func (r *Remember) AfterAuth(ctx *authboss.Context) error {
 		return errUserMissing
 	}
 
-	key, err := ctx.User.StringErr("username")
+	key, err := ctx.User.StringErr(authboss.Cfg.PrimaryID)
 	if err != nil {
 		return err
 	}
@@ -140,7 +140,7 @@ func (r *Remember) Auth(
 	}
 
 	// Ensure a half-auth.
-	sstorer.Put(authboss.HalfAuthKey, "true")
+	sstorer.Put(authboss.SessionHalfAuthKey, "true")
 	// Log the user in.
 	sstorer.Put(authboss.SessionKey, key)
 

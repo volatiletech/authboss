@@ -14,8 +14,6 @@ const (
 	StoreEmail    = "email"
 	StoreUsername = "username"
 	StorePassword = "password"
-	// UserKey is used to uniquely identify the user.
-	StoreKey = StoreEmail
 )
 
 var (

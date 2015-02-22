@@ -14,9 +14,6 @@ const (
 	methodPOST = "POST"
 
 	tplLogin = "login.tpl"
-
-	storeUsername = "username"
-	storePassword = "password"
 )
 
 func init() {
@@ -37,7 +34,7 @@ func (a *AuthModule) Initialize() (err error) {
 		return err
 	}
 
-	a.policies = authboss.FilterValidators(authboss.Cfg.Policies, "username", "password")
+	a.policies = authboss.FilterValidators(authboss.Cfg.Policies, authboss.Cfg.PrimaryID, authboss.StorePassword)
 
 	a.isRememberLoaded = authboss.IsLoaded("remember")
 	a.isRecoverLoaded = authboss.IsLoaded("recover")
@@ -54,8 +51,8 @@ func (a *AuthModule) Routes() authboss.RouteTable {
 
 func (a *AuthModule) Storage() authboss.StorageOptions {
 	return authboss.StorageOptions{
-		storeUsername: authboss.String,
-		storePassword: authboss.String,
+		authboss.Cfg.PrimaryID: authboss.String,
+		authboss.StorePassword: authboss.String,
 	}
 }
 
@@ -63,7 +60,7 @@ func (a *AuthModule) loginHandlerFunc(ctx *authboss.Context, w http.ResponseWrit
 	switch r.Method {
 	case methodGET:
 		if _, ok := ctx.SessionStorer.Get(authboss.SessionKey); ok {
-			if halfAuthed, ok := ctx.SessionStorer.Get(authboss.HalfAuthKey); !ok || halfAuthed == "false" {
+			if halfAuthed, ok := ctx.SessionStorer.Get(authboss.SessionHalfAuthKey); !ok || halfAuthed == "false" {
 				http.Redirect(w, r, authboss.Cfg.AuthLoginSuccessRoute, http.StatusFound)
 			}
 		}
@@ -86,12 +83,12 @@ func (a *AuthModule) loginHandlerFunc(ctx *authboss.Context, w http.ResponseWrit
 			return nil
 		}
 
-		username, _ := ctx.FirstPostFormValue("username")
+		key, _ := ctx.FirstPostFormValue(authboss.Cfg.PrimaryID)
 		password, _ := ctx.FirstPostFormValue("password")
 
 		errData := authboss.NewHTMLData(
 			"error", "invalid username and/or password",
-			"username", username,
+			authboss.Cfg.PrimaryID, key,
 			"showRemember", a.isRememberLoaded,
 			"showRecover", a.isRecoverLoaded,
 		)
@@ -101,12 +98,12 @@ func (a *AuthModule) loginHandlerFunc(ctx *authboss.Context, w http.ResponseWrit
 			return a.templates.Render(ctx, w, r, tplLogin, errData)
 		}
 
-		if err := validateCredentials(ctx, username, password); err != nil {
+		if err := validateCredentials(ctx, key, password); err != nil {
 			fmt.Fprintln(authboss.Cfg.LogWriter, "auth: failed to validate credentials:", err)
 			return a.templates.Render(ctx, w, r, tplLogin, errData)
 		}
 
-		ctx.SessionStorer.Put(authboss.SessionKey, username)
+		ctx.SessionStorer.Put(authboss.SessionKey, key)
 		authboss.Cfg.Callbacks.FireAfter(authboss.EventAuth, ctx)
 		http.Redirect(w, r, authboss.Cfg.AuthLoginSuccessRoute, http.StatusFound)
 	default:
@@ -116,12 +113,12 @@ func (a *AuthModule) loginHandlerFunc(ctx *authboss.Context, w http.ResponseWrit
 	return nil
 }
 
-func validateCredentials(ctx *authboss.Context, username, password string) error {
-	if err := ctx.LoadUser(username); err != nil {
+func validateCredentials(ctx *authboss.Context, key, password string) error {
+	if err := ctx.LoadUser(key); err != nil {
 		return err
 	}
 
-	actualPassword, err := ctx.User.StringErr(storePassword)
+	actualPassword, err := ctx.User.StringErr(authboss.StorePassword)
 	if err != nil {
 		return err
 	}

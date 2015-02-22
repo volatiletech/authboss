@@ -5,6 +5,7 @@ import (
 	"io"
 	"io/ioutil"
 	"net/smtp"
+	"strings"
 	"time"
 
 	"golang.org/x/crypto/bcrypt"
@@ -20,14 +21,18 @@ var Cfg *Config = NewConfig()
 
 // Config holds all the configuration for both authboss and it's modules.
 type Config struct {
-	// MountPath is the path to mount the router at.
+	// MountPath is the path to mount authboss's routes at (eg /auth).
 	MountPath string
-	// ViewsPath is the path to overiding view template files.
+	// ViewsPath is the path to search for overridden templates.
 	ViewsPath string
-	// HostName is self explanitory
+	// HostName is the host of the web application (eg https://www.happiness.com:8080) for e-mail url generation.
 	HostName string
-	// BCryptPasswordCost is self explanitory.
+	// BCryptCost is the cost of the bcrypt password hashing function.
 	BCryptCost int
+
+	// PrimaryID is the primary identifier of the user. Set to one of:
+	// authboss.StoreEmail, authboss.StoreUsername (StoreEmail is default)
+	PrimaryID string
 
 	Layout          *template.Template
 	LayoutEmail     *template.Template
@@ -45,7 +50,8 @@ type Config struct {
 	Policies      []Validator
 	ConfirmFields []string
 
-	ExpireAfter  time.Duration
+	ExpireAfter time.Duration
+
 	LockAfter    int
 	LockWindow   time.Duration
 	LockDuration time.Duration
@@ -73,6 +79,8 @@ func NewConfig() *Config {
 		HostName:   "localhost:8080",
 		BCryptCost: bcrypt.DefaultCost,
 
+		PrimaryID: StoreEmail,
+
 		Layout:      template.Must(template.New("").Parse(`<html><body>{{template "authboss" .}}</body></html>`)),
 		LayoutEmail: template.Must(template.New("").Parse(`<html><body>{{template "authboss" .}}</body></html>`)),
 
@@ -96,7 +104,10 @@ func NewConfig() *Config {
 				AllowWhitespace: false,
 			},
 		},
-		ConfirmFields: []string{"username", "confirmUsername", "password", "confirmPassword"},
+		ConfirmFields: []string{
+			StoreEmail, "confirm" + strings.Title(StoreEmail),
+			StorePassword, "confirm" + strings.Title(StorePassword),
+		},
 
 		RecoverRedirect:             "/login",
 		RecoverInitiateSuccessFlash: "An email has been sent with further insructions on how to reset your password",

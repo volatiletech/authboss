@@ -22,9 +22,9 @@ func TestErrorList_Map(t *testing.T) {
 	errAsploded := "asploded"
 
 	errList := ErrorList{
-		FieldError{"username", errors.New(errNotLong)},
-		FieldError{"username", errors.New(errEmail)},
-		FieldError{"password", errors.New(errNotLong)},
+		FieldError{StoreUsername, errors.New(errNotLong)},
+		FieldError{StoreUsername, errors.New(errEmail)},
+		FieldError{StorePassword, errors.New(errNotLong)},
 		errors.New(errAsploded),
 	}
 
@@ -33,7 +33,7 @@ func TestErrorList_Map(t *testing.T) {
 		t.Error("Wrong number of fields:", len(m))
 	}
 
-	usernameErrs := m["username"]
+	usernameErrs := m[StoreUsername]
 	if len(usernameErrs) != 2 {
 		t.Error("Wrong number of username errors:", len(usernameErrs))
 	}
@@ -44,7 +44,7 @@ func TestErrorList_Map(t *testing.T) {
 		t.Error("Wrong username error at 1:", usernameErrs[1])
 	}
 
-	passwordErrs := m["password"]
+	passwordErrs := m[StorePassword]
 	if len(passwordErrs) != 1 {
 		t.Error("Wrong number of password errors:", len(passwordErrs))
 	}
@@ -64,30 +64,30 @@ func TestErrorList_Map(t *testing.T) {
 func TestValidate(t *testing.T) {
 	t.Parallel()
 
-	ctx := mockRequestContext("username", "john", "email", "john@john.com")
+	ctx := mockRequestContext(StoreUsername, "john", StoreEmail, "john@john.com")
 
 	errList := ctx.Validate([]Validator{
 		mockValidator{
-			FieldName: "username",
-			Errs:      ErrorList{FieldError{"username", errors.New("must be longer than 4")}},
+			FieldName: StoreUsername,
+			Errs:      ErrorList{FieldError{StoreUsername, errors.New("must be longer than 4")}},
 		},
 		mockValidator{
 			FieldName: "missing_field",
 			Errs:      ErrorList{FieldError{"missing_field", errors.New("Expected field to exist.")}},
 		},
 		mockValidator{
-			FieldName: "email", Errs: nil,
+			FieldName: StoreEmail, Errs: nil,
 		},
 	})
 
 	errs := errList.Map()
-	if errs["username"][0] != "must be longer than 4" {
-		t.Error("Expected a different error for username:", errs["username"][0])
+	if errs[StoreUsername][0] != "must be longer than 4" {
+		t.Error("Expected a different error for username:", errs[StoreUsername][0])
 	}
 	if errs["missing_field"][0] != "Expected field to exist." {
 		t.Error("Expected a different error for missing_field:", errs["missing_field"][0])
 	}
-	if _, ok := errs["email"]; ok {
+	if _, ok := errs[StoreEmail]; ok {
 		t.Error("Expected no errors for email.")
 	}
 }
@@ -95,20 +95,20 @@ func TestValidate(t *testing.T) {
 func TestValidate_Confirm(t *testing.T) {
 	t.Parallel()
 
-	ctx := mockRequestContext("username", "john", "confirmUsername", "johnny")
-	errs := ctx.Validate(nil, "username", "confirmUsername").Map()
+	ctx := mockRequestContext(StoreUsername, "john", "confirmUsername", "johnny")
+	errs := ctx.Validate(nil, StoreUsername, "confirmUsername").Map()
 	if errs["confirmUsername"][0] != "Does not match username" {
 		t.Error("Expected a different error for confirmUsername:", errs["confirmUsername"][0])
 	}
 
-	ctx = mockRequestContext("username", "john", "confirmUsername", "john")
-	errs = ctx.Validate(nil, "username", "confirmUsername").Map()
+	ctx = mockRequestContext(StoreUsername, "john", "confirmUsername", "john")
+	errs = ctx.Validate(nil, StoreUsername, "confirmUsername").Map()
 	if len(errs) != 0 {
 		t.Error("Expected no errors:", errs)
 	}
 
-	ctx = mockRequestContext("username", "john", "confirmUsername", "john")
-	errs = ctx.Validate(nil, "username").Map()
+	ctx = mockRequestContext(StoreUsername, "john", "confirmUsername", "john")
+	errs = ctx.Validate(nil, StoreUsername).Map()
 	if len(errs) != 0 {
 		t.Error("Expected no errors:", errs)
 	}
@@ -119,19 +119,19 @@ func TestFilterValidators(t *testing.T) {
 
 	validators := []Validator{
 		mockValidator{
-			FieldName: "username", Errs: ErrorList{FieldError{"username", errors.New("must be longer than 4")}},
+			FieldName: StoreUsername, Errs: ErrorList{FieldError{StoreUsername, errors.New("must be longer than 4")}},
 		},
 		mockValidator{
-			FieldName: "password", Errs: ErrorList{FieldError{"password", errors.New("must be longer than 4")}},
+			FieldName: StorePassword, Errs: ErrorList{FieldError{StorePassword, errors.New("must be longer than 4")}},
 		},
 	}
 
-	validators = FilterValidators(validators, "username")
+	validators = FilterValidators(validators, StoreUsername)
 
 	if len(validators) != 1 {
 		t.Error("Expected length to be 1")
 	}
-	if validators[0].Field() != "username" {
+	if validators[0].Field() != StoreUsername {
 		t.Error("Expcted validator for field username", validators[0].Field())
 	}
 }

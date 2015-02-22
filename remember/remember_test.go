@@ -52,7 +52,7 @@ func TestAfterAuth(t *testing.T) {
 
 	ctx.SessionStorer = session
 	ctx.CookieStorer = cookies
-	ctx.User = authboss.Attributes{"username": "testuser"}
+	ctx.User = authboss.Attributes{authboss.Cfg.PrimaryID: "test@email.com"}
 
 	if err := R.AfterAuth(ctx); err != nil {
 		t.Error(err)
@@ -109,7 +109,7 @@ func TestAuth(t *testing.T) {
 		t.Error("Unexpected error:", err)
 	}
 
-	if session.Values[authboss.HalfAuthKey] != "true" {
+	if session.Values[authboss.SessionHalfAuthKey] != "true" {
 		t.Error("The user should have been half-authed.")
 	}
 

@@ -74,7 +74,7 @@ func TestExpire_Middleware(t *testing.T) {
 	authboss.NewConfig()
 	session := mocks.NewMockClientStorer()
 	session.Values = map[string]string{
-		authboss.SessionKey: "username",
+		authboss.SessionKey: "email@email.com",
 	}
 	maker := func(w http.ResponseWriter, r *http.Request) authboss.ClientStorer { return session }
 

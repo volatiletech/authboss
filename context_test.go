@@ -41,14 +41,14 @@ func TestContext_SaveUser(t *testing.T) {
 	ctx := NewContext()
 	storer := mockStorer{}
 	Cfg.Storer = storer
-	ctx.User = Attributes{"username": "joe", "email": "hello@joe.com", "password": "mysticalhash"}
+	ctx.User = Attributes{StoreUsername: "joe", StoreEmail: "hello@joe.com", StorePassword: "mysticalhash"}
 
 	err := ctx.SaveUser()
 	if err != nil {
 		t.Error("Unexpected error:", err)
 	}
 
-	attr, ok := storer["joe"]
+	attr, ok := storer["hello@joe.com"]
 	if !ok {
 		t.Error("Could not find joe!")
 	}

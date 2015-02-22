@@ -8,7 +8,7 @@ const (
 	// HalfAuthKey is used for sessions that have been authenticated by
 	// the remember module. This serves as a way to force full authentication
 	// by denying half-authed users acccess to sensitive areas.
-	HalfAuthKey = "halfauth"
+	SessionHalfAuthKey = "halfauth"
 	// FlashSuccessKey is used for storing sucess flash messages on the session
 	FlashSuccessKey = "flash_success"
 	// FlashErrorKey is used for storing sucess flash messages on the session

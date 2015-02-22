@@ -181,6 +181,7 @@ func TestInterruptString(t *testing.T) {
 		{InterruptNone, "InterruptNone"},
 		{InterruptAccountLocked, "InterruptAccountLocked"},
 		{InterruptAccountNotConfirmed, "InterruptAccountNotConfirmed"},
+		{InterruptSessionExpired, "InterruptSessionExpired"},
 	}
 
 	for i, test := range tests {

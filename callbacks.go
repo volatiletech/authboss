@@ -44,11 +44,14 @@ const (
 	// InterruptAccountNotConfirmed occurs if a user's account is not confirmed
 	// and therefore cannot be used yet.
 	InterruptAccountNotConfirmed
+	// InterruptSessionExpired occurs when the user's account has had no activity for the
+	// configured duration.
+	InterruptSessionExpired
 )
 
-const interruptNames = "InterruptNoneInterruptAccountLockedInterruptAccountNotConfirmed"
+const interruptNames = "InterruptNoneInterruptAccountLockedInterruptAccountNotConfirmedInterruptSessionExpired"
 
-var interruptIndexes = [...]uint8{0, 13, 35, 63}
+var interruptIndexes = [...]uint8{0, 13, 35, 63, 86}
 
 func (i Interrupt) String() string {
 	if i < 0 || i+1 >= Interrupt(len(interruptIndexes)) {

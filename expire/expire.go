@@ -12,8 +12,8 @@ import (
 )
 
 const (
-	// UserLastAction is the session key to retrieve the last action of a user.
-	UserLastAction = "last_action"
+	// StoreLastAction is the session key to retrieve the last action of a user.
+	StoreLastAction = "last_action"
 )
 
 var (
@@ -32,7 +32,7 @@ func init() {
 type Expire struct{}
 
 func (e *Expire) Initialize() error {
-	authboss.Cfg.Callbacks.Before(authboss.EventGet, e.BeforeAuth)
+	authboss.Cfg.Callbacks.Before(authboss.EventGet, e.BeforeGet)
 
 	return nil
 }
@@ -40,28 +40,28 @@ func (e *Expire) Initialize() error {
 func (_ *Expire) Routes() authboss.RouteTable      { return nil }
 func (_ *Expire) Storage() authboss.StorageOptions { return nil }
 
-// BeforeAuth ensures the account is not locked.
-func (e *Expire) BeforeAuth(ctx *authboss.Context) error {
+// BeforeGet ensures the account is not expired.
+func (e *Expire) BeforeGet(ctx *authboss.Context) (authboss.Interrupt, error) {
 	if _, ok := ctx.SessionStorer.Get(authboss.SessionKey); !ok {
-		return nil
+		return authboss.InterruptNone, nil
 	}
 
-	dateStr, ok := ctx.SessionStorer.Get(UserLastAction)
+	dateStr, ok := ctx.SessionStorer.Get(StoreLastAction)
 	if ok {
 		if date, err := time.Parse(time.RFC3339, dateStr); err != nil {
 			Touch(ctx.SessionStorer)
 		} else if time.Now().UTC().After(date.Add(authboss.Cfg.ExpireAfter)) {
 			ctx.SessionStorer.Del(authboss.SessionKey)
-			return ErrExpired
+			return authboss.InterruptSessionExpired, nil
 		}
 	}
 
-	return nil
+	return authboss.InterruptNone, nil
 }
 
 // Touch updates the last action for the user, so he doesn't become expired.
 func Touch(session authboss.ClientStorer) {
-	session.Put(UserLastAction, time.Now().UTC().Format(time.RFC3339))
+	session.Put(StoreLastAction, time.Now().UTC().Format(time.RFC3339))
 }
 
 type middleware struct {

@@ -21,6 +21,8 @@ type MockUser struct {
 	ConfirmToken       string
 	Confirmed          bool
 	Locked             bool
+	AttemptNumber      int
+	AttemptTime        time.Time
 }
 
 // MockStorer should be valid for any module storer defined in authboss.

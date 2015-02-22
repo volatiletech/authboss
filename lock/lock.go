@@ -3,7 +3,6 @@ package lock
 
 import (
 	"errors"
-	"fmt"
 	"time"
 
 	"gopkg.in/authboss.v0"
@@ -13,10 +12,6 @@ const (
 	StoreAttemptNumber = "attempt_number"
 	StoreAttemptTime   = "attempt_time"
 	StoreLocked        = "locked"
-)
-
-var (
-	ErrLocked = errors.New("Account is locked.")
 )
 
 // L is the singleton instance of the lock module which will have been
@@ -58,39 +53,38 @@ func (l *Lock) Storage() authboss.StorageOptions {
 }
 
 // BeforeAuth ensures the account is not locked.
-func (l *Lock) BeforeAuth(ctx *authboss.Context) error {
+func (l *Lock) BeforeAuth(ctx *authboss.Context) (authboss.Interrupt, error) {
 	if ctx.User == nil {
-		return errors.New("lock: user not loaded in before auth callback")
+		return authboss.InterruptNone, errors.New("lock: user not loaded in BeforeAuth callback")
 	}
 
-	if intf, ok := ctx.User[StoreLocked]; ok {
-		if locked, ok := intf.(bool); ok && locked {
-			return ErrLocked
-		}
+	if locked, ok := ctx.User.Bool(StoreLocked); ok && locked {
+		return authboss.InterruptAccountLocked, nil
 	}
 
-	return nil
+	return authboss.InterruptNone, nil
 }
 
 // AfterAuth resets the attempt number field.
-func (l *Lock) AfterAuth(ctx *authboss.Context) {
+func (l *Lock) AfterAuth(ctx *authboss.Context) error {
 	if ctx.User == nil {
-		fmt.Fprintln(authboss.Cfg.LogWriter, "lock: user not loaded in after auth callback")
-		return
+		return errors.New("lock: user not loaded in AfterAuth callback")
 	}
 
 	ctx.User[StoreAttemptNumber] = 0
 	ctx.User[StoreAttemptTime] = time.Now().UTC()
 
 	if err := ctx.SaveUser(); err != nil {
-		fmt.Fprintf(authboss.Cfg.LogWriter, "lock: saving user failed %v", err)
+		return err
 	}
+
+	return nil
 }
 
 // AfterAuthFail adjusts the attempt number and time.
-func (l *Lock) AfterAuthFail(ctx *authboss.Context) {
+func (l *Lock) AfterAuthFail(ctx *authboss.Context) error {
 	if ctx.User == nil {
-		return
+		return errors.New("lock: user not loaded in AfterAuth callback")
 	}
 
 	lastAttempt := time.Now().UTC()
@@ -117,13 +111,15 @@ func (l *Lock) AfterAuthFail(ctx *authboss.Context) {
 	ctx.User[StoreAttemptTime] = time.Now().UTC()
 
 	if err := ctx.SaveUser(); err != nil {
-		fmt.Fprintf(authboss.Cfg.LogWriter, "lock: saving user failed %v", err)
+		return err
 	}
+
+	return nil
 }
 
 // Lock a user manually.
-func (l *Lock) Lock(key string, storer authboss.Storer) error {
-	user, err := storer.Get(key, authboss.ModuleAttrMeta)
+func (l *Lock) Lock(key string) error {
+	user, err := authboss.Cfg.Storer.Get(key, authboss.ModuleAttrMeta)
 	if err != nil {
 		return err
 	}
@@ -135,12 +131,12 @@ func (l *Lock) Lock(key string, storer authboss.Storer) error {
 
 	attr[StoreLocked] = true
 
-	return storer.Put(key, attr)
+	return authboss.Cfg.Storer.Put(key, attr)
 }
 
 // Unlock a user that was locked by this module.
-func (l *Lock) Unlock(key string, storer authboss.Storer) error {
-	user, err := storer.Get(key, authboss.ModuleAttrMeta)
+func (l *Lock) Unlock(key string) error {
+	user, err := authboss.Cfg.Storer.Get(key, authboss.ModuleAttrMeta)
 	if err != nil {
 		return err
 	}
@@ -156,5 +152,5 @@ func (l *Lock) Unlock(key string, storer authboss.Storer) error {
 	attr[StoreAttemptNumber] = 0
 	attr[StoreLocked] = false
 
-	return storer.Put(key, attr)
+	return authboss.Cfg.Storer.Put(key, attr)
 }

@@ -23,14 +23,18 @@ func TestBeforeAuth(t *testing.T) {
 	authboss.NewConfig()
 	ctx := authboss.NewContext()
 
-	if err := L.BeforeAuth(ctx); err == nil {
+	if interrupt, err := L.BeforeAuth(ctx); err == nil {
 		t.Error("Want death because user not loaded:", err)
+	} else if interrupt != authboss.InterruptNone {
+		t.Error("Interrupt should not be set:", interrupt)
 	}
 
 	ctx.User = authboss.Attributes{"locked": true}
 
-	if err := L.BeforeAuth(ctx); err != ErrLocked {
-		t.Error("Expected an ErrLocked:", err)
+	if interrupt, err := L.BeforeAuth(ctx); err != nil {
+		t.Error(err)
+	} else if interrupt != authboss.InterruptAccountLocked {
+		t.Error("Expected a locked interrupt:", interrupt)
 	}
 }
 
@@ -39,16 +43,17 @@ func TestAfterAuth(t *testing.T) {
 	lock := Lock{}
 	ctx := authboss.NewContext()
 
-	lock.AfterAuth(ctx)
-	if _, ok := ctx.User[StoreAttemptNumber]; ok {
-		t.Error("Expected nothing to be set, missing user.")
+	if err := lock.AfterAuth(ctx); err == nil {
+		t.Error("Expected an error because of missing user.")
 	}
 
 	storer := mocks.NewMockStorer()
 	authboss.Cfg.Storer = storer
 	ctx.User = authboss.Attributes{"username": "username"}
 
-	lock.AfterAuth(ctx)
+	if err := lock.AfterAuth(ctx); err != nil {
+		t.Error(err)
+	}
 	if storer.Users["username"][StoreAttemptNumber].(int) != 0 {
 		t.Error("StoreAttemptNumber set incorrectly.")
 	}
@@ -78,7 +83,9 @@ func TestAfterAuthFail_Lock(t *testing.T) {
 			t.Errorf("%d: User should not be locked.", i)
 		}
 
-		lock.AfterAuthFail(ctx)
+		if err := lock.AfterAuthFail(ctx); err != nil {
+			t.Error(err)
+		}
 		if val := storer.Users["username"][StoreAttemptNumber].(int); val != i+1 {
 			t.Errorf("%d: StoreAttemptNumber set incorrectly: %v", i, val)
 		}
@@ -146,6 +153,7 @@ func TestAfterAuthFail_Errors(t *testing.T) {
 func TestLock(t *testing.T) {
 	authboss.NewConfig()
 	storer := mocks.NewMockStorer()
+	authboss.Cfg.Storer = storer
 	lock := Lock{}
 
 	storer.Users["username"] = map[string]interface{}{
@@ -153,7 +161,7 @@ func TestLock(t *testing.T) {
 		"password": "password",
 	}
 
-	err := lock.Lock("username", storer)
+	err := lock.Lock("username")
 	if err != nil {
 		t.Error(err)
 	}
@@ -166,6 +174,7 @@ func TestLock(t *testing.T) {
 func TestUnlock(t *testing.T) {
 	authboss.NewConfig()
 	storer := mocks.NewMockStorer()
+	authboss.Cfg.Storer = storer
 	lock := Lock{}
 	authboss.Cfg.LockWindow = 1 * time.Hour
 
@@ -175,7 +184,7 @@ func TestUnlock(t *testing.T) {
 		"locked":   true,
 	}
 
-	err := lock.Unlock("username", storer)
+	err := lock.Unlock("username")
 	if err != nil {
 		t.Error(err)
 	}

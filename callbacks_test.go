@@ -12,9 +12,9 @@ func TestCallbacks(t *testing.T) {
 	beforeCalled := false
 	c := NewCallbacks()
 
-	c.Before(EventRegister, func(ctx *Context) (bool, error) {
+	c.Before(EventRegister, func(ctx *Context) (Interrupt, error) {
 		beforeCalled = true
-		return false, nil
+		return InterruptNone, nil
 	})
 	c.After(EventRegister, func(ctx *Context) error {
 		afterCalled = true
@@ -25,11 +25,11 @@ func TestCallbacks(t *testing.T) {
 		t.Error("Neither should be called.")
 	}
 
-	stopped, err := c.FireBefore(EventRegister, NewContext())
+	interrupt, err := c.FireBefore(EventRegister, NewContext())
 	if err != nil {
 		t.Error("Unexpected error:", err)
 	}
-	if stopped {
+	if interrupt != InterruptNone {
 		t.Error("It should not have been stopped.")
 	}
 
@@ -51,21 +51,21 @@ func TestCallbacksInterrupt(t *testing.T) {
 	before2 := false
 	c := NewCallbacks()
 
-	c.Before(EventRegister, func(ctx *Context) (bool, error) {
+	c.Before(EventRegister, func(ctx *Context) (Interrupt, error) {
 		before1 = true
-		return true, nil
+		return InterruptAccountLocked, nil
 	})
-	c.Before(EventRegister, func(ctx *Context) (bool, error) {
+	c.Before(EventRegister, func(ctx *Context) (Interrupt, error) {
 		before2 = true
-		return false, nil
+		return InterruptNone, nil
 	})
 
-	stopped, err := c.FireBefore(EventRegister, NewContext())
+	interrupt, err := c.FireBefore(EventRegister, NewContext())
 	if err != nil {
 		t.Error(err)
 	}
-	if !stopped {
-		t.Error("It was not stopped.")
+	if interrupt != InterruptAccountLocked {
+		t.Error("The interrupt signal was not account locked:", interrupt)
 	}
 
 	if !before1 {
@@ -87,20 +87,20 @@ func TestCallbacksBeforeErrors(t *testing.T) {
 
 	errValue := errors.New("Problem occured")
 
-	c.Before(EventRegister, func(ctx *Context) (bool, error) {
+	c.Before(EventRegister, func(ctx *Context) (Interrupt, error) {
 		before1 = true
-		return false, errValue
+		return InterruptNone, errValue
 	})
-	c.Before(EventRegister, func(ctx *Context) (bool, error) {
+	c.Before(EventRegister, func(ctx *Context) (Interrupt, error) {
 		before2 = true
-		return false, nil
+		return InterruptNone, nil
 	})
 
-	stopped, err := c.FireBefore(EventRegister, NewContext())
+	interrupt, err := c.FireBefore(EventRegister, NewContext())
 	if err != errValue {
 		t.Error("Expected an error to come back.")
 	}
-	if stopped {
+	if interrupt != InterruptNone {
 		t.Error("It should not have been stopped.")
 	}
 
@@ -150,5 +150,42 @@ func TestCallbacksAfterErrors(t *testing.T) {
 
 	if estr := log.String(); !strings.Contains(estr, errValue.Error()) {
 		t.Error("Error string wrong:", estr)
+	}
+}
+
+func TestEventString(t *testing.T) {
+	tests := []struct {
+		ev  Event
+		str string
+	}{
+		{EventRegister, "EventRegister"},
+		{EventAuth, "EventAuth"},
+		{EventAuthFail, "EventAuthFail"},
+		{EventRecoverStart, "EventRecoverStart"},
+		{EventRecoverEnd, "EventRecoverEnd"},
+		{EventGet, "EventGet"},
+	}
+
+	for i, test := range tests {
+		if got := test.ev.String(); got != test.str {
+			t.Errorf("%d) Wrong string for Event(%d) expected: %v got: %s", i, test.ev, test.str, got)
+		}
+	}
+}
+
+func TestInterruptString(t *testing.T) {
+	tests := []struct {
+		in  Interrupt
+		str string
+	}{
+		{InterruptNone, "InterruptNone"},
+		{InterruptAccountLocked, "InterruptAccountLocked"},
+		{InterruptAccountNotConfirmed, "InterruptAccountNotConfirmed"},
+	}
+
+	for i, test := range tests {
+		if got := test.in.String(); got != test.str {
+			t.Errorf("%d) Wrong string for Event(%d) expected: %v got: %s", i, test.in, test.str, got)
+		}
 	}
 }

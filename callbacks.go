@@ -9,7 +9,7 @@ import (
 // Event is used for callback registration.
 type Event int
 
-// These are the events that are available for use.
+// Event values
 const (
 	EventRegister Event = iota
 	EventAuth
@@ -19,11 +19,49 @@ const (
 	EventGet
 )
 
+const eventNames = "EventRegisterEventAuthEventAuthFailEventRecoverStartEventRecoverEndEventGet"
+
+var eventIndexes = [...]uint8{0, 13, 22, 35, 52, 67, 75}
+
+func (i Event) String() string {
+	if i < 0 || i+1 >= Event(len(eventIndexes)) {
+		return fmt.Sprintf("Event(%d)", i)
+	}
+	return eventNames[eventIndexes[i]:eventIndexes[i+1]]
+}
+
+// Interrupt is used to signal to callback mechanisms
+// that the current process should not continue.
+type Interrupt int
+
+// Interrupt values
+const (
+	// InterruptNone means there was no interrupt present and the process should continue.
+	InterruptNone Interrupt = iota
+	// InterruptAccountLocked occurs if a user's account has been locked
+	// by the lock module.
+	InterruptAccountLocked
+	// InterruptAccountNotConfirmed occurs if a user's account is not confirmed
+	// and therefore cannot be used yet.
+	InterruptAccountNotConfirmed
+)
+
+const interruptNames = "InterruptNoneInterruptAccountLockedInterruptAccountNotConfirmed"
+
+var interruptIndexes = [...]uint8{0, 13, 35, 63}
+
+func (i Interrupt) String() string {
+	if i < 0 || i+1 >= Interrupt(len(interruptIndexes)) {
+		return fmt.Sprintf("Interrupt(%d)", i)
+	}
+	return interruptNames[interruptIndexes[i]:interruptIndexes[i+1]]
+}
+
 // Before callbacks can interrupt the flow by returning a bool. This is used to stop
 // the callback chain and the original handler from continuing execution.
 // The execution should also stopped if there is an error (and therefore if error is set
 // the bool is automatically considered set).
-type Before func(*Context) (bool, error)
+type Before func(*Context) (Interrupt, error)
 
 // After is a request callback that happens after the event.
 type After func(*Context) error
@@ -59,22 +97,23 @@ func (c *Callbacks) After(e Event, f After) {
 // FireBefore event to all the callbacks with a context. The error
 // should be passed up despite being logged once here already so it
 // can write an error out to the HTTP Client. If err is nil then
-// check the value of interrupted. If interrupted is false
-// then the handler can continue it's task otherwise it must stop.
-func (c *Callbacks) FireBefore(e Event, ctx *Context) (interrupted bool, err error) {
+// check the value of interrupted. If error is nil then the interrupt
+// value should be checked. If it is not InterruptNone then there is a reason
+// the current process should stop it's course of action.
+func (c *Callbacks) FireBefore(e Event, ctx *Context) (interrupt Interrupt, err error) {
 	callbacks := c.before[e]
 	for _, fn := range callbacks {
-		interrupted, err = fn(ctx)
+		interrupt, err = fn(ctx)
 		if err != nil {
 			fmt.Fprintf(Cfg.LogWriter, "Callback error (%s): %v\n", runtime.FuncForPC(reflect.ValueOf(fn).Pointer()).Name(), err)
-			return false, err
+			return InterruptNone, err
 		}
-		if interrupted {
-			return true, nil
+		if interrupt != InterruptNone {
+			return interrupt, nil
 		}
 	}
 
-	return false, nil
+	return InterruptNone, nil
 }
 
 // FireAfter event to all the callbacks with a context. The error can safely be

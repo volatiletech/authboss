@@ -14,6 +14,10 @@ const (
 	StoreLocked        = "locked"
 )
 
+var (
+	errUserMissing = errors.New("lock: user not loaded in BeforeAuth callback")
+)
+
 // L is the singleton instance of the lock module which will have been
 // configured and ready to use after authboss.Init()
 var L *Lock
@@ -55,7 +59,7 @@ func (l *Lock) Storage() authboss.StorageOptions {
 // BeforeAuth ensures the account is not locked.
 func (l *Lock) BeforeAuth(ctx *authboss.Context) (authboss.Interrupt, error) {
 	if ctx.User == nil {
-		return authboss.InterruptNone, errors.New("lock: user not loaded in BeforeAuth callback")
+		return authboss.InterruptNone, errUserMissing
 	}
 
 	if locked, ok := ctx.User.Bool(StoreLocked); ok && locked {
@@ -68,7 +72,7 @@ func (l *Lock) BeforeAuth(ctx *authboss.Context) (authboss.Interrupt, error) {
 // AfterAuth resets the attempt number field.
 func (l *Lock) AfterAuth(ctx *authboss.Context) error {
 	if ctx.User == nil {
-		return errors.New("lock: user not loaded in AfterAuth callback")
+		return errUserMissing
 	}
 
 	ctx.User[StoreAttemptNumber] = 0
@@ -84,7 +88,7 @@ func (l *Lock) AfterAuth(ctx *authboss.Context) error {
 // AfterAuthFail adjusts the attempt number and time.
 func (l *Lock) AfterAuthFail(ctx *authboss.Context) error {
 	if ctx.User == nil {
-		return errors.New("lock: user not loaded in AfterAuth callback")
+		return errUserMissing
 	}
 
 	lastAttempt := time.Now().UTC()

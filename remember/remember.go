@@ -15,8 +15,12 @@ import (
 )
 
 const (
-	// ValueKey is used for cookies and form input names.
-	ValueKey = "rm"
+	// RememberKey is used for cookies and form input names.
+	RememberKey = "rm"
+)
+
+var (
+	errUserMissing = errors.New("remember: User not loaded in callback")
 )
 
 const nRandBytes = 32
@@ -34,11 +38,11 @@ type Remember struct{}
 
 func (r *Remember) Initialize() error {
 	if authboss.Cfg.Storer == nil {
-		return errors.New("remember: Need a TokenStorer.")
+		return errors.New("remember: Need a TokenStorer")
 	}
 
 	if _, ok := authboss.Cfg.Storer.(authboss.TokenStorer); !ok {
-		return errors.New("remember: TokenStorer required for remember me functionality.")
+		return errors.New("remember: TokenStorer required for remember me functionality")
 	}
 
 	authboss.Cfg.Callbacks.After(authboss.EventAuth, r.AfterAuth)
@@ -55,31 +59,25 @@ func (r *Remember) Storage() authboss.StorageOptions {
 }
 
 // AfterAuth is called after authentication is successful.
-func (r *Remember) AfterAuth(ctx *authboss.Context) {
-	if val, ok := ctx.FirstPostFormValue(ValueKey); !ok || val != "true" {
-		return
+func (r *Remember) AfterAuth(ctx *authboss.Context) error {
+	if val, ok := ctx.FirstPostFormValue(RememberKey); !ok || val != "true" {
+		return nil
 	}
 
 	if ctx.User == nil {
-		fmt.Fprintf(authboss.Cfg.LogWriter, "remember: AfterAuth no user loaded")
-		return
+		return errUserMissing
 	}
 
-	keyIntf, ok := ctx.User["username"]
-	if !ok {
-		fmt.Fprintf(authboss.Cfg.LogWriter, "remember: username not present")
-		return
-	}
-
-	key, ok := keyIntf.(string)
-	if !ok {
-		fmt.Fprintf(authboss.Cfg.LogWriter, "remember: username not a string")
-		return
+	key, err := ctx.User.StringErr("username")
+	if err != nil {
+		return err
 	}
 
 	if _, err := r.New(ctx.CookieStorer, key); err != nil {
-		fmt.Fprintf(authboss.Cfg.LogWriter, "remember: Failed to create remember token: %v", err)
+		return fmt.Errorf("remember: Failed to create remember token: %v", err)
 	}
+
+	return nil
 }
 
 // New generates a new remember token and stores it in the configured TokenStorer.
@@ -104,7 +102,7 @@ func (r *Remember) New(cstorer authboss.ClientStorer, storageKey string) (string
 	}
 
 	// Write the finalToken to the cookie
-	cstorer.Put(ValueKey, finalToken)
+	cstorer.Put(RememberKey, finalToken)
 
 	return finalToken, nil
 }

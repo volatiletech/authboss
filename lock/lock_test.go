@@ -23,8 +23,8 @@ func TestBeforeAuth(t *testing.T) {
 	authboss.NewConfig()
 	ctx := authboss.NewContext()
 
-	if interrupt, err := L.BeforeAuth(ctx); err == nil {
-		t.Error("Want death because user not loaded:", err)
+	if interrupt, err := L.BeforeAuth(ctx); err != errUserMissing {
+		t.Error("Expected an error because of missing user:", err)
 	} else if interrupt != authboss.InterruptNone {
 		t.Error("Interrupt should not be set:", interrupt)
 	}
@@ -43,8 +43,8 @@ func TestAfterAuth(t *testing.T) {
 	lock := Lock{}
 	ctx := authboss.NewContext()
 
-	if err := lock.AfterAuth(ctx); err == nil {
-		t.Error("Expected an error because of missing user.")
+	if err := lock.AfterAuth(ctx); err != errUserMissing {
+		t.Error("Expected an error because of missing user:", err)
 	}
 
 	storer := mocks.NewMockStorer()

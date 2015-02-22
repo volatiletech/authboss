@@ -54,9 +54,11 @@ func TestAfterAuth(t *testing.T) {
 	ctx.CookieStorer = cookies
 	ctx.User = authboss.Attributes{"username": "testuser"}
 
-	R.AfterAuth(ctx)
+	if err := R.AfterAuth(ctx); err != nil {
+		t.Error(err)
+	}
 
-	if _, ok := cookies.Values[ValueKey]; !ok {
+	if _, ok := cookies.Values[RememberKey]; !ok {
 		t.Error("Expected a cookie to have been set.")
 	}
 }
@@ -84,7 +86,7 @@ func TestNew(t *testing.T) {
 		t.Error("Expected a token to be saved.")
 	}
 
-	if token != cookies.Values[ValueKey] {
+	if token != cookies.Values[RememberKey] {
 		t.Error("Expected a cookie set with the token.")
 	}
 }

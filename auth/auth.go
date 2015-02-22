@@ -1,7 +1,6 @@
 package auth
 
 import (
-	"errors"
 	"fmt"
 	"net/http"
 
@@ -75,8 +74,16 @@ func (a *AuthModule) loginHandlerFunc(ctx *authboss.Context, w http.ResponseWrit
 		interrupted, err := authboss.Cfg.Callbacks.FireBefore(authboss.EventAuth, ctx)
 		if err != nil {
 			return err
-		} else if interrupted {
-			return errors.New("auth interrupted")
+		} else if interrupted != authboss.InterruptNone {
+			var reason string
+			switch interrupted {
+			case authboss.InterruptAccountLocked:
+				reason = "Your account has been locked."
+			case authboss.InterruptAccountNotConfirmed:
+				reason = "Your account has not been confirmed."
+			}
+			render.Redirect(ctx, w, r, "/", "", reason)
+			return nil
 		}
 
 		username, _ := ctx.FirstPostFormValue("username")

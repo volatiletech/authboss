@@ -10,11 +10,10 @@ Each module can be turned on simply by importing it and the side-effects take ca
 
 Name           | Import Path                                                                                         | Description
 ---------------|-----------------------------------------------------------------------------------------------------|------------
-Core           | [gopkg.in/authboss.v0](https://github.com/go-authboss/authboss)                                     | The necessities for authentication, module system etc.
+Core           | [gopkg.in/authboss.v0](https://github.com/go-authboss/authboss)                                     | Support for the modular system, constants, helpers.
 Register       | [gopkg.in/authboss.v0/register](https://github.com/go-authboss/authboss/tree/master/register)       | Provides a registration section for users.
 Confirm        | [gopkg.in/authboss.v0/confirm](https://github.com/go-authboss/authboss/tree/master/confirm)         | Sends an e-mail verification before allowing users to log in.
 Recover        | [gopkg.in/authboss.v0/recover](https://github.com/go-authboss/authboss/tree/master/recover)         | Allows for password resets via e-mail.
-Remember       | [gopkg.in/authboss.v0/remember](https://github.com/go-authboss/authboss/tree/master/remember)       | Half-authed accounts using a generated token.
+Remember       | [gopkg.in/authboss.v0/remember](https://github.com/go-authboss/authboss/tree/master/remember)       | Persisting login sessions past session expiry.
 Lock           | [gopkg.in/authboss.v0/lock](https://github.com/go-authboss/authboss/tree/master/lock)               | Locks user accounts after N authentication failures in M time.
-Expire         | [gopkg.in/authboss.v0/expire](https://github.com/go-authboss/authboss/tree/master/expire)           | Expires user sessions after a certain period of time.
-Validate       | [gopkg.in/authboss.v0/validate](https://github.com/go-authboss/authboss/tree/master/validate)       | Username, Email and Password format validations.
+Expire         | [gopkg.in/authboss.v0/expire](https://github.com/go-authboss/authboss/tree/master/expire)           | Expires user sessions after a certain period of inactivity.

@@ -5,7 +5,6 @@ import (
 	"io"
 	"io/ioutil"
 	"net/smtp"
-	"strings"
 	"time"
 
 	"golang.org/x/crypto/bcrypt"
@@ -105,8 +104,8 @@ func NewConfig() *Config {
 			},
 		},
 		ConfirmFields: []string{
-			StoreEmail, "confirm" + strings.Title(StoreEmail),
-			StorePassword, "confirm" + strings.Title(StorePassword),
+			StoreEmail, ConfirmPrefix + StoreEmail,
+			StorePassword, ConfirmPrefix + StorePassword,
 		},
 
 		RecoverRedirect:             "/login",

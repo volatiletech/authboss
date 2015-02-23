@@ -12,6 +12,7 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"strings"
 
 	"gopkg.in/authboss.v0"
 )
@@ -19,6 +20,10 @@ import (
 var (
 	// ErrTemplateNotFound should be returned from Get when the view is not found
 	ErrTemplateNotFound = errors.New("Template not found")
+
+	funcMap = template.FuncMap{
+		"title": strings.Title,
+	}
 )
 
 // Templates is a map depicting the forms a template needs wrapped within the specified layout
@@ -47,7 +52,7 @@ func LoadTemplates(layout *template.Template, path string, files ...string) (Tem
 			return nil, err
 		}
 
-		_, err = clone.New("authboss").Parse(string(b))
+		_, err = clone.New("authboss").Funcs(funcMap).Parse(string(b))
 		if err != nil {
 			return nil, err
 		}
@@ -71,12 +76,12 @@ func (t Templates) Render(ctx *authboss.Context, w http.ResponseWriter, r *http.
 		data.Merge(authboss.Cfg.LayoutDataMaker(w, r))
 	}
 
-	if flash, ok := ctx.CookieStorer.Get(authboss.FlashSuccessKey); ok {
-		ctx.CookieStorer.Del(authboss.FlashSuccessKey)
+	if flash, ok := ctx.SessionStorer.Get(authboss.FlashSuccessKey); ok {
+		ctx.SessionStorer.Del(authboss.FlashSuccessKey)
 		data.MergeKV(authboss.FlashSuccessKey, flash)
 	}
-	if flash, ok := ctx.CookieStorer.Get(authboss.FlashErrorKey); ok {
-		ctx.CookieStorer.Del(authboss.FlashErrorKey)
+	if flash, ok := ctx.SessionStorer.Get(authboss.FlashErrorKey); ok {
+		ctx.SessionStorer.Del(authboss.FlashErrorKey)
 		data.MergeKV(authboss.FlashErrorKey, flash)
 	}
 

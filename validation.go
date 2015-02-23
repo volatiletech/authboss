@@ -5,6 +5,11 @@ import (
 	"fmt"
 )
 
+const (
+	// ConfirmPrefix is prepended to names of confirm fields.
+	ConfirmPrefix = "confirm_"
+)
+
 // Validator is anything that can validate a string and provide a list of errors
 // and describe its set of rules.
 type Validator interface {

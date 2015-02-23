@@ -1,26 +1,10 @@
 <form action="/recover/complete" method="POST">
-    <input type="hidden" name="token" value="{{.Token}}" />
-    {{$passwordErrs := .ErrMap.password}}
-    <div class="form-group{{if $passwordErrs}} has-error{{end}}">
-        <div class="input-group">
-            <span class="input-group-addon"><i class="fa fa-lock"></i></span>
-            <input class="form-control" type="text" name="password" placeholder="Password" required />
-        </div>
-        {{range $err := $passwordErrs}}
-            <span class="help-block">{{print $err}}</span>
-        {{end}}
-    </div>
-
-    {{$confirmPasswordErrs := .ErrMap.confirmPassword}}
-    <div class="form-group{{if $confirmPasswordErrs}} has-error{{end}}">
-        <div class="input-group">
-            <span class="input-group-addon"><i class="fa fa-lock"></i></span>
-            <input class="form-control" type="text" name="confirmPassword" placeholder="Confirm Password" required />
-        </div>
-        {{range $err := $confirmPasswordErrs}}
-            <span class="help-block">{{print $err}}</span>
-        {{end}}
-    </div>
-    <button class="btn btn-primary btn-block" type="submit">Submit</button>
-    <input type="hidden" name="{{.XSRFName}}" value="{{.XSRFToken}}" />
+    <input type="hidden" name="token" value="{{.token}}" />
+    <input type="password" name="password" placeholder="Password" value="{{.password}}" /><br />
+    {{with .errs}}{{with $errlist := index . "password"}}{{range $errlist}}<span>{{.}}</span><br />{{end}}{{end}}{{end}}
+    <input type="password" name="confirm_password" placeholder="Confirm Password" value="{{.confirmPassword}}" /><br />
+    {{with .errs}}{{with $errlist := index . "confirm_password"}}{{range $errlist}}<span>{{.}}</span><br />{{end}}{{end}}{{end}}
+    <input type="hidden" name="{{.xsrfName}}" value="{{.xsrfToken}}" />
+    <button type="submit">Recover</button><br />
+    <a href="/login">Cancel</a>
 </form>

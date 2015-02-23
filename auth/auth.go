@@ -1,6 +1,7 @@
 package auth
 
 import (
+	"errors"
 	"fmt"
 	"net/http"
 
@@ -17,18 +18,22 @@ const (
 )
 
 func init() {
-	a := &AuthModule{}
+	a := &Auth{}
 	authboss.RegisterModule("auth", a)
 }
 
-type AuthModule struct {
+type Auth struct {
 	templates        render.Templates
 	policies         []authboss.Validator
 	isRememberLoaded bool
 	isRecoverLoaded  bool
 }
 
-func (a *AuthModule) Initialize() (err error) {
+func (a *Auth) Initialize() (err error) {
+	if authboss.Cfg.Storer == nil {
+		return errors.New("auth: Need a Storer.")
+	}
+
 	a.templates, err = render.LoadTemplates(authboss.Cfg.Layout, authboss.Cfg.ViewsPath, tplLogin)
 	if err != nil {
 		return err
@@ -42,21 +47,21 @@ func (a *AuthModule) Initialize() (err error) {
 	return nil
 }
 
-func (a *AuthModule) Routes() authboss.RouteTable {
+func (a *Auth) Routes() authboss.RouteTable {
 	return authboss.RouteTable{
 		"login":  a.loginHandlerFunc,
 		"logout": a.logoutHandlerFunc,
 	}
 }
 
-func (a *AuthModule) Storage() authboss.StorageOptions {
+func (a *Auth) Storage() authboss.StorageOptions {
 	return authboss.StorageOptions{
 		authboss.Cfg.PrimaryID: authboss.String,
 		authboss.StorePassword: authboss.String,
 	}
 }
 
-func (a *AuthModule) loginHandlerFunc(ctx *authboss.Context, w http.ResponseWriter, r *http.Request) error {
+func (a *Auth) loginHandlerFunc(ctx *authboss.Context, w http.ResponseWriter, r *http.Request) error {
 	switch r.Method {
 	case methodGET:
 		if _, ok := ctx.SessionStorer.Get(authboss.SessionKey); ok {
@@ -65,7 +70,12 @@ func (a *AuthModule) loginHandlerFunc(ctx *authboss.Context, w http.ResponseWrit
 			}
 		}
 
-		data := authboss.NewHTMLData("showRemember", a.isRememberLoaded, "showRecover", a.isRecoverLoaded)
+		data := authboss.NewHTMLData(
+			"showRemember", a.isRememberLoaded,
+			"showRecover", a.isRecoverLoaded,
+			"primaryID", authboss.Cfg.PrimaryID,
+			"primaryIDValue", "",
+		)
 		return a.templates.Render(ctx, w, r, tplLogin, data)
 	case methodPOST:
 		interrupted, err := authboss.Cfg.Callbacks.FireBefore(authboss.EventAuth, ctx)
@@ -87,8 +97,9 @@ func (a *AuthModule) loginHandlerFunc(ctx *authboss.Context, w http.ResponseWrit
 		password, _ := ctx.FirstPostFormValue("password")
 
 		errData := authboss.NewHTMLData(
-			"error", "invalid username and/or password",
-			authboss.Cfg.PrimaryID, key,
+			"error", fmt.Sprintf("invalid %s and/or password", authboss.Cfg.PrimaryID),
+			"primaryID", authboss.Cfg.PrimaryID,
+			"primaryIDValue", key,
 			"showRemember", a.isRememberLoaded,
 			"showRecover", a.isRecoverLoaded,
 		)
@@ -130,7 +141,7 @@ func validateCredentials(ctx *authboss.Context, key, password string) error {
 	return nil
 }
 
-func (a *AuthModule) logoutHandlerFunc(ctx *authboss.Context, w http.ResponseWriter, r *http.Request) error {
+func (a *Auth) logoutHandlerFunc(ctx *authboss.Context, w http.ResponseWriter, r *http.Request) error {
 	switch r.Method {
 	case methodGET:
 		ctx.SessionStorer.Del(authboss.SessionKey)

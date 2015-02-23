@@ -10,11 +10,6 @@ import (
 	"golang.org/x/crypto/bcrypt"
 )
 
-const (
-	layoutTpl      = "layout.tpl"
-	layoutEmailTpl = "layoutEmail.tpl"
-)
-
 // Cfg is the singleton instance of Config
 var Cfg *Config = NewConfig()
 
@@ -105,6 +100,7 @@ func NewConfig() *Config {
 		},
 		ConfirmFields: []string{
 			StoreEmail, ConfirmPrefix + StoreEmail,
+			StoreUsername, ConfirmPrefix + StoreUsername,
 			StorePassword, ConfirmPrefix + StorePassword,
 		},
 

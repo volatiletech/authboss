@@ -1,35 +1,10 @@
 <form action="/recover" method="POST">
-    <input type="text" name="username" placeholder="Username" value="{{.username}}" /><br />
-    <input type="text" name="confirmUsername" placeholder="Confirm Username" value="{{.confirmUsername}}" /><br />
-    <button type="submit">Recover</button>
+    {{with .flashError}}{{.}}<br />{{end}}
+    <input type="text" name="{{.primaryID}}" placeholder="{{title .primaryID}}" value="{{.primaryIDValue}}" /><br />
+    {{$pid := .primaryID}}{{with .errs}}{{with $errlist := index . $pid}}{{range $errlist}}<span>{{.}}</span><br />{{end}}{{end}}{{end}}
+    <input type="text" name="confirm_{{.primaryID}}" placeholder="Confirm {{title .primaryID}}" value="{{.confirmPrimaryIDValue}}" /><br />
+    {{$cpid := .primaryID | printf "confirm_%s"}}{{with .errs}}{{with $errlist := index . $cpid}}{{range $errlist}}<span>{{.}}</span><br />{{end}}{{end}}{{end}}
+    <input type="hidden" name="{{.xsrfName}}" value="{{.xsrfToken}}" />
+    <button type="submit">Recover</button><br />
     <a href="/login">Cancel</a>
 </form>
-
-
-<!-- <form action="/recover" method="POST">
-    {{$usernameErrs := .ErrMap.username}}
-    <div class="form-group{{if $usernameErrs}} has-error{{end}}">
-        <div class="input-group">
-            <span class="input-group-addon"><i class="fa fa-user"></i></span>
-            <input class="form-control" type="text" name="username" placeholder="Username" value="{{.Username}}" />
-        </div>
-        {{range $err := $usernameErrs}}
-            <span class="help-block">{{print $err}}</span>
-        {{end}}
-    </div>
-
-    {{$confirmUsernameErrs := .ErrMap.confirmUsername}}
-    <div class="form-group{{if $confirmUsernameErrs}} has-error{{end}}">
-        <div class="input-group">
-            <span class="input-group-addon"><i class="fa fa-user"></i></span>
-            <input class="form-control" type="text" name="confirmUsername" placeholder="Confirm Username" value="{{.ConfirmUsername}}" />
-        </div>
-        {{range $err := $confirmUsernameErrs}}
-            <span class="help-block">{{print $err}}</span>
-        {{end}}
-    </div>
-    
-    <button class="btn btn-primary btn-block" type="submit">Recover</button>
-    <a class="btn btn-link btn-block" type="submit" href="/login">Cancel</a>
-    <input type="hidden" name="{{.XSRFName}}" value="{{.XSRFToken}}" />
-</form> -->

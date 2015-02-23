@@ -1,6 +1,6 @@
 <form action="register" method="post">
 	<label for="{{.primaryID}}">{{.primaryID}}:</label>
-	<input name={{.primaryID}} type="text" value="{{if .primaryIDValue}}{{.primaryIDValue}}{{end}}" placeholder="{{.primaryID}}" /><br />
+	<input name="{{.primaryID}}" type="text" value="{{with .primaryIDValue}}{{.}}{{end}}" placeholder="{{.primaryID}}" /><br />
 	{{$pid := .primaryID}}{{with .errs}}{{with $errlist := index . $pid}}{{range $errlist}}<span>{{.}}</span><br />{{end}}{{end}}{{end}}
 	<label for="password">Password:</label>
 	<input name="password" type="password" placeholder="Password" /><br />

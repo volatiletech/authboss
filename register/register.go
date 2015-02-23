@@ -4,6 +4,7 @@ package register
 import (
 	"net/http"
 
+	"golang.org/x/crypto/bcrypt"
 	"gopkg.in/authboss.v0"
 	"gopkg.in/authboss.v0/internal/render"
 )
@@ -85,8 +86,15 @@ func (reg *Register) registerPostHandler(ctx *authboss.Context, w http.ResponseW
 	if err != nil {
 		return err
 	}
+
+	pass, err := bcrypt.GenerateFromPassword([]byte(password), authboss.Cfg.BCryptCost)
+	if err != nil {
+		return err
+	}
+
 	attr[authboss.Cfg.PrimaryID] = key
-	attr[authboss.StorePassword] = password
+	attr[authboss.StorePassword] = string(pass)
+	delete(attr, authboss.ConfirmPrefix+authboss.StorePassword)
 	ctx.User = attr
 
 	if err := authboss.Cfg.Storer.Create(key, attr); err != nil {

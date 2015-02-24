@@ -30,6 +30,16 @@ const (
 
 var errRecoveryTokenExpired = errors.New("recovery token expired")
 
+// RecoverStorer must be implemented in order to satisfy the recover module's
+// storage requirements.
+type RecoverStorer interface {
+	authboss.Storer
+	// RecoverUser looks a user up by a recover token. See recover module for
+	// attribute names. If the key is not found in the data store,
+	// simply return nil, ErrUserNotFound.
+	RecoverUser(recoverToken string) (interface{}, error)
+}
+
 func init() {
 	m := &Recover{}
 	authboss.RegisterModule("recover", m)
@@ -45,7 +55,7 @@ func (r *Recover) Initialize() (err error) {
 		return errors.New("recover: Need a RecoverStorer.")
 	}
 
-	if _, ok := authboss.Cfg.Storer.(authboss.RecoverStorer); !ok {
+	if _, ok := authboss.Cfg.Storer.(RecoverStorer); !ok {
 		return errors.New("recover: RecoverStorer required for recover functionality.")
 	}
 
@@ -247,7 +257,7 @@ func verifyToken(ctx *authboss.Context) (attrs authboss.Attributes, err error) {
 	}
 
 	sum := md5.Sum(decoded)
-	storer := authboss.Cfg.Storer.(authboss.RecoverStorer)
+	storer := authboss.Cfg.Storer.(RecoverStorer)
 
 	userInter, err := storer.RecoverUser(base64.StdEncoding.EncodeToString(sum[:]))
 	if err != nil {

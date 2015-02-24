@@ -17,13 +17,28 @@ import (
 const (
 	// RememberKey is used for cookies and form input names.
 	RememberKey = "rm"
+	nRandBytes  = 32
 )
 
 var (
 	errUserMissing = errors.New("remember: User not loaded in callback")
 )
 
-const nRandBytes = 32
+// TokenStorer must be implemented in order to satisfy the remember module's
+// storage requirements. If the implementer is a typical database then
+// the tokens should be stored in a separate table since they require a 1-n
+// with the user for each device the user wishes to remain logged in on.
+type TokenStorer interface {
+	authboss.Storer
+	// AddToken saves a new token for the key.
+	AddToken(key, token string) error
+	// DelTokens removes all tokens for a given key.
+	DelTokens(key string) error
+	// UseToken finds the key-token pair, removes the entry in the store
+	// and returns the key that was found. If the token could not be found
+	// return "", ErrTokenNotFound
+	UseToken(givenKey, token string) (key string, err error)
+}
 
 // R is the singleton instance of the remember module which will have been
 // configured and ready to use after authboss.Init()
@@ -41,7 +56,7 @@ func (r *Remember) Initialize() error {
 		return errors.New("remember: Need a TokenStorer")
 	}
 
-	if _, ok := authboss.Cfg.Storer.(authboss.TokenStorer); !ok {
+	if _, ok := authboss.Cfg.Storer.(TokenStorer); !ok {
 		return errors.New("remember: TokenStorer required for remember me functionality")
 	}
 
@@ -97,7 +112,7 @@ func (r *Remember) New(cstorer authboss.ClientStorer, storageKey string) (string
 	storageToken := base64.StdEncoding.EncodeToString(sum[:])
 
 	// Save the token in the DB
-	if err := authboss.Cfg.Storer.(authboss.TokenStorer).AddToken(storageKey, storageToken); err != nil {
+	if err := authboss.Cfg.Storer.(TokenStorer).AddToken(storageKey, storageToken); err != nil {
 		return "", err
 	}
 
@@ -132,7 +147,7 @@ func (r *Remember) Auth(
 	// Verify the tokens match.
 	sum := md5.Sum(token)
 
-	key, err := authboss.Cfg.Storer.(authboss.TokenStorer).UseToken(string(givenKey), base64.StdEncoding.EncodeToString(sum[:]))
+	key, err := authboss.Cfg.Storer.(TokenStorer).UseToken(string(givenKey), base64.StdEncoding.EncodeToString(sum[:]))
 	if err == authboss.ErrTokenNotFound {
 		return "", nil
 	} else if err != nil {

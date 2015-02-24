@@ -36,46 +36,10 @@ type Storer interface {
 	// help serialization without using type assertions.
 	Put(key string, attr Attributes) error
 	// Get is for retrieving attributes for a given key. The return value
-	// must be a struct that contains a field with the correct type as shown
+	// must be a struct that contains all fields with the correct types as shown
 	// by attrMeta. If the key is not found in the data store simply
 	// return nil, ErrUserNotFound.
 	Get(key string, attrMeta AttributeMeta) (interface{}, error)
-}
-
-// TokenStorer must be implemented in order to satisfy the remember module's
-// storage requirements. If the implementer is a typical database then
-// the tokens should be stored in a separate table since they require a 1-n
-// with the user for each device the user wishes to remain logged in on.
-type TokenStorer interface {
-	Storer
-	// AddToken saves a new token for the key.
-	AddToken(key, token string) error
-	// DelTokens removes all tokens for a given key.
-	DelTokens(key string) error
-	// UseToken finds the key-token pair, removes the entry in the store
-	// and returns the key that was found. If the token could not be found
-	// return "", ErrTokenNotFound
-	UseToken(givenKey, token string) (key string, err error)
-}
-
-// RecoverStorer must be implemented in order to satisfy the recover module's
-// storage requirements.
-type RecoverStorer interface {
-	Storer
-	// RecoverUser looks a user up by a recover token. See recover module for
-	// attribute names. If the key is not found in the data store,
-	// simply return nil, ErrUserNotFound.
-	RecoverUser(recoverToken string) (interface{}, error)
-}
-
-// ConfirmStorer must be implemented in order to satisfy the confirm module's
-// storage requirements.
-type ConfirmStorer interface {
-	Storer
-	// ConfirmUser looks up a user by a confirm token. See confirm module for
-	// attribute names. If the token is not found in the data store,
-	// simply return nil, ErrUserNotFound.
-	ConfirmUser(confirmToken string) (interface{}, error)
 }
 
 // DataType represents the various types that clients must be able to store.

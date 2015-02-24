@@ -28,6 +28,16 @@ var (
 	errUserMissing = errors.New("confirm: After registration user must be loaded")
 )
 
+// ConfirmStorer must be implemented in order to satisfy the confirm module's
+// storage requirements.
+type ConfirmStorer interface {
+	authboss.Storer
+	// ConfirmUser looks up a user by a confirm token. See confirm module for
+	// attribute names. If the token is not found in the data store,
+	// simply return nil, ErrUserNotFound.
+	ConfirmUser(confirmToken string) (interface{}, error)
+}
+
 // C is the singleton instance of the confirm module which will have been
 // configured and ready to use after authboss.Init()
 var C *Confirm
@@ -43,7 +53,7 @@ type Confirm struct {
 
 func (c *Confirm) Initialize() (err error) {
 	var ok bool
-	storer, ok := authboss.Cfg.Storer.(authboss.ConfirmStorer)
+	storer, ok := authboss.Cfg.Storer.(ConfirmStorer)
 	if storer == nil || !ok {
 		return errors.New("confirm: Need a ConfirmStorer.")
 	}
@@ -146,7 +156,7 @@ func (c *Confirm) confirmHandler(ctx *authboss.Context, w http.ResponseWriter, r
 	sum := md5.Sum(toHash)
 
 	dbTok := base64.StdEncoding.EncodeToString(sum[:])
-	user, err := authboss.Cfg.Storer.(authboss.ConfirmStorer).ConfirmUser(dbTok)
+	user, err := authboss.Cfg.Storer.(ConfirmStorer).ConfirmUser(dbTok)
 	if err == authboss.ErrUserNotFound {
 		return authboss.ErrAndRedirect{Endpoint: "/", Err: errors.New("confirm: token not found")}
 	} else if err != nil {

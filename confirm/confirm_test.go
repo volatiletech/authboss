@@ -220,7 +220,7 @@ func TestConfirm_Confirm(t *testing.T) {
 	if key, ok := ctx.SessionStorer.Get(authboss.SessionKey); !ok || len(key) == 0 {
 		t.Error("Should have logged the user in.")
 	}
-	if success, ok := ctx.CookieStorer.Get(authboss.FlashSuccessKey); !ok || len(success) == 0 {
+	if success, ok := ctx.SessionStorer.Get(authboss.FlashSuccessKey); !ok || len(success) == 0 {
 		t.Error("Should have left a nice message.")
 	}
 }

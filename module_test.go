@@ -23,21 +23,11 @@ func testHandler(ctx *Context, w http.ResponseWriter, r *http.Request) error {
 	return nil
 }
 
-func (t *testModule) Initialize() error {
-	return nil
-}
-
-func (t *testModule) Routes() RouteTable {
-	return t.r
-}
-
-func (t *testModule) Storage() StorageOptions {
-	return t.s
-}
+func (t *testModule) Initialize() error       { return nil }
+func (t *testModule) Routes() RouteTable      { return t.r }
+func (t *testModule) Storage() StorageOptions { return t.s }
 
 func TestRegister(t *testing.T) {
-	t.Parallel()
-
 	// RegisterModule called by TestMain.
 
 	if _, ok := modules["testmodule"]; !ok {
@@ -50,8 +40,6 @@ func TestRegister(t *testing.T) {
 }
 
 func TestLoadedModules(t *testing.T) {
-	t.Parallel()
-
 	// RegisterModule called by TestMain.
 
 	loadedMods := LoadedModules()

@@ -149,7 +149,7 @@ func (c *Confirm) confirmHandler(ctx *authboss.Context, w http.ResponseWriter, r
 	toHash, err := base64.URLEncoding.DecodeString(token)
 	if err != nil {
 		return authboss.ErrAndRedirect{
-			Endpoint: "/", Err: fmt.Errorf("confirm: token failed to decode %q => %v\n", token, err),
+			Location: "/", Err: fmt.Errorf("confirm: token failed to decode %q => %v\n", token, err),
 		}
 	}
 
@@ -158,7 +158,7 @@ func (c *Confirm) confirmHandler(ctx *authboss.Context, w http.ResponseWriter, r
 	dbTok := base64.StdEncoding.EncodeToString(sum[:])
 	user, err := authboss.Cfg.Storer.(ConfirmStorer).ConfirmUser(dbTok)
 	if err == authboss.ErrUserNotFound {
-		return authboss.ErrAndRedirect{Endpoint: "/", Err: errors.New("confirm: token not found")}
+		return authboss.ErrAndRedirect{Location: "/", Err: errors.New("confirm: token not found")}
 	} else if err != nil {
 		return err
 	}

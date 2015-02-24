@@ -4,6 +4,7 @@ import (
 	"html/template"
 	"io"
 	"io/ioutil"
+	"net/http"
 	"net/smtp"
 	"time"
 
@@ -31,6 +32,13 @@ type Config struct {
 	Layout          *template.Template
 	LayoutEmail     *template.Template
 	LayoutDataMaker ViewDataMaker
+
+	// ErrorHandler handles would be 500 errors.
+	ErrorHandler http.Handler
+	// BadRequestHandler handles would be 400 errors.
+	BadRequestHandler http.Handler
+	// NotFoundHandler handles would be 404 errors.
+	NotFoundHandler http.Handler
 
 	AuthLogoutRoute       string
 	AuthLoginSuccessRoute string

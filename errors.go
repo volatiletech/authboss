@@ -40,13 +40,13 @@ func (c ClientDataErr) Error() string {
 // be to redirect.
 type ErrAndRedirect struct {
 	Err          error
-	Endpoint     string
+	Location     string
 	FlashSuccess string
 	FlashError   string
 }
 
 func (e ErrAndRedirect) Error() string {
-	return fmt.Sprintf("Error: %v, Redirecting to: %s", e.Err, e.Endpoint)
+	return fmt.Sprintf("Error: %v, Redirecting to: %s", e.Err, e.Location)
 }
 
 // RenderErr represents an error that occured during rendering

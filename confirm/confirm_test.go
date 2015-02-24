@@ -141,10 +141,10 @@ func TestConfirm_ConfirmHandlerErrors(t *testing.T) {
 	}{
 		{"http://localhost", false, authboss.ClientDataErr{FormValueConfirm}},
 		{"http://localhost?cnf=c$ats", false,
-			authboss.ErrAndRedirect{Endpoint: "/", Err: errors.New("confirm: token failed to decode \"c$ats\" => illegal base64 data at input byte 1\n")},
+			authboss.ErrAndRedirect{Location: "/", Err: errors.New("confirm: token failed to decode \"c$ats\" => illegal base64 data at input byte 1\n")},
 		},
 		{"http://localhost?cnf=SGVsbG8sIHBsYXlncm91bmQ=", false,
-			authboss.ErrAndRedirect{Endpoint: "/", Err: errors.New(`confirm: token not found`)},
+			authboss.ErrAndRedirect{Location: "/", Err: errors.New(`confirm: token not found`)},
 		},
 	}
 

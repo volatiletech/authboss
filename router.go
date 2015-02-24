@@ -2,6 +2,7 @@ package authboss
 
 import (
 	"fmt"
+	"io"
 	"net/http"
 	"path"
 )
@@ -22,6 +23,15 @@ func NewRouter() http.Handler {
 			mux.Handle(path.Join(Cfg.MountPath, route), contextRoute{handler})
 		}
 	}
+
+	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+		if Cfg.NotFoundHandler != nil {
+			Cfg.NotFoundHandler.ServeHTTP(w, r)
+		} else {
+			w.WriteHeader(http.StatusNotFound)
+			io.WriteString(w, "404 Page not found")
+		}
+	})
 
 	return mux
 }
@@ -46,22 +56,29 @@ func (c contextRoute) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 
 	fmt.Fprintf(Cfg.LogWriter, "Error Occurred at %s: %v", r.URL.Path, err)
+
 	switch e := err.(type) {
-	case AttributeErr:
-		w.WriteHeader(http.StatusInternalServerError)
-	case ClientDataErr:
-		w.WriteHeader(http.StatusBadRequest)
 	case ErrAndRedirect:
 		if len(e.FlashSuccess) > 0 {
-			ctx.CookieStorer.Put(FlashSuccessKey, e.FlashSuccess)
+			ctx.SessionStorer.Put(FlashSuccessKey, e.FlashSuccess)
 		}
 		if len(e.FlashError) > 0 {
-			ctx.CookieStorer.Put(FlashErrorKey, e.FlashError)
+			ctx.SessionStorer.Put(FlashErrorKey, e.FlashError)
 		}
-		http.Redirect(w, r, e.Endpoint, http.StatusTemporaryRedirect)
-	case RenderErr:
-		w.WriteHeader(http.StatusInternalServerError)
+		http.Redirect(w, r, e.Location, http.StatusFound)
+	case ClientDataErr:
+		if Cfg.BadRequestHandler != nil {
+			Cfg.BadRequestHandler.ServeHTTP(w, r)
+		} else {
+			w.WriteHeader(http.StatusBadRequest)
+			io.WriteString(w, "400 Bad request")
+		}
 	default:
-		w.WriteHeader(http.StatusInternalServerError)
+		if Cfg.ErrorHandler != nil {
+			Cfg.ErrorHandler.ServeHTTP(w, r)
+		} else {
+			w.WriteHeader(http.StatusInternalServerError)
+			io.WriteString(w, "500 An error has occurred")
+		}
 	}
 }

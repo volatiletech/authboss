@@ -22,30 +22,6 @@ func TestAuthBossInit(t *testing.T) {
 	}
 }
 
-func TestAuthBossRouter(t *testing.T) {
-	NewConfig()
-	Cfg.Storer = mockStorer{}
-	Cfg.CookieStoreMaker = func(_ http.ResponseWriter, _ *http.Request) ClientStorer {
-		return mockClientStore{}
-	}
-	Cfg.SessionStoreMaker = SessionStoreMaker(Cfg.CookieStoreMaker)
-	Cfg.MountPath = "/candycanes"
-
-	if err := Init(); err != nil {
-		t.Error("Unexpected error:", err)
-	}
-	router := NewRouter()
-
-	r, _ := http.NewRequest("GET", "/candycanes/testroute", nil)
-	response := httptest.NewRecorder()
-
-	router.ServeHTTP(response, r)
-
-	if response.Header().Get("testhandler") != "test" {
-		t.Error("Expected a header to have been set.")
-	}
-}
-
 func TestAuthBossCurrentUser(t *testing.T) {
 	NewConfig()
 	Cfg.Storer = mockStorer{"joe": Attributes{"email": "john@john.com", "password": "lies"}}

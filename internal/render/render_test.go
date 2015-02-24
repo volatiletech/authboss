@@ -68,7 +68,7 @@ func TestTemplates_Render(t *testing.T) {
 	r, _ := http.NewRequest("GET", "http://localhost", nil)
 	w := httptest.NewRecorder()
 	ctx, _ := authboss.ContextFromRequest(r)
-	ctx.CookieStorer = cookies
+	ctx.SessionStorer = cookies
 
 	tpls := Templates{
 		"hello": testViewTemplate,
@@ -124,7 +124,7 @@ func TestRedirect(t *testing.T) {
 	r, _ := http.NewRequest("GET", "http://localhost", nil)
 	w := httptest.NewRecorder()
 	ctx, _ := authboss.ContextFromRequest(r)
-	ctx.CookieStorer = cookies
+	ctx.SessionStorer = cookies
 
 	Redirect(ctx, w, r, "/", "success", "failure")
 

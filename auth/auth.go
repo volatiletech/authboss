@@ -23,10 +23,7 @@ func init() {
 }
 
 type Auth struct {
-	templates        render.Templates
-	policies         []authboss.Validator
-	isRememberLoaded bool
-	isRecoverLoaded  bool
+	templates render.Templates
 }
 
 func (a *Auth) Initialize() (err error) {
@@ -38,11 +35,6 @@ func (a *Auth) Initialize() (err error) {
 	if err != nil {
 		return err
 	}
-
-	a.policies = authboss.FilterValidators(authboss.Cfg.Policies, authboss.Cfg.PrimaryID, authboss.StorePassword)
-
-	a.isRememberLoaded = authboss.IsLoaded("remember")
-	a.isRecoverLoaded = authboss.IsLoaded("recover")
 
 	return nil
 }
@@ -71,8 +63,8 @@ func (a *Auth) loginHandlerFunc(ctx *authboss.Context, w http.ResponseWriter, r 
 		}
 
 		data := authboss.NewHTMLData(
-			"showRemember", a.isRememberLoaded,
-			"showRecover", a.isRecoverLoaded,
+			"showRemember", authboss.IsLoaded("remember"),
+			"showRecover", authboss.IsLoaded("recover"),
 			"primaryID", authboss.Cfg.PrimaryID,
 			"primaryIDValue", "",
 		)
@@ -100,11 +92,12 @@ func (a *Auth) loginHandlerFunc(ctx *authboss.Context, w http.ResponseWriter, r 
 			"error", fmt.Sprintf("invalid %s and/or password", authboss.Cfg.PrimaryID),
 			"primaryID", authboss.Cfg.PrimaryID,
 			"primaryIDValue", key,
-			"showRemember", a.isRememberLoaded,
-			"showRecover", a.isRecoverLoaded,
+			"showRemember", authboss.IsLoaded("remember"),
+			"showRecover", authboss.IsLoaded("recover"),
 		)
 
-		if validationErrs := ctx.Validate(a.policies); len(validationErrs) > 0 {
+		policies := authboss.FilterValidators(authboss.Cfg.Policies, authboss.Cfg.PrimaryID, authboss.StorePassword)
+		if validationErrs := ctx.Validate(policies); len(validationErrs) > 0 {
 			fmt.Fprintln(authboss.Cfg.LogWriter, "auth: form validation failed:", validationErrs.Map())
 			return a.templates.Render(ctx, w, r, tplLogin, errData)
 		}
@@ -114,7 +107,6 @@ func (a *Auth) loginHandlerFunc(ctx *authboss.Context, w http.ResponseWriter, r 
 			return a.templates.Render(ctx, w, r, tplLogin, errData)
 		}
 
-		ctx.SessionStorer.Put(authboss.SessionKey, key)
 		authboss.Cfg.Callbacks.FireAfter(authboss.EventAuth, ctx)
 		http.Redirect(w, r, authboss.Cfg.AuthLoginSuccessRoute, http.StatusFound)
 	default:
@@ -138,6 +130,7 @@ func validateCredentials(ctx *authboss.Context, key, password string) error {
 		return err
 	}
 
+	ctx.SessionStorer.Put(authboss.SessionKey, key)
 	return nil
 }
 

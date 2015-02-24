@@ -24,11 +24,8 @@ const (
 	tplInitHTMLEmail   = "recover-html.email"
 	tplInitTextEmail   = "recover-text.email"
 
-	storeUsername           = "username"
-	storeRecoverToken       = "recover_token"
-	storeRecoverTokenExpiry = "recover_token_expiry"
-	storeEmail              = "email"
-	storePassword           = "password"
+	StoreRecoverToken       = "recover_token"
+	StoreRecoverTokenExpiry = "recover_token_expiry"
 )
 
 var errRecoveryTokenExpired = errors.New("recovery token expired")
@@ -73,11 +70,11 @@ func (r *Recover) Routes() authboss.RouteTable {
 }
 func (r *Recover) Storage() authboss.StorageOptions {
 	return authboss.StorageOptions{
-		storeUsername:           authboss.String,
-		storeRecoverToken:       authboss.String,
-		storeEmail:              authboss.String,
-		storeRecoverTokenExpiry: authboss.String,
-		storePassword:           authboss.String,
+		authboss.StoreUsername:  authboss.String,
+		authboss.StoreEmail:     authboss.String,
+		authboss.StorePassword:  authboss.String,
+		StoreRecoverToken:       authboss.String,
+		StoreRecoverTokenExpiry: authboss.String,
 	}
 }
 
@@ -115,7 +112,7 @@ func (r *Recover) startHandlerFunc(ctx *authboss.Context, w http.ResponseWriter,
 			return err
 		}
 
-		email, err := ctx.User.StringErr(storeEmail)
+		email, err := ctx.User.StringErr(authboss.StoreEmail)
 		if err != nil {
 			return err
 		}
@@ -125,8 +122,8 @@ func (r *Recover) startHandlerFunc(ctx *authboss.Context, w http.ResponseWriter,
 			return err
 		}
 
-		ctx.User[storeRecoverToken] = encodedChecksum
-		ctx.User[storeRecoverTokenExpiry] = time.Now().Add(authboss.Cfg.RecoverTokenDuration)
+		ctx.User[StoreRecoverToken] = encodedChecksum
+		ctx.User[StoreRecoverTokenExpiry] = time.Now().Add(authboss.Cfg.RecoverTokenDuration)
 
 		if err := ctx.SaveUser(); err != nil {
 			return err

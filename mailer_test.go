@@ -49,3 +49,18 @@ func TestMailer(t *testing.T) {
 		t.Error("Html body not present.")
 	}
 }
+
+func TestSMTPMailer(t *testing.T) {
+	var _ Mailer = SMTPMailer("server", nil)
+
+	recovered := false
+	defer func() {
+		recovered = recover() != nil
+	}()
+
+	SMTPMailer("", nil)
+
+	if !recovered {
+		t.Error("Should have panicd.")
+	}
+}

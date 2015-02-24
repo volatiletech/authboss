@@ -52,6 +52,68 @@ func TestAttributeMeta_Names(t *testing.T) {
 	}
 }
 
+func TestAttributeMeta_Helpers(t *testing.T) {
+	now := time.Now()
+	attr := Attributes{
+		"integer":   5,
+		"string":    "a",
+		"bool":      true,
+		"date_time": now,
+	}
+
+	if str, ok := attr.String("string"); !ok || str != "a" {
+		t.Error(str, ok)
+	}
+	if str, err := attr.StringErr("string"); err != nil || str != "a" {
+		t.Error(str, err)
+	}
+	if str, ok := attr.String("notstring"); ok {
+		t.Error(str, ok)
+	}
+	if str, err := attr.StringErr("notstring"); err == nil {
+		t.Error(str, err)
+	}
+
+	if integer, ok := attr.Int("integer"); !ok || integer != 5 {
+		t.Error(integer, ok)
+	}
+	if integer, err := attr.IntErr("integer"); err != nil || integer != 5 {
+		t.Error(integer, err)
+	}
+	if integer, ok := attr.Int("notinteger"); ok {
+		t.Error(integer, ok)
+	}
+	if integer, err := attr.IntErr("notinteger"); err == nil {
+		t.Error(integer, err)
+	}
+
+	if boolean, ok := attr.Bool("bool"); !ok || !boolean {
+		t.Error(boolean, ok)
+	}
+	if boolean, err := attr.BoolErr("bool"); err != nil || !boolean {
+		t.Error(boolean, err)
+	}
+	if boolean, ok := attr.Bool("notbool"); ok {
+		t.Error(boolean, ok)
+	}
+	if boolean, err := attr.BoolErr("notbool"); err == nil {
+		t.Error(boolean, err)
+	}
+
+	if date, ok := attr.DateTime("date_time"); !ok || date != now {
+		t.Error(date, ok)
+	}
+	if date, err := attr.DateTimeErr("date_time"); err != nil || date != now {
+		t.Error(date, err)
+	}
+	if date, ok := attr.DateTime("notdate_time"); ok {
+		t.Error(date, ok)
+	}
+	if date, err := attr.DateTimeErr("notdate_time"); err == nil {
+		t.Error(date, err)
+	}
+}
+
 func TestDataType_String(t *testing.T) {
 	t.Parallel()
 

@@ -34,6 +34,38 @@ func TestContext_Request(t *testing.T) {
 	if post, ok := ctx.FirstPostFormValue("post"); !ok || post != "form" {
 		t.Error("Postform value not getting recorded correctly.")
 	}
+
+	if _, err := ctx.FirstFormValueErr("query"); err != nil {
+		t.Error(err)
+	}
+
+	if _, err := ctx.FirstPostFormValueErr("post"); err != nil {
+		t.Error(err)
+	}
+
+	if query, ok := ctx.FormValue("query1"); ok {
+		t.Error("Expected query1 not to be found:", query)
+	}
+
+	if post, ok := ctx.PostFormValue("post1"); ok {
+		t.Error("Expected post1 not to be found:", post)
+	}
+
+	if query, ok := ctx.FirstFormValue("query1"); ok {
+		t.Error("Expected query1 not to be found:", query)
+	}
+
+	if post, ok := ctx.FirstPostFormValue("post1"); ok {
+		t.Error("Expected post1 not to be found:", post)
+	}
+
+	if query, err := ctx.FirstFormValueErr("query1"); err == nil {
+		t.Error("Expected query1 not to be found:", query)
+	}
+
+	if post, err := ctx.FirstPostFormValueErr("post1"); err == nil {
+		t.Error("Expected post1 not to be found:", post)
+	}
 }
 
 func TestContext_SaveUser(t *testing.T) {

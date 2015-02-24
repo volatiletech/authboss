@@ -49,6 +49,16 @@ func TestRules_Errors(t *testing.T) {
 			"email: Must contain at least 5 letters",
 		},
 		{
+			Rules{FieldName: "email", MinUpper: 5},
+			"hi",
+			"email: Must contain at least 5 uppercase letters",
+		},
+		{
+			Rules{FieldName: "email", MinLower: 5},
+			"hi",
+			"email: Must contain at least 5 lowercase letters",
+		},
+		{
 			Rules{FieldName: "email", MinSymbols: 5},
 			"hi",
 			"email: Must contain at least 5 symbols",
@@ -90,8 +100,10 @@ func TestRules_Rules(t *testing.T) {
 		MinLength:       1,
 		MaxLength:       2,
 		MinLetters:      3,
-		MinNumeric:      4,
-		MinSymbols:      5,
+		MinUpper:        4,
+		MinLower:        5,
+		MinNumeric:      6,
+		MinSymbols:      7,
 		AllowWhitespace: false,
 	}
 
@@ -101,8 +113,10 @@ func TestRules_Rules(t *testing.T) {
 		"Must adhere to this regexp",
 		"Must be between 1 and 2 characters",
 		"Must contain at least 3 letters",
-		"Must contain at least 4 numbers",
-		"Must contain at least 5 symbols",
+		"Must contain at least 4 uppercase letters",
+		"Must contain at least 5 lowercase letters",
+		"Must contain at least 6 numbers",
+		"Must contain at least 7 symbols",
 	}
 
 	for i, toFind := range mustFind {
@@ -128,9 +142,12 @@ func TestRules_IsValid(t *testing.T) {
 func TestTallyCharacters(t *testing.T) {
 	t.Parallel()
 
-	c, n, s, w := tallyCharacters("123abcDEF@#$%^*   ")
-	if c != 6 {
-		t.Error("Number of chars:", c)
+	u, l, n, s, w := tallyCharacters("123abcDEF@#$%^*   ")
+	if u != 3 {
+		t.Error("Number of upper:", u)
+	}
+	if l != 3 {
+		t.Error("Number of lower:", l)
 	}
 	if n != 3 {
 		t.Error("Number of numerics:", n)

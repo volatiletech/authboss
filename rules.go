@@ -19,6 +19,7 @@ type Rules struct {
 	MustMatch            *regexp.Regexp
 	MinLength, MaxLength int
 	MinLetters           int
+	MinLower, MinUpper   int
 	MinNumeric           int
 	MinSymbols           int
 	AllowWhitespace      bool
@@ -49,9 +50,15 @@ func (r Rules) Errors(toValidate string) ErrorList {
 		errs = append(errs, FieldError{r.FieldName, errors.New(r.lengthErr())})
 	}
 
-	chars, numeric, symbols, whitespace := tallyCharacters(toValidate)
-	if chars < r.MinLetters {
+	upper, lower, numeric, symbols, whitespace := tallyCharacters(toValidate)
+	if upper+lower < r.MinLetters {
 		errs = append(errs, FieldError{r.FieldName, errors.New(r.charErr())})
+	}
+	if upper < r.MinUpper {
+		errs = append(errs, FieldError{r.FieldName, errors.New(r.upperErr())})
+	}
+	if upper < r.MinLower {
+		errs = append(errs, FieldError{r.FieldName, errors.New(r.lowerErr())})
 	}
 	if numeric < r.MinNumeric {
 		errs = append(errs, FieldError{r.FieldName, errors.New(r.numericErr())})
@@ -89,6 +96,12 @@ func (r Rules) Rules() []string {
 	if e := r.charErr(); len(e) > 0 {
 		rules = append(rules, e)
 	}
+	if e := r.upperErr(); len(e) > 0 {
+		rules = append(rules, e)
+	}
+	if e := r.lowerErr(); len(e) > 0 {
+		rules = append(rules, e)
+	}
 	if e := r.numericErr(); len(e) > 0 {
 		rules = append(rules, e)
 	}
@@ -119,6 +132,20 @@ func (r Rules) charErr() (err string) {
 	return err
 }
 
+func (r Rules) upperErr() (err string) {
+	if r.MinUpper > 0 {
+		err = fmt.Sprintf("Must contain at least %d uppercase letters", r.MinUpper)
+	}
+	return err
+}
+
+func (r Rules) lowerErr() (err string) {
+	if r.MinLower > 0 {
+		err = fmt.Sprintf("Must contain at least %d lowercase letters", r.MinLower)
+	}
+	return err
+}
+
 func (r Rules) numericErr() (err string) {
 	if r.MinNumeric > 0 {
 		err = fmt.Sprintf("Must contain at least %d numbers", r.MinNumeric)
@@ -133,11 +160,15 @@ func (r Rules) symbolErr() (err string) {
 	return err
 }
 
-func tallyCharacters(s string) (chars, numeric, symbols, whitespace int) {
+func tallyCharacters(s string) (upper, lower, numeric, symbols, whitespace int) {
 	for _, c := range s {
 		switch {
 		case unicode.IsLetter(c):
-			chars++
+			if unicode.IsUpper(c) {
+				upper++
+			} else {
+				lower++
+			}
 		case unicode.IsDigit(c):
 			numeric++
 		case unicode.IsSpace(c):
@@ -147,5 +178,5 @@ func tallyCharacters(s string) (chars, numeric, symbols, whitespace int) {
 		}
 	}
 
-	return chars, numeric, symbols, whitespace
+	return upper, lower, numeric, symbols, whitespace
 }

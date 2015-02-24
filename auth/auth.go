@@ -31,6 +31,14 @@ func (a *Auth) Initialize() (err error) {
 		return errors.New("auth: Need a Storer.")
 	}
 
+	if len(authboss.Cfg.XSRFName) == 0 {
+		return errors.New("auth: XSRFName must be set")
+	}
+
+	if authboss.Cfg.XSRFMaker == nil {
+		return errors.New("auth: XSRFMaker must be defined")
+	}
+
 	a.templates, err = render.LoadTemplates(authboss.Cfg.Layout, authboss.Cfg.ViewsPath, tplLogin)
 	if err != nil {
 		return err
@@ -59,6 +67,7 @@ func (a *Auth) loginHandlerFunc(ctx *authboss.Context, w http.ResponseWriter, r 
 		if _, ok := ctx.SessionStorer.Get(authboss.SessionKey); ok {
 			if halfAuthed, ok := ctx.SessionStorer.Get(authboss.SessionHalfAuthKey); !ok || halfAuthed == "false" {
 				http.Redirect(w, r, authboss.Cfg.AuthLoginSuccessRoute, http.StatusFound)
+				return nil
 			}
 		}
 
@@ -81,7 +90,7 @@ func (a *Auth) loginHandlerFunc(ctx *authboss.Context, w http.ResponseWriter, r 
 			case authboss.InterruptAccountNotConfirmed:
 				reason = "Your account has not been confirmed."
 			}
-			render.Redirect(ctx, w, r, "/", "", reason)
+			render.Redirect(ctx, w, r, "/login", "", reason)
 			return nil
 		}
 
@@ -98,12 +107,10 @@ func (a *Auth) loginHandlerFunc(ctx *authboss.Context, w http.ResponseWriter, r 
 
 		policies := authboss.FilterValidators(authboss.Cfg.Policies, authboss.Cfg.PrimaryID, authboss.StorePassword)
 		if validationErrs := ctx.Validate(policies); len(validationErrs) > 0 {
-			fmt.Fprintln(authboss.Cfg.LogWriter, "auth: form validation failed:", validationErrs.Map())
 			return a.templates.Render(ctx, w, r, tplLogin, errData)
 		}
 
 		if err := validateCredentials(ctx, key, password); err != nil {
-			fmt.Fprintln(authboss.Cfg.LogWriter, "auth: failed to validate credentials:", err)
 			return a.templates.Render(ctx, w, r, tplLogin, errData)
 		}
 

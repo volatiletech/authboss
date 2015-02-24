@@ -182,10 +182,18 @@ type MockClientStorer struct {
 	GetShouldFail bool
 }
 
-func NewMockClientStorer() *MockClientStorer {
-	return &MockClientStorer{
-		Values: make(map[string]string),
+func NewMockClientStorer(data ...string) *MockClientStorer {
+	if len(data)%2 != 0 {
+		panic("It should be a key value list of arguments.")
 	}
+
+	values := make(map[string]string)
+
+	for i := 0; i < len(data)-1; i += 2 {
+		values[data[i]] = data[i+1]
+	}
+
+	return &MockClientStorer{Values: values}
 }
 
 func (m *MockClientStorer) Get(key string) (string, bool) {
@@ -251,4 +259,20 @@ func (m *MockMailer) Send(email authboss.Email) error {
 
 	m.Last = email
 	return nil
+}
+
+type MockAfterCallback struct {
+	HasBeenCalled bool
+	Fn            authboss.After
+}
+
+func NewMockAfterCallback() *MockAfterCallback {
+	m := MockAfterCallback{}
+
+	m.Fn = func(_ *authboss.Context) error {
+		m.HasBeenCalled = true
+		return nil
+	}
+
+	return &m
 }

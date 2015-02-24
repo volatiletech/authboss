@@ -138,5 +138,5 @@ func Redirect(ctx *authboss.Context, w http.ResponseWriter, r *http.Request, pat
 	if len(flashError) > 0 {
 		ctx.SessionStorer.Put(authboss.FlashErrorKey, flashError)
 	}
-	http.Redirect(w, r, path, http.StatusTemporaryRedirect)
+	http.Redirect(w, r, path, http.StatusFound)
 }

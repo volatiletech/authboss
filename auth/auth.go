@@ -49,8 +49,8 @@ func (a *Auth) Initialize() (err error) {
 
 func (a *Auth) Routes() authboss.RouteTable {
 	return authboss.RouteTable{
-		"login":  a.loginHandlerFunc,
-		"logout": a.logoutHandlerFunc,
+		"/login":  a.loginHandlerFunc,
+		"/logout": a.logoutHandlerFunc,
 	}
 }
 

@@ -59,6 +59,14 @@ func (r *Recover) Initialize() (err error) {
 		return errors.New("recover: RecoverStorer required for recover functionality.")
 	}
 
+	if len(authboss.Cfg.XSRFName) == 0 {
+		return errors.New("auth: XSRFName must be set")
+	}
+
+	if authboss.Cfg.XSRFMaker == nil {
+		return errors.New("auth: XSRFMaker must be defined")
+	}
+
 	r.templates, err = render.LoadTemplates(authboss.Cfg.Layout, authboss.Cfg.ViewsPath, tplRecover, tplRecoverComplete)
 	if err != nil {
 		return err
@@ -74,13 +82,13 @@ func (r *Recover) Initialize() (err error) {
 
 func (r *Recover) Routes() authboss.RouteTable {
 	return authboss.RouteTable{
-		"recover":          r.startHandlerFunc,
-		"recover/complete": r.completeHandlerFunc,
+		"/recover":          r.startHandlerFunc,
+		"/recover/complete": r.completeHandlerFunc,
 	}
 }
 func (r *Recover) Storage() authboss.StorageOptions {
 	return authboss.StorageOptions{
-		authboss.StoreUsername:  authboss.String,
+		authboss.Cfg.PrimaryID:  authboss.String,
 		authboss.StoreEmail:     authboss.String,
 		authboss.StorePassword:  authboss.String,
 		StoreRecoverToken:       authboss.String,
@@ -88,8 +96,8 @@ func (r *Recover) Storage() authboss.StorageOptions {
 	}
 }
 
-func (r *Recover) startHandlerFunc(ctx *authboss.Context, w http.ResponseWriter, req *http.Request) error {
-	switch req.Method {
+func (rec *Recover) startHandlerFunc(ctx *authboss.Context, w http.ResponseWriter, r *http.Request) error {
+	switch r.Method {
 	case methodGET:
 		data := authboss.NewHTMLData(
 			"primaryID", authboss.Cfg.PrimaryID,
@@ -97,7 +105,7 @@ func (r *Recover) startHandlerFunc(ctx *authboss.Context, w http.ResponseWriter,
 			"confirmPrimaryIDValue", "",
 		)
 
-		return r.templates.Render(ctx, w, req, tplRecover, data)
+		return rec.templates.Render(ctx, w, r, tplRecover, data)
 	case methodPOST:
 		primaryID, _ := ctx.FirstPostFormValue(authboss.Cfg.PrimaryID)
 		confirmPrimaryID, _ := ctx.FirstPostFormValue(fmt.Sprintf("confirm_%s", authboss.Cfg.PrimaryID))
@@ -110,14 +118,13 @@ func (r *Recover) startHandlerFunc(ctx *authboss.Context, w http.ResponseWriter,
 
 		policies := authboss.FilterValidators(authboss.Cfg.Policies, authboss.Cfg.PrimaryID)
 		if validationErrs := ctx.Validate(policies, authboss.Cfg.ConfirmFields...).Map(); len(validationErrs) > 0 {
-			fmt.Fprintln(authboss.Cfg.LogWriter, "recover: form validation failed:", validationErrs)
 			errData.MergeKV("errs", validationErrs)
-			return r.templates.Render(ctx, w, req, tplRecover, errData)
+			return rec.templates.Render(ctx, w, r, tplRecover, errData)
 		}
 
 		if err := ctx.LoadUser(primaryID); err == authboss.ErrUserNotFound {
 			errData.MergeKV("flashError", authboss.Cfg.RecoverFailedErrorFlash)
-			return r.templates.Render(ctx, w, req, tplRecover, errData)
+			return rec.templates.Render(ctx, w, r, tplRecover, errData)
 		} else if err != nil {
 			return err
 		}
@@ -139,10 +146,10 @@ func (r *Recover) startHandlerFunc(ctx *authboss.Context, w http.ResponseWriter,
 			return err
 		}
 
-		go goRecoverEmail(r, email, encodedToken)
+		go goRecoverEmail(rec, email, encodedToken)
 
 		ctx.SessionStorer.Put(authboss.FlashSuccessKey, authboss.Cfg.RecoverInitiateSuccessFlash)
-		http.Redirect(w, req, authboss.Cfg.RecoverRedirect, http.StatusFound)
+		http.Redirect(w, r, authboss.Cfg.RecoverRedirect, http.StatusFound)
 	default:
 		w.WriteHeader(http.StatusMethodNotAllowed)
 	}
@@ -221,10 +228,10 @@ func (r *Recover) completeHandlerFunc(ctx *authboss.Context, w http.ResponseWrit
 			return err
 		}
 
-		ctx.User[storePassword] = string(encryptedPassword)
-		ctx.User[storeRecoverToken] = ""
+		ctx.User[authboss.StorePassword] = string(encryptedPassword)
+		ctx.User[StoreRecoverToken] = ""
 		var nullTime time.Time
-		ctx.User[storeRecoverTokenExpiry] = nullTime
+		ctx.User[StoreRecoverTokenExpiry] = nullTime
 
 		primaryID, err := ctx.User.StringErr(authboss.Cfg.PrimaryID)
 		if err != nil {
@@ -266,7 +273,7 @@ func verifyToken(ctx *authboss.Context) (attrs authboss.Attributes, err error) {
 
 	attrs = authboss.Unbind(userInter)
 
-	expiry, ok := attrs.DateTime(storeRecoverTokenExpiry)
+	expiry, ok := attrs.DateTime(StoreRecoverTokenExpiry)
 	if !ok || time.Now().After(expiry) {
 		return nil, errRecoveryTokenExpired
 	}

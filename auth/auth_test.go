@@ -48,28 +48,20 @@ func testRequest(method string, postFormValues ...string) (*authboss.Context, *h
 func TestAuth(t *testing.T) {
 	a, _ := testSetup()
 
-	if err := a.Initialize(); err != nil {
-		t.Error("Unexcpeted error:", err)
-	}
-
 	storage := a.Storage()
-
 	if storage[authboss.Cfg.PrimaryID] != authboss.String {
 		t.Error("Expected storage KV:", authboss.Cfg.PrimaryID, authboss.String)
 	}
-
 	if storage[authboss.StorePassword] != authboss.String {
 		t.Error("Expected storage KV:", authboss.StorePassword, authboss.String)
 	}
 
 	routes := a.Routes()
-
-	if routes["login"] == nil {
-		t.Error("Expected route 'login' with handleFunc")
+	if routes["/login"] == nil {
+		t.Error("Expected route '/login' with handleFunc")
 	}
-
-	if routes["logout"] == nil {
-		t.Error("Expected route 'logout' with handleFunc")
+	if routes["/logout"] == nil {
+		t.Error("Expected route '/logout' with handleFunc")
 	}
 }
 

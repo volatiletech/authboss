@@ -136,7 +136,7 @@ func TestRegisterPostSuccess(t *testing.T) {
 		t.Error(err)
 	}
 
-	if w.Code != http.StatusTemporaryRedirect {
+	if w.Code != http.StatusFound {
 		t.Error("It should have written a redirect:", w.Code)
 	}
 

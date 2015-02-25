@@ -128,7 +128,7 @@ func TestRedirect(t *testing.T) {
 
 	Redirect(ctx, w, r, "/", "success", "failure")
 
-	if w.Code != http.StatusTemporaryRedirect {
+	if w.Code != http.StatusFound {
 		t.Error("Expected a redirect.")
 	}
 

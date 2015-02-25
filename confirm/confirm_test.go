@@ -199,7 +199,7 @@ func TestConfirm_Confirm(t *testing.T) {
 	ctx.SessionStorer = session
 
 	c.confirmHandler(ctx, w, r)
-	if w.Code != http.StatusTemporaryRedirect {
+	if w.Code != http.StatusFound {
 		t.Error("Expected a redirect after success:", w.Code)
 	}
 

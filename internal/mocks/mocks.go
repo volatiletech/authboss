@@ -81,7 +81,7 @@ func (m *MockStorer) Get(key string, attrMeta authboss.AttributeMeta) (result in
 	}
 
 	u := &MockUser{}
-	if err := userAttrs.Bind(u); err != nil {
+	if err := userAttrs.Bind(u, false); err != nil {
 		panic(err)
 	}
 
@@ -132,7 +132,7 @@ func (m *MockStorer) RecoverUser(token string) (result interface{}, err error) {
 		if user["recover_token"] == token {
 
 			u := &MockUser{}
-			if err = user.Bind(u); err != nil {
+			if err = user.Bind(u, false); err != nil {
 				panic(err)
 			}
 
@@ -152,7 +152,7 @@ func (m *MockStorer) ConfirmUser(confirmToken string) (result interface{}, err e
 		if user["confirm_token"] == confirmToken {
 
 			u := &MockUser{}
-			if err = user.Bind(u); err != nil {
+			if err = user.Bind(u, false); err != nil {
 				panic(err)
 			}
 

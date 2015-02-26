@@ -1,1 +1,1 @@
-<strong>{{.Link}}</strong>
+<strong>{{.}}</strong>

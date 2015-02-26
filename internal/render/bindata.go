@@ -61,7 +61,7 @@ func (fi bindata_file_info) Sys() interface{} {
 	return nil
 }
 
-var _confirm_email_html_tpl = []byte("\x1f\x8b\x08\x00\x00\x09\x6e\x88\x00\xff\xb2\x29\x2e\x29\xca\xcf\x4b\xb7\xab\xae\xd6\xf3\xc9\xcc\xcb\xae\xad\xb5\xd1\x87\x8a\x00\x02\x00\x00\xff\xff\xe1\x46\x1b\xff\x1a\x00\x00\x00")
+var _confirm_email_html_tpl = []byte("\x1f\x8b\x08\x00\x00\x09\x6e\x88\x00\xff\xb2\x29\x2e\x29\xca\xcf\x4b\xb7\xab\xae\xd6\xab\xad\xb5\xd1\x87\xf2\x00\x01\x00\x00\xff\xff\xe7\xfa\xf4\xa7\x16\x00\x00\x00")
 
 func confirm_email_html_tpl_bytes() ([]byte, error) {
 	return bindata_read(
@@ -76,12 +76,12 @@ func confirm_email_html_tpl() (*asset, error) {
 		return nil, err
 	}
 
-	info := bindata_file_info{name: "confirm_email.html.tpl", size: 26, mode: os.FileMode(438), modTime: time.Unix(1424498554, 0)}
+	info := bindata_file_info{name: "confirm_email.html.tpl", size: 22, mode: os.FileMode(438), modTime: time.Unix(1424935965, 0)}
 	a := &asset{bytes: bytes, info:  info}
 	return a, nil
 }
 
-var _confirm_email_txt_tpl = []byte("\x1f\x8b\x08\x00\x00\x09\x6e\x88\x00\xff\xaa\xae\xd6\xf3\xc9\xcc\xcb\xae\xad\x05\x04\x00\x00\xff\xff\x41\xf7\xa1\x3d\x09\x00\x00\x00")
+var _confirm_email_txt_tpl = []byte("\x1f\x8b\x08\x00\x00\x09\x6e\x88\x00\xff\xaa\xae\xd6\xab\xad\x05\x04\x00\x00\xff\xff\x8e\x60\xe8\x72\x05\x00\x00\x00")
 
 func confirm_email_txt_tpl_bytes() ([]byte, error) {
 	return bindata_read(
@@ -96,7 +96,7 @@ func confirm_email_txt_tpl() (*asset, error) {
 		return nil, err
 	}
 
-	info := bindata_file_info{name: "confirm_email.txt.tpl", size: 9, mode: os.FileMode(438), modTime: time.Unix(1424498554, 0)}
+	info := bindata_file_info{name: "confirm_email.txt.tpl", size: 5, mode: os.FileMode(438), modTime: time.Unix(1424935962, 0)}
 	a := &asset{bytes: bytes, info:  info}
 	return a, nil
 }

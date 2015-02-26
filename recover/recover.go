@@ -126,9 +126,9 @@ func (rec *Recover) startHandlerFunc(ctx *authboss.Context, w http.ResponseWrite
 			return rec.templates.Render(ctx, w, r, tplRecover, errData)
 		}
 
+		// redirect to login when user not found to prevent username sniffing
 		if err := ctx.LoadUser(primaryID); err == authboss.ErrUserNotFound {
-			errData.MergeKV("flashError", recoverFailedErrorFlash)
-			return rec.templates.Render(ctx, w, r, tplRecover, errData)
+			return authboss.ErrAndRedirect{err, authboss.Cfg.RecoverOKPath, recoverInitiateSuccessFlash, ""}
 		} else if err != nil {
 			return err
 		}
@@ -150,7 +150,7 @@ func (rec *Recover) startHandlerFunc(ctx *authboss.Context, w http.ResponseWrite
 			return err
 		}
 
-		go goRecoverEmail(rec, email, encodedToken)
+		goRecoverEmail(rec, email, encodedToken)
 
 		ctx.SessionStorer.Put(authboss.FlashSuccessKey, recoverInitiateSuccessFlash)
 		http.Redirect(w, r, authboss.Cfg.RecoverOKPath, http.StatusFound)

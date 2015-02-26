@@ -106,8 +106,6 @@ func NewConfig() *Config {
 			},
 		},
 		ConfirmFields: []string{
-			StoreEmail, ConfirmPrefix + StoreEmail,
-			StoreUsername, ConfirmPrefix + StoreUsername,
 			StorePassword, ConfirmPrefix + StorePassword,
 		},
 

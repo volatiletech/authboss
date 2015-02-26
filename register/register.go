@@ -101,7 +101,9 @@ func (reg *Register) registerPostHandler(ctx *authboss.Context, w http.ResponseW
 		return err
 	}
 
-	authboss.Cfg.Callbacks.FireAfter(authboss.EventRegister, ctx)
+	if err := authboss.Cfg.Callbacks.FireAfter(authboss.EventRegister, ctx); err != nil {
+		return err
+	}
 
 	if authboss.IsLoaded("confirm") {
 		render.Redirect(ctx, w, r, "/", "Account successfully created, please verify your e-mail address.", "")

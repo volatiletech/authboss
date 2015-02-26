@@ -121,7 +121,7 @@ func (rec *Recover) startHandlerFunc(ctx *authboss.Context, w http.ResponseWrite
 		)
 
 		policies := authboss.FilterValidators(authboss.Cfg.Policies, authboss.Cfg.PrimaryID)
-		if validationErrs := ctx.Validate(policies, authboss.Cfg.ConfirmFields...).Map(); len(validationErrs) > 0 {
+		if validationErrs := ctx.Validate(policies, authboss.Cfg.PrimaryID, authboss.ConfirmPrefix+authboss.Cfg.PrimaryID).Map(); len(validationErrs) > 0 {
 			errData.MergeKV("errs", validationErrs)
 			return rec.templates.Render(ctx, w, r, tplRecover, errData)
 		}
@@ -212,7 +212,7 @@ func (r *Recover) completeHandlerFunc(ctx *authboss.Context, w http.ResponseWrit
 		confirmPassword, _ := ctx.FirstPostFormValue("confirmPassword")
 
 		policies := authboss.FilterValidators(authboss.Cfg.Policies, "password")
-		if validationErrs := ctx.Validate(policies, authboss.Cfg.ConfirmFields...).Map(); len(validationErrs) > 0 {
+		if validationErrs := ctx.Validate(policies, authboss.StorePassword, authboss.ConfirmPrefix+authboss.StorePassword).Map(); len(validationErrs) > 0 {
 			fmt.Fprintln(authboss.Cfg.LogWriter, "recover: form validation failed:", validationErrs)
 			data := authboss.NewHTMLData(
 				"token", token,

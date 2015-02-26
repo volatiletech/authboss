@@ -117,7 +117,9 @@ func (a *Auth) loginHandlerFunc(ctx *authboss.Context, w http.ResponseWriter, r 
 		ctx.SessionStorer.Put(authboss.SessionKey, key)
 		ctx.SessionStorer.Del(authboss.SessionHalfAuthKey)
 
-		authboss.Cfg.Callbacks.FireAfter(authboss.EventAuth, ctx)
+		if err := authboss.Cfg.Callbacks.FireAfter(authboss.EventAuth, ctx); err != nil {
+			return err
+		}
 		http.Redirect(w, r, authboss.Cfg.AuthLoginOKPath, http.StatusFound)
 	default:
 		w.WriteHeader(http.StatusMethodNotAllowed)

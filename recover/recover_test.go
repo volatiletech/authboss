@@ -92,7 +92,7 @@ func TestRecover_startHandlerFunc_GET(t *testing.T) {
 	}
 
 	body := w.Body.String()
-	if !strings.Contains(body, `<form action="/recover"`) {
+	if !strings.Contains(body, `<form action="recover"`) {
 		t.Error("Should have rendered a form")
 	}
 	if !strings.Contains(body, `name="`+authboss.Cfg.PrimaryID) {

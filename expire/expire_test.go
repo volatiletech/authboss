@@ -13,11 +13,11 @@ func TestExpire_Touch(t *testing.T) {
 	authboss.NewConfig()
 	session := mocks.NewMockClientStorer()
 
-	if _, ok := session.Get(StoreLastAction); ok {
+	if _, ok := session.Get(SessionLastAction); ok {
 		t.Error("It should not have been set")
 	}
 	Touch(session)
-	if dateStr, ok := session.Get(StoreLastAction); !ok || len(dateStr) == 0 {
+	if dateStr, ok := session.Get(SessionLastAction); !ok || len(dateStr) == 0 {
 		t.Error("It should have been set")
 	} else if date, err := time.Parse(time.RFC3339, dateStr); err != nil {
 		t.Error("Date is malformed:", dateStr)
@@ -40,11 +40,11 @@ func TestExpire_BeforeGet(t *testing.T) {
 	}
 
 	session.Values[authboss.SessionKey] = "moo"
-	session.Values[StoreLastAction] = "cow"
+	session.Values[SessionLastAction] = "cow"
 	if interrupted, err := expire.BeforeGet(ctx); err != nil || interrupted != authboss.InterruptNone {
 		t.Error("There's a malformed date, this should not error, just fix it:", err, interrupted)
 	}
-	if dateStr, ok := session.Get(StoreLastAction); !ok || len(dateStr) == 0 {
+	if dateStr, ok := session.Get(SessionLastAction); !ok || len(dateStr) == 0 {
 		t.Error("It should have been set")
 	} else if date, err := time.Parse(time.RFC3339, dateStr); err != nil {
 		t.Error("Date is malformed:", dateStr)
@@ -52,7 +52,7 @@ func TestExpire_BeforeGet(t *testing.T) {
 		t.Error("The time is set in the future.")
 	}
 
-	session.Values[StoreLastAction] = time.Now().UTC().Add(-2 * time.Hour).Format(time.RFC3339)
+	session.Values[SessionLastAction] = time.Now().UTC().Add(-2 * time.Hour).Format(time.RFC3339)
 	if interrupted, err := expire.BeforeGet(ctx); err != nil {
 		t.Error(err)
 	} else if interrupted != authboss.InterruptSessionExpired {
@@ -86,7 +86,7 @@ func TestExpire_Middleware(t *testing.T) {
 		t.Error("Expected middleware's chain to be called.")
 	}
 
-	if dateStr, ok := session.Get(StoreLastAction); !ok || len(dateStr) == 0 {
+	if dateStr, ok := session.Get(SessionLastAction); !ok || len(dateStr) == 0 {
 		t.Error("It should have been set")
 	} else if date, err := time.Parse(time.RFC3339, dateStr); err != nil {
 		t.Error("Date is malformed:", dateStr)

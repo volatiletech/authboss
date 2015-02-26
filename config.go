@@ -40,14 +40,12 @@ type Config struct {
 	// NotFoundHandler handles would be 404 errors.
 	NotFoundHandler http.Handler
 
-	AuthLogoutRoute       string
-	AuthLoginSuccessRoute string
+	AuthLoginOKPath   string
+	AuthLoginFailPath string
+	AuthLogoutOKPath  string
 
-	RecoverRedirect             string
-	RecoverInitiateSuccessFlash string
-	RecoverTokenDuration        time.Duration
-	RecoverTokenExpiredFlash    string
-	RecoverFailedErrorFlash     string
+	RecoverOKPath        string
+	RecoverTokenDuration time.Duration
 
 	Policies      []Validator
 	ConfirmFields []string
@@ -86,8 +84,9 @@ func NewConfig() *Config {
 		Layout:      template.Must(template.New("").Parse(`<html><body>{{template "authboss" .}}</body></html>`)),
 		LayoutEmail: template.Must(template.New("").Parse(`<html><body>{{template "authboss" .}}</body></html>`)),
 
-		AuthLogoutRoute:       "/login",
-		AuthLoginSuccessRoute: "/",
+		AuthLoginOKPath:   "/",
+		AuthLoginFailPath: "/",
+		AuthLogoutOKPath:  "/",
 
 		Policies: []Validator{
 			Rules{
@@ -112,11 +111,8 @@ func NewConfig() *Config {
 			StorePassword, ConfirmPrefix + StorePassword,
 		},
 
-		RecoverRedirect:             "/login",
-		RecoverInitiateSuccessFlash: "An email has been sent with further insructions on how to reset your password",
-		RecoverTokenDuration:        time.Duration(24) * time.Hour,
-		RecoverTokenExpiredFlash:    "Account recovery request has expired.  Please try agian.",
-		RecoverFailedErrorFlash:     "Account recovery has failed.  Please contact tech support.",
+		RecoverOKPath:        "/",
+		RecoverTokenDuration: time.Duration(24) * time.Hour,
 
 		LogWriter: ioutil.Discard,
 		Callbacks: NewCallbacks(),

@@ -72,7 +72,7 @@ func TestAuth_loginHandlerFunc_GET_RedirectsWhenHalfAuthed(t *testing.T) {
 	sessionStore.Put(authboss.SessionKey, "a")
 	sessionStore.Put(authboss.SessionHalfAuthKey, "false")
 
-	authboss.Cfg.AuthLoginSuccessRoute = "/dashboard"
+	authboss.Cfg.AuthLoginOKPath = "/dashboard"
 
 	if err := a.loginHandlerFunc(ctx, w, r); err != nil {
 		t.Error("Unexpeced error:", err)
@@ -83,7 +83,7 @@ func TestAuth_loginHandlerFunc_GET_RedirectsWhenHalfAuthed(t *testing.T) {
 	}
 
 	loc := w.Header().Get("Location")
-	if loc != authboss.Cfg.AuthLoginSuccessRoute {
+	if loc != authboss.Cfg.AuthLoginOKPath {
 		t.Error("Unexpected redirect:", loc)
 	}
 }
@@ -113,14 +113,15 @@ func TestAuth_loginHandlerFunc_GET(t *testing.T) {
 }
 
 func TestAuth_loginHandlerFunc_POST_ReturnsErrorOnCallbackFailure(t *testing.T) {
-	a, _ := testSetup()
+	a, storer := testSetup()
+	storer.Users["john"] = authboss.Attributes{"password": "$2a$10$B7aydtqVF9V8RSNx3lCKB.l09jqLV/aMiVqQHajtL7sWGhCS9jlOu"}
 
 	authboss.Cfg.Callbacks = authboss.NewCallbacks()
 	authboss.Cfg.Callbacks.Before(authboss.EventAuth, func(_ *authboss.Context) (authboss.Interrupt, error) {
 		return authboss.InterruptNone, errors.New("explode")
 	})
 
-	ctx, w, r, _ := testRequest("POST")
+	ctx, w, r, _ := testRequest("POST", "username", "john", "password", "1234")
 
 	if err := a.loginHandlerFunc(ctx, w, r); err.Error() != "explode" {
 		t.Error("Unexpected error:", err)
@@ -128,14 +129,15 @@ func TestAuth_loginHandlerFunc_POST_ReturnsErrorOnCallbackFailure(t *testing.T) 
 }
 
 func TestAuth_loginHandlerFunc_POST_RedirectsWhenInterrupted(t *testing.T) {
-	a, _ := testSetup()
+	a, storer := testSetup()
+	storer.Users["john"] = authboss.Attributes{"password": "$2a$10$B7aydtqVF9V8RSNx3lCKB.l09jqLV/aMiVqQHajtL7sWGhCS9jlOu"}
 
 	authboss.Cfg.Callbacks = authboss.NewCallbacks()
 	authboss.Cfg.Callbacks.Before(authboss.EventAuth, func(_ *authboss.Context) (authboss.Interrupt, error) {
 		return authboss.InterruptAccountLocked, nil
 	})
 
-	ctx, w, r, sessionStore := testRequest("POST")
+	ctx, w, r, sessionStore := testRequest("POST", "username", "john", "password", "1234")
 
 	if err := a.loginHandlerFunc(ctx, w, r); err != nil {
 		t.Error("Unexpected error:", err)
@@ -146,7 +148,7 @@ func TestAuth_loginHandlerFunc_POST_RedirectsWhenInterrupted(t *testing.T) {
 	}
 
 	loc := w.Header().Get("Location")
-	if loc != "/login" {
+	if loc != authboss.Cfg.AuthLoginFailPath {
 		t.Error("Unexpeced location:", loc)
 	}
 
@@ -169,7 +171,7 @@ func TestAuth_loginHandlerFunc_POST_RedirectsWhenInterrupted(t *testing.T) {
 	}
 
 	loc = w.Header().Get("Location")
-	if loc != "/login" {
+	if loc != authboss.Cfg.AuthLoginFailPath {
 		t.Error("Unexpeced location:", loc)
 	}
 
@@ -222,7 +224,10 @@ func TestAuth_loginHandlerFunc_POST(t *testing.T) {
 
 	authboss.Cfg.Callbacks = authboss.NewCallbacks()
 	authboss.Cfg.Callbacks.After(authboss.EventAuth, cb.Fn)
-	authboss.Cfg.AuthLoginSuccessRoute = "/dashboard"
+	authboss.Cfg.AuthLoginOKPath = "/dashboard"
+
+	sessions := mocks.NewMockClientStorer()
+	ctx.SessionStorer = sessions
 
 	if err := a.loginHandlerFunc(ctx, w, r); err != nil {
 		t.Error("Unexpected error:", err)
@@ -237,8 +242,15 @@ func TestAuth_loginHandlerFunc_POST(t *testing.T) {
 	}
 
 	loc := w.Header().Get("Location")
-	if loc != authboss.Cfg.AuthLoginSuccessRoute {
+	if loc != authboss.Cfg.AuthLoginOKPath {
 		t.Error("Unexpeced location:", loc)
+	}
+
+	val, ok := sessions.Values[authboss.SessionKey]
+	if !ok {
+		t.Error("Expected session to be set")
+	} else if val != "john" {
+		t.Error("Expected session value to be authed username")
 	}
 }
 
@@ -283,24 +295,15 @@ func TestAuth_validateCredentials(t *testing.T) {
 		t.Error("Expected error about passwords mismatch")
 	}
 
-	sessions := mocks.NewMockClientStorer()
-	ctx.SessionStorer = sessions
 	if err := validateCredentials(&ctx, "john", "a"); err != nil {
 		t.Error("Unexpected error:", err)
-	}
-
-	val, ok := sessions.Values[authboss.SessionKey]
-	if !ok {
-		t.Error("Expected session to be set")
-	} else if val != "john" {
-		t.Error("Expected session value to be authed username")
 	}
 }
 
 func TestAuth_logoutHandlerFunc_GET(t *testing.T) {
 	a, _ := testSetup()
 
-	authboss.Cfg.AuthLogoutRoute = "/dashboard"
+	authboss.Cfg.AuthLogoutOKPath = "/dashboard"
 
 	ctx, w, r, sessionStorer := testRequest("GET")
 

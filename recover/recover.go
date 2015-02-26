@@ -26,6 +26,10 @@ const (
 
 	StoreRecoverToken       = "recover_token"
 	StoreRecoverTokenExpiry = "recover_token_expiry"
+
+	recoverInitiateSuccessFlash = "An email has been sent with further instructions on how to reset your password"
+	recoverTokenExpiredFlash    = "Account recovery request has expired. Please try again."
+	recoverFailedErrorFlash     = "Account recovery has failed. Please contact tech support."
 )
 
 var errRecoveryTokenExpired = errors.New("recovery token expired")
@@ -123,7 +127,7 @@ func (rec *Recover) startHandlerFunc(ctx *authboss.Context, w http.ResponseWrite
 		}
 
 		if err := ctx.LoadUser(primaryID); err == authboss.ErrUserNotFound {
-			errData.MergeKV("flashError", authboss.Cfg.RecoverFailedErrorFlash)
+			errData.MergeKV("flashError", recoverFailedErrorFlash)
 			return rec.templates.Render(ctx, w, r, tplRecover, errData)
 		} else if err != nil {
 			return err
@@ -148,8 +152,8 @@ func (rec *Recover) startHandlerFunc(ctx *authboss.Context, w http.ResponseWrite
 
 		go goRecoverEmail(rec, email, encodedToken)
 
-		ctx.SessionStorer.Put(authboss.FlashSuccessKey, authboss.Cfg.RecoverInitiateSuccessFlash)
-		http.Redirect(w, r, authboss.Cfg.RecoverRedirect, http.StatusFound)
+		ctx.SessionStorer.Put(authboss.FlashSuccessKey, recoverInitiateSuccessFlash)
+		http.Redirect(w, r, authboss.Cfg.RecoverOKPath, http.StatusFound)
 	default:
 		w.WriteHeader(http.StatusMethodNotAllowed)
 	}
@@ -190,7 +194,7 @@ func (r *Recover) completeHandlerFunc(ctx *authboss.Context, w http.ResponseWrit
 	case methodGET:
 		_, err = verifyToken(ctx)
 		if err == errRecoveryTokenExpired {
-			return authboss.ErrAndRedirect{err, "/recover", "", authboss.Cfg.RecoverTokenExpiredFlash}
+			return authboss.ErrAndRedirect{err, "/recover", "", recoverTokenExpiredFlash}
 		} else if err != nil {
 			return authboss.ErrAndRedirect{err, "/", "", ""}
 		}
@@ -243,7 +247,7 @@ func (r *Recover) completeHandlerFunc(ctx *authboss.Context, w http.ResponseWrit
 		}
 
 		ctx.SessionStorer.Put(authboss.SessionKey, primaryID)
-		http.Redirect(w, req, authboss.Cfg.AuthLoginSuccessRoute, http.StatusFound)
+		http.Redirect(w, req, authboss.Cfg.AuthLoginOKPath, http.StatusFound)
 	default:
 		w.WriteHeader(http.StatusMethodNotAllowed)
 	}

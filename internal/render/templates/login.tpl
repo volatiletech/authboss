@@ -1,5 +1,5 @@
 {{.flash_success}}
-<form action="/login" method="POST">
+<form action="{{mountpathed "login"}}" method="POST">
     {{if .error}}{{.error}}<br />{{end}}
     <input type="text" class="form-control" name="{{.primaryID}}" placeholder="{{title .primaryID}}" value="{{.primaryIDValue}}"><br />
     <input  type="password" class="form-control" name="password" placeholder="Password"><br />

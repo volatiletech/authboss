@@ -4,7 +4,6 @@
 package expire
 
 import (
-	"errors"
 	"net/http"
 	"time"
 
@@ -12,12 +11,8 @@ import (
 )
 
 const (
-	// StoreLastAction is the session key to retrieve the last action of a user.
-	StoreLastAction = "last_action"
-)
-
-var (
-	ErrExpired = errors.New("The user session has expired.")
+	// SessionLastAction is the session key to retrieve the last action of a user.
+	SessionLastAction = "last_action"
 )
 
 // E is the singleton instance of the expire module which will have been
@@ -46,7 +41,7 @@ func (e *Expire) BeforeGet(ctx *authboss.Context) (authboss.Interrupt, error) {
 		return authboss.InterruptNone, nil
 	}
 
-	dateStr, ok := ctx.SessionStorer.Get(StoreLastAction)
+	dateStr, ok := ctx.SessionStorer.Get(SessionLastAction)
 	if ok {
 		if date, err := time.Parse(time.RFC3339, dateStr); err != nil {
 			Touch(ctx.SessionStorer)
@@ -61,7 +56,7 @@ func (e *Expire) BeforeGet(ctx *authboss.Context) (authboss.Interrupt, error) {
 
 // Touch updates the last action for the user, so he doesn't become expired.
 func Touch(session authboss.ClientStorer) {
-	session.Put(StoreLastAction, time.Now().UTC().Format(time.RFC3339))
+	session.Put(SessionLastAction, time.Now().UTC().Format(time.RFC3339))
 }
 
 type middleware struct {

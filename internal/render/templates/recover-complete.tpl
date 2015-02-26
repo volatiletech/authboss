@@ -1,4 +1,4 @@
-<form action="/recover/complete" method="POST">
+<form action="{{mountpathed "recover/complete"}}" method="POST">
     <input type="hidden" name="token" value="{{.token}}" />
     <input type="password" name="password" placeholder="Password" value="{{.password}}" /><br />
     {{with .errs}}{{with $errlist := index . "password"}}{{range $errlist}}<span>{{.}}</span><br />{{end}}{{end}}{{end}}

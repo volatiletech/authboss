@@ -11,6 +11,7 @@ import (
 	"io/ioutil"
 	"net/http"
 	"os"
+	"path"
 	"path/filepath"
 	"strings"
 
@@ -23,6 +24,12 @@ var (
 
 	funcMap = template.FuncMap{
 		"title": strings.Title,
+		"mountpathed": func(location string) string {
+			if authboss.Cfg.MountPath == "/" {
+				return location
+			}
+			return path.Join(authboss.Cfg.MountPath, location)
+		},
 	}
 )
 

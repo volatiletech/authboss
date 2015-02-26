@@ -66,7 +66,7 @@ func (a *Auth) loginHandlerFunc(ctx *authboss.Context, w http.ResponseWriter, r 
 	case methodGET:
 		if _, ok := ctx.SessionStorer.Get(authboss.SessionKey); ok {
 			if halfAuthed, ok := ctx.SessionStorer.Get(authboss.SessionHalfAuthKey); !ok || halfAuthed == "false" {
-				http.Redirect(w, r, authboss.Cfg.AuthLoginSuccessRoute, http.StatusFound)
+				http.Redirect(w, r, authboss.Cfg.AuthLoginOKPath, http.StatusFound)
 				return nil
 			}
 		}
@@ -79,21 +79,6 @@ func (a *Auth) loginHandlerFunc(ctx *authboss.Context, w http.ResponseWriter, r 
 		)
 		return a.templates.Render(ctx, w, r, tplLogin, data)
 	case methodPOST:
-		interrupted, err := authboss.Cfg.Callbacks.FireBefore(authboss.EventAuth, ctx)
-		if err != nil {
-			return err
-		} else if interrupted != authboss.InterruptNone {
-			var reason string
-			switch interrupted {
-			case authboss.InterruptAccountLocked:
-				reason = "Your account has been locked."
-			case authboss.InterruptAccountNotConfirmed:
-				reason = "Your account has not been confirmed."
-			}
-			render.Redirect(ctx, w, r, "/login", "", reason)
-			return nil
-		}
-
 		key, _ := ctx.FirstPostFormValue(authboss.Cfg.PrimaryID)
 		password, _ := ctx.FirstPostFormValue("password")
 
@@ -114,8 +99,26 @@ func (a *Auth) loginHandlerFunc(ctx *authboss.Context, w http.ResponseWriter, r 
 			return a.templates.Render(ctx, w, r, tplLogin, errData)
 		}
 
+		interrupted, err := authboss.Cfg.Callbacks.FireBefore(authboss.EventAuth, ctx)
+		if err != nil {
+			return err
+		} else if interrupted != authboss.InterruptNone {
+			var reason string
+			switch interrupted {
+			case authboss.InterruptAccountLocked:
+				reason = "Your account has been locked."
+			case authboss.InterruptAccountNotConfirmed:
+				reason = "Your account has not been confirmed."
+			}
+			render.Redirect(ctx, w, r, authboss.Cfg.AuthLoginFailPath, "", reason)
+			return nil
+		}
+
+		ctx.SessionStorer.Put(authboss.SessionKey, key)
+		ctx.SessionStorer.Del(authboss.SessionHalfAuthKey)
+
 		authboss.Cfg.Callbacks.FireAfter(authboss.EventAuth, ctx)
-		http.Redirect(w, r, authboss.Cfg.AuthLoginSuccessRoute, http.StatusFound)
+		http.Redirect(w, r, authboss.Cfg.AuthLoginOKPath, http.StatusFound)
 	default:
 		w.WriteHeader(http.StatusMethodNotAllowed)
 	}
@@ -137,7 +140,6 @@ func validateCredentials(ctx *authboss.Context, key, password string) error {
 		return err
 	}
 
-	ctx.SessionStorer.Put(authboss.SessionKey, key)
 	return nil
 }
 
@@ -145,7 +147,7 @@ func (a *Auth) logoutHandlerFunc(ctx *authboss.Context, w http.ResponseWriter, r
 	switch r.Method {
 	case methodGET:
 		ctx.SessionStorer.Del(authboss.SessionKey)
-		http.Redirect(w, r, authboss.Cfg.AuthLogoutRoute, http.StatusFound)
+		http.Redirect(w, r, authboss.Cfg.AuthLogoutOKPath, http.StatusFound)
 	default:
 		w.WriteHeader(http.StatusMethodNotAllowed)
 	}

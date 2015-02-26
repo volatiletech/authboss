@@ -18,11 +18,11 @@ const (
 	methodGET  = "GET"
 	methodPOST = "POST"
 
-	tplLogin           = "login.tpl"
-	tplRecover         = "recover.tpl"
-	tplRecoverComplete = "recover-complete.tpl"
-	tplInitHTMLEmail   = "recover-html.email"
-	tplInitTextEmail   = "recover-text.email"
+	tplLogin           = "login.html.tpl"
+	tplRecover         = "recover.html.tpl"
+	tplRecoverComplete = "recover_complete.html.tpl"
+	tplInitHTMLEmail   = "recover_email.html.tpl"
+	tplInitTextEmail   = "recover_email.txt.tpl"
 
 	StoreRecoverToken       = "recover_token"
 	StoreRecoverTokenExpiry = "recover_token_expiry"

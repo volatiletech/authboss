@@ -14,7 +14,7 @@ const (
 	methodGET  = "GET"
 	methodPOST = "POST"
 
-	tplLogin = "login.tpl"
+	tplLogin = "login.html.tpl"
 )
 
 func init() {

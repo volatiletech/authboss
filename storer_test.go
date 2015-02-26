@@ -153,7 +153,7 @@ func TestAttributes_Bind(t *testing.T) {
 		DateTime time.Time
 	}{}
 
-	if err := data.Bind(&s); err != nil {
+	if err := data.Bind(&s, false); err != nil {
 		t.Error("Unexpected Error:", err)
 	}
 
@@ -171,13 +171,41 @@ func TestAttributes_Bind(t *testing.T) {
 	}
 }
 
+func TestAttributes_BindIgnoreMissing(t *testing.T) {
+		t.Parallel()
+
+	anInteger := 5
+	aString := "string"
+
+	data := Attributes{
+		"integer":   anInteger,
+		"string":    aString,
+	}
+
+	s := struct {
+		Integer  int
+	}{}
+
+	if err := data.Bind(&s, false); err == nil {
+		t.Error("Expected error about missing attributes:", err)
+	}
+
+	if err := data.Bind(&s, true); err != nil {
+		t.Error(err)
+	}
+
+	if s.Integer != anInteger {
+		t.Error("Integer was not set.")
+	}
+}
+
 func TestAttributes_BindNoPtr(t *testing.T) {
 	t.Parallel()
 
 	data := Attributes{}
 	s := struct{}{}
 
-	if err := data.Bind(s); err == nil {
+	if err := data.Bind(s, false); err == nil {
 		t.Error("Expected an error.")
 	} else if !strings.Contains(err.Error(), "struct pointer") {
 		t.Error("Expected an error about pointers got:", err)
@@ -190,7 +218,7 @@ func TestAttributes_BindMissingField(t *testing.T) {
 	data := Attributes{"Integer": 5}
 	s := struct{}{}
 
-	if err := data.Bind(&s); err == nil {
+	if err := data.Bind(&s, false); err == nil {
 		t.Error("Expected an error.")
 	} else if !strings.Contains(err.Error(), "missing") {
 		t.Error("Expected an error about missing fields, got:", err)
@@ -236,7 +264,7 @@ func TestAttributes_BindTypeFail(t *testing.T) {
 	}
 
 	for i, test := range tests {
-		if err := test.Attr.Bind(test.ToBind); err == nil {
+		if err := test.Attr.Bind(test.ToBind, false); err == nil {
 			t.Errorf("%d> Expected an error.", i)
 		} else if !strings.Contains(err.Error(), test.Err) {
 			t.Errorf("%d> Expected an error about %q got: %q", i, test.Err, err)

@@ -94,7 +94,6 @@ func (reg *Register) registerPostHandler(ctx *authboss.Context, w http.ResponseW
 
 	attr[authboss.Cfg.PrimaryID] = key
 	attr[authboss.StorePassword] = string(pass)
-	delete(attr, authboss.ConfirmPrefix+authboss.StorePassword)
 	ctx.User = attr
 
 	if err := authboss.Cfg.Storer.Create(key, attr); err != nil {

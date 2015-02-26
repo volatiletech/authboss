@@ -64,6 +64,7 @@ func (c *Confirm) Initialize() (err error) {
 	}
 
 	authboss.Cfg.Callbacks.Before(authboss.EventGet, c.BeforeGet)
+	authboss.Cfg.Callbacks.Before(authboss.EventAuth, c.BeforeGet)
 	authboss.Cfg.Callbacks.After(authboss.EventRegister, c.AfterRegister)
 
 	return nil

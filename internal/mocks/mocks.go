@@ -81,7 +81,7 @@ func (m *MockStorer) Get(key string, attrMeta authboss.AttributeMeta) (result in
 	}
 
 	u := &MockUser{}
-	if err := userAttrs.Bind(u, false); err != nil {
+	if err := userAttrs.Bind(u, true); err != nil {
 		panic(err)
 	}
 

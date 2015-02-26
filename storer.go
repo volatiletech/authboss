@@ -193,8 +193,9 @@ func (a Attributes) DateTimeErr(key string) (val time.Time, err error) {
 
 // Bind the data in the attributes to the given struct. This means the
 // struct creator must have read the documentation and decided what fields
-// will be needed ahead of time.
-func (a Attributes) Bind(strct interface{}) error {
+// will be needed ahead of time. Ignore missing ignores attributes for
+// which a struct attribute equivalent can not be found.
+func (a Attributes) Bind(strct interface{}, ignoreMissing bool) error {
 	structType := reflect.TypeOf(strct)
 	if structType.Kind() != reflect.Ptr {
 		return errors.New("Bind: Must pass in a struct pointer.")
@@ -206,13 +207,15 @@ func (a Attributes) Bind(strct interface{}) error {
 
 		k = underToCamel(k)
 
-		if _, has := structType.FieldByName(k); !has {
+		if _, has := structType.FieldByName(k); !has && ignoreMissing {
+			continue
+		} else if !has {
 			return fmt.Errorf("Bind: Struct was missing %s field, type: %v", k, reflect.TypeOf(v).String())
 		}
 
 		field := structVal.FieldByName(k)
 		if !field.CanSet() {
-			return fmt.Errorf("Bind: Found field %s, but was not writeable.", k)
+			return fmt.Errorf("Bind: Found field %s, but was not writeable", k)
 		}
 
 		fieldKind := field.Kind()

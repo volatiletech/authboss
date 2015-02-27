@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"net/http"
 	"net/url"
+	"path"
 
 	"gopkg.in/authboss.v0"
 	"gopkg.in/authboss.v0/internal/render"
@@ -116,7 +117,7 @@ func (c *Confirm) AfterRegister(ctx *authboss.Context) error {
 		return err
 	}
 
-	goConfirmEmail(c, email, base64.URLEncoding.EncodeToString(sum[:]))
+	goConfirmEmail(c, email, base64.URLEncoding.EncodeToString(token))
 
 	return nil
 }
@@ -127,7 +128,8 @@ var goConfirmEmail = func(c *Confirm, to, token string) {
 
 // confirmEmail sends a confirmation e-mail.
 func (c *Confirm) confirmEmail(to, token string) {
-	url := fmt.Sprintf("%s/confirm?%s=%s", authboss.Cfg.HostName, url.QueryEscape(FormValueConfirm), url.QueryEscape(token))
+	p := path.Join(authboss.Cfg.MountPath, "confirm")
+	url := fmt.Sprintf("%s%s?%s=%s", authboss.Cfg.HostName, p, url.QueryEscape(FormValueConfirm), url.QueryEscape(token))
 
 	email := authboss.Email{
 		To:      []string{to},
@@ -169,7 +171,7 @@ func (c *Confirm) confirmHandler(ctx *authboss.Context, w http.ResponseWriter, r
 	ctx.User[StoreConfirmToken] = ""
 	ctx.User[StoreConfirmed] = true
 
-	key, err := ctx.User.StringErr(authboss.StoreUsername)
+	key, err := ctx.User.StringErr(authboss.Cfg.PrimaryID)
 	if err != nil {
 		return err
 	}

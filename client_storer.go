@@ -52,3 +52,25 @@ type CookieStoreMaker func(http.ResponseWriter, *http.Request) ClientStorer
 // It should be a secure storage of the session. This means if it represents a cookie-based session
 // storage these cookies should be signed in order to prevent tampering, or they should be encrypted.
 type SessionStoreMaker func(http.ResponseWriter, *http.Request) ClientStorer
+
+// FlashSuccess returns FlashSuccessKey from the session and removes it.
+func FlashSuccess(w http.ResponseWriter, r *http.Request) string {
+	storer := Cfg.SessionStoreMaker(w, r)
+	msg, ok := storer.Get(FlashSuccessKey)
+	if ok {
+		storer.Del(FlashSuccessKey)
+	}
+
+	return msg
+}
+
+// FlashError returns FlashError from the session and removes it.
+func FlashError(w http.ResponseWriter, r *http.Request) string {
+	storer := Cfg.SessionStoreMaker(w, r)
+	msg, ok := storer.Get(FlashErrorKey)
+	if ok {
+		storer.Del(FlashErrorKey)
+	}
+
+	return msg
+}

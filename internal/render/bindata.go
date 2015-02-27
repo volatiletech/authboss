@@ -181,22 +181,22 @@ func recover_email_html_tpl() (*asset, error) {
 	return a, nil
 }
 
-var _recover_email_txt_html = []byte("\x1f\x8b\x08\x00\x00\x09\x6e\x88\x00\xff\xaa\xae\xd6\xab\xad\x05\x04\x00\x00\xff\xff\x8e\x60\xe8\x72\x05\x00\x00\x00")
+var _recover_email_txt_tpl = []byte("\x1f\x8b\x08\x00\x00\x09\x6e\x88\x00\xff\xaa\xae\xd6\xab\xad\x05\x04\x00\x00\xff\xff\x8e\x60\xe8\x72\x05\x00\x00\x00")
 
-func recover_email_txt_html_bytes() ([]byte, error) {
+func recover_email_txt_tpl_bytes() ([]byte, error) {
 	return bindata_read(
-		_recover_email_txt_html,
-		"recover_email.txt.html",
+		_recover_email_txt_tpl,
+		"recover_email.txt.tpl",
 	)
 }
 
-func recover_email_txt_html() (*asset, error) {
-	bytes, err := recover_email_txt_html_bytes()
+func recover_email_txt_tpl() (*asset, error) {
+	bytes, err := recover_email_txt_tpl_bytes()
 	if err != nil {
 		return nil, err
 	}
 
-	info := bindata_file_info{name: "recover_email.txt.html", size: 5, mode: os.FileMode(438), modTime: time.Unix(1424728129, 0)}
+	info := bindata_file_info{name: "recover_email.txt.tpl", size: 5, mode: os.FileMode(438), modTime: time.Unix(1424986109, 0)}
 	a := &asset{bytes: bytes, info:  info}
 	return a, nil
 }
@@ -268,7 +268,7 @@ var _bindata = map[string]func() (*asset, error){
 	"recover.html.tpl": recover_html_tpl,
 	"recover_complete.html.tpl": recover_complete_html_tpl,
 	"recover_email.html.tpl": recover_email_html_tpl,
-	"recover_email.txt.html": recover_email_txt_html,
+	"recover_email.txt.tpl": recover_email_txt_tpl,
 	"register.html.tpl": register_html_tpl,
 }
 
@@ -324,7 +324,7 @@ var _bintree = &_bintree_t{nil, map[string]*_bintree_t{
 	}},
 	"recover_email.html.tpl": &_bintree_t{recover_email_html_tpl, map[string]*_bintree_t{
 	}},
-	"recover_email.txt.html": &_bintree_t{recover_email_txt_html, map[string]*_bintree_t{
+	"recover_email.txt.tpl": &_bintree_t{recover_email_txt_tpl, map[string]*_bintree_t{
 	}},
 	"register.html.tpl": &_bintree_t{register_html_tpl, map[string]*_bintree_t{
 	}},

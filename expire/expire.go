@@ -15,13 +15,8 @@ const (
 	SessionLastAction = "last_action"
 )
 
-// E is the singleton instance of the expire module which will have been
-// configured and ready to use after authboss.Init()
-var E *Expire
-
 func init() {
-	E = &Expire{}
-	authboss.RegisterModule("expire", E)
+	authboss.RegisterModule("expire", &Expire{})
 }
 
 type Expire struct{}

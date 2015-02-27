@@ -2,6 +2,7 @@
 package register
 
 import (
+	"errors"
 	"net/http"
 
 	"golang.org/x/crypto/bcrypt"
@@ -13,13 +14,16 @@ const (
 	tplRegister = "register.html.tpl"
 )
 
-// R is the singleton instance of the register module which will have been
-// configured and ready to use after authboss.Init()
-var R *Register
+// RegisterStorer must be implemented in order to satisfy the register module's
+// storage requirments.
+type RegisterStorer interface {
+	authboss.Storer
+	// Create is the same as put, except it refers to a non-existent key.
+	Create(key string, attr authboss.Attributes) error
+}
 
 func init() {
-	R = &Register{}
-	authboss.RegisterModule("register", R)
+	authboss.RegisterModule("register", &Register{})
 }
 
 // Register module.
@@ -29,6 +33,14 @@ type Register struct {
 
 // Initialize the module.
 func (r *Register) Initialize() (err error) {
+	if authboss.Cfg.Storer == nil {
+		return errors.New("register: Need a RegisterStorer.")
+	}
+
+	if _, ok := authboss.Cfg.Storer.(RegisterStorer); !ok {
+		return errors.New("register: RegisterStorer required for register functionality.")
+	}
+
 	if r.templates, err = render.LoadTemplates(authboss.Cfg.Layout, authboss.Cfg.ViewsPath, tplRegister); err != nil {
 		return err
 	}
@@ -96,7 +108,7 @@ func (reg *Register) registerPostHandler(ctx *authboss.Context, w http.ResponseW
 	attr[authboss.StorePassword] = string(pass)
 	ctx.User = attr
 
-	if err := authboss.Cfg.Storer.Create(key, attr); err != nil {
+	if err := authboss.Cfg.Storer.(RegisterStorer).Create(key, attr); err != nil {
 		return err
 	}
 

@@ -18,13 +18,8 @@ var (
 	errUserMissing = errors.New("lock: user not loaded in BeforeAuth callback")
 )
 
-// L is the singleton instance of the lock module which will have been
-// configured and ready to use after authboss.Init()
-var L *Lock
-
 func init() {
-	L = &Lock{}
-	authboss.RegisterModule("lock", L)
+	authboss.RegisterModule("lock", &Lock{})
 }
 
 type Lock struct {

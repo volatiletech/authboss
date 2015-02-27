@@ -39,13 +39,8 @@ type ConfirmStorer interface {
 	ConfirmUser(confirmToken string) (interface{}, error)
 }
 
-// C is the singleton instance of the confirm module which will have been
-// configured and ready to use after authboss.Init()
-var C *Confirm
-
 func init() {
-	C = &Confirm{}
-	authboss.RegisterModule("confirm", C)
+	authboss.RegisterModule("confirm", &Confirm{})
 }
 
 type Confirm struct {

@@ -32,6 +32,7 @@ func TestInitialize(t *testing.T) {
 }
 
 func TestAfterAuth(t *testing.T) {
+	r := Remember{}
 	authboss.NewConfig()
 	storer := mocks.NewMockStorer()
 	authboss.Cfg.Storer = storer
@@ -54,7 +55,7 @@ func TestAfterAuth(t *testing.T) {
 	ctx.CookieStorer = cookies
 	ctx.User = authboss.Attributes{authboss.Cfg.PrimaryID: "test@email.com"}
 
-	if err := R.AfterAuth(ctx); err != nil {
+	if err := r.afterAuth(ctx); err != nil {
 		t.Error(err)
 	}
 
@@ -64,13 +65,14 @@ func TestAfterAuth(t *testing.T) {
 }
 
 func TestNew(t *testing.T) {
+	r := &Remember{}
 	authboss.NewConfig()
 	storer := mocks.NewMockStorer()
 	authboss.Cfg.Storer = storer
 	cookies := mocks.NewMockClientStorer()
 
 	key := "tester"
-	token, err := R.New(cookies, key)
+	token, err := r.new(cookies, key)
 
 	if err != nil {
 		t.Error("Unexpected error:", err)
@@ -92,19 +94,24 @@ func TestNew(t *testing.T) {
 }
 
 func TestAuth(t *testing.T) {
+	r := &Remember{}
 	authboss.NewConfig()
 	storer := mocks.NewMockStorer()
 	authboss.Cfg.Storer = storer
+
 	cookies := mocks.NewMockClientStorer()
 	session := mocks.NewMockClientStorer()
+	ctx := authboss.NewContext()
+	ctx.CookieStorer = cookies
+	ctx.SessionStorer = session
 
 	key := "tester"
-	token, err := R.New(cookies, key)
+	_, err := r.new(cookies, key)
 	if err != nil {
 		t.Error("Unexpected error:", err)
 	}
 
-	outKey, err := R.Auth(cookies, session, token)
+	interrupt, err := r.auth(ctx)
 	if err != nil {
 		t.Error("Unexpected error:", err)
 	}
@@ -117,7 +124,7 @@ func TestAuth(t *testing.T) {
 		t.Error("The user should have been logged in.")
 	}
 
-	if key != outKey {
-		t.Error("Keys should have matched:", outKey)
+	if authboss.InterruptNone != interrupt {
+		t.Error("Keys should have matched:", interrupt)
 	}
 }

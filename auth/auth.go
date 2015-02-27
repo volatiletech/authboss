@@ -18,8 +18,7 @@ const (
 )
 
 func init() {
-	a := &Auth{}
-	authboss.RegisterModule("auth", a)
+	authboss.RegisterModule("auth", &Auth{})
 }
 
 type Auth struct {

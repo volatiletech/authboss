@@ -109,6 +109,8 @@ func NewConfig() *Config {
 			StorePassword, ConfirmPrefix + StorePassword,
 		},
 
+		ExpireAfter: time.Duration(60) * time.Minute,
+
 		RecoverOKPath:        "/",
 		RecoverTokenDuration: time.Duration(24) * time.Hour,
 

@@ -30,8 +30,6 @@ type StorageOptions map[string]DataType
 // The type of store is up to the developer implementing it, and all it has to
 // do is be able to store several simple types.
 type Storer interface {
-	// Create is the same as put, except it refers to a non-existent key.
-	Create(key string, attr Attributes) error
 	// Put is for storing the attributes passed in. The type information can
 	// help serialization without using type assertions.
 	Put(key string, attr Attributes) error

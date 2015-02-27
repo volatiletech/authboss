@@ -9,8 +9,9 @@ import (
 )
 
 func TestStorage(t *testing.T) {
+	l := &Lock{}
 	authboss.NewConfig()
-	storage := L.Storage()
+	storage := l.Storage()
 	if _, ok := storage[StoreAttemptNumber]; !ok {
 		t.Error("Expected attempt number storage option.")
 	}
@@ -20,10 +21,11 @@ func TestStorage(t *testing.T) {
 }
 
 func TestBeforeAuth(t *testing.T) {
+	l := &Lock{}
 	authboss.NewConfig()
 	ctx := authboss.NewContext()
 
-	if interrupt, err := L.BeforeAuth(ctx); err != errUserMissing {
+	if interrupt, err := l.BeforeAuth(ctx); err != errUserMissing {
 		t.Error("Expected an error because of missing user:", err)
 	} else if interrupt != authboss.InterruptNone {
 		t.Error("Interrupt should not be set:", interrupt)
@@ -31,7 +33,7 @@ func TestBeforeAuth(t *testing.T) {
 
 	ctx.User = authboss.Attributes{"locked": true}
 
-	if interrupt, err := L.BeforeAuth(ctx); err != nil {
+	if interrupt, err := l.BeforeAuth(ctx); err != nil {
 		t.Error(err)
 	} else if interrupt != authboss.InterruptAccountLocked {
 		t.Error("Expected a locked interrupt:", interrupt)

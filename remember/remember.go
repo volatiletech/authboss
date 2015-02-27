@@ -10,6 +10,7 @@ import (
 	"encoding/base64"
 	"errors"
 	"fmt"
+	"log"
 
 	"gopkg.in/authboss.v0"
 )
@@ -40,13 +41,8 @@ type TokenStorer interface {
 	UseToken(givenKey, token string) (key string, err error)
 }
 
-// R is the singleton instance of the remember module which will have been
-// configured and ready to use after authboss.Init()
-var R *Remember
-
 func init() {
-	R = &Remember{}
-	authboss.RegisterModule("remember", R)
+	authboss.RegisterModule("remember", &Remember{})
 }
 
 type Remember struct{}
@@ -60,7 +56,8 @@ func (r *Remember) Initialize() error {
 		return errors.New("remember: TokenStorer required for remember me functionality")
 	}
 
-	authboss.Cfg.Callbacks.After(authboss.EventAuth, r.AfterAuth)
+	authboss.Cfg.Callbacks.Before(authboss.EventGet, r.auth)
+	authboss.Cfg.Callbacks.After(authboss.EventAuth, r.afterAuth)
 
 	return nil
 }
@@ -73,8 +70,8 @@ func (r *Remember) Storage() authboss.StorageOptions {
 	return nil
 }
 
-// AfterAuth is called after authentication is successful.
-func (r *Remember) AfterAuth(ctx *authboss.Context) error {
+// afterAuth is called after authentication is successful.
+func (r *Remember) afterAuth(ctx *authboss.Context) error {
 	if val, ok := ctx.FirstPostFormValue(RememberKey); !ok || val != "true" {
 		return nil
 	}
@@ -88,17 +85,17 @@ func (r *Remember) AfterAuth(ctx *authboss.Context) error {
 		return err
 	}
 
-	if _, err := r.New(ctx.CookieStorer, key); err != nil {
+	if _, err := r.new(ctx.CookieStorer, key); err != nil {
 		return fmt.Errorf("remember: Failed to create remember token: %v", err)
 	}
 
 	return nil
 }
 
-// New generates a new remember token and stores it in the configured TokenStorer.
+// new generates a new remember token and stores it in the configured TokenStorer.
 // The return value is a token that should only be given to a user if the delivery
 // method is secure which means at least signed if not encrypted.
-func (r *Remember) New(cstorer authboss.ClientStorer, storageKey string) (string, error) {
+func (r *Remember) new(cstorer authboss.ClientStorer, storageKey string) (string, error) {
 	token := make([]byte, nRandBytes+len(storageKey)+1)
 	copy(token, []byte(storageKey))
 	token[len(storageKey)] = ';'
@@ -122,42 +119,53 @@ func (r *Remember) New(cstorer authboss.ClientStorer, storageKey string) (string
 	return finalToken, nil
 }
 
-// Auth takes a token that was given to a user and checks to see if something
+// auth takes a token that was given to a user and checks to see if something
 // is matching in the database. If something is found the old token is deleted
 // and a new one should be generated. The return value is the key of the
 // record who owned this token.
-func (r *Remember) Auth(
-	cstorer authboss.ClientStorer,
-	sstorer authboss.ClientStorer,
-	finalToken string) (string, error) {
+func (r *Remember) auth(ctx *authboss.Context) (authboss.Interrupt, error) {
+	if val, ok := ctx.SessionStorer.Get(authboss.SessionKey); ok || len(val) > 0 {
+		return authboss.InterruptNone, nil
+	}
+
+	finalToken, ok := ctx.CookieStorer.Get(RememberKey)
+	if !ok {
+		return authboss.InterruptNone, nil
+	}
+
+	log.Println("finalToken", finalToken)
 
 	token, err := base64.URLEncoding.DecodeString(finalToken)
 	if err != nil {
-		return "", err
+		return authboss.InterruptNone, err
 	}
+
+	log.Println("token", token)
 
 	index := bytes.IndexByte(token, ';')
 	if index < 0 {
-		return "", errors.New("remember: Invalid remember me token.")
+		return authboss.InterruptNone, errors.New("remember: Invalid remember me token.")
 	}
 
 	// Get the key.
 	givenKey := token[:index]
+	log.Println("key", givenKey)
 
 	// Verify the tokens match.
 	sum := md5.Sum(token)
 
 	key, err := authboss.Cfg.Storer.(TokenStorer).UseToken(string(givenKey), base64.StdEncoding.EncodeToString(sum[:]))
+	log.Println("lookup", key, err)
 	if err == authboss.ErrTokenNotFound {
-		return "", nil
+		return authboss.InterruptNone, nil
 	} else if err != nil {
-		return "", err
+		return authboss.InterruptNone, err
 	}
 
 	// Ensure a half-auth.
-	sstorer.Put(authboss.SessionHalfAuthKey, "true")
+	ctx.SessionStorer.Put(authboss.SessionHalfAuthKey, "true")
 	// Log the user in.
-	sstorer.Put(authboss.SessionKey, key)
+	ctx.SessionStorer.Put(authboss.SessionKey, string(givenKey))
 
-	return key, nil
+	return authboss.InterruptNone, nil
 }

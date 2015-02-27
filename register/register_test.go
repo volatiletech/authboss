@@ -33,6 +33,7 @@ func setup() *Register {
 
 func TestRegister(t *testing.T) {
 	authboss.Cfg = authboss.NewConfig()
+	authboss.Cfg.Storer = mocks.NewMockStorer()
 	r := Register{}
 
 	if err := r.Initialize(); err != nil {

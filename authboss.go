@@ -27,6 +27,7 @@ func Init() error {
 // CurrentUser retrieves the current user from the session and the database.
 func CurrentUser(w http.ResponseWriter, r *http.Request) (interface{}, error) {
 	sessions := Cfg.SessionStoreMaker(w, r)
+	cookies := Cfg.CookieStoreMaker(w, r)
 	key, ok := sessions.Get(SessionKey)
 	if !ok {
 		return nil, nil
@@ -37,6 +38,8 @@ func CurrentUser(w http.ResponseWriter, r *http.Request) (interface{}, error) {
 		return nil, err
 	}
 
+	ctx.SessionStorer = clientStoreWrapper{sessions}
+	ctx.CookieStorer = clientStoreWrapper{cookies}
 	err = ctx.LoadUser(key)
 	if err != nil {
 		return nil, err

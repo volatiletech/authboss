@@ -10,7 +10,6 @@ import (
 	"encoding/base64"
 	"errors"
 	"fmt"
-	"log"
 
 	"gopkg.in/authboss.v0"
 )
@@ -56,7 +55,7 @@ func (r *Remember) Initialize() error {
 		return errors.New("remember: TokenStorer required for remember me functionality")
 	}
 
-	authboss.Cfg.Callbacks.Before(authboss.EventGet, r.auth)
+	authboss.Cfg.Callbacks.Before(authboss.EventGetUserSession, r.auth)
 	authboss.Cfg.Callbacks.After(authboss.EventAuth, r.afterAuth)
 
 	return nil
@@ -121,8 +120,7 @@ func (r *Remember) new(cstorer authboss.ClientStorer, storageKey string) (string
 
 // auth takes a token that was given to a user and checks to see if something
 // is matching in the database. If something is found the old token is deleted
-// and a new one should be generated. The return value is the key of the
-// record who owned this token.
+// and a new one should be generated.
 func (r *Remember) auth(ctx *authboss.Context) (authboss.Interrupt, error) {
 	if val, ok := ctx.SessionStorer.Get(authboss.SessionKey); ok || len(val) > 0 {
 		return authboss.InterruptNone, nil
@@ -133,14 +131,10 @@ func (r *Remember) auth(ctx *authboss.Context) (authboss.Interrupt, error) {
 		return authboss.InterruptNone, nil
 	}
 
-	log.Println("finalToken", finalToken)
-
 	token, err := base64.URLEncoding.DecodeString(finalToken)
 	if err != nil {
 		return authboss.InterruptNone, err
 	}
-
-	log.Println("token", token)
 
 	index := bytes.IndexByte(token, ';')
 	if index < 0 {
@@ -149,23 +143,26 @@ func (r *Remember) auth(ctx *authboss.Context) (authboss.Interrupt, error) {
 
 	// Get the key.
 	givenKey := token[:index]
-	log.Println("key", givenKey)
 
 	// Verify the tokens match.
 	sum := md5.Sum(token)
 
 	key, err := authboss.Cfg.Storer.(TokenStorer).UseToken(string(givenKey), base64.StdEncoding.EncodeToString(sum[:]))
-	log.Println("lookup", key, err)
 	if err == authboss.ErrTokenNotFound {
 		return authboss.InterruptNone, nil
 	} else if err != nil {
 		return authboss.InterruptNone, err
 	}
 
+	_, err = r.new(ctx.CookieStorer, string(key))
+	if err != nil {
+		return authboss.InterruptNone, err
+	}
+
 	// Ensure a half-auth.
 	ctx.SessionStorer.Put(authboss.SessionHalfAuthKey, "true")
 	// Log the user in.
-	ctx.SessionStorer.Put(authboss.SessionKey, string(givenKey))
+	ctx.SessionStorer.Put(authboss.SessionKey, string(key))
 
 	return authboss.InterruptNone, nil
 }

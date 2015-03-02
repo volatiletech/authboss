@@ -28,6 +28,9 @@ func TestAuthBossCurrentUser(t *testing.T) {
 	Cfg.SessionStoreMaker = func(_ http.ResponseWriter, _ *http.Request) ClientStorer {
 		return mockClientStore{SessionKey: "joe"}
 	}
+	Cfg.CookieStoreMaker = func(_ http.ResponseWriter, _ *http.Request) ClientStorer {
+		return mockClientStore{}
+	}
 
 	if err := Init(); err != nil {
 		t.Error("Unexpected error:", err)

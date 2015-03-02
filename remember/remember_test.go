@@ -111,6 +111,8 @@ func TestAuth(t *testing.T) {
 		t.Error("Unexpected error:", err)
 	}
 
+	cookie, _ := cookies.Get(RememberKey)
+
 	interrupt, err := r.auth(ctx)
 	if err != nil {
 		t.Error("Unexpected error:", err)
@@ -122,6 +124,10 @@ func TestAuth(t *testing.T) {
 
 	if session.Values[authboss.SessionKey] != key {
 		t.Error("The user should have been logged in.")
+	}
+
+	if chocolateChip, _ := cookies.Get(RememberKey); chocolateChip == cookie {
+		t.Error("Expected cookie to be different")
 	}
 
 	if authboss.InterruptNone != interrupt {

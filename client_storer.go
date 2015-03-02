@@ -9,6 +9,9 @@ const (
 	// the remember module. This serves as a way to force full authentication
 	// by denying half-authed users acccess to sensitive areas.
 	SessionHalfAuthKey = "halfauth"
+	// SessionLastAction is the session key to retrieve the last action of a user.
+	SessionLastAction = "last_action"
+
 	// FlashSuccessKey is used for storing sucess flash messages on the session
 	FlashSuccessKey = "flash_success"
 	// FlashErrorKey is used for storing sucess flash messages on the session

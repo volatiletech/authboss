@@ -26,7 +26,8 @@ func testSetup() (r *Recover, s *mocks.MockStorer, l *bytes.Buffer) {
 
 	authboss.Cfg = authboss.NewConfig()
 	authboss.Cfg.Layout = template.Must(template.New("").Parse(`{{template "authboss" .}}`))
-	authboss.Cfg.LayoutEmail = template.Must(template.New("").Parse(`{{template "authboss" .}}`))
+	authboss.Cfg.LayoutHTMLEmail = template.Must(template.New("").Parse(`<strong>{{template "authboss" .}}</strong>`))
+	authboss.Cfg.LayoutTextEmail = template.Must(template.New("").Parse(`{{template "authboss" .}}`))
 	authboss.Cfg.Storer = s
 	authboss.Cfg.XSRFName = "xsrf"
 	authboss.Cfg.XSRFMaker = func(_ http.ResponseWriter, _ *http.Request) string {

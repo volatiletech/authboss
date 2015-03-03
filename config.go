@@ -30,7 +30,8 @@ type Config struct {
 	PrimaryID string
 
 	Layout          *template.Template
-	LayoutEmail     *template.Template
+	LayoutHTMLEmail *template.Template
+	LayoutTextEmail *template.Template
 	LayoutDataMaker ViewDataMaker
 
 	// ErrorHandler handles would be 500 errors.
@@ -81,8 +82,9 @@ func NewConfig() *Config {
 
 		PrimaryID: StoreEmail,
 
-		Layout:      template.Must(template.New("").Parse(`<html><body>{{template "authboss" .}}</body></html>`)),
-		LayoutEmail: template.Must(template.New("").Parse(`<html><body>{{template "authboss" .}}</body></html>`)),
+		Layout:          template.Must(template.New("").Parse(`<!DOCTYPE html><html><body>{{template "authboss" .}}</body></html>`)),
+		LayoutHTMLEmail: template.Must(template.New("").Parse(`<!DOCTYPE html><html><body>{{template "authboss" .}}</body></html>`)),
+		LayoutTextEmail: template.Must(template.New("").Parse(`{{template "authboss" .}}`)),
 
 		AuthLoginOKPath:   "/",
 		AuthLoginFailPath: "/",

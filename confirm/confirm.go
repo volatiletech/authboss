@@ -44,7 +44,8 @@ func init() {
 }
 
 type Confirm struct {
-	emailTemplates render.Templates
+	emailHTMLTemplates render.Templates
+	emailTextTemplates render.Templates
 }
 
 func (c *Confirm) Initialize() (err error) {
@@ -54,7 +55,11 @@ func (c *Confirm) Initialize() (err error) {
 		return errors.New("confirm: Need a ConfirmStorer.")
 	}
 
-	c.emailTemplates, err = render.LoadTemplates(authboss.Cfg.LayoutEmail, authboss.Cfg.ViewsPath, tplConfirmHTML, tplConfirmText)
+	c.emailHTMLTemplates, err = render.LoadTemplates(authboss.Cfg.LayoutHTMLEmail, authboss.Cfg.ViewsPath, tplConfirmHTML)
+	if err != nil {
+		return err
+	}
+	c.emailTextTemplates, err = render.LoadTemplates(authboss.Cfg.LayoutTextEmail, authboss.Cfg.ViewsPath, tplConfirmText)
 	if err != nil {
 		return err
 	}
@@ -132,7 +137,7 @@ func (c *Confirm) confirmEmail(to, token string) {
 		Subject: authboss.Cfg.EmailSubjectPrefix + "Confirm New Account",
 	}
 
-	err := c.emailTemplates.RenderEmail(email, tplConfirmHTML, tplConfirmText, url)
+	err := render.RenderEmail(email, c.emailHTMLTemplates, tplConfirmHTML, c.emailTextTemplates, tplConfirmText, url)
 	if err != nil {
 		fmt.Fprintf(authboss.Cfg.LogWriter, "confirm: Failed to send e-mail: %v", err)
 	}

@@ -19,7 +19,8 @@ import (
 func setup() *Confirm {
 	authboss.NewConfig()
 	authboss.Cfg.Storer = mocks.NewMockStorer()
-	authboss.Cfg.LayoutEmail = template.Must(template.New("").Parse(`email ^_^`))
+	authboss.Cfg.LayoutHTMLEmail = template.Must(template.New("").Parse(`email ^_^`))
+	authboss.Cfg.LayoutTextEmail = template.Must(template.New("").Parse(`email`))
 
 	c := &Confirm{}
 	if err := c.Initialize(); err != nil {
@@ -37,8 +38,11 @@ func TestConfirm_Initialize(t *testing.T) {
 
 	c = setup()
 
-	if c.emailTemplates == nil {
-		t.Error("Missing email templates")
+	if c.emailHTMLTemplates == nil {
+		t.Error("Missing HTML email templates")
+	}
+	if c.emailTextTemplates == nil {
+		t.Error("Missing text email templates")
 	}
 }
 

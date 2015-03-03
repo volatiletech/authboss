@@ -107,13 +107,13 @@ func (t Templates) Render(ctx *authboss.Context, w http.ResponseWriter, r *http.
 }
 
 // RenderEmail renders the html and plaintext views for an email and sends it
-func (t Templates) RenderEmail(email authboss.Email, nameHTML, namePlain string, data interface{}) error {
-	tplHTML, ok := t[nameHTML]
+func RenderEmail(email authboss.Email, htmlTpls Templates, nameHTML string, textTpls Templates, namePlain string, data interface{}) error {
+	tplHTML, ok := htmlTpls[nameHTML]
 	if !ok {
 		return authboss.RenderErr{tplHTML.Name(), data, ErrTemplateNotFound}
 	}
 
-	tplPlain, ok := t[namePlain]
+	tplPlain, ok := textTpls[namePlain]
 	if !ok {
 		return authboss.RenderErr{tplPlain.Name(), data, ErrTemplateNotFound}
 	}

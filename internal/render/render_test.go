@@ -88,16 +88,14 @@ func TestTemplates_RenderEmail(t *testing.T) {
 	mockMailer := &mocks.MockMailer{}
 	authboss.Cfg.Mailer = mockMailer
 
-	tpls := Templates{
-		"html":  testEmailHTMLTempalte,
-		"plain": testEmailPlainTempalte,
-	}
+	htmlTpls := Templates{"html": testEmailHTMLTempalte}
+	textTpls := Templates{"plain": testEmailPlainTempalte}
 
 	email := authboss.Email{
 		To: []string{"a@b.c"},
 	}
 
-	err := tpls.RenderEmail(email, "html", "plain", "spoon")
+	err := RenderEmail(email, htmlTpls, "html", textTpls, "plain", "spoon")
 	if err != nil {
 		t.Error(err)
 	}

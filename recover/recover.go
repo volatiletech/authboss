@@ -50,8 +50,9 @@ func init() {
 }
 
 type Recover struct {
-	templates      render.Templates
-	emailTemplates render.Templates
+	templates          render.Templates
+	emailHTMLTemplates render.Templates
+	emailTextTemplates render.Templates
 }
 
 func (r *Recover) Initialize() (err error) {
@@ -76,7 +77,11 @@ func (r *Recover) Initialize() (err error) {
 		return err
 	}
 
-	r.emailTemplates, err = render.LoadTemplates(authboss.Cfg.LayoutEmail, authboss.Cfg.ViewsPath, tplInitHTMLEmail, tplInitTextEmail)
+	r.emailHTMLTemplates, err = render.LoadTemplates(authboss.Cfg.LayoutHTMLEmail, authboss.Cfg.ViewsPath, tplInitHTMLEmail)
+	if err != nil {
+		return err
+	}
+	r.emailTextTemplates, err = render.LoadTemplates(authboss.Cfg.LayoutTextEmail, authboss.Cfg.ViewsPath, tplInitTextEmail)
 	if err != nil {
 		return err
 	}
@@ -184,7 +189,7 @@ func (r *Recover) sendRecoverEmail(to, encodedToken string) {
 		Subject: authboss.Cfg.EmailSubjectPrefix + "Password Reset",
 	}
 
-	if err := r.emailTemplates.RenderEmail(email, tplInitHTMLEmail, tplInitTextEmail, url); err != nil {
+	if err := render.RenderEmail(email, r.emailHTMLTemplates, tplInitHTMLEmail, r.emailTextTemplates, tplInitTextEmail, url); err != nil {
 		fmt.Fprintln(authboss.Cfg.LogWriter, "recover: failed to send recover email:", err)
 	}
 }

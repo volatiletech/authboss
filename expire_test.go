@@ -36,6 +36,10 @@ func TestDudeIsExpired(t *testing.T) {
 	if key, ok := session.Get(SessionKey); ok {
 		t.Error("Unexpcted session key:", key)
 	}
+
+	if key, ok := session.Get(SessionLastAction); ok {
+		t.Error("Unexpcted last action key:", key)
+	}
 }
 
 func TestDudeIsNotExpired(t *testing.T) {

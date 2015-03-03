@@ -59,7 +59,7 @@ func TestAfterAuth(t *testing.T) {
 		t.Error(err)
 	}
 
-	if _, ok := cookies.Values[RememberKey]; !ok {
+	if _, ok := cookies.Values[authboss.CookieRemember]; !ok {
 		t.Error("Expected a cookie to have been set.")
 	}
 }
@@ -88,7 +88,7 @@ func TestNew(t *testing.T) {
 		t.Error("Expected a token to be saved.")
 	}
 
-	if token != cookies.Values[RememberKey] {
+	if token != cookies.Values[authboss.CookieRemember] {
 		t.Error("Expected a cookie set with the token.")
 	}
 }
@@ -111,7 +111,7 @@ func TestAuth(t *testing.T) {
 		t.Error("Unexpected error:", err)
 	}
 
-	cookie, _ := cookies.Get(RememberKey)
+	cookie, _ := cookies.Get(authboss.CookieRemember)
 
 	interrupt, err := r.auth(ctx)
 	if err != nil {
@@ -126,7 +126,7 @@ func TestAuth(t *testing.T) {
 		t.Error("The user should have been logged in.")
 	}
 
-	if chocolateChip, _ := cookies.Get(RememberKey); chocolateChip == cookie {
+	if chocolateChip, _ := cookies.Get(authboss.CookieRemember); chocolateChip == cookie {
 		t.Error("Expected cookie to be different")
 	}
 

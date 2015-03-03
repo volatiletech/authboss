@@ -56,10 +56,11 @@ func (m expireMiddleware) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	session := Cfg.SessionStoreMaker(w, r)
 	if _, ok := session.Get(SessionKey); ok {
 		ttl := timeToExpiry(session)
-		if ttl != 0 {
-			refreshExpiry(session)
-		} else {
+		if ttl == 0 {
 			session.Del(SessionKey)
+			session.Del(SessionLastAction)
+		} else {
+			refreshExpiry(session)
 		}
 	}
 

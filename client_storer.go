@@ -12,6 +12,9 @@ const (
 	// SessionLastAction is the session key to retrieve the last action of a user.
 	SessionLastAction = "last_action"
 
+	// CookieRemember is used for cookies and form input names.
+	CookieRemember = "rm"
+
 	// FlashSuccessKey is used for storing sucess flash messages on the session
 	FlashSuccessKey = "flash_success"
 	// FlashErrorKey is used for storing sucess flash messages on the session

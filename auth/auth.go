@@ -148,6 +148,9 @@ func (a *Auth) logoutHandlerFunc(ctx *authboss.Context, w http.ResponseWriter, r
 	switch r.Method {
 	case methodGET:
 		ctx.SessionStorer.Del(authboss.SessionKey)
+		ctx.CookieStorer.Del(authboss.CookieRemember)
+		ctx.SessionStorer.Del(authboss.SessionLastAction)
+
 		http.Redirect(w, r, authboss.Cfg.AuthLogoutOKPath, http.StatusFound)
 	default:
 		w.WriteHeader(http.StatusMethodNotAllowed)

@@ -15,9 +15,7 @@ import (
 )
 
 const (
-	// RememberKey is used for cookies and form input names.
-	RememberKey = "rm"
-	nRandBytes  = 32
+	nRandBytes = 32
 )
 
 var (
@@ -71,7 +69,7 @@ func (r *Remember) Storage() authboss.StorageOptions {
 
 // afterAuth is called after authentication is successful.
 func (r *Remember) afterAuth(ctx *authboss.Context) error {
-	if val, ok := ctx.FirstPostFormValue(RememberKey); !ok || val != "true" {
+	if val, ok := ctx.FirstPostFormValue(authboss.CookieRemember); !ok || val != "true" {
 		return nil
 	}
 
@@ -113,7 +111,7 @@ func (r *Remember) new(cstorer authboss.ClientStorer, storageKey string) (string
 	}
 
 	// Write the finalToken to the cookie
-	cstorer.Put(RememberKey, finalToken)
+	cstorer.Put(authboss.CookieRemember, finalToken)
 
 	return finalToken, nil
 }
@@ -126,7 +124,7 @@ func (r *Remember) auth(ctx *authboss.Context) (authboss.Interrupt, error) {
 		return authboss.InterruptNone, nil
 	}
 
-	finalToken, ok := ctx.CookieStorer.Get(RememberKey)
+	finalToken, ok := ctx.CookieStorer.Get(authboss.CookieRemember)
 	if !ok {
 		return authboss.InterruptNone, nil
 	}

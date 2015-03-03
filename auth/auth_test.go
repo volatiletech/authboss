@@ -306,15 +306,26 @@ func TestAuth_logoutHandlerFunc_GET(t *testing.T) {
 	authboss.Cfg.AuthLogoutOKPath = "/dashboard"
 
 	ctx, w, r, sessionStorer := testRequest("GET")
-
 	sessionStorer.Put(authboss.SessionKey, "asdf")
+	sessionStorer.Put(authboss.SessionLastAction, "1234")
+
+	cookieStorer := mocks.NewMockClientStorer(authboss.CookieRemember, "qwert")
+	ctx.CookieStorer = cookieStorer
 
 	if err := a.logoutHandlerFunc(ctx, w, r); err != nil {
 		t.Error("Unexpected error:", err)
 	}
 
-	if _, ok := sessionStorer.Get(authboss.SessionKey); ok {
-		t.Errorf("Expected to be logged out")
+	if val, ok := sessionStorer.Get(authboss.SessionKey); ok {
+		t.Errorf("Unexpected session key:", val)
+	}
+
+	if val, ok := sessionStorer.Get(authboss.SessionLastAction); ok {
+		t.Errorf("Unexpected last action:", val)
+	}
+
+	if val, ok := cookieStorer.Get(authboss.CookieRemember); ok {
+		t.Errorf("Unexpected rm cookie:", val)
 	}
 
 	if http.StatusFound != w.Code {

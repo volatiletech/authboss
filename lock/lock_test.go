@@ -56,7 +56,7 @@ func TestAfterAuth(t *testing.T) {
 	if err := lock.AfterAuth(ctx); err != nil {
 		t.Error(err)
 	}
-	if storer.Users["john@john.com"][StoreAttemptNumber].(int) != 0 {
+	if storer.Users["john@john.com"][StoreAttemptNumber].(int64) != int64(0) {
 		t.Error("StoreAttemptNumber set incorrectly.")
 	}
 	if _, ok := storer.Users["john@john.com"][StoreAttemptTime].(time.Time); !ok {
@@ -90,7 +90,7 @@ func TestAfterAuthFail_Lock(t *testing.T) {
 		if err := lock.AfterAuthFail(ctx); err != nil {
 			t.Error(err)
 		}
-		if val := storer.Users[email][StoreAttemptNumber].(int); val != i+1 {
+		if val := storer.Users[email][StoreAttemptNumber].(int64); val != int64(i+1) {
 			t.Errorf("%d: StoreAttemptNumber set incorrectly: %v", i, val)
 		}
 		if current, ok = storer.Users[email][StoreAttemptTime].(time.Time); !ok || old.After(current) {
@@ -103,7 +103,7 @@ func TestAfterAuthFail_Lock(t *testing.T) {
 	if !storer.Users[email][StoreLocked].(bool) {
 		t.Error("User should be locked.")
 	}
-	if val := storer.Users[email][StoreAttemptNumber].(int); val != 3 {
+	if val := storer.Users[email][StoreAttemptNumber].(int64); val != int64(3) {
 		t.Error("StoreAttemptNumber set incorrectly:", val)
 	}
 	if _, ok = storer.Users[email][StoreAttemptTime].(time.Time); !ok {
@@ -127,13 +127,13 @@ func TestAfterAuthFail_Reset(t *testing.T) {
 	email := "john@john.com"
 	ctx.User = map[string]interface{}{
 		authboss.Cfg.PrimaryID: email,
-		StoreAttemptNumber:     2,
+		StoreAttemptNumber:     int64(2),
 		StoreAttemptTime:       old,
 		StoreLocked:            false,
 	}
 
 	lock.AfterAuthFail(ctx)
-	if val := storer.Users[email][StoreAttemptNumber].(int); val != 0 {
+	if val := storer.Users[email][StoreAttemptNumber].(int64); val != int64(0) {
 		t.Error("StoreAttemptNumber set incorrectly:", val)
 	}
 	if current, ok = storer.Users[email][StoreAttemptTime].(time.Time); !ok || current.Before(old) {
@@ -200,7 +200,7 @@ func TestUnlock(t *testing.T) {
 	if attemptTime.After(time.Now().UTC().Add(-authboss.Cfg.LockWindow)) {
 		t.Error("StoreLocked not set correctly:", attemptTime)
 	}
-	if number := storer.Users[email][StoreAttemptNumber].(int); number != 0 {
+	if number := storer.Users[email][StoreAttemptNumber].(int64); number != int64(0) {
 		t.Error("StoreLocked not set correctly:", number)
 	}
 	if locked := storer.Users[email][StoreLocked].(bool); locked {

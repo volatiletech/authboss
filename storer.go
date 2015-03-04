@@ -2,6 +2,8 @@ package authboss
 
 import (
 	"bytes"
+	"database/sql"
+	"database/sql/driver"
 	"errors"
 	"fmt"
 	"reflect"
@@ -50,7 +52,9 @@ const (
 	DateTime
 )
 
-var dateTimeType = reflect.TypeOf(time.Time{})
+var (
+	dateTimeType = reflect.TypeOf(time.Time{})
+)
 
 func (d DataType) String() string {
 	switch d {
@@ -104,13 +108,13 @@ func (a Attributes) String(key string) (string, bool) {
 	return val, ok
 }
 
-// Int returns a single value as a int
-func (a Attributes) Int(key string) (int, bool) {
+// Int64 returns a single value as a int64
+func (a Attributes) Int64(key string) (int64, bool) {
 	inter, ok := a[key]
 	if !ok {
 		return 0, false
 	}
-	val, ok := inter.(int)
+	val, ok := inter.(int64)
 	return val, ok
 }
 
@@ -150,13 +154,13 @@ func (a Attributes) StringErr(key string) (val string, err error) {
 	return val, nil
 }
 
-// IntErr returns a single value as a int
-func (a Attributes) IntErr(key string) (val int, err error) {
+// Int64Err returns a single value as a int
+func (a Attributes) Int64Err(key string) (val int64, err error) {
 	inter, ok := a[key]
 	if !ok {
 		return val, AttributeErr{Name: key}
 	}
-	val, ok = inter.(int)
+	val, ok = inter.(int64)
 	if !ok {
 		return val, MakeAttributeErr(key, Integer, inter)
 	}
@@ -218,6 +222,22 @@ func (a Attributes) Bind(strct interface{}, ignoreMissing bool) error {
 
 		fieldKind := field.Kind()
 		fieldType := field.Type()
+		fieldPtr := field.Addr()
+
+		if _, ok := fieldPtr.Interface().(sql.Scanner); ok {
+			method := fieldPtr.MethodByName("Scan")
+			if !method.IsValid() {
+				return errors.New("Bind: Was a scanner without a Scan method")
+			}
+
+			rvals := method.Call([]reflect.Value{reflect.ValueOf(v)})
+			if err, ok := rvals[0].Interface().(error); ok && err != nil {
+				return err
+			}
+
+			continue
+		}
+
 		switch val := v.(type) {
 		case int:
 			if fieldKind != reflect.Int {
@@ -264,6 +284,22 @@ func Unbind(intf interface{}) Attributes {
 		}
 
 		name = camelToUnder(name)
+
+		fieldPtr := field.Addr()
+		if _, ok := fieldPtr.Interface().(driver.Valuer); ok {
+			method := fieldPtr.MethodByName("Value")
+			if !method.IsValid() {
+				panic("Unbind: Was a valuer without a Value method")
+			}
+
+			rvals := method.Call([]reflect.Value{})
+			if err, ok := rvals[1].Interface().(error); ok && err != nil {
+				panic(fmt.Errorf("Unbind: Failed to get value out of Valuer: %s, %v", name, err))
+			}
+			attr[name] = rvals[0].Interface()
+
+			continue
+		}
 
 		switch field.Kind() {
 		case reflect.Struct:

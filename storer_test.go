@@ -1,10 +1,29 @@
 package authboss
 
 import (
+	"database/sql"
+	"database/sql/driver"
 	"strings"
 	"testing"
 	"time"
 )
+
+type NullTime struct {
+	Time  time.Time
+	Valid bool
+}
+
+func (nt *NullTime) Scan(value interface{}) error {
+	nt.Time, nt.Valid = value.(time.Time)
+	return nil
+}
+
+func (nt NullTime) Value() (driver.Value, error) {
+	if !nt.Valid {
+		return nil, nil
+	}
+	return nt.Time, nil
+}
 
 func TestAttributes_Names(t *testing.T) {
 	t.Parallel()
@@ -55,7 +74,7 @@ func TestAttributeMeta_Names(t *testing.T) {
 func TestAttributeMeta_Helpers(t *testing.T) {
 	now := time.Now()
 	attr := Attributes{
-		"integer":   5,
+		"integer":   int64(5),
 		"string":    "a",
 		"bool":      true,
 		"date_time": now,
@@ -74,16 +93,16 @@ func TestAttributeMeta_Helpers(t *testing.T) {
 		t.Error(str, err)
 	}
 
-	if integer, ok := attr.Int("integer"); !ok || integer != 5 {
+	if integer, ok := attr.Int64("integer"); !ok || integer != 5 {
 		t.Error(integer, ok)
 	}
-	if integer, err := attr.IntErr("integer"); err != nil || integer != 5 {
+	if integer, err := attr.Int64Err("integer"); err != nil || integer != 5 {
 		t.Error(integer, err)
 	}
-	if integer, ok := attr.Int("notinteger"); ok {
+	if integer, ok := attr.Int64("notinteger"); ok {
 		t.Error(integer, ok)
 	}
-	if integer, err := attr.IntErr("notinteger"); err == nil {
+	if integer, err := attr.Int64Err("notinteger"); err == nil {
 		t.Error(integer, err)
 	}
 
@@ -172,18 +191,18 @@ func TestAttributes_Bind(t *testing.T) {
 }
 
 func TestAttributes_BindIgnoreMissing(t *testing.T) {
-		t.Parallel()
+	t.Parallel()
 
 	anInteger := 5
 	aString := "string"
 
 	data := Attributes{
-		"integer":   anInteger,
-		"string":    aString,
+		"integer": anInteger,
+		"string":  aString,
 	}
 
 	s := struct {
-		Integer  int
+		Integer int
 	}{}
 
 	if err := data.Bind(&s, false); err == nil {
@@ -273,7 +292,40 @@ func TestAttributes_BindTypeFail(t *testing.T) {
 
 }
 
-func TestAttributes_Unbind(t *testing.T) {
+func TestAttributes_BindScannerValues(t *testing.T) {
+	t.Parallel()
+
+	s1 := struct {
+		Count sql.NullInt64
+		Time  NullTime
+	}{
+		sql.NullInt64{},
+		NullTime{},
+	}
+
+	nowTime := time.Now()
+
+	attrs := Attributes{"count": 12, "time": nowTime}
+	if err := attrs.Bind(&s1, false); err != nil {
+		t.Error("Unexpected error:", err)
+	}
+
+	if !s1.Count.Valid {
+		t.Error("Expected valid NullInt64")
+	}
+	if s1.Count.Int64 != 12 {
+		t.Error("Unexpected value:", s1.Count.Int64)
+	}
+
+	if !s1.Time.Valid {
+		t.Error("Expected valid time.Time")
+	}
+	if !s1.Time.Time.Equal(nowTime) {
+		t.Error("Unexpected value:", s1.Time.Time)
+	}
+}
+
+func TestUnbind(t *testing.T) {
 	t.Parallel()
 
 	s1 := struct {
@@ -290,7 +342,7 @@ func TestAttributes_Unbind(t *testing.T) {
 
 	attr := Unbind(&s1)
 	if len(attr) != 4 {
-		t.Error("Expected three fields, got:", len(attr))
+		t.Error("Expected 4 fields, got:", len(attr))
 	}
 
 	if v, ok := attr["integer"]; !ok {
@@ -322,6 +374,38 @@ func TestAttributes_Unbind(t *testing.T) {
 	} else if val, ok := v.(time.Time); !ok {
 		t.Errorf("Underlying type is wrong: %T", v)
 	} else if s1.Time != val {
+		t.Error("Underlying value is wrong:", val)
+	}
+}
+
+func TestUnbind_Valuer(t *testing.T) {
+	t.Parallel()
+
+	nowTime := time.Now()
+
+	s1 := struct {
+		Count sql.NullInt64
+		Time  NullTime
+	}{
+		sql.NullInt64{12, true},
+		NullTime{nowTime, true},
+	}
+
+	attr := Unbind(&s1)
+
+	if v, ok := attr["count"]; !ok {
+		t.Error("Could not find NullInt64 entry.")
+	} else if val, ok := v.(int64); !ok {
+		t.Errorf("Underlying type is wrong: %T", v)
+	} else if 12 != val {
+		t.Error("Underlying value is wrong:", val)
+	}
+
+	if v, ok := attr["time"]; !ok {
+		t.Error("Could not find NulLTime entry.")
+	} else if val, ok := v.(time.Time); !ok {
+		t.Errorf("Underlying type is wrong: %T", v)
+	} else if !nowTime.Equal(val) {
 		t.Error("Underlying value is wrong:", val)
 	}
 }

@@ -55,6 +55,7 @@ func (r *Remember) Initialize() error {
 
 	authboss.Cfg.Callbacks.Before(authboss.EventGetUserSession, r.auth)
 	authboss.Cfg.Callbacks.After(authboss.EventAuth, r.afterAuth)
+	authboss.Cfg.Callbacks.After(authboss.EventPasswordReset, r.afterPassword)
 
 	return nil
 }
@@ -87,6 +88,26 @@ func (r *Remember) afterAuth(ctx *authboss.Context) error {
 	}
 
 	return nil
+}
+
+// afterPassword is called after the password has been reset.
+func (r *Remember) afterPassword(ctx *authboss.Context) error {
+	if ctx.User == nil {
+		return nil
+	}
+
+	id, ok := ctx.User.String(authboss.Cfg.PrimaryID)
+	if !ok {
+		return nil
+	}
+
+	ctx.CookieStorer.Del(authboss.CookieRemember)
+	tokenStorer, ok := authboss.Cfg.Storer.(TokenStorer)
+	if !ok {
+		return nil
+	}
+
+	return tokenStorer.DelTokens(id)
 }
 
 // new generates a new remember token and stores it in the configured TokenStorer.

@@ -165,6 +165,7 @@ func TestEventString(t *testing.T) {
 		{EventRecoverEnd, "EventRecoverEnd"},
 		{EventGet, "EventGet"},
 		{EventGetUserSession, "EventGetUserSession"},
+		{EventPasswordReset, "EventPasswordReset"},
 	}
 
 	for i, test := range tests {

@@ -18,11 +18,12 @@ const (
 	EventRecoverEnd
 	EventGet
 	EventGetUserSession
+	EventPasswordReset
 )
 
-const eventNames = "EventRegisterEventAuthEventAuthFailEventRecoverStartEventRecoverEndEventGetEventGetUserSession"
+const eventNames = "EventRegisterEventAuthEventAuthFailEventRecoverStartEventRecoverEndEventGetEventGetUserSessionEventPasswordReset"
 
-var eventIndexes = [...]uint8{0, 13, 22, 35, 52, 67, 75, 94}
+var eventIndexes = [...]uint8{0, 13, 22, 35, 52, 67, 75, 94, 112}
 
 func (i Event) String() string {
 	if i < 0 || i+1 >= Event(len(eventIndexes)) {

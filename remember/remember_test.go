@@ -64,6 +64,37 @@ func TestAfterAuth(t *testing.T) {
 	}
 }
 
+func TestAfterPasswordReset(t *testing.T) {
+	r := Remember{}
+	authboss.NewConfig()
+
+	id := "test@email.com"
+
+	storer := mocks.NewMockStorer()
+	authboss.Cfg.Storer = storer
+	session := mocks.NewMockClientStorer()
+	cookies := mocks.NewMockClientStorer()
+	storer.Tokens[id] = []string{"one", "two"}
+	cookies.Values[authboss.CookieRemember] = "token"
+
+	ctx := authboss.NewContext()
+	ctx.User = authboss.Attributes{authboss.Cfg.PrimaryID: id}
+	ctx.SessionStorer = session
+	ctx.CookieStorer = cookies
+
+	if err := r.afterPassword(ctx); err != nil {
+		t.Error(err)
+	}
+
+	if _, ok := cookies.Values[authboss.CookieRemember]; ok {
+		t.Error("Expected the remember cookie to be deleted.")
+	}
+
+	if len(storer.Tokens) != 0 {
+		t.Error("Should have wiped out all tokens.")
+	}
+}
+
 func TestNew(t *testing.T) {
 	r := &Remember{}
 	authboss.NewConfig()

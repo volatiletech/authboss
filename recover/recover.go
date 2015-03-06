@@ -251,6 +251,10 @@ func (r *Recover) completeHandlerFunc(ctx *authboss.Context, w http.ResponseWrit
 			return err
 		}
 
+		if err := authboss.Cfg.Callbacks.FireAfter(authboss.EventPasswordReset, ctx); err != nil {
+			return err
+		}
+
 		ctx.SessionStorer.Put(authboss.SessionKey, primaryID)
 		http.Redirect(w, req, authboss.Cfg.AuthLoginOKPath, http.StatusFound)
 	default:

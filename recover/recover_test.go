@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"fmt"
 	"html/template"
+	"log"
 	"net/http"
 	"net/http/httptest"
 	"regexp"
@@ -273,12 +274,156 @@ func TestRecover_sendRecoverEmail(t *testing.T) {
 	}
 }
 
+func TestRecover_completeHandlerFunc_GET_VerifyFails(t *testing.T) {
+	rec, storer, _ := testSetup()
+
+	ctx, w, r, _ := testRequest("GET", "token", testUrlBase64Token)
+
+	err := rec.completeHandlerFunc(ctx, w, r)
+	rerr, ok := err.(authboss.ErrAndRedirect)
+	if !ok {
+		t.Error("Expected ErrAndRedirect")
+	}
+	if rerr.Location != "/" {
+		t.Error("Unexpected location:", rerr.Location)
+	}
+
+	var zeroTime time.Time
+	storer.Users["john"] = authboss.Attributes{StoreRecoverToken: testStdBase64Token, StoreRecoverTokenExpiry: zeroTime}
+
+	ctx, w, r, _ = testRequest("GET", "token", testUrlBase64Token)
+
+	err = rec.completeHandlerFunc(ctx, w, r)
+	rerr, ok = err.(authboss.ErrAndRedirect)
+	if !ok {
+		t.Error("Expected ErrAndRedirect")
+	}
+	if rerr.Location != "/recover" {
+		t.Error("Unexpected location:", rerr.Location)
+	}
+	if rerr.FlashError != recoverTokenExpiredFlash {
+		t.Error("Unexpcted flash error:", rerr.FlashError)
+	}
+}
+
 func TestRecover_completeHandlerFunc_GET(t *testing.T) {
+	rec, storer, _ := testSetup()
+
+	storer.Users["john"] = authboss.Attributes{StoreRecoverToken: testStdBase64Token, StoreRecoverTokenExpiry: time.Now()}
+
+	ctx, w, r, _ := testRequest("GET", "token", testUrlBase64Token)
+
+	if err := rec.completeHandlerFunc(ctx, w, r); err != nil {
+		t.Error("Unexpected error:", err)
+	}
+
+	if w.Code != http.StatusOK {
+		t.Error("Unexpected status:", w.Code)
+	}
+
+	body := w.Body.String()
+	if !strings.Contains(body, `<form action="recover/complete"`) {
+		t.Error("Should have rendered a form")
+	}
+	if !strings.Contains(body, `name="password"`) {
+		t.Error("Form should contain the password field")
+	}
+	if !strings.Contains(body, `name="confirm_password"`) {
+		t.Error("Form should contain the confirm password field")
+	}
+	if !strings.Contains(body, `name="token"`) {
+		t.Error("Form should contain the token field")
+	}
+}
+
+func TestRecover_completeHanlderFunc_POST_TokenMissing(t *testing.T) {
+	rec, _, _ := testSetup()
+	ctx, w, r, _ := testRequest("POST")
+
+	err := rec.completeHandlerFunc(ctx, w, r)
+	if err.Error() != "Failed to retrieve client attribute: token" {
+		t.Error("Unexpected error:", err)
+	}
 
 }
 
-func TestRecover_completeHanlderFunc_POST(t *testing.T) {
+func TestRecover_completeHanlderFunc_POST_ValidationFails(t *testing.T) {
+	rec, _, _ := testSetup()
+	ctx, w, r, _ := testRequest("POST", "token", testUrlBase64Token)
 
+	if err := rec.completeHandlerFunc(ctx, w, r); err != nil {
+		t.Error("Unexpected error:", err)
+	}
+
+	if w.Code != http.StatusOK {
+		t.Error("Unexpected status:", w.Code)
+	}
+
+	if !strings.Contains(w.Body.String(), "Cannot be blank") {
+		t.Error("Expected error about password being blank")
+	}
+}
+
+func TestRecover_completeHanlderFunc_POST_VerificationFails(t *testing.T) {
+	rec, _, _ := testSetup()
+	ctx, w, r, _ := testRequest("POST", "token", testUrlBase64Token, authboss.StorePassword, "abcd", "confirm_"+authboss.StorePassword, "abcd")
+
+	if err := rec.completeHandlerFunc(ctx, w, r); err == nil {
+		log.Println(w.Body.String())
+		t.Error("Expected error")
+	}
+}
+
+func TestRecover_completeHanlderFunc_POST(t *testing.T) {
+	rec, storer, _ := testSetup()
+
+	storer.Users["john"] = authboss.Attributes{authboss.Cfg.PrimaryID: "john", StoreRecoverToken: testStdBase64Token, StoreRecoverTokenExpiry: time.Now(), authboss.StorePassword: "asdf"}
+
+	cbCalled := false
+
+	authboss.Cfg.Callbacks = authboss.NewCallbacks()
+	authboss.Cfg.Callbacks.After(authboss.EventPasswordReset, func(_ *authboss.Context) error {
+		cbCalled = true
+		return nil
+	})
+
+	ctx, w, r, sessionStorer := testRequest("POST", "token", testUrlBase64Token, authboss.StorePassword, "abcd", "confirm_"+authboss.StorePassword, "abcd")
+
+	if err := rec.completeHandlerFunc(ctx, w, r); err != nil {
+		t.Error("Unexpected error:", err)
+	}
+
+	var zeroTime time.Time
+
+	u := storer.Users["john"]
+	if password, ok := u.String(authboss.StorePassword); !ok || password == "asdf" {
+		t.Error("Expected password to have been reset")
+	}
+
+	if recToken, ok := u.String(StoreRecoverToken); !ok || recToken != "" {
+		t.Error("Expected recovery token to have been zeroed")
+	}
+
+	if reCExpiry, ok := u.DateTime(StoreRecoverTokenExpiry); !ok || !reCExpiry.Equal(zeroTime) {
+		t.Error("Expected recovery token expiry to have been zeroed")
+	}
+
+	if !cbCalled {
+		t.Error("Expected EventPasswordReste callback to have been fired")
+	}
+
+	if val, ok := sessionStorer.Get(authboss.SessionKey); !ok || val != "john" {
+		t.Errorf("Ecxpected SessionKey to be:", "john")
+	}
+
+	if w.Code != http.StatusFound {
+		t.Error("Unexpected status:", w.Code)
+	}
+
+	loc := w.Header().Get("Location")
+	if loc != authboss.Cfg.AuthLogoutOKPath {
+		t.Error("Unexpected location:", loc)
+	}
 }
 
 func Test_verifyToken_MissingToken(t *testing.T) {

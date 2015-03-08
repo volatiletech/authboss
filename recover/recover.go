@@ -220,7 +220,6 @@ func (r *Recover) completeHandlerFunc(ctx *authboss.Context, w http.ResponseWrit
 
 		policies := authboss.FilterValidators(authboss.Cfg.Policies, "password")
 		if validationErrs := ctx.Validate(policies, authboss.StorePassword, authboss.ConfirmPrefix+authboss.StorePassword).Map(); len(validationErrs) > 0 {
-			fmt.Fprintln(authboss.Cfg.LogWriter, "recover: form validation failed:", validationErrs)
 			data := authboss.NewHTMLData(
 				"token", token,
 				"password", password,

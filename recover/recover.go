@@ -7,6 +7,7 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"path"
 	"time"
 
 	"golang.org/x/crypto/bcrypt"
@@ -181,7 +182,8 @@ var goRecoverEmail = func(r *Recover, to, encodedToken string) {
 }
 
 func (r *Recover) sendRecoverEmail(to, encodedToken string) {
-	url := fmt.Sprintf("%s/recover/complete?token=%s", authboss.Cfg.HostName, encodedToken)
+	p := path.Join(authboss.Cfg.MountPath, "recover/complete")
+	url := fmt.Sprintf("%s%s?token=%s", authboss.Cfg.HostName, p, encodedToken)
 
 	email := authboss.Email{
 		To:      []string{to},

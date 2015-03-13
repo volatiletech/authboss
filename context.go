@@ -9,6 +9,11 @@ import (
 	"time"
 )
 
+var (
+	FormValueRedirect    = "redir"
+	FormValueOAuth2State = "state"
+)
+
 // Context provides context for module operations and callbacks. One obvious
 // need for context is a request's session store. It is not safe for use by
 // multiple goroutines.
@@ -100,12 +105,19 @@ func (c *Context) LoadUser(key string) error {
 		return nil
 	}
 
-	intf, err := Cfg.Storer.Get(key, ModuleAttrMeta)
+	var user interface{}
+	var err error
+
+	if index := strings.IndexByte(key, ';'); index > 0 {
+		user, err = Cfg.OAuth2Storer.GetOAuth(key[:index], key[index+1:], ModuleAttrMeta)
+	} else {
+		user, err = Cfg.Storer.Get(key, ModuleAttrMeta)
+	}
 	if err != nil {
 		return err
 	}
 
-	c.User = Unbind(intf)
+	c.User = Unbind(user)
 	return nil
 }
 

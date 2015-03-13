@@ -251,7 +251,7 @@ func TestRecover_sendRecoverEmail(t *testing.T) {
 
 	mailer := mocks.NewMockMailer()
 	authboss.Cfg.EmailSubjectPrefix = "foo "
-	authboss.Cfg.HostName = "bar"
+	authboss.Cfg.RootURL = "bar"
 	authboss.Cfg.Mailer = mailer
 
 	a.sendRecoverEmail("a@b.c", "abc=")
@@ -265,7 +265,7 @@ func TestRecover_sendRecoverEmail(t *testing.T) {
 		t.Error("Unexpected subject:", mailer.Last.Subject)
 	}
 
-	url := fmt.Sprintf("%s/recover/complete?token=abc=", authboss.Cfg.HostName)
+	url := fmt.Sprintf("%s/recover/complete?token=abc=", authboss.Cfg.RootURL)
 	if !strings.Contains(mailer.Last.HTMLBody, url) {
 		t.Error("Expected HTMLBody to contain url:", url)
 	}
@@ -409,11 +409,11 @@ func TestRecover_completeHanlderFunc_POST(t *testing.T) {
 	}
 
 	if !cbCalled {
-		t.Error("Expected EventPasswordReste callback to have been fired")
+		t.Error("Expected EventPasswordReset callback to have been fired")
 	}
 
 	if val, ok := sessionStorer.Get(authboss.SessionKey); !ok || val != "john" {
-		t.Errorf("Ecxpected SessionKey to be:", "john")
+		t.Error("Expected SessionKey to be:", "john")
 	}
 
 	if w.Code != http.StatusFound {

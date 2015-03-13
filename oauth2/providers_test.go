@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"golang.org/x/oauth2"
+	"gopkg.in/authboss.v0"
 )
 
 func TestGoogle(t *testing.T) {
@@ -30,15 +31,15 @@ func TestGoogle(t *testing.T) {
 		Expiry:       time.Now().Add(60 * time.Minute),
 	}
 
-	cred, err := Google(cfg, tok)
+	user, err := Google(cfg, tok)
 	if err != nil {
 		t.Error(err)
 	}
 
-	if cred.UID != "id" {
-		t.Error("UID wrong:", cred.UID)
+	if uid, ok := user[authboss.StoreOAuth2UID]; !ok || uid != "id" {
+		t.Error("UID wrong:", uid)
 	}
-	if cred.Email != "email" {
-		t.Error("Email wrong:", cred.Email)
+	if email, ok := user[authboss.StoreEmail]; !ok || email != "email" {
+		t.Error("Email wrong:", email)
 	}
 }

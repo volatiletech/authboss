@@ -68,6 +68,7 @@ type Config struct {
 	XSRFMaker XSRF
 
 	Storer            Storer
+	OAuth2Storer      OAuth2Storer
 	CookieStoreMaker  CookieStoreMaker
 	SessionStoreMaker SessionStoreMaker
 	LogWriter         io.Writer

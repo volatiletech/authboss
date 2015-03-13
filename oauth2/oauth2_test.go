@@ -1,10 +1,12 @@
 package oauth2
 
 import (
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
 	"path"
+	"sort"
 	"strings"
 	"testing"
 	"time"
@@ -30,7 +32,7 @@ var testProviders = map[string]authboss.OAuthProvider{
 
 func TestInitialize(t *testing.T) {
 	authboss.Cfg = authboss.NewConfig()
-	authboss.Cfg.Storer = mocks.NewMockStorer()
+	authboss.Cfg.OAuth2Storer = mocks.NewMockStorer()
 	o := OAuth2{}
 	if err := o.Initialize(); err != nil {
 		t.Error(err)
@@ -76,7 +78,7 @@ func TestOAuth2Init(t *testing.T) {
 	cfg.OAuth2Providers = testProviders
 	authboss.Cfg = cfg
 
-	r, _ := http.NewRequest("GET", "/oauth2/google", nil)
+	r, _ := http.NewRequest("GET", "/oauth2/google?r=/my/redirect&rm=true", nil)
 	w := httptest.NewRecorder()
 	ctx := authboss.NewContext()
 	ctx.SessionStorer = session
@@ -100,6 +102,30 @@ func TestOAuth2Init(t *testing.T) {
 	if query["include_requested_scopes"][0] != "true" {
 		t.Error("Missing extra parameters:", loc)
 	}
+	state := query[authboss.FormValueOAuth2State][0]
+	if len(state) == 0 {
+		t.Error("It should have had some state:", loc)
+	}
+
+	splits := strings.Split(state, ";")
+	if len(splits[0]) != 44 {
+		t.Error("The xsrf token was wrong size:", len(splits[0]), splits[0])
+	}
+
+	// Maps are fun
+	sort.Strings(splits[1:])
+
+	if v, err := url.QueryUnescape(splits[1]); err != nil {
+		t.Error(err)
+	} else if v != "r=/my/redirect" {
+		t.Error("Redirect parameter not saved:", splits[1])
+	}
+
+	if v, err := url.QueryUnescape(splits[2]); err != nil {
+		t.Error(err)
+	} else if v != "rm=true" {
+		t.Error("Remember parameter not saved:", splits[2])
+	}
 }
 
 func TestOAuthSuccess(t *testing.T) {
@@ -113,10 +139,10 @@ func TestOAuthSuccess(t *testing.T) {
 		Expiry:       expiry,
 	}
 
-	fakeCallback := func(_ oauth2.Config, _ *oauth2.Token) (authboss.OAuth2Credentials, error) {
-		return authboss.OAuth2Credentials{
-			UID:   "uid",
-			Email: "email",
+	fakeCallback := func(_ oauth2.Config, _ *oauth2.Token) (authboss.Attributes, error) {
+		return authboss.Attributes{
+			authboss.StoreOAuth2UID: "uid",
+			authboss.StoreEmail:     "email",
 		}, nil
 	}
 
@@ -142,29 +168,27 @@ func TestOAuthSuccess(t *testing.T) {
 	}
 	authboss.Cfg = cfg
 
-	r, _ := http.NewRequest("GET", "/oauth2/fake?code=code&state=state", nil)
+	url := fmt.Sprintf("/oauth2/fake?code=code&state=%s", url.QueryEscape("state;redir=/myurl;rm=true;myparam=5"))
+	r, _ := http.NewRequest("GET", url, nil)
 	w := httptest.NewRecorder()
 	ctx := authboss.NewContext()
 	session := mocks.NewMockClientStorer()
-	session.Put(authboss.SessionOAuth2State, "state")
+	session.Put(authboss.SessionOAuth2State, authboss.FormValueOAuth2State)
 	storer := mocks.NewMockStorer()
 	ctx.SessionStorer = session
-	cfg.Storer = storer
+	cfg.OAuth2Storer = storer
 	cfg.AuthLoginOKPath = "/fakeloginok"
 
 	if err := oauthCallback(ctx, w, r); err != nil {
 		t.Error(err)
 	}
 
-	key := "fake:uid"
+	key := "uidfake"
 	user, ok := storer.Users[key]
 	if !ok {
 		t.Error("Couldn't find user.")
 	}
 
-	if val, _ := user.String(authboss.StoreUsername); val != key {
-		t.Error("Username was wrong:", val)
-	}
 	if val, _ := user.String(authboss.StoreEmail); val != "email" {
 		t.Error("Email was wrong:", val)
 	}
@@ -178,13 +202,13 @@ func TestOAuthSuccess(t *testing.T) {
 		t.Error("Expiry was wrong:", val)
 	}
 
-	if val, _ := session.Get(authboss.SessionKey); val != key {
+	if val, _ := session.Get(authboss.SessionKey); val != "uid;fake" {
 		t.Error("User was not logged in:", val)
 	}
 
 	if w.Code != http.StatusFound {
 		t.Error("It should redirect")
-	} else if loc := w.Header().Get("Location"); loc != authboss.Cfg.AuthLoginOKPath {
+	} else if loc := w.Header().Get("Location"); loc != "/myurl?myparam=5" {
 		t.Error("Redirect is wrong:", loc)
 	}
 }
@@ -193,13 +217,13 @@ func TestOAuthXSRFFailure(t *testing.T) {
 	cfg := authboss.NewConfig()
 
 	session := mocks.NewMockClientStorer()
-	session.Put(authboss.SessionOAuth2State, "state")
+	session.Put(authboss.SessionOAuth2State, authboss.FormValueOAuth2State)
 
 	cfg.OAuth2Providers = testProviders
 	authboss.Cfg = cfg
 
 	values := url.Values{}
-	values.Set("state", "notstate")
+	values.Set(authboss.FormValueOAuth2State, "notstate")
 	values.Set("code", "code")
 
 	r, _ := http.NewRequest("GET", "/oauth2/google?"+values.Encode(), nil)

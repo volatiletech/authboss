@@ -95,22 +95,51 @@ func TestContext_SaveUser(t *testing.T) {
 func TestContext_LoadUser(t *testing.T) {
 	Cfg = NewConfig()
 	ctx := NewContext()
+
+	attr := Attributes{
+		"email":    "hello@joe.com",
+		"password": "mysticalhash",
+		"uid":      "what",
+		"provider": "google",
+	}
+
 	storer := mockStorer{
-		"joe": Attributes{"email": "hello@joe.com", "password": "mysticalhash"},
+		"joe":        attr,
+		"whatgoogle": attr,
 	}
 	Cfg.Storer = storer
+	Cfg.OAuth2Storer = storer
 
-	err := ctx.LoadUser("joe")
-	if err != nil {
+	ctx.User = nil
+	if err := ctx.LoadUser("joe"); err != nil {
 		t.Error("Unexpected error:", err)
 	}
 
-	attr := storer["joe"]
+	if email, err := ctx.User.StringErr("email"); err != nil {
+		t.Error(err)
+	} else if email != attr["email"] {
+		t.Error("Email wrong:", email)
+	}
+	if password, err := ctx.User.StringErr("password"); err != nil {
+		t.Error(err)
+	} else if password != attr["password"] {
+		t.Error("Password wrong:", password)
+	}
 
-	for k, v := range attr {
-		if v != ctx.User[k] {
-			t.Error(v, "not equal to", ctx.User[k])
-		}
+	ctx.User = nil
+	if err := ctx.LoadUser("what;google"); err != nil {
+		t.Error("Unexpected error:", err)
+	}
+
+	if email, err := ctx.User.StringErr("email"); err != nil {
+		t.Error(err)
+	} else if email != attr["email"] {
+		t.Error("Email wrong:", email)
+	}
+	if password, err := ctx.User.StringErr("password"); err != nil {
+		t.Error(err)
+	} else if password != attr["password"] {
+		t.Error("Password wrong:", password)
 	}
 }
 

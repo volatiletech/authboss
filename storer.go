@@ -20,9 +20,11 @@ const (
 
 // Data store constants for OAuth2 attribute names.
 const (
-	StoreOAuth2Token   = "oauth2_token"
-	StoreOAuth2Refresh = "oauth2_refresh"
-	StoreOAuth2Expiry  = "oauth2_expiry"
+	StoreOAuth2UID      = "oauth2_uid"
+	StoreOAuth2Provider = "oauth2_provider"
+	StoreOAuth2Token    = "oauth2_token"
+	StoreOAuth2Refresh  = "oauth2_refresh"
+	StoreOAuth2Expiry   = "oauth2_expiry"
 )
 
 var (
@@ -39,14 +41,23 @@ type StorageOptions map[string]DataType
 // The type of store is up to the developer implementing it, and all it has to
 // do is be able to store several simple types.
 type Storer interface {
-	// Put is for storing the attributes passed in. The type information can
-	// help serialization without using type assertions.
+	// Put is for storing the attributes passed in using the key. This is an
+	// update only method and should not store if it does not find the key.
 	Put(key string, attr Attributes) error
 	// Get is for retrieving attributes for a given key. The return value
 	// must be a struct that contains all fields with the correct types as shown
 	// by attrMeta. If the key is not found in the data store simply
 	// return nil, ErrUserNotFound.
 	Get(key string, attrMeta AttributeMeta) (interface{}, error)
+}
+
+// OAuth2Storer is a replacement (or addition) to the Storer interface.
+// It allows users to be stored and fetched via a uid/provider combination.
+type OAuth2Storer interface {
+	// PutOAuth creates or updates an existing record (unlike Storer.Put)
+	// because in the OAuth flow there is no separate create/update.
+	PutOAuth(uid, provider string, attr Attributes) error
+	GetOAuth(uid, provider string, attrMeta AttributeMeta) (interface{}, error)
 }
 
 // DataType represents the various types that clients must be able to store.

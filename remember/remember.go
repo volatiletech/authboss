@@ -10,6 +10,7 @@ import (
 	"encoding/base64"
 	"errors"
 	"fmt"
+	"strings"
 
 	"gopkg.in/authboss.v0"
 )
@@ -50,11 +51,12 @@ func (r *Remember) Initialize() error {
 	}
 
 	if _, ok := authboss.Cfg.Storer.(TokenStorer); !ok {
-		return errors.New("remember: TokenStorer required for remember me functionality")
+		return errors.New("remember: TokenStorer required for remember functionality")
 	}
 
 	authboss.Cfg.Callbacks.Before(authboss.EventGetUserSession, r.auth)
 	authboss.Cfg.Callbacks.After(authboss.EventAuth, r.afterAuth)
+	authboss.Cfg.Callbacks.After(authboss.EventOAuth, r.afterOAuth)
 	authboss.Cfg.Callbacks.After(authboss.EventPasswordReset, r.afterPassword)
 
 	return nil
@@ -84,6 +86,53 @@ func (r *Remember) afterAuth(ctx *authboss.Context) error {
 	}
 
 	if _, err := r.new(ctx.CookieStorer, key); err != nil {
+		return fmt.Errorf("remember: Failed to create remember token: %v", err)
+	}
+
+	return nil
+}
+
+// afterOAuth is called after oauth authentication is successful.
+// Has to pander to horrible state variable packing to figure out if we want
+// to be remembered.
+func (r *Remember) afterOAuth(ctx *authboss.Context) error {
+	state, ok := ctx.FirstFormValue(authboss.FormValueOAuth2State)
+	if !ok {
+		return nil
+	}
+
+	splState := strings.Split(state, ";")
+	if len(splState) < 0 {
+		return nil
+	}
+
+	should := false
+	for _, arg := range splState[1:] {
+		spl := strings.Split(arg, "=")
+		if spl[0] == authboss.CookieRemember {
+			should = spl[1] == "true"
+			break
+		}
+	}
+
+	if !should {
+		return nil
+	}
+
+	if ctx.User == nil {
+		return errUserMissing
+	}
+
+	uid, err := ctx.User.StringErr(authboss.StoreOAuth2Provider)
+	if err != nil {
+		return err
+	}
+	provider, err := ctx.User.StringErr(authboss.StoreOAuth2Provider)
+	if err != nil {
+		return err
+	}
+
+	if _, err := r.new(ctx.CookieStorer, uid+";"+provider); err != nil {
 		return fmt.Errorf("remember: Failed to create remember token: %v", err)
 	}
 
@@ -157,7 +206,7 @@ func (r *Remember) auth(ctx *authboss.Context) (authboss.Interrupt, error) {
 
 	index := bytes.IndexByte(token, ';')
 	if index < 0 {
-		return authboss.InterruptNone, errors.New("remember: Invalid remember me token.")
+		return authboss.InterruptNone, errors.New("remember: Invalid remember token.")
 	}
 
 	// Get the key.

@@ -2,7 +2,9 @@ package remember
 
 import (
 	"bytes"
+	"fmt"
 	"net/http"
+	"net/url"
 	"testing"
 
 	"gopkg.in/authboss.v0"
@@ -56,6 +58,42 @@ func TestAfterAuth(t *testing.T) {
 	ctx.User = authboss.Attributes{authboss.Cfg.PrimaryID: "test@email.com"}
 
 	if err := r.afterAuth(ctx); err != nil {
+		t.Error(err)
+	}
+
+	if _, ok := cookies.Values[authboss.CookieRemember]; !ok {
+		t.Error("Expected a cookie to have been set.")
+	}
+}
+
+func TestAfterOAuth(t *testing.T) {
+	r := Remember{}
+	authboss.NewConfig()
+	storer := mocks.NewMockStorer()
+	authboss.Cfg.Storer = storer
+
+	cookies := mocks.NewMockClientStorer()
+	session := mocks.NewMockClientStorer()
+
+	uri := fmt.Sprintf("%s?state=%s", "localhost/oauthed", url.QueryEscape("xsrf;rm=true"))
+	req, err := http.NewRequest("GET", uri, nil)
+	if err != nil {
+		t.Error("Unexpected Error:", err)
+	}
+
+	ctx, err := authboss.ContextFromRequest(req)
+	if err != nil {
+		t.Error("Unexpected error:", err)
+	}
+
+	ctx.SessionStorer = session
+	ctx.CookieStorer = cookies
+	ctx.User = authboss.Attributes{
+		authboss.StoreOAuth2UID:      "uid",
+		authboss.StoreOAuth2Provider: "google",
+	}
+
+	if err := r.afterOAuth(ctx); err != nil {
 		t.Error(err)
 	}
 

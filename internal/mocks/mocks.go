@@ -91,6 +91,39 @@ func (m *MockStorer) Get(key string, attrMeta authboss.AttributeMeta) (result in
 	return u, nil
 }
 
+func (m *MockStorer) PutOAuth(uid, provider string, attr authboss.Attributes) error {
+	if len(m.PutErr) > 0 {
+		return errors.New(m.PutErr)
+	}
+
+	if _, ok := m.Users[uid+provider]; !ok {
+		m.Users[uid+provider] = attr
+		return nil
+	}
+	for k, v := range attr {
+		m.Users[uid+provider][k] = v
+	}
+	return nil
+}
+
+func (m *MockStorer) GetOAuth(uid, provider string, attrMeta authboss.AttributeMeta) (result interface{}, err error) {
+	if len(m.GetErr) > 0 {
+		return nil, errors.New(m.GetErr)
+	}
+
+	userAttrs, ok := m.Users[uid+provider]
+	if !ok {
+		return nil, authboss.ErrUserNotFound
+	}
+
+	u := &MockUser{}
+	if err := userAttrs.Bind(u, true); err != nil {
+		panic(err)
+	}
+
+	return u, nil
+}
+
 func (m *MockStorer) AddToken(key, token string) error {
 	if len(m.AddTokenErr) > 0 {
 		return errors.New(m.AddTokenErr)

@@ -13,7 +13,9 @@ type Event int
 const (
 	EventRegister Event = iota
 	EventAuth
+	EventOAuth
 	EventAuthFail
+	EventOAuthFail
 	EventRecoverStart
 	EventRecoverEnd
 	EventGet
@@ -21,14 +23,15 @@ const (
 	EventPasswordReset
 )
 
-const eventNames = "EventRegisterEventAuthEventAuthFailEventRecoverStartEventRecoverEndEventGetEventGetUserSessionEventPasswordReset"
+const eventNames = "EventRegisterEventAuthEventOAuthEventAuthFailEventOAuthFailEventRecoverStartEventRecoverEndEventGetEventGetUserSessionEventPasswordReset"
 
-var eventIndexes = [...]uint8{0, 13, 22, 35, 52, 67, 75, 94, 112}
+var eventIndexes = [...]uint8{0, 13, 22, 32, 45, 59, 76, 91, 99, 118, 136}
 
 func (i Event) String() string {
 	if i < 0 || i+1 >= Event(len(eventIndexes)) {
 		return fmt.Sprintf("Event(%d)", i)
 	}
+
 	return eventNames[eventIndexes[i]:eventIndexes[i+1]]
 }
 

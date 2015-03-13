@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"net/url"
 	"path"
 	"path/filepath"
 	"strings"
@@ -18,15 +19,6 @@ var (
 	errOAuthStateValidation = errors.New("Could not validate oauth2 state param")
 )
 
-// OAuth2Storer is required to do OAuth2 storing.
-type OAuth2Storer interface {
-	authboss.Storer
-	// NewOrUpdate should retrieve the user if he already exists, or create
-	// a new one. The key is composed of the provider:UID together and is stored
-	// in the authboss.StoreUsername field.
-	OAuth2NewOrUpdate(key string, attr authboss.Attributes) error
-}
-
 type OAuth2 struct{}
 
 func init() {
@@ -34,7 +26,7 @@ func init() {
 }
 
 func (o *OAuth2) Initialize() error {
-	if _, ok := authboss.Cfg.Storer.(OAuth2Storer); !ok {
+	if authboss.Cfg.OAuth2Storer == nil {
 		return errors.New("oauth2: need an OAuth2Storer")
 	}
 	return nil
@@ -65,11 +57,12 @@ func (o *OAuth2) Routes() authboss.RouteTable {
 
 func (o *OAuth2) Storage() authboss.StorageOptions {
 	return authboss.StorageOptions{
-		authboss.StoreUsername:      authboss.String,
-		authboss.StoreEmail:         authboss.String,
-		authboss.StoreOAuth2Token:   authboss.String,
-		authboss.StoreOAuth2Refresh: authboss.String,
-		authboss.StoreOAuth2Expiry:  authboss.DateTime,
+		authboss.StoreEmail:          authboss.String,
+		authboss.StoreOAuth2UID:      authboss.String,
+		authboss.StoreOAuth2Provider: authboss.String,
+		authboss.StoreOAuth2Token:    authboss.String,
+		authboss.StoreOAuth2Refresh:  authboss.String,
+		authboss.StoreOAuth2Expiry:   authboss.DateTime,
 	}
 }
 
@@ -88,6 +81,16 @@ func oauthInit(ctx *authboss.Context, w http.ResponseWriter, r *http.Request) er
 
 	state := base64.URLEncoding.EncodeToString(random)
 	ctx.SessionStorer.Put(authboss.SessionOAuth2State, state)
+
+	var passAlongs []string
+	for k, vals := range r.URL.Query() {
+		for _, val := range vals {
+			passAlongs = append(passAlongs, fmt.Sprintf("%s=%s", k, val))
+		}
+	}
+	if len(passAlongs) > 0 {
+		state += ";" + strings.Join(passAlongs, ";")
+	}
 
 	url := cfg.OAuth2Config.AuthCodeURL(state)
 
@@ -108,6 +111,10 @@ func oauthCallback(ctx *authboss.Context, w http.ResponseWriter, r *http.Request
 
 	hasErr := r.FormValue("error")
 	if len(hasErr) > 0 {
+		if err := authboss.Cfg.Callbacks.FireAfter(authboss.EventOAuthFail, ctx); err != nil {
+			return err
+		}
+
 		return authboss.ErrAndRedirect{
 			Err:        errors.New(r.FormValue("error_reason")),
 			Location:   authboss.Cfg.AuthLoginFailPath,
@@ -126,8 +133,9 @@ func oauthCallback(ctx *authboss.Context, w http.ResponseWriter, r *http.Request
 	}
 
 	// Ensure request is genuine
-	state := r.FormValue("state")
-	if state != sessState {
+	state := r.FormValue(authboss.FormValueOAuth2State)
+	splState := strings.Split(state, ";")
+	if len(splState) == 0 || splState[0] != sessState {
 		return errOAuthStateValidation
 	}
 
@@ -138,32 +146,55 @@ func oauthCallback(ctx *authboss.Context, w http.ResponseWriter, r *http.Request
 		return fmt.Errorf("Could not validate oauth2 code: %v", err)
 	}
 
-	credentials, err := cfg.Callback(*cfg.OAuth2Config, token)
+	user, err := cfg.Callback(*cfg.OAuth2Config, token)
 	if err != nil {
 		return err
 	}
 
-	// User is authenticated
-	key := fmt.Sprintf("%s:%s", provider, credentials.UID)
-	user := make(authboss.Attributes)
-	user[authboss.StoreUsername] = key
+	// OAuth2UID is required.
+	uid, err := user.StringErr(authboss.StoreOAuth2UID)
+	if err != nil {
+		return err
+	}
+
+	user[authboss.StoreOAuth2UID] = uid
+	user[authboss.StoreOAuth2Provider] = provider
 	user[authboss.StoreOAuth2Expiry] = token.Expiry
 	user[authboss.StoreOAuth2Token] = token.AccessToken
 	if len(token.RefreshToken) != 0 {
 		user[authboss.StoreOAuth2Refresh] = token.RefreshToken
 	}
-	if len(credentials.Email) > 0 {
-		user[authboss.StoreEmail] = credentials.Email
-	}
 
-	// Log user in
-	ctx.SessionStorer.Put(authboss.SessionKey, key)
-
-	storer := authboss.Cfg.Storer.(OAuth2Storer)
-	if err = storer.OAuth2NewOrUpdate(key, user); err != nil {
+	if err = authboss.Cfg.OAuth2Storer.PutOAuth(uid, provider, user); err != nil {
 		return err
 	}
 
-	http.Redirect(w, r, authboss.Cfg.AuthLoginOKPath, http.StatusFound)
+	// Log user in
+	ctx.SessionStorer.Put(authboss.SessionKey, fmt.Sprintf("%s;%s", uid, provider))
+
+	if err = authboss.Cfg.Callbacks.FireAfter(authboss.EventOAuth, ctx); err != nil {
+		return nil
+	}
+
+	redirect := authboss.Cfg.AuthLoginOKPath
+	values := make(url.Values)
+	if len(splState) > 0 {
+		for _, arg := range splState[1:] {
+			spl := strings.Split(arg, "=")
+			switch spl[0] {
+			case authboss.CookieRemember:
+			case authboss.FormValueRedirect:
+				redirect = spl[1]
+			default:
+				values.Set(spl[0], spl[1])
+			}
+		}
+	}
+
+	if len(values) > 0 {
+		redirect = fmt.Sprintf("%s?%s", redirect, values.Encode())
+	}
+
+	http.Redirect(w, r, redirect, http.StatusFound)
 	return nil
 }

@@ -29,6 +29,17 @@ func (m mockStorer) Get(key string, attrMeta AttributeMeta) (result interface{},
 	}, nil
 }
 
+func (m mockStorer) PutOAuth(uid, provider string, attr Attributes) error {
+	m[uid+provider] = attr
+	return nil
+}
+
+func (m mockStorer) GetOAuth(uid, provider string, attrMeta AttributeMeta) (result interface{}, err error) {
+	return &mockUser{
+		m[uid+provider]["email"].(string), m[uid+provider]["password"].(string),
+	}, nil
+}
+
 type mockClientStore map[string]string
 
 func (m mockClientStore) Get(key string) (string, bool) {

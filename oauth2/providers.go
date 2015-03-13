@@ -2,6 +2,7 @@ package oauth2
 
 import (
 	"encoding/json"
+	"net/http"
 
 	"golang.org/x/oauth2"
 	"gopkg.in/authboss.v0"
@@ -21,10 +22,13 @@ type googleMeResponse struct {
 	Email string `json:"email"`
 }
 
+// testing
+var clientGet = (*http.Client).Get
+
 // Google is a callback appropriate for use with Google's OAuth2 configuration.
 func Google(cfg oauth2.Config, token *oauth2.Token) (cred authboss.OAuth2Credentials, err error) {
 	client := cfg.Client(oauth2.NoContext, token)
-	resp, err := client.Get(googleInfoEndpoint)
+	resp, err := clientGet(client, googleInfoEndpoint)
 	if err != nil {
 		return cred, err
 	}

@@ -10,10 +10,12 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/davecgh/go-spew/spew"
-	"golang.org/x/net/context"
 	"golang.org/x/oauth2"
 	"gopkg.in/authboss.v0"
+)
+
+var (
+	errOAuthStateValidation = errors.New("Could not validate oauth2 state param")
 )
 
 // OAuth2Storer is required to do OAuth2 storing.
@@ -47,12 +49,14 @@ func (o *OAuth2) Routes() authboss.RouteTable {
 		init := fmt.Sprintf("/oauth2/%s", prov)
 		callback := fmt.Sprintf("/oauth2/callback/%s", prov)
 
+		if len(authboss.Cfg.MountPath) > 0 {
+			init = path.Join(authboss.Cfg.MountPath, init)
+			callback = path.Join(authboss.Cfg.MountPath, callback)
+		}
+
 		routes[init] = oauthInit
 		routes[callback] = oauthCallback
 
-		if len(authboss.Cfg.MountPath) > 0 {
-			callback = path.Join(authboss.Cfg.MountPath, callback)
-		}
 		cfg.OAuth2Config.RedirectURL = authboss.Cfg.RootURL + callback
 	}
 
@@ -96,6 +100,9 @@ func oauthInit(ctx *authboss.Context, w http.ResponseWriter, r *http.Request) er
 	return nil
 }
 
+// for testing
+var exchanger = (*oauth2.Config).Exchange
+
 func oauthCallback(ctx *authboss.Context, w http.ResponseWriter, r *http.Request) error {
 	provider := strings.ToLower(filepath.Base(r.URL.Path))
 
@@ -121,41 +128,39 @@ func oauthCallback(ctx *authboss.Context, w http.ResponseWriter, r *http.Request
 	// Ensure request is genuine
 	state := r.FormValue("state")
 	if state != sessState {
-		return errors.New("Could not validate oauth2 state param")
+		return errOAuthStateValidation
 	}
 
 	// Get the code
 	code := r.FormValue("code")
-	oauthCtx := context.WithValue(nil, oauth2.HTTPClient, nil)
-	token, err := cfg.OAuth2Config.Exchange(oauthCtx, code)
+	token, err := exchanger(cfg.OAuth2Config, oauth2.NoContext, code)
 	if err != nil {
 		return fmt.Errorf("Could not validate oauth2 code: %v", err)
 	}
-
-	// User is authenticated
-	ctx.User[authboss.StoreOAuth2Expiry] = token.Expiry
-	ctx.User[authboss.StoreOAuth2Token] = token.AccessToken
-	if len(token.RefreshToken) != 0 {
-		ctx.User[authboss.StoreOAuth2Refresh] = token.RefreshToken
-	}
-
-	spew.Dump(token)
 
 	credentials, err := cfg.Callback(*cfg.OAuth2Config, token)
 	if err != nil {
 		return err
 	}
 
+	// User is authenticated
 	key := fmt.Sprintf("%s:%s", provider, credentials.UID)
-	ctx.User[authboss.StoreUsername] = key
+	user := make(authboss.Attributes)
+	user[authboss.StoreUsername] = key
+	user[authboss.StoreOAuth2Expiry] = token.Expiry
+	user[authboss.StoreOAuth2Token] = token.AccessToken
+	if len(token.RefreshToken) != 0 {
+		user[authboss.StoreOAuth2Refresh] = token.RefreshToken
+	}
 	if len(credentials.Email) > 0 {
-		ctx.User[authboss.StoreEmail] = credentials.Email
+		user[authboss.StoreEmail] = credentials.Email
 	}
 
+	// Log user in
 	ctx.SessionStorer.Put(authboss.SessionKey, key)
 
 	storer := authboss.Cfg.Storer.(OAuth2Storer)
-	if err = storer.OAuth2NewOrUpdate(key, ctx.User); err != nil {
+	if err = storer.OAuth2NewOrUpdate(key, user); err != nil {
 		return err
 	}
 

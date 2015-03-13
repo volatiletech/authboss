@@ -23,6 +23,9 @@ type MockUser struct {
 	Locked             bool
 	AttemptNumber      int
 	AttemptTime        time.Time
+	OauthToken         string
+	OauthRefresh       string
+	OauthExpiry        time.Time
 }
 
 // MockStorer should be valid for any module storer defined in authboss.
@@ -161,6 +164,15 @@ func (m *MockStorer) ConfirmUser(confirmToken string) (result interface{}, err e
 	}
 
 	return nil, authboss.ErrUserNotFound
+}
+
+func (m *MockStorer) OAuth2NewOrUpdate(key string, attr authboss.Attributes) error {
+	if len(m.CreateErr) > 0 {
+		return errors.New(m.CreateErr)
+	}
+
+	m.Users[key] = attr
+	return nil
 }
 
 // MockFailStorer is used for testing module initialize functions that recover more than the base storer

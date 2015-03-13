@@ -12,7 +12,7 @@ const (
 	// SessionLastAction is the session key to retrieve the last action of a user.
 	SessionLastAction = "last_action"
 	// SessionOAuth2State is the xsrf protection key for oauth.
-	SessionOAuth2State = "oauth2.state"
+	SessionOAuth2State = "oauth2_state"
 
 	// CookieRemember is used for cookies and form input names.
 	CookieRemember = "rm"

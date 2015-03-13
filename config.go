@@ -34,6 +34,8 @@ type Config struct {
 	LayoutTextEmail *template.Template
 	LayoutDataMaker ViewDataMaker
 
+	OAuth2Providers map[string]OAuthProvider
+
 	// ErrorHandler handles would be 500 errors.
 	ErrorHandler http.Handler
 	// BadRequestHandler handles would be 400 errors.

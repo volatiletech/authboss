@@ -18,6 +18,13 @@ const (
 	StorePassword = "password"
 )
 
+// Data store constants for OAuth2 attribute names.
+const (
+	StoreOAuth2Token   = "oauth2_token"
+	StoreOAuth2Refresh = "oauth2_refresh"
+	StoreOAuth2Expiry  = "oauth2_expiry"
+)
+
 var (
 	// ErrUserNotFound should be returned from Get when the record is not found.
 	ErrUserNotFound = errors.New("User not found")

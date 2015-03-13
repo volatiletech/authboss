@@ -20,8 +20,8 @@ type Config struct {
 	MountPath string
 	// ViewsPath is the path to search for overridden templates.
 	ViewsPath string
-	// HostName is the host of the web application (eg https://www.happiness.com:8080) for e-mail url generation.  No trailing slash.
-	HostName string
+	// RootURL is the scheme+host+port of the web application (eg https://www.happiness.com:8080) for url generation.  No trailing slash.
+	RootURL string
 	// BCryptCost is the cost of the bcrypt password hashing function.
 	BCryptCost int
 
@@ -77,7 +77,7 @@ func NewConfig() *Config {
 	return &Config{
 		MountPath:  "/",
 		ViewsPath:  "/",
-		HostName:   "localhost:8080",
+		RootURL:    "http://localhost:8080",
 		BCryptCost: bcrypt.DefaultCost,
 
 		PrimaryID: StoreEmail,

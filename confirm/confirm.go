@@ -129,7 +129,7 @@ var goConfirmEmail = func(c *Confirm, to, token string) {
 // confirmEmail sends a confirmation e-mail.
 func (c *Confirm) confirmEmail(to, token string) {
 	p := path.Join(authboss.Cfg.MountPath, "confirm")
-	url := fmt.Sprintf("%s%s?%s=%s", authboss.Cfg.HostName, p, url.QueryEscape(FormValueConfirm), url.QueryEscape(token))
+	url := fmt.Sprintf("%s%s?%s=%s", authboss.Cfg.RootURL, p, url.QueryEscape(FormValueConfirm), url.QueryEscape(token))
 
 	email := authboss.Email{
 		To:      []string{to},

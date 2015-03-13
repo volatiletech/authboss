@@ -183,7 +183,7 @@ var goRecoverEmail = func(r *Recover, to, encodedToken string) {
 
 func (r *Recover) sendRecoverEmail(to, encodedToken string) {
 	p := path.Join(authboss.Cfg.MountPath, "recover/complete")
-	url := fmt.Sprintf("%s%s?token=%s", authboss.Cfg.HostName, p, encodedToken)
+	url := fmt.Sprintf("%s%s?token=%s", authboss.Cfg.RootURL, p, encodedToken)
 
 	email := authboss.Email{
 		To:      []string{to},

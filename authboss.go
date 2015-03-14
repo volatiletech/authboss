@@ -10,6 +10,7 @@ package authboss // import "gopkg.in/authboss.v0"
 import (
 	"fmt"
 	"net/http"
+	"strings"
 )
 
 // Init authboss and it's loaded modules.
@@ -54,7 +55,11 @@ func CurrentUser(w http.ResponseWriter, r *http.Request) (interface{}, error) {
 		return nil, err
 	}
 
-	return Cfg.Storer.Get(key, ModuleAttrMeta)
+	if index := strings.IndexByte(key, ';'); index > 0 {
+		return Cfg.OAuth2Storer.GetOAuth(key[:index], key[index+1:], ModuleAttrMeta)
+	} else {
+		return Cfg.Storer.Get(key, ModuleAttrMeta)
+	}
 }
 
 // CurrentUserP retrieves the current user but panics if it's not available for

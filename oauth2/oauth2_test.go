@@ -55,8 +55,8 @@ func TestRoutes(t *testing.T) {
 
 	o := OAuth2{}
 	routes := o.Routes()
-	authURL := path.Join(mount, "oauth2", "google")
-	tokenURL := path.Join(mount, "oauth2", "callback", "google")
+	authURL := path.Join("/oauth2", "google")
+	tokenURL := path.Join("/oauth2", "callback", "google")
 	redir := root + path.Join(mount, "oauth2", "callback", "google")
 
 	if _, ok := routes[authURL]; !ok {
@@ -204,6 +204,9 @@ func TestOAuthSuccess(t *testing.T) {
 
 	if val, _ := session.Get(authboss.SessionKey); val != "uid;fake" {
 		t.Error("User was not logged in:", val)
+	}
+	if _, ok := session.Get(authboss.SessionOAuth2State); ok {
+		t.Error("Expected state to be deleted.")
 	}
 
 	if w.Code != http.StatusFound {

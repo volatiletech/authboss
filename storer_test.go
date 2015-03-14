@@ -413,15 +413,22 @@ func TestUnbind_Valuer(t *testing.T) {
 func TestCasingStyleConversions(t *testing.T) {
 	t.Parallel()
 
-	camel := "SomethingInCamel"
-
-	got := camelToUnder(camel)
-	if got != "something_in_camel" {
-		t.Error(got)
+	tests := []struct {
+		In  string
+		Out string
+	}{
+		{"SomethingInCamel", "something_in_camel"},
+		{"Oauth2Anything", "oauth2_anything"},
 	}
 
-	got = underToCamel(got)
-	if got != camel {
-		t.Error(got)
+	for i, test := range tests {
+		out := camelToUnder(test.In)
+		if out != test.Out {
+			t.Errorf("%d) Expected %q got %q", i, test.Out, out)
+		}
+		out = underToCamel(out)
+		if out != test.In {
+			t.Error("%d), Expected %q got %q", i, test.In, out)
+		}
 	}
 }

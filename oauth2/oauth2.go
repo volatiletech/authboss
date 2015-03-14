@@ -41,13 +41,12 @@ func (o *OAuth2) Routes() authboss.RouteTable {
 		init := fmt.Sprintf("/oauth2/%s", prov)
 		callback := fmt.Sprintf("/oauth2/callback/%s", prov)
 
-		if len(authboss.Cfg.MountPath) > 0 {
-			init = path.Join(authboss.Cfg.MountPath, init)
-			callback = path.Join(authboss.Cfg.MountPath, callback)
-		}
-
 		routes[init] = oauthInit
 		routes[callback] = oauthCallback
+
+		if len(authboss.Cfg.MountPath) > 0 {
+			callback = path.Join(authboss.Cfg.MountPath, callback)
+		}
 
 		cfg.OAuth2Config.RedirectURL = authboss.Cfg.RootURL + callback
 	}
@@ -126,6 +125,7 @@ func oauthCallback(ctx *authboss.Context, w http.ResponseWriter, r *http.Request
 	if err != nil {
 		return err
 	}
+	ctx.SessionStorer.Del(authboss.SessionOAuth2State)
 
 	cfg, ok := authboss.Cfg.OAuth2Providers[provider]
 	if !ok {

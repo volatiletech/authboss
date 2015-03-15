@@ -1,5 +1,5 @@
-// Package remember implements persistent logins through (typically) cookie session
-// storages. The SessionStorer implementation must be fully secure either over https
+// Package remember implements persistent logins through the cookie storer.
+// The ClientStorer implementation must be fully secure either over https
 // or using signed cookies or it is easily exploitable.
 package remember
 

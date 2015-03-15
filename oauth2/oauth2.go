@@ -169,8 +169,9 @@ func oauthCallback(ctx *authboss.Context, w http.ResponseWriter, r *http.Request
 		return err
 	}
 
-	// Log user in
+	// Fully log user in
 	ctx.SessionStorer.Put(authboss.SessionKey, fmt.Sprintf("%s;%s", uid, provider))
+	ctx.SessionStorer.Del(authboss.SessionHalfAuthKey)
 
 	if err = authboss.Cfg.Callbacks.FireAfter(authboss.EventOAuth, ctx); err != nil {
 		return nil

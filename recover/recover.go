@@ -1,3 +1,4 @@
+// Package recover implements password reset via e-mail.
 package recover
 
 import (

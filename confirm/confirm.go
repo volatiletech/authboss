@@ -1,4 +1,4 @@
-// Package confirm implements user confirming after N bad sign-in attempts.
+// Package confirm implements confirmation of user registration via e-mail
 package confirm
 
 import (

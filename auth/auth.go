@@ -1,3 +1,4 @@
+// Package auth implements password based user logins.
 package auth
 
 import (

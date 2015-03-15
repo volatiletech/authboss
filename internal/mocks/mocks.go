@@ -143,20 +143,20 @@ func (m *MockStorer) DelTokens(key string) error {
 	return nil
 }
 
-func (m *MockStorer) UseToken(givenKey, token string) (key string, err error) {
+func (m *MockStorer) UseToken(givenKey, token string) (err error) {
 	if len(m.UseTokenErr) > 0 {
-		return "", errors.New(m.UseTokenErr)
+		return errors.New(m.UseTokenErr)
 	}
 
 	if arr, ok := m.Tokens[givenKey]; ok {
 		for _, tok := range arr {
 			if tok == token {
-				return givenKey, nil
+				return nil
 			}
 		}
 	}
 
-	return "", authboss.ErrTokenNotFound
+	return authboss.ErrTokenNotFound
 }
 
 func (m *MockStorer) RecoverUser(token string) (result interface{}, err error) {

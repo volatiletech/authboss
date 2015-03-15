@@ -34,9 +34,8 @@ type RememberStorer interface {
 	// DelTokens removes all tokens for a given key.
 	DelTokens(key string) error
 	// UseToken finds the key-token pair, removes the entry in the store
-	// and returns the key that was found. If the token could not be found
-	// return "", ErrTokenNotFound
-	UseToken(givenKey, token string) (key string, err error)
+	// and returns nil. If the token could not be found return ErrTokenNotFound.
+	UseToken(givenKey, token string) (err error)
 }
 
 func init() {
@@ -151,12 +150,12 @@ func (r *Remember) afterPassword(ctx *authboss.Context) error {
 	}
 
 	ctx.CookieStorer.Del(authboss.CookieRemember)
-	RememberStorer, ok := authboss.Cfg.Storer.(RememberStorer)
+	rememberStorer, ok := authboss.Cfg.Storer.(RememberStorer)
 	if !ok {
 		return nil
 	}
 
-	return RememberStorer.DelTokens(id)
+	return rememberStorer.DelTokens(id)
 }
 
 // new generates a new remember token and stores it in the configured RememberStorer.
@@ -210,19 +209,19 @@ func (r *Remember) auth(ctx *authboss.Context) (authboss.Interrupt, error) {
 	}
 
 	// Get the key.
-	givenKey := token[:index]
+	givenKey := string(token[:index])
 
 	// Verify the tokens match.
 	sum := md5.Sum(token)
 
-	key, err := authboss.Cfg.Storer.(RememberStorer).UseToken(string(givenKey), base64.StdEncoding.EncodeToString(sum[:]))
+	err = authboss.Cfg.Storer.(RememberStorer).UseToken(givenKey, base64.StdEncoding.EncodeToString(sum[:]))
 	if err == authboss.ErrTokenNotFound {
 		return authboss.InterruptNone, nil
 	} else if err != nil {
 		return authboss.InterruptNone, err
 	}
 
-	_, err = r.new(ctx.CookieStorer, string(key))
+	_, err = r.new(ctx.CookieStorer, givenKey)
 	if err != nil {
 		return authboss.InterruptNone, err
 	}
@@ -230,7 +229,7 @@ func (r *Remember) auth(ctx *authboss.Context) (authboss.Interrupt, error) {
 	// Ensure a half-auth.
 	ctx.SessionStorer.Put(authboss.SessionHalfAuthKey, "true")
 	// Log the user in.
-	ctx.SessionStorer.Put(authboss.SessionKey, string(key))
+	ctx.SessionStorer.Put(authboss.SessionKey, givenKey)
 
 	return authboss.InterruptNone, nil
 }

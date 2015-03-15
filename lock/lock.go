@@ -47,7 +47,7 @@ func (l *Lock) Storage() authboss.StorageOptions {
 	return authboss.StorageOptions{
 		StoreAttemptNumber: authboss.Integer,
 		StoreAttemptTime:   authboss.DateTime,
-		StoreLocked:        authboss.Bool,
+		StoreLocked:        authboss.DateTime,
 	}
 }
 
@@ -57,7 +57,7 @@ func (l *Lock) BeforeAuth(ctx *authboss.Context) (authboss.Interrupt, error) {
 		return authboss.InterruptNone, errUserMissing
 	}
 
-	if locked, ok := ctx.User.Bool(StoreLocked); ok && locked {
+	if locked, ok := ctx.User.DateTime(StoreLocked); ok && locked.After(time.Now().UTC()) {
 		return authboss.InterruptAccountLocked, nil
 	}
 
@@ -100,7 +100,7 @@ func (l *Lock) AfterAuthFail(ctx *authboss.Context) error {
 
 	if time.Now().UTC().Sub(lastAttempt) <= authboss.Cfg.LockWindow {
 		if nAttempts >= int64(authboss.Cfg.LockAfter) {
-			ctx.User[StoreLocked] = true
+			ctx.User[StoreLocked] = time.Now().UTC().Add(authboss.Cfg.LockDuration)
 		}
 
 		ctx.User[StoreAttemptNumber] = nAttempts
@@ -149,7 +149,7 @@ func (l *Lock) Unlock(key string) error {
 	// giving another login failure.
 	attr[StoreAttemptTime] = time.Now().UTC().Add(-authboss.Cfg.LockWindow * 2)
 	attr[StoreAttemptNumber] = int64(0)
-	attr[StoreLocked] = false
+	attr[StoreLocked] = time.Now().UTC().Add(-authboss.Cfg.LockDuration)
 
 	return authboss.Cfg.Storer.Put(key, attr)
 }

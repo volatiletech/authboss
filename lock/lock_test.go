@@ -18,6 +18,9 @@ func TestStorage(t *testing.T) {
 	if _, ok := storage[StoreAttemptTime]; !ok {
 		t.Error("Expected attempt number time option.")
 	}
+	if _, ok := storage[StoreLocked]; !ok {
+		t.Error("Expected locked storage option.")
+	}
 }
 
 func TestBeforeAuth(t *testing.T) {
@@ -31,7 +34,7 @@ func TestBeforeAuth(t *testing.T) {
 		t.Error("Interrupt should not be set:", interrupt)
 	}
 
-	ctx.User = authboss.Attributes{"locked": true}
+	ctx.User = authboss.Attributes{"locked": time.Now().Add(1 * time.Hour)}
 
 	if interrupt, err := l.BeforeAuth(ctx); err != nil {
 		t.Error(err)
@@ -74,6 +77,7 @@ func TestAfterAuthFail_Lock(t *testing.T) {
 	authboss.Cfg.Storer = storer
 	lock := Lock{}
 	authboss.Cfg.LockWindow = 30 * time.Minute
+	authboss.Cfg.LockDuration = 30 * time.Minute
 	authboss.Cfg.LockAfter = 3
 
 	email := "john@john.com"
@@ -100,8 +104,8 @@ func TestAfterAuthFail_Lock(t *testing.T) {
 		current = old
 	}
 
-	if !storer.Users[email][StoreLocked].(bool) {
-		t.Error("User should be locked.")
+	if locked := storer.Users[email][StoreLocked].(time.Time); !locked.After(time.Now()) {
+		t.Error("User should be locked for some duration:", locked)
 	}
 	if val := storer.Users[email][StoreAttemptNumber].(int64); val != int64(3) {
 		t.Error("StoreAttemptNumber set incorrectly:", val)
@@ -129,7 +133,7 @@ func TestAfterAuthFail_Reset(t *testing.T) {
 		authboss.Cfg.PrimaryID: email,
 		StoreAttemptNumber:     int64(2),
 		StoreAttemptTime:       old,
-		StoreLocked:            false,
+		StoreLocked:            old,
 	}
 
 	lock.AfterAuthFail(ctx)
@@ -139,7 +143,7 @@ func TestAfterAuthFail_Reset(t *testing.T) {
 	if current, ok = storer.Users[email][StoreAttemptTime].(time.Time); !ok || current.Before(old) {
 		t.Error("StoreAttemptTime not set correctly.")
 	}
-	if locked := storer.Users[email][StoreLocked].(bool); locked {
+	if locked := storer.Users[email][StoreLocked].(time.Time); locked.After(time.Now()) {
 		t.Error("StoreLocked not set correctly:", locked)
 	}
 }
@@ -172,7 +176,7 @@ func TestLock(t *testing.T) {
 		t.Error(err)
 	}
 
-	if locked := storer.Users[email][StoreLocked].(bool); !locked {
+	if locked := storer.Users[email][StoreLocked].(time.Time); !locked.After(time.Now()) {
 		t.Error("User should be locked.")
 	}
 }
@@ -203,7 +207,7 @@ func TestUnlock(t *testing.T) {
 	if number := storer.Users[email][StoreAttemptNumber].(int64); number != int64(0) {
 		t.Error("StoreLocked not set correctly:", number)
 	}
-	if locked := storer.Users[email][StoreLocked].(bool); locked {
+	if locked := storer.Users[email][StoreLocked].(time.Time); locked.After(time.Now()) {
 		t.Error("User should not be locked.")
 	}
 }

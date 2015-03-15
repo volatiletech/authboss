@@ -12,7 +12,7 @@ import (
 )
 
 // Cfg is the singleton instance of Config
-var Cfg *Config = NewConfig()
+var Cfg = NewConfig()
 
 // Config holds all the configuration for both authboss and it's modules.
 type Config struct {
@@ -50,36 +50,66 @@ type Config struct {
 	RecoverOKPath        string
 	RecoverTokenDuration time.Duration
 
-	Policies      []Validator
+	// Policies control validation of form fields and are automatically run
+	// against form posts that include the fields.
+	Policies []Validator
+	// ConfirmFields are fields that are supposed to be submitted with confirmation
+	// fields alongside them, passwords, emails etc.
 	ConfirmFields []string
 
+	// ExpireAfter controls the time an account is idle before being logged out
+	// by the ExpireMiddleware.
 	ExpireAfter time.Duration
 
-	LockAfter    int
-	LockWindow   time.Duration
+	// LockAfter this many tries.
+	LockAfter int
+	// LockWindow is the waiting time before the number of attemps are reset.
+	LockWindow time.Duration
+	// LockDuration is how long an account is locked for.
 	LockDuration time.Duration
 
-	EmailFrom          string
+	// EmailFrom is the email address authboss e-mails come from.
+	EmailFrom string
+	// EmailSubjectPrefix is used to add something to the front of the authboss
+	// email subjects.
 	EmailSubjectPrefix string
-	SMTPAddress        string
-	SMTPAuth           smtp.Auth
+	// SMTPAddress is the address of the SMTP server.
+	SMTPAddress string
+	// SMTPAuth is authentication details for the SMTP server, can be nil and if not
+	// will repeat the SMTPAddress, this is intentional.
+	SMTPAuth smtp.Auth
 
-	XSRFName  string
+	// XSRFName is the name of the xsrf token to put in the hidden form fields.
+	XSRFName string
+	// XSRFMaker is a function that returns an xsrf token for the current non-POST request.
 	XSRFMaker XSRF
 
-	Storer            Storer
-	OAuth2Storer      OAuth2Storer
-	CookieStoreMaker  CookieStoreMaker
+	// Storer is the interface through which Authboss accesses the web apps database.
+	Storer Storer
+	// OAuth2Storer is a different kind of storer only meant for OAuth2.
+	OAuth2Storer OAuth2Storer
+	// CookieStoreMaker must be defined to provide an interface capapable of storing cookies
+	// for the given response, and reading them from the request.
+	CookieStoreMaker CookieStoreMaker
+	// SessionStoreMaker must be defined to provide an interface capable of storing session-only
+	// values for the given response, and reading them from the request.
 	SessionStoreMaker SessionStoreMaker
-	LogWriter         io.Writer
-	Callbacks         *Callbacks
-	Mailer            Mailer
+	// LogWriter is written to when errors occur, as well as on startup to show which modules are loaded
+	// and which routes they registered. By default writes to io.Discard.
+	LogWriter io.Writer
+	// Callbacks is an internal mechanism that can be used by implementers and will be set automatically.
+	Callbacks *Callbacks
+	// Mailer is the mailer being used to send e-mails out. Authboss defines two loggers for use
+	// LogMailer and SMTPMailer, the default is a LogMailer to io.Discard.
+	Mailer Mailer
 }
 
+// NewConfig creates a config full of healthy default values.
+// Notable exceptions to default values are the Storers.
 func NewConfig() *Config {
 	return &Config{
 		MountPath:  "/",
-		ViewsPath:  "/",
+		ViewsPath:  "./",
 		RootURL:    "http://localhost:8080",
 		BCryptCost: bcrypt.DefaultCost,
 
@@ -115,6 +145,10 @@ func NewConfig() *Config {
 		},
 
 		ExpireAfter: 60 * time.Minute,
+
+		LockAfter:    3,
+		LockWindow:   5 * time.Minute,
+		LockDuration: 5 * time.Hour,
 
 		RecoverOKPath:        "/",
 		RecoverTokenDuration: time.Duration(24) * time.Hour,

@@ -81,6 +81,7 @@ type Callbacks struct {
 	after  map[Event][]After
 }
 
+// NewCallbacks creates a new set of before and after callbacks.
 func NewCallbacks() *Callbacks {
 	return &Callbacks{
 		make(map[Event][]Before),

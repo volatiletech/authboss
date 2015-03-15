@@ -2,7 +2,10 @@ package authboss
 
 var modules = make(map[string]Modularizer)
 
-var ModuleAttrMeta = make(AttributeMeta)
+// ModuleAttributes is the list of attributes required by all the loaded modules.
+// Authboss implementers can use this at runtime to determine what data is necessary
+// to store.
+var ModuleAttributes = make(AttributeMeta)
 
 // Modularizer should be implemented by all the authboss modules.
 type Modularizer interface {
@@ -17,7 +20,7 @@ func RegisterModule(name string, m Modularizer) {
 	modules[name] = m
 
 	for k, v := range m.Storage() {
-		ModuleAttrMeta[k] = v
+		ModuleAttributes[k] = v
 	}
 }
 

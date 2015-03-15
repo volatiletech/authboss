@@ -73,7 +73,7 @@ func (m *MockStorer) Put(key string, attr authboss.Attributes) error {
 	return nil
 }
 
-func (m *MockStorer) Get(key string, attrMeta authboss.AttributeMeta) (result interface{}, err error) {
+func (m *MockStorer) Get(key string) (result interface{}, err error) {
 	if len(m.GetErr) > 0 {
 		return nil, errors.New(m.GetErr)
 	}
@@ -106,7 +106,7 @@ func (m *MockStorer) PutOAuth(uid, provider string, attr authboss.Attributes) er
 	return nil
 }
 
-func (m *MockStorer) GetOAuth(uid, provider string, attrMeta authboss.AttributeMeta) (result interface{}, err error) {
+func (m *MockStorer) GetOAuth(uid, provider string) (result interface{}, err error) {
 	if len(m.GetErr) > 0 {
 		return nil, errors.New(m.GetErr)
 	}
@@ -217,7 +217,7 @@ func (_ MockFailStorer) Create(_ string, _ authboss.Attributes) error {
 func (_ MockFailStorer) Put(_ string, _ authboss.Attributes) error {
 	return errors.New("fail storer: put")
 }
-func (_ MockFailStorer) Get(_ string, _ authboss.AttributeMeta) (interface{}, error) {
+func (_ MockFailStorer) Get(_ string) (interface{}, error) {
 	return nil, errors.New("fail storer: get")
 }
 

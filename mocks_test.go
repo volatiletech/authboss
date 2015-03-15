@@ -23,7 +23,7 @@ func (m mockStorer) Put(key string, attr Attributes) error {
 	return nil
 }
 
-func (m mockStorer) Get(key string, attrMeta AttributeMeta) (result interface{}, err error) {
+func (m mockStorer) Get(key string) (result interface{}, err error) {
 	return &mockUser{
 		m[key]["email"].(string), m[key]["password"].(string),
 	}, nil
@@ -34,7 +34,7 @@ func (m mockStorer) PutOAuth(uid, provider string, attr Attributes) error {
 	return nil
 }
 
-func (m mockStorer) GetOAuth(uid, provider string, attrMeta AttributeMeta) (result interface{}, err error) {
+func (m mockStorer) GetOAuth(uid, provider string) (result interface{}, err error) {
 	return &mockUser{
 		m[uid+provider]["email"].(string), m[uid+provider]["password"].(string),
 	}, nil

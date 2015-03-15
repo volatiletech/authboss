@@ -118,7 +118,7 @@ func (l *Lock) AfterAuthFail(ctx *authboss.Context) error {
 
 // Lock a user manually.
 func (l *Lock) Lock(key string) error {
-	user, err := authboss.Cfg.Storer.Get(key, authboss.ModuleAttrMeta)
+	user, err := authboss.Cfg.Storer.Get(key)
 	if err != nil {
 		return err
 	}
@@ -128,14 +128,14 @@ func (l *Lock) Lock(key string) error {
 		return err
 	}
 
-	attr[StoreLocked] = true
+	attr[StoreLocked] = time.Now().UTC().Add(authboss.Cfg.LockDuration)
 
 	return authboss.Cfg.Storer.Put(key, attr)
 }
 
 // Unlock a user that was locked by this module.
 func (l *Lock) Unlock(key string) error {
-	user, err := authboss.Cfg.Storer.Get(key, authboss.ModuleAttrMeta)
+	user, err := authboss.Cfg.Storer.Get(key)
 	if err != nil {
 		return err
 	}

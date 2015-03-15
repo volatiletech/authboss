@@ -48,7 +48,7 @@ type Storer interface {
 	// must be a struct that contains all fields with the correct types as shown
 	// by attrMeta. If the key is not found in the data store simply
 	// return nil, ErrUserNotFound.
-	Get(key string, attrMeta AttributeMeta) (interface{}, error)
+	Get(key string) (interface{}, error)
 }
 
 // OAuth2Storer is a replacement (or addition) to the Storer interface.
@@ -57,7 +57,7 @@ type OAuth2Storer interface {
 	// PutOAuth creates or updates an existing record (unlike Storer.Put)
 	// because in the OAuth flow there is no separate create/update.
 	PutOAuth(uid, provider string, attr Attributes) error
-	GetOAuth(uid, provider string, attrMeta AttributeMeta) (interface{}, error)
+	GetOAuth(uid, provider string) (interface{}, error)
 }
 
 // DataType represents the various types that clients must be able to store.

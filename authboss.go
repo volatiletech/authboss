@@ -56,10 +56,10 @@ func CurrentUser(w http.ResponseWriter, r *http.Request) (interface{}, error) {
 	}
 
 	if index := strings.IndexByte(key, ';'); index > 0 {
-		return Cfg.OAuth2Storer.GetOAuth(key[:index], key[index+1:], ModuleAttrMeta)
-	} else {
-		return Cfg.Storer.Get(key, ModuleAttrMeta)
+		return Cfg.OAuth2Storer.GetOAuth(key[:index], key[index+1:])
 	}
+
+	return Cfg.Storer.Get(key)
 }
 
 // CurrentUserP retrieves the current user but panics if it's not available for

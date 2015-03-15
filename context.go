@@ -109,9 +109,9 @@ func (c *Context) LoadUser(key string) error {
 	var err error
 
 	if index := strings.IndexByte(key, ';'); index > 0 {
-		user, err = Cfg.OAuth2Storer.GetOAuth(key[:index], key[index+1:], ModuleAttrMeta)
+		user, err = Cfg.OAuth2Storer.GetOAuth(key[:index], key[index+1:])
 	} else {
-		user, err = Cfg.Storer.Get(key, ModuleAttrMeta)
+		user, err = Cfg.Storer.Get(key)
 	}
 	if err != nil {
 		return err

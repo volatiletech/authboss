@@ -112,7 +112,7 @@ func TestRegisterPostValidationErrs(t *testing.T) {
 		t.Error("Confirm password should have an error:", str)
 	}
 
-	if _, err := authboss.Cfg.Storer.Get(email, authboss.AttributeMeta(reg.Storage())); err != authboss.ErrUserNotFound {
+	if _, err := authboss.Cfg.Storer.Get(email); err != authboss.ErrUserNotFound {
 		t.Error("The user should not have been saved.")
 	}
 }
@@ -145,7 +145,7 @@ func TestRegisterPostSuccess(t *testing.T) {
 		t.Error("Redirected to the wrong location", loc)
 	}
 
-	user, err := authboss.Cfg.Storer.Get(email, authboss.AttributeMeta(reg.Storage()))
+	user, err := authboss.Cfg.Storer.Get(email)
 	if err == authboss.ErrUserNotFound {
 		t.Error("The user have been saved.")
 	}

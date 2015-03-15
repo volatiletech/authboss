@@ -5,7 +5,6 @@ import (
 	"io"
 	"io/ioutil"
 	"net/http"
-	"net/smtp"
 	"time"
 
 	"golang.org/x/crypto/bcrypt"
@@ -29,12 +28,22 @@ type Config struct {
 	// authboss.StoreEmail, authboss.StoreUsername (StoreEmail is default)
 	PrimaryID string
 
-	Layout          *template.Template
+	// Layout that all authboss views will be inserted into.
+	Layout *template.Template
+	// LayoutHTMLEmail is for emails going out in HTML form, authbosses e-mail templates
+	// will be inserted into this layout.
 	LayoutHTMLEmail *template.Template
+	// LayoutTextEmail is for emails going out in text form, authbosses e-mail templates
+	// will be inserted into this layout.
 	LayoutTextEmail *template.Template
+	// LayoutDataMaker is a function that can provide authboss with the layout's
+	// template data. It will be merged with the data being provided for the current
+	// view in order to render the templates.
 	LayoutDataMaker ViewDataMaker
 
-	OAuth2Providers map[string]OAuthProvider
+	// OAuth2Providers lists all providers that can be used. See
+	// OAuthProvider documentation for more details.
+	OAuth2Providers map[string]OAuth2Provider
 
 	// ErrorHandler handles would be 500 errors.
 	ErrorHandler http.Handler
@@ -43,12 +52,21 @@ type Config struct {
 	// NotFoundHandler handles would be 404 errors.
 	NotFoundHandler http.Handler
 
-	AuthLoginOKPath   string
+	// AuthLoginOKPath is the redirect path after a successful authentication.
+	AuthLoginOKPath string
+	// AuthLoginFailPath is the redirect path after a failed authentication.
 	AuthLoginFailPath string
-	AuthLogoutOKPath  string
+	// AuthLogoutOKPath is the redirect path after a log out.
+	AuthLogoutOKPath string
 
-	RecoverOKPath        string
+	// RecoverOKPath is the redirect path after a successful recovery of a password.
+	RecoverOKPath string
+	// RecoverTokenDuration controls how long a token sent via email for password
+	// recovery is valid for.
 	RecoverTokenDuration time.Duration
+
+	// RegisterOKPath is the redirect path after a successful registration.
+	RegisterOKPath string
 
 	// Policies control validation of form fields and are automatically run
 	// against form posts that include the fields.
@@ -73,11 +91,6 @@ type Config struct {
 	// EmailSubjectPrefix is used to add something to the front of the authboss
 	// email subjects.
 	EmailSubjectPrefix string
-	// SMTPAddress is the address of the SMTP server.
-	SMTPAddress string
-	// SMTPAuth is authentication details for the SMTP server, can be nil and if not
-	// will repeat the SMTPAddress, this is intentional.
-	SMTPAuth smtp.Auth
 
 	// XSRFName is the name of the xsrf token to put in the hidden form fields.
 	XSRFName string
@@ -123,6 +136,11 @@ func NewConfig() *Config {
 		AuthLoginFailPath: "/",
 		AuthLogoutOKPath:  "/",
 
+		RecoverOKPath:        "/",
+		RecoverTokenDuration: time.Duration(24) * time.Hour,
+
+		RegisterOKPath: "/",
+
 		Policies: []Validator{
 			Rules{
 				FieldName:       "username",
@@ -149,9 +167,6 @@ func NewConfig() *Config {
 		LockAfter:    3,
 		LockWindow:   5 * time.Minute,
 		LockDuration: 5 * time.Hour,
-
-		RecoverOKPath:        "/",
-		RecoverTokenDuration: time.Duration(24) * time.Hour,
 
 		LogWriter: ioutil.Discard,
 		Callbacks: NewCallbacks(),

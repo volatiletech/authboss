@@ -17,8 +17,8 @@ import (
 	"gopkg.in/authboss.v0/internal/mocks"
 )
 
-var testProviders = map[string]authboss.OAuthProvider{
-	"google": authboss.OAuthProvider{
+var testProviders = map[string]authboss.OAuth2Provider{
+	"google": authboss.OAuth2Provider{
 		OAuth2Config: &oauth2.Config{
 			ClientID:     `jazz`,
 			ClientSecret: `hands`,
@@ -154,8 +154,8 @@ func TestOAuthSuccess(t *testing.T) {
 		return fakeToken, nil
 	}
 
-	cfg.OAuth2Providers = map[string]authboss.OAuthProvider{
-		"fake": authboss.OAuthProvider{
+	cfg.OAuth2Providers = map[string]authboss.OAuth2Provider{
+		"fake": authboss.OAuth2Provider{
 			OAuth2Config: &oauth2.Config{
 				ClientID:     `jazz`,
 				ClientSecret: `hands`,

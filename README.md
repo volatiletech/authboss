@@ -67,6 +67,7 @@ Once you've got this code set up, it's time to implement the use cases you care 
 
 <a name="use_cases"></a>Use Cases
 =================================
+- Get the logged in user ([goto](#current_user))
 - User authentication via password ([goto](#auth))
 - User authentication via OAuth2 ([goto](#oauth2))
 - User registration ([goto](#register))
@@ -83,6 +84,24 @@ Once you've got this code set up, it's time to implement the use cases you care 
 There is a full implementation of authboss at: https://github.com/go-authboss/authboss-sample
 This sample implements a blog with all of the modules with exception that it doesn't use the expiry middleware
 since it conflicts with the remember module.
+
+## <a name="current_user"></a>Get the logged in User
+
+The current user should always be retrieved through the methods authboss.CurrentUser and authboss.CurrentUserP (panic version).
+The reason for this is because they do checking against Remember me tokens and differentiate between normal and oauth2 logins.
+
+The interface{} returned is actually your User struct (see: [Storers](#storers)) and you can convert it if it's not nil.
+
+```go
+func CurrentUser(w http.ResponseWriter, r *http.Request) (interface{}, error)
+```
+
+Return Values        | Meaning
+---------------------|--------------------------------------------------------------
+nil, nil             | The session had no user ID in it, no remember token, no user.
+nil, ErrUserNotFound | Session had user ID, but user not found in database.
+nil, err             | Some horrible error has occurred.
+user struct, nil     | The user is logged in.
 
 ## <a name="auth"></a>User Authentication via Password
 **Requirements:**

@@ -15,6 +15,7 @@ import (
 
 func setup() *Register {
 	authboss.Cfg = authboss.NewConfig()
+	authboss.Cfg.RegisterOKPath = "/regsuccess"
 	authboss.Cfg.Layout = template.Must(template.New("").Parse(`{{template "authboss" .}}`))
 	authboss.Cfg.XSRFName = "xsrf"
 	authboss.Cfg.XSRFMaker = func(_ http.ResponseWriter, _ *http.Request) string {
@@ -141,7 +142,7 @@ func TestRegisterPostSuccess(t *testing.T) {
 		t.Error("It should have written a redirect:", w.Code)
 	}
 
-	if loc := w.Header().Get("Location"); loc != "/" {
+	if loc := w.Header().Get("Location"); loc != authboss.Cfg.RegisterOKPath {
 		t.Error("Redirected to the wrong location", loc)
 	}
 

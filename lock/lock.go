@@ -8,6 +8,7 @@ import (
 	"gopkg.in/authboss.v0"
 )
 
+// Storage key constants
 const (
 	StoreAttemptNumber = "attempt_number"
 	StoreAttemptTime   = "attempt_time"
@@ -22,27 +23,31 @@ func init() {
 	authboss.RegisterModule("lock", &Lock{})
 }
 
+// Lock module
 type Lock struct {
 }
 
+// Initialize the module
 func (l *Lock) Initialize() error {
 	if authboss.Cfg.Storer == nil {
-		return errors.New("lock: Need a Storer.")
+		return errors.New("lock: Need a Storer")
 	}
 
 	// Events
-	authboss.Cfg.Callbacks.Before(authboss.EventGet, l.BeforeAuth)
-	authboss.Cfg.Callbacks.Before(authboss.EventAuth, l.BeforeAuth)
-	authboss.Cfg.Callbacks.After(authboss.EventAuth, l.AfterAuth)
-	authboss.Cfg.Callbacks.After(authboss.EventAuthFail, l.AfterAuthFail)
+	authboss.Cfg.Callbacks.Before(authboss.EventGet, l.beforeAuth)
+	authboss.Cfg.Callbacks.Before(authboss.EventAuth, l.beforeAuth)
+	authboss.Cfg.Callbacks.After(authboss.EventAuth, l.afterAuth)
+	authboss.Cfg.Callbacks.After(authboss.EventAuthFail, l.afterAuthFail)
 
 	return nil
 }
 
+// Routes for the module
 func (l *Lock) Routes() authboss.RouteTable {
 	return nil
 }
 
+// Storage requirements
 func (l *Lock) Storage() authboss.StorageOptions {
 	return authboss.StorageOptions{
 		StoreAttemptNumber: authboss.Integer,
@@ -51,8 +56,8 @@ func (l *Lock) Storage() authboss.StorageOptions {
 	}
 }
 
-// BeforeAuth ensures the account is not locked.
-func (l *Lock) BeforeAuth(ctx *authboss.Context) (authboss.Interrupt, error) {
+// beforeAuth ensures the account is not locked.
+func (l *Lock) beforeAuth(ctx *authboss.Context) (authboss.Interrupt, error) {
 	if ctx.User == nil {
 		return authboss.InterruptNone, errUserMissing
 	}
@@ -64,8 +69,8 @@ func (l *Lock) BeforeAuth(ctx *authboss.Context) (authboss.Interrupt, error) {
 	return authboss.InterruptNone, nil
 }
 
-// AfterAuth resets the attempt number field.
-func (l *Lock) AfterAuth(ctx *authboss.Context) error {
+// afterAuth resets the attempt number field.
+func (l *Lock) afterAuth(ctx *authboss.Context) error {
 	if ctx.User == nil {
 		return errUserMissing
 	}
@@ -80,8 +85,8 @@ func (l *Lock) AfterAuth(ctx *authboss.Context) error {
 	return nil
 }
 
-// AfterAuthFail adjusts the attempt number and time.
-func (l *Lock) AfterAuthFail(ctx *authboss.Context) error {
+// afterAuthFail adjusts the attempt number and time.
+func (l *Lock) afterAuthFail(ctx *authboss.Context) error {
 	if ctx.User == nil {
 		return errUserMissing
 	}

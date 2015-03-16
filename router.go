@@ -7,7 +7,7 @@ import (
 	"path"
 )
 
-// Handler augments http.HandlerFunc with a context.
+// HandlerFunc augments http.HandlerFunc with a context and error handling.
 type HandlerFunc func(*Context, http.ResponseWriter, *http.Request) error
 
 // RouteTable is a routing table from a path to a handlerfunc.

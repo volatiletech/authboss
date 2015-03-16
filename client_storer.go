@@ -5,7 +5,7 @@ import "net/http"
 const (
 	// SessionKey is the primarily used key by authboss.
 	SessionKey = "uid"
-	// HalfAuthKey is used for sessions that have been authenticated by
+	// SessionHalfAuthKey is used for sessions that have been authenticated by
 	// the remember module. This serves as a way to force full authentication
 	// by denying half-authed users acccess to sensitive areas.
 	SessionHalfAuthKey = "halfauth"

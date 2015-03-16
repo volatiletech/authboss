@@ -22,13 +22,15 @@ func init() {
 	authboss.RegisterModule("auth", &Auth{})
 }
 
+// Auth module
 type Auth struct {
 	templates render.Templates
 }
 
+// Initialize module
 func (a *Auth) Initialize() (err error) {
 	if authboss.Cfg.Storer == nil {
-		return errors.New("auth: Need a Storer.")
+		return errors.New("auth: Need a Storer")
 	}
 
 	if len(authboss.Cfg.XSRFName) == 0 {
@@ -47,6 +49,7 @@ func (a *Auth) Initialize() (err error) {
 	return nil
 }
 
+// Routes for the module
 func (a *Auth) Routes() authboss.RouteTable {
 	return authboss.RouteTable{
 		"/login":  a.loginHandlerFunc,
@@ -54,6 +57,7 @@ func (a *Auth) Routes() authboss.RouteTable {
 	}
 }
 
+// Storage requirements
 func (a *Auth) Storage() authboss.StorageOptions {
 	return authboss.StorageOptions{
 		authboss.Cfg.PrimaryID: authboss.String,

@@ -16,6 +16,12 @@ import (
 	"gopkg.in/authboss.v0/internal/render"
 )
 
+// Storage constants
+const (
+	StoreRecoverToken       = "recover_token"
+	StoreRecoverTokenExpiry = "recover_token_expiry"
+)
+
 const (
 	methodGET  = "GET"
 	methodPOST = "POST"
@@ -25,9 +31,6 @@ const (
 	tplRecoverComplete = "recover_complete.html.tpl"
 	tplInitHTMLEmail   = "recover_email.html.tpl"
 	tplInitTextEmail   = "recover_email.txt.tpl"
-
-	StoreRecoverToken       = "recover_token"
-	StoreRecoverTokenExpiry = "recover_token_expiry"
 
 	recoverInitiateSuccessFlash = "An email has been sent with further instructions on how to reset your password"
 	recoverTokenExpiredFlash    = "Account recovery request has expired. Please try again."
@@ -51,19 +54,21 @@ func init() {
 	authboss.RegisterModule("recover", m)
 }
 
+// Recover module
 type Recover struct {
 	templates          render.Templates
 	emailHTMLTemplates render.Templates
 	emailTextTemplates render.Templates
 }
 
+// Initialize module
 func (r *Recover) Initialize() (err error) {
 	if authboss.Cfg.Storer == nil {
-		return errors.New("recover: Need a RecoverStorer.")
+		return errors.New("recover: Need a RecoverStorer")
 	}
 
 	if _, ok := authboss.Cfg.Storer.(RecoverStorer); !ok {
-		return errors.New("recover: RecoverStorer required for recover functionality.")
+		return errors.New("recover: RecoverStorer required for recover functionality")
 	}
 
 	if len(authboss.Cfg.XSRFName) == 0 {
@@ -91,12 +96,15 @@ func (r *Recover) Initialize() (err error) {
 	return nil
 }
 
+// Routes for module
 func (r *Recover) Routes() authboss.RouteTable {
 	return authboss.RouteTable{
 		"/recover":          r.startHandlerFunc,
 		"/recover/complete": r.completeHandlerFunc,
 	}
 }
+
+// Storage requirements
 func (r *Recover) Storage() authboss.StorageOptions {
 	return authboss.StorageOptions{
 		authboss.Cfg.PrimaryID:  authboss.String,

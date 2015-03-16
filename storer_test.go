@@ -428,7 +428,7 @@ func TestCasingStyleConversions(t *testing.T) {
 		}
 		out = underToCamel(out)
 		if out != test.In {
-			t.Error("%d), Expected %q got %q", i, test.In, out)
+			t.Errorf("%d), Expected %q got %q", i, test.In, out)
 		}
 	}
 }

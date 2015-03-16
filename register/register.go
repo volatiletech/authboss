@@ -34,11 +34,11 @@ type Register struct {
 // Initialize the module.
 func (r *Register) Initialize() (err error) {
 	if authboss.Cfg.Storer == nil {
-		return errors.New("register: Need a RegisterStorer.")
+		return errors.New("register: Need a RegisterStorer")
 	}
 
 	if _, ok := authboss.Cfg.Storer.(RegisterStorer); !ok {
-		return errors.New("register: RegisterStorer required for register functionality.")
+		return errors.New("register: RegisterStorer required for register functionality")
 	}
 
 	if r.templates, err = render.LoadTemplates(authboss.Cfg.Layout, authboss.Cfg.ViewsPath, tplRegister); err != nil {

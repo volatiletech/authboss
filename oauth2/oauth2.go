@@ -19,12 +19,14 @@ var (
 	errOAuthStateValidation = errors.New("Could not validate oauth2 state param")
 )
 
+// OAuth2 module
 type OAuth2 struct{}
 
 func init() {
 	authboss.RegisterModule("oauth2", &OAuth2{})
 }
 
+// Initialize module
 func (o *OAuth2) Initialize() error {
 	if authboss.Cfg.OAuth2Storer == nil {
 		return errors.New("oauth2: need an OAuth2Storer")
@@ -32,6 +34,7 @@ func (o *OAuth2) Initialize() error {
 	return nil
 }
 
+// Routes for module
 func (o *OAuth2) Routes() authboss.RouteTable {
 	routes := make(authboss.RouteTable)
 
@@ -54,6 +57,7 @@ func (o *OAuth2) Routes() authboss.RouteTable {
 	return routes
 }
 
+// Storage requirements
 func (o *OAuth2) Storage() authboss.StorageOptions {
 	return authboss.StorageOptions{
 		authboss.StoreEmail:          authboss.String,

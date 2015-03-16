@@ -7,7 +7,7 @@ import (
 
 func TestAttributeErr(t *testing.T) {
 	estr := "Failed to retrieve database attribute, type was wrong: lol (want: String, got: int)"
-	if str := MakeAttributeErr("lol", String, 5).Error(); str != estr {
+	if str := NewAttributeErr("lol", String, 5).Error(); str != estr {
 		t.Error("Error was wrong:", str)
 	}
 

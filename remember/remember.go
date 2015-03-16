@@ -42,8 +42,10 @@ func init() {
 	authboss.RegisterModule("remember", &Remember{})
 }
 
+// Remember module
 type Remember struct{}
 
+// Initialize module
 func (r *Remember) Initialize() error {
 	if authboss.Cfg.Storer == nil {
 		return errors.New("remember: Need a RememberStorer")
@@ -61,10 +63,12 @@ func (r *Remember) Initialize() error {
 	return nil
 }
 
+// Routes for module
 func (r *Remember) Routes() authboss.RouteTable {
 	return nil
 }
 
+// Storage requirements
 func (r *Remember) Storage() authboss.StorageOptions {
 	return nil
 }
@@ -205,7 +209,7 @@ func (r *Remember) auth(ctx *authboss.Context) (authboss.Interrupt, error) {
 
 	index := bytes.IndexByte(token, ';')
 	if index < 0 {
-		return authboss.InterruptNone, errors.New("remember: Invalid remember token.")
+		return authboss.InterruptNone, errors.New("remember: Invalid remember token")
 	}
 
 	// Get the key.

@@ -28,7 +28,7 @@ func RegisterModule(name string, m Modularizer) {
 func LoadedModules() []string {
 	mods := make([]string, len(modules))
 	i := 0
-	for k, _ := range modules {
+	for k := range modules {
 		mods[i] = k
 		i++
 	}

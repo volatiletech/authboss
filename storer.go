@@ -63,6 +63,7 @@ type OAuth2Storer interface {
 // DataType represents the various types that clients must be able to store.
 type DataType int
 
+// DataType constants
 const (
 	Integer DataType = iota
 	String
@@ -95,7 +96,7 @@ type AttributeMeta map[string]DataType
 func (a AttributeMeta) Names() []string {
 	names := make([]string, len(a))
 	i := 0
-	for n, _ := range a {
+	for n := range a {
 		names[i] = n
 		i++
 	}
@@ -109,7 +110,7 @@ type Attributes map[string]interface{}
 func (a Attributes) Names() []string {
 	names := make([]string, len(a))
 	i := 0
-	for n, _ := range a {
+	for n := range a {
 		names[i] = n
 		i++
 	}
@@ -167,7 +168,7 @@ func (a Attributes) StringErr(key string) (val string, err error) {
 	}
 	val, ok = inter.(string)
 	if !ok {
-		return val, MakeAttributeErr(key, String, inter)
+		return val, NewAttributeErr(key, String, inter)
 	}
 	return val, nil
 }
@@ -180,7 +181,7 @@ func (a Attributes) Int64Err(key string) (val int64, err error) {
 	}
 	val, ok = inter.(int64)
 	if !ok {
-		return val, MakeAttributeErr(key, Integer, inter)
+		return val, NewAttributeErr(key, Integer, inter)
 	}
 	return val, nil
 }
@@ -193,7 +194,7 @@ func (a Attributes) BoolErr(key string) (val bool, err error) {
 	}
 	val, ok = inter.(bool)
 	if !ok {
-		return val, MakeAttributeErr(key, Integer, inter)
+		return val, NewAttributeErr(key, Integer, inter)
 	}
 	return val, nil
 }
@@ -206,7 +207,7 @@ func (a Attributes) DateTimeErr(key string) (val time.Time, err error) {
 	}
 	val, ok = inter.(time.Time)
 	if !ok {
-		return val, MakeAttributeErr(key, DateTime, inter)
+		return val, NewAttributeErr(key, DateTime, inter)
 	}
 	return val, nil
 }

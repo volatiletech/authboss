@@ -18,6 +18,7 @@ type Validator interface {
 	Rules() []string
 }
 
+// ErrorList is simply a slice of errors with helpers.
 type ErrorList []error
 
 // Error satisfies the error interface.

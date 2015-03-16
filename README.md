@@ -48,10 +48,10 @@ The amount of code necessary to start and configure authboss is fairly minimal, 
 your storer, cookie storer, session storer, xsrf maker implementations.
 
 ```go
-authboss.Cfg = authboss.NewConfig()
-// Do all configuration here
-authboss.MountPath = "/authboss"
-authboss.LogWriter = os.Stdout
+// Do all configuration here (authboss.Cfg is a global
+// config created automatically at runtime)
+authboss.Cfg.MountPath = "/authboss"
+authboss.Cfg.LogWriter = os.Stdout
 
 if err := authboss.Init(); err != nil {
 	// Handle error, don't let program continue to run

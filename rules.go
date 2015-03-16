@@ -84,7 +84,7 @@ func (r Rules) IsValid(toValidate string) bool {
 
 // Rules returns an array of strings describing the rules.
 func (r Rules) Rules() []string {
-	rules := make([]string, 0)
+	var rules []string
 
 	if r.MustMatch != nil {
 		rules = append(rules, r.MatchError)

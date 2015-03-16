@@ -15,6 +15,7 @@ import (
 	"gopkg.in/authboss.v0/internal/render"
 )
 
+// Storer and FormValue constants
 const (
 	StoreConfirmToken = "confirm_token"
 	StoreConfirmed    = "confirmed"
@@ -43,16 +44,18 @@ func init() {
 	authboss.RegisterModule("confirm", &Confirm{})
 }
 
+// Confirm module
 type Confirm struct {
 	emailHTMLTemplates render.Templates
 	emailTextTemplates render.Templates
 }
 
+// Initialize the module
 func (c *Confirm) Initialize() (err error) {
 	var ok bool
 	storer, ok := authboss.Cfg.Storer.(ConfirmStorer)
 	if storer == nil || !ok {
-		return errors.New("confirm: Need a ConfirmStorer.")
+		return errors.New("confirm: Need a ConfirmStorer")
 	}
 
 	c.emailHTMLTemplates, err = render.LoadTemplates(authboss.Cfg.LayoutHTMLEmail, authboss.Cfg.ViewsPath, tplConfirmHTML)
@@ -64,19 +67,21 @@ func (c *Confirm) Initialize() (err error) {
 		return err
 	}
 
-	authboss.Cfg.Callbacks.Before(authboss.EventGet, c.BeforeGet)
-	authboss.Cfg.Callbacks.Before(authboss.EventAuth, c.BeforeGet)
-	authboss.Cfg.Callbacks.After(authboss.EventRegister, c.AfterRegister)
+	authboss.Cfg.Callbacks.Before(authboss.EventGet, c.beforeGet)
+	authboss.Cfg.Callbacks.Before(authboss.EventAuth, c.beforeGet)
+	authboss.Cfg.Callbacks.After(authboss.EventRegister, c.afterRegister)
 
 	return nil
 }
 
+// Routes for the module
 func (c *Confirm) Routes() authboss.RouteTable {
 	return authboss.RouteTable{
 		"/confirm": c.confirmHandler,
 	}
 }
 
+// Storage requirements
 func (c *Confirm) Storage() authboss.StorageOptions {
 	return authboss.StorageOptions{
 		StoreConfirmToken: authboss.String,
@@ -84,7 +89,7 @@ func (c *Confirm) Storage() authboss.StorageOptions {
 	}
 }
 
-func (c *Confirm) BeforeGet(ctx *authboss.Context) (authboss.Interrupt, error) {
+func (c *Confirm) beforeGet(ctx *authboss.Context) (authboss.Interrupt, error) {
 	if confirmed, err := ctx.User.BoolErr(StoreConfirmed); err != nil {
 		return authboss.InterruptNone, err
 	} else if !confirmed {
@@ -95,7 +100,7 @@ func (c *Confirm) BeforeGet(ctx *authboss.Context) (authboss.Interrupt, error) {
 }
 
 // AfterRegister ensures the account is not activated.
-func (c *Confirm) AfterRegister(ctx *authboss.Context) error {
+func (c *Confirm) afterRegister(ctx *authboss.Context) error {
 	if ctx.User == nil {
 		return errUserMissing
 	}

@@ -119,6 +119,8 @@ type Config struct {
 
 // NewConfig creates a config full of healthy default values.
 // Notable exceptions to default values are the Storers.
+// This method is called automatically on startup and is set to authboss.Cfg
+// so implementers need not call it. Primarily exported for testing.
 func NewConfig() *Config {
 	return &Config{
 		MountPath:  "/",

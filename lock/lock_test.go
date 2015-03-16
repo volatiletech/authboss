@@ -28,7 +28,7 @@ func TestBeforeAuth(t *testing.T) {
 	authboss.NewConfig()
 	ctx := authboss.NewContext()
 
-	if interrupt, err := l.BeforeAuth(ctx); err != errUserMissing {
+	if interrupt, err := l.beforeAuth(ctx); err != errUserMissing {
 		t.Error("Expected an error because of missing user:", err)
 	} else if interrupt != authboss.InterruptNone {
 		t.Error("Interrupt should not be set:", interrupt)
@@ -36,7 +36,7 @@ func TestBeforeAuth(t *testing.T) {
 
 	ctx.User = authboss.Attributes{"locked": time.Now().Add(1 * time.Hour)}
 
-	if interrupt, err := l.BeforeAuth(ctx); err != nil {
+	if interrupt, err := l.beforeAuth(ctx); err != nil {
 		t.Error(err)
 	} else if interrupt != authboss.InterruptAccountLocked {
 		t.Error("Expected a locked interrupt:", interrupt)
@@ -48,7 +48,7 @@ func TestAfterAuth(t *testing.T) {
 	lock := Lock{}
 	ctx := authboss.NewContext()
 
-	if err := lock.AfterAuth(ctx); err != errUserMissing {
+	if err := lock.afterAuth(ctx); err != errUserMissing {
 		t.Error("Expected an error because of missing user:", err)
 	}
 
@@ -56,7 +56,7 @@ func TestAfterAuth(t *testing.T) {
 	authboss.Cfg.Storer = storer
 	ctx.User = authboss.Attributes{authboss.Cfg.PrimaryID: "john@john.com"}
 
-	if err := lock.AfterAuth(ctx); err != nil {
+	if err := lock.afterAuth(ctx); err != nil {
 		t.Error(err)
 	}
 	if storer.Users["john@john.com"][StoreAttemptNumber].(int64) != int64(0) {
@@ -91,7 +91,7 @@ func TestAfterAuthFail_Lock(t *testing.T) {
 			t.Errorf("%d: User should not be locked.", i)
 		}
 
-		if err := lock.AfterAuthFail(ctx); err != nil {
+		if err := lock.afterAuthFail(ctx); err != nil {
 			t.Error(err)
 		}
 		if val := storer.Users[email][StoreAttemptNumber].(int64); val != int64(i+1) {
@@ -136,7 +136,7 @@ func TestAfterAuthFail_Reset(t *testing.T) {
 		StoreLocked:            old,
 	}
 
-	lock.AfterAuthFail(ctx)
+	lock.afterAuthFail(ctx)
 	if val := storer.Users[email][StoreAttemptNumber].(int64); val != int64(0) {
 		t.Error("StoreAttemptNumber set incorrectly:", val)
 	}
@@ -153,7 +153,7 @@ func TestAfterAuthFail_Errors(t *testing.T) {
 	lock := Lock{}
 	ctx := authboss.NewContext()
 
-	lock.AfterAuthFail(ctx)
+	lock.afterAuthFail(ctx)
 	if _, ok := ctx.User[StoreAttemptNumber]; ok {
 		t.Error("Expected nothing to be set, missing user.")
 	}

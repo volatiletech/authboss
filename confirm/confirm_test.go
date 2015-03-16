@@ -73,7 +73,7 @@ func TestConfirm_BeforeGet(t *testing.T) {
 	c := setup()
 	ctx := authboss.NewContext()
 
-	if _, err := c.BeforeGet(ctx); err == nil {
+	if _, err := c.beforeGet(ctx); err == nil {
 		t.Error("Should stop the get due to attribute missing:", err)
 	}
 
@@ -81,7 +81,7 @@ func TestConfirm_BeforeGet(t *testing.T) {
 		StoreConfirmed: false,
 	}
 
-	if interrupt, err := c.BeforeGet(ctx); interrupt != authboss.InterruptAccountNotConfirmed {
+	if interrupt, err := c.beforeGet(ctx); interrupt != authboss.InterruptAccountNotConfirmed {
 		t.Error("Should stop the get due to non-confirm:", interrupt)
 	} else if err != nil {
 		t.Error(err)
@@ -91,7 +91,7 @@ func TestConfirm_BeforeGet(t *testing.T) {
 		StoreConfirmed: true,
 	}
 
-	if interrupt, err := c.BeforeGet(ctx); interrupt != authboss.InterruptNone || err != nil {
+	if interrupt, err := c.beforeGet(ctx); interrupt != authboss.InterruptNone || err != nil {
 		t.Error(interrupt, err)
 	}
 }
@@ -111,18 +111,18 @@ func TestConfirm_AfterRegister(t *testing.T) {
 		sentEmail = true
 	}
 
-	if err := c.AfterRegister(ctx); err != errUserMissing {
+	if err := c.afterRegister(ctx); err != errUserMissing {
 		t.Error("Expected it to die with user error:", err)
 	}
 
 	ctx.User = authboss.Attributes{authboss.Cfg.PrimaryID: "username"}
-	if err := c.AfterRegister(ctx); err == nil || err.(authboss.AttributeErr).Name != "email" {
+	if err := c.afterRegister(ctx); err == nil || err.(authboss.AttributeErr).Name != "email" {
 		t.Error("Expected it to die with e-mail address error:", err)
 	}
 
 	ctx.User[authboss.StoreEmail] = "a@a.com"
 	log.Reset()
-	c.AfterRegister(ctx)
+	c.afterRegister(ctx)
 	if str := log.String(); !strings.Contains(str, "Subject: Confirm New Account") {
 		t.Error("Expected it to send an e-mail:", str)
 	}

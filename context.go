@@ -9,6 +9,7 @@ import (
 	"time"
 )
 
+// FormValue constants
 var (
 	FormValueRedirect    = "redir"
 	FormValueOAuth2State = "state"
@@ -26,6 +27,7 @@ type Context struct {
 	formValues     map[string][]string
 }
 
+// NewContext is exported for testing modules.
 func NewContext() *Context {
 	return &Context{}
 }
@@ -76,7 +78,7 @@ func (c *Context) FirstPostFormValue(key string) (string, bool) {
 	return val[0], ok
 }
 
-// FirstFormValueErrr gets the first form value from a context created with a request
+// FirstFormValueErr gets the first form value from a context created with a request
 // and additionally returns an error not a bool if it's not found.
 func (c *Context) FirstFormValueErr(key string) (string, error) {
 	val, ok := c.formValues[key]
@@ -88,7 +90,7 @@ func (c *Context) FirstFormValueErr(key string) (string, error) {
 	return val[0], nil
 }
 
-// FirstPostFormValue gets the first form value from a context created with a request.
+// FirstPostFormValueErr gets the first form value from a context created with a request.
 func (c *Context) FirstPostFormValueErr(key string) (string, error) {
 	val, ok := c.postFormValues[key]
 

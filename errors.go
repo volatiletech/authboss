@@ -10,7 +10,9 @@ type AttributeErr struct {
 	GotKind  string
 }
 
-func MakeAttributeErr(name string, kind DataType, val interface{}) AttributeErr {
+// NewAttributeErr creates a new attribute err type. Useful for when you want
+// to have a type mismatch error.
+func NewAttributeErr(name string, kind DataType, val interface{}) AttributeErr {
 	return AttributeErr{
 		Name:     name,
 		WantKind: kind,

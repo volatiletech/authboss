@@ -159,7 +159,7 @@ func TestConfirm_ConfirmHandlerErrors(t *testing.T) {
 
 		err := c.confirmHandler(ctx, w, r)
 		if err == nil {
-			t.Fatal("%d) Expected an error", i)
+			t.Fatalf("%d) Expected an error", i)
 		}
 
 		if !reflect.DeepEqual(err, test.Error) {

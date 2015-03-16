@@ -160,7 +160,10 @@ func TestOAuthSuccess(t *testing.T) {
 				ClientID:     `jazz`,
 				ClientSecret: `hands`,
 				Scopes:       []string{`profile`, `email`},
-				Endpoint:     oauth2.Endpoint{"fakeauth", "faketoken"},
+				Endpoint: oauth2.Endpoint{
+					AuthURL:  "fakeauth",
+					TokenURL: "faketoken",
+				},
 			},
 			Callback:         fakeCallback,
 			AdditionalParams: url.Values{"include_requested_scopes": []string{"true"}},

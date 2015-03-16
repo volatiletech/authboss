@@ -98,7 +98,7 @@ func TestAfterAuthFail_Lock(t *testing.T) {
 			t.Errorf("%d: StoreAttemptNumber set incorrectly: %v", i, val)
 		}
 		if current, ok = storer.Users[email][StoreAttemptTime].(time.Time); !ok || old.After(current) {
-			t.Error("%d: StoreAttemptTime not set correctly: %v", i, current)
+			t.Errorf("%d: StoreAttemptTime not set correctly: %v", i, current)
 		}
 
 		current = old

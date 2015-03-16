@@ -387,7 +387,7 @@ func TestUnbind_Valuer(t *testing.T) {
 		Count sql.NullInt64
 		Time  NullTime
 	}{
-		sql.NullInt64{12, true},
+		sql.NullInt64{Int64: 12, Valid: true},
 		NullTime{nowTime, true},
 	}
 

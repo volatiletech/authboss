@@ -317,15 +317,15 @@ func TestAuth_logoutHandlerFunc_GET(t *testing.T) {
 	}
 
 	if val, ok := sessionStorer.Get(authboss.SessionKey); ok {
-		t.Errorf("Unexpected session key:", val)
+		t.Error("Unexpected session key:", val)
 	}
 
 	if val, ok := sessionStorer.Get(authboss.SessionLastAction); ok {
-		t.Errorf("Unexpected last action:", val)
+		t.Error("Unexpected last action:", val)
 	}
 
 	if val, ok := cookieStorer.Get(authboss.CookieRemember); ok {
-		t.Errorf("Unexpected rm cookie:", val)
+		t.Error("Unexpected rm cookie:", val)
 	}
 
 	if http.StatusFound != w.Code {

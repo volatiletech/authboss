@@ -264,3 +264,42 @@ func TestOAuthFailure(t *testing.T) {
 		t.Error("It should record the failure.")
 	}
 }
+
+func TestLogout(t *testing.T) {
+	authboss.Cfg = authboss.NewConfig()
+	authboss.Cfg.AuthLogoutOKPath = "/dashboard"
+
+	r, _ := http.NewRequest("GET", "/oauth2/google?", nil)
+	w := httptest.NewRecorder()
+
+	ctx := authboss.NewContext()
+	session := mocks.NewMockClientStorer(authboss.SessionKey, "asdf", authboss.SessionLastAction, "1234")
+	cookies := mocks.NewMockClientStorer(authboss.CookieRemember, "qwert")
+	ctx.SessionStorer = session
+	ctx.CookieStorer = cookies
+
+	if err := logout(ctx, w, r); err != nil {
+		t.Error(err)
+	}
+
+	if val, ok := session.Get(authboss.SessionKey); ok {
+		t.Error("Unexpected session key:", val)
+	}
+
+	if val, ok := session.Get(authboss.SessionLastAction); ok {
+		t.Error("Unexpected last action:", val)
+	}
+
+	if val, ok := cookies.Get(authboss.CookieRemember); ok {
+		t.Error("Unexpected rm cookie:", val)
+	}
+
+	if http.StatusFound != w.Code {
+		t.Errorf("Expected status code %d, got %d", http.StatusFound, w.Code)
+	}
+
+	location := w.Header().Get("Location")
+	if location != authboss.Cfg.AuthLogoutOKPath {
+		t.Error("Redirect wrong:", location)
+	}
+}

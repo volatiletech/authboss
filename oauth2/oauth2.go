@@ -54,6 +54,8 @@ func (o *OAuth2) Routes() authboss.RouteTable {
 		cfg.OAuth2Config.RedirectURL = authboss.Cfg.RootURL + callback
 	}
 
+	routes["/oauth2/logout"] = logout
+
 	return routes
 }
 
@@ -201,5 +203,20 @@ func oauthCallback(ctx *authboss.Context, w http.ResponseWriter, r *http.Request
 	}
 
 	http.Redirect(w, r, redirect, http.StatusFound)
+	return nil
+}
+
+func logout(ctx *authboss.Context, w http.ResponseWriter, r *http.Request) error {
+	switch r.Method {
+	case "GET":
+		ctx.SessionStorer.Del(authboss.SessionKey)
+		ctx.CookieStorer.Del(authboss.CookieRemember)
+		ctx.SessionStorer.Del(authboss.SessionLastAction)
+
+		http.Redirect(w, r, authboss.Cfg.AuthLogoutOKPath, http.StatusFound)
+	default:
+		w.WriteHeader(http.StatusMethodNotAllowed)
+	}
+
 	return nil
 }

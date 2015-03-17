@@ -68,6 +68,7 @@ Once you've got this code set up, it's time to implement the use cases you care 
 <a name="use_cases"></a>Use Cases
 =================================
 - Get the logged in user ([goto](#current_user))
+- Reset a User's password ([goto](#reset_password))
 - User authentication via password ([goto](#auth))
 - User authentication via OAuth2 ([goto](#oauth2))
 - User registration ([goto](#register))
@@ -102,6 +103,34 @@ nil, nil             | The session had no user ID in it, no remember token, no u
 nil, ErrUserNotFound | Session had user ID, but user not found in database.
 nil, err             | Some horrible error has occurred.
 user struct, nil     | The user is logged in.
+
+## <a name="reset_password"></a>Reset a User's password
+
+Because on password reset various cleanings need to happen (for example Remember Me tokens
+should all be deleted) setting the password yourself is not a good idea.
+
+Authboss has the UpdatePassword method for you to use. Please consult it's documentation
+for a thorough explanation of each parameter.
+
+```go
+func UpdatePassword(w http.ResponseWriter, r *http.Request, ptPassword string, user interface{}, updater func() error) error {
+```
+
+Please read it's documentation as it's quite thorough, and example usage might be:
+
+```go
+myUserSave := func() error {
+	_, err := db.Exec(`update user set name = $1, password = $2 where id = $3`, user.Name, user.Password, user.ID)
+	return err
+}
+
+// HINT: Never pass the form value directly into the database as you see here :D
+err := UpdatePassword(w, r, r.FormValue("password"), &user1, myUserSave)
+if err != nil {
+	// Handle error here, in most cases this will be the error from myUserSave
+}
+
+```
 
 ## <a name="auth"></a>User Authentication via Password
 **Requirements:**

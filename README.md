@@ -27,7 +27,8 @@ Getting Started
 ===============
 The first place to start in any Authboss implementation is the [configuration struct](http://godoc.org/gopkg.in/authboss.v0#Config).
 There are many defaults setup for you but there are some elements that must be provided.
-to find out what is configurable, each element is documented.
+to find out what is configurable view the documentation linked to above, each struct element
+is documented.
 
 **Required options:**
 - Storer or OAuth2Storer (for user storage)
@@ -38,9 +39,9 @@ to find out what is configurable, each element is documented.
 **Recommended options:**
 - LogWriter: This is where authboss will log it's errors, as well as put status information on startup.
 - MountPath: If you are mounting the authboss paths behind a certain path like /auth
-- ViewsPath: If you plan to override any of authbosses views, usually it's better to make a directory for these.
+- ViewsPath: Views to override the default authboss views go here (default: ./)
 - Mailer: If you use any modules that make use of e-mails, this should be set.
-- EmailFrom: Same as Mailer.
+- EmailFrom: The e-mail address you send your authboss notifications from.
 - RootURL: This should be set if you use oauth2 or e-mails as it's required for generating URLs.
 - ErrorHandler/NotFoundHandler/BadRequestHandler: You should display something that makes sense for your app with these.
 
@@ -107,16 +108,16 @@ user struct, nil     | The user is logged in.
 ## <a name="reset_password"></a>Reset a User's password
 
 Because on password reset various cleanings need to happen (for example Remember Me tokens
-should all be deleted) setting the password yourself is not a good idea.
+should all be deleted) setting the user's password yourself is not a good idea.
 
 Authboss has the UpdatePassword method for you to use. Please consult it's documentation
 for a thorough explanation of each parameter.
 
 ```go
-func UpdatePassword(w http.ResponseWriter, r *http.Request, ptPassword string, user interface{}, updater func() error) error {
+func UpdatePassword(w http.ResponseWriter, r *http.Request, ptPassword string, user interface{}, updater func() error) error
 ```
 
-Please read it's documentation as it's quite thorough, and example usage might be:
+Please read it's documentation as it's quite thorough, an example usage might be:
 
 ```go
 myUserSave := func() error {
@@ -124,7 +125,7 @@ myUserSave := func() error {
 	return err
 }
 
-// HINT: Never pass the form value directly into the database as you see here :D
+// WARNING: Never pass the form value directly into the database as you see here :D
 err := UpdatePassword(w, r, r.FormValue("password"), &user1, myUserSave)
 if err != nil {
 	// Handle error here, in most cases this will be the error from myUserSave
@@ -144,10 +145,8 @@ if err != nil {
 - Password (string)
 
 **How it works:** A route is registered for an authentication page. Link to the route, the user follows this link.
-The Layout and the authboss login view is displayed. The user enters their credentials, if the ConfirmFields
-are correct, and all Policies pass, then the user credentials are verified. The storer will pull back the user
-and verify that the bcrypted password is correct, then log him in using a session cookie and redirect him to
-the AuthLoginOKPath.
+The Layout and the authboss login view is displayed. The user enters their credentials then the user credentials are verified. The storer will pull back the user and verify that the bcrypted password is correct, then log him in using
+a session cookie and redirect him to the AuthLoginOKPath.
 
 Another link is created for a logout. Simply link/redirect the user to this page and the user will be logged out.
 
@@ -179,6 +178,7 @@ params := url.Values{}
 params.Set(authboss.CookieRemember, "true")
 params.Set(authboss.FormValueRedirect, `/my/redirect/path`)
 uri := `/authboss_mount_path/oauth2/google?` + params.Encode()
+
 // Use uri to create a link for the user to log in with Google oauth2 in a template
 // <a href="{{.googleOAuthUri}}">Log in with Google!</a>
 ```

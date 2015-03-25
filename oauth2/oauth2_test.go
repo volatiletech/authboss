@@ -6,7 +6,6 @@ import (
 	"net/http/httptest"
 	"net/url"
 	"path"
-	"sort"
 	"strings"
 	"testing"
 	"time"
@@ -78,7 +77,7 @@ func TestOAuth2Init(t *testing.T) {
 	cfg.OAuth2Providers = testProviders
 	authboss.Cfg = cfg
 
-	r, _ := http.NewRequest("GET", "/oauth2/google?r=/my/redirect&rm=true", nil)
+	r, _ := http.NewRequest("GET", "/oauth2/google?redir=/my/redirect%23lol&rm=true", nil)
 	w := httptest.NewRecorder()
 	ctx := authboss.NewContext()
 	ctx.SessionStorer = session
@@ -107,24 +106,8 @@ func TestOAuth2Init(t *testing.T) {
 		t.Error("It should have had some state:", loc)
 	}
 
-	splits := strings.Split(state, ";")
-	if len(splits[0]) != 44 {
-		t.Error("The xsrf token was wrong size:", len(splits[0]), splits[0])
-	}
-
-	// Maps are fun
-	sort.Strings(splits[1:])
-
-	if v, err := url.QueryUnescape(splits[1]); err != nil {
-		t.Error(err)
-	} else if v != "r=/my/redirect" {
-		t.Error("Redirect parameter not saved:", splits[1])
-	}
-
-	if v, err := url.QueryUnescape(splits[2]); err != nil {
-		t.Error(err)
-	} else if v != "rm=true" {
-		t.Error("Remember parameter not saved:", splits[2])
+	if params := session.Values[authboss.SessionOAuth2Params]; params != `{"redir":"/my/redirect#lol","rm":"true"}` {
+		t.Error("The params were wrong:", params)
 	}
 }
 
@@ -171,12 +154,18 @@ func TestOAuthSuccess(t *testing.T) {
 	}
 	authboss.Cfg = cfg
 
-	url := fmt.Sprintf("/oauth2/fake?code=code&state=%s", url.QueryEscape("state;redir=/myurl;rm=true;myparam=5"))
+	values := make(url.Values)
+	values.Set("code", "code")
+	values.Set("state", "state")
+
+	url := fmt.Sprintf("/oauth2/fake?%s", values.Encode())
 	r, _ := http.NewRequest("GET", url, nil)
 	w := httptest.NewRecorder()
 	ctx := authboss.NewContext()
 	session := mocks.NewMockClientStorer()
 	session.Put(authboss.SessionOAuth2State, authboss.FormValueOAuth2State)
+	session.Put(authboss.SessionOAuth2Params, `{"redir":"/myurl?myparam=5","rm":"true"}`)
+
 	storer := mocks.NewMockStorer()
 	ctx.SessionStorer = session
 	cfg.OAuth2Storer = storer
@@ -232,9 +221,9 @@ func TestOAuthXSRFFailure(t *testing.T) {
 	values.Set(authboss.FormValueOAuth2State, "notstate")
 	values.Set("code", "code")
 
-	r, _ := http.NewRequest("GET", "/oauth2/google?"+values.Encode(), nil)
 	ctx := authboss.NewContext()
 	ctx.SessionStorer = session
+	r, _ := http.NewRequest("GET", "/oauth2/google?"+values.Encode(), nil)
 
 	err := oauthCallback(ctx, nil, r)
 	if err != errOAuthStateValidation {
@@ -253,9 +242,13 @@ func TestOAuthFailure(t *testing.T) {
 	values.Set("error_reason", "auth_failure")
 	values.Set("error_description", "Failed to auth.")
 
+	ctx := authboss.NewContext()
+	session := mocks.NewMockClientStorer()
+	session.Put(authboss.SessionOAuth2State, authboss.FormValueOAuth2State)
+	ctx.SessionStorer = session
 	r, _ := http.NewRequest("GET", "/oauth2/google?"+values.Encode(), nil)
 
-	err := oauthCallback(nil, nil, r)
+	err := oauthCallback(ctx, nil, r)
 	if red, ok := err.(authboss.ErrAndRedirect); !ok {
 		t.Error("Should be a redirect error")
 	} else if len(red.FlashError) == 0 {

@@ -6,9 +6,9 @@ import (
 	"crypto/md5"
 	"crypto/rand"
 	"encoding/base64"
+	"encoding/json"
 	"errors"
 	"fmt"
-	"strings"
 
 	"gopkg.in/authboss.v0"
 )
@@ -97,24 +97,18 @@ func (r *Remember) afterAuth(ctx *authboss.Context) error {
 // Has to pander to horrible state variable packing to figure out if we want
 // to be remembered.
 func (r *Remember) afterOAuth(ctx *authboss.Context) error {
-	state, ok := ctx.FirstFormValue(authboss.FormValueOAuth2State)
+	sessValues, ok := ctx.SessionStorer.Get(authboss.SessionOAuth2Params)
 	if !ok {
 		return nil
 	}
 
-	splState := strings.Split(state, ";")
-	if len(splState) < 0 {
-		return nil
+	var values map[string]string
+	if err := json.Unmarshal([]byte(sessValues), &values); err != nil {
+		return err
 	}
 
-	should := false
-	for _, arg := range splState[1:] {
-		spl := strings.Split(arg, "=")
-		if spl[0] == authboss.CookieRemember {
-			should = spl[1] == "true"
-			break
-		}
-	}
+	val, ok := values[authboss.CookieRemember]
+	should := ok && val == "true"
 
 	if !should {
 		return nil

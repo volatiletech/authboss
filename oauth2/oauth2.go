@@ -3,6 +3,7 @@ package oauth2
 import (
 	"crypto/rand"
 	"encoding/base64"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"net/http"
@@ -87,14 +88,21 @@ func oauthInit(ctx *authboss.Context, w http.ResponseWriter, r *http.Request) er
 	state := base64.URLEncoding.EncodeToString(random)
 	ctx.SessionStorer.Put(authboss.SessionOAuth2State, state)
 
-	var passAlongs []string
+	passAlongs := make(map[string]string)
 	for k, vals := range r.URL.Query() {
 		for _, val := range vals {
-			passAlongs = append(passAlongs, fmt.Sprintf("%s=%s", k, val))
+			passAlongs[k] = val
 		}
 	}
+
 	if len(passAlongs) > 0 {
-		state += ";" + strings.Join(passAlongs, ";")
+		str, err := json.Marshal(passAlongs)
+		if err != nil {
+			return err
+		}
+		ctx.SessionStorer.Put(authboss.SessionOAuth2Params, string(str))
+	} else {
+		ctx.SessionStorer.Del(authboss.SessionOAuth2Params)
 	}
 
 	url := cfg.OAuth2Config.AuthCodeURL(state)
@@ -114,6 +122,21 @@ var exchanger = (*oauth2.Config).Exchange
 func oauthCallback(ctx *authboss.Context, w http.ResponseWriter, r *http.Request) error {
 	provider := strings.ToLower(filepath.Base(r.URL.Path))
 
+	sessState, err := ctx.SessionStorer.GetErr(authboss.SessionOAuth2State)
+	ctx.SessionStorer.Del(authboss.SessionOAuth2State)
+	if err != nil {
+		return err
+	}
+
+	sessValues, ok := ctx.SessionStorer.Get(authboss.SessionOAuth2Params)
+	// Don't delete this value from session immediately, callbacks use this too
+	var values map[string]string
+	if ok {
+		if err := json.Unmarshal([]byte(sessValues), &values); err != nil {
+			return err
+		}
+	}
+
 	hasErr := r.FormValue("error")
 	if len(hasErr) > 0 {
 		if err := authboss.Cfg.Callbacks.FireAfter(authboss.EventOAuthFail, ctx); err != nil {
@@ -126,12 +149,6 @@ func oauthCallback(ctx *authboss.Context, w http.ResponseWriter, r *http.Request
 			FlashError: fmt.Sprintf("%s login cancelled or failed.", strings.Title(provider)),
 		}
 	}
-
-	sessState, err := ctx.SessionStorer.GetErr(authboss.SessionOAuth2State)
-	if err != nil {
-		return err
-	}
-	ctx.SessionStorer.Del(authboss.SessionOAuth2State)
 
 	cfg, ok := authboss.Cfg.OAuth2Providers[provider]
 	if !ok {
@@ -183,23 +200,22 @@ func oauthCallback(ctx *authboss.Context, w http.ResponseWriter, r *http.Request
 		return nil
 	}
 
+	ctx.SessionStorer.Del(authboss.SessionOAuth2Params)
+
 	redirect := authboss.Cfg.AuthLoginOKPath
-	values := make(url.Values)
-	if len(splState) > 0 {
-		for _, arg := range splState[1:] {
-			spl := strings.Split(arg, "=")
-			switch spl[0] {
-			case authboss.CookieRemember:
-			case authboss.FormValueRedirect:
-				redirect = spl[1]
-			default:
-				values.Set(spl[0], spl[1])
-			}
+	query := make(url.Values)
+	for k, v := range values {
+		switch k {
+		case authboss.CookieRemember:
+		case authboss.FormValueRedirect:
+			redirect = v
+		default:
+			query.Set(k, v)
 		}
 	}
 
-	if len(values) > 0 {
-		redirect = fmt.Sprintf("%s?%s", redirect, values.Encode())
+	if len(query) > 0 {
+		redirect = fmt.Sprintf("%s?%s", redirect, query.Encode())
 	}
 
 	http.Redirect(w, r, redirect, http.StatusFound)

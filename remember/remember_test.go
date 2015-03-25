@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"fmt"
 	"net/http"
-	"net/url"
 	"testing"
 
 	"gopkg.in/authboss.v0"
@@ -73,9 +72,9 @@ func TestAfterOAuth(t *testing.T) {
 	authboss.Cfg.Storer = storer
 
 	cookies := mocks.NewMockClientStorer()
-	session := mocks.NewMockClientStorer()
+	session := mocks.NewMockClientStorer(authboss.SessionOAuth2Params, `{"rm":"true"}`)
 
-	uri := fmt.Sprintf("%s?state=%s", "localhost/oauthed", url.QueryEscape("xsrf;rm=true"))
+	uri := fmt.Sprintf("%s?state=%s", "localhost/oauthed", "xsrf")
 	req, err := http.NewRequest("GET", uri, nil)
 	if err != nil {
 		t.Error("Unexpected Error:", err)

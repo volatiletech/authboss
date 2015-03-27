@@ -252,6 +252,9 @@ their new password is stored, they are logged in and redirected to the RecoverOK
 A separate table/Nested Array containing many tokens for any given user
 - Token (string)
 
+**RememberStorer:** A remember storer is an interface that must be satisfied by one of the authboss.Cfg.Storer or authboss.Cfg.OAuth2Storer if
+neither satisfies the requirement the module will fail to load.
+
 **How it works:** When the authentication form is submitted if the form value rm is set to "true" the remember module will automatically
 create a remember token for the user and set this in the database as well as in a cookie. As for OAuth2 logins, it will look for
 an encoded state parameter that is automatically included by simply passing rm=true in the query arguments to the initial oauth2 login

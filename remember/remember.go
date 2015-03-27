@@ -25,8 +25,10 @@ var (
 // storage requirements. If the implementer is a typical database then
 // the tokens should be stored in a separate table since they require a 1-n
 // with the user for each device the user wishes to remain logged in on.
+//
+// Remember storer will look at both authboss's configured Storer and OAuth2Storer
+// for compatibility.
 type RememberStorer interface {
-	authboss.Storer
 	// AddToken saves a new token for the key.
 	AddToken(key, token string) error
 	// DelTokens removes all tokens for a given key.
@@ -45,12 +47,14 @@ type Remember struct{}
 
 // Initialize module
 func (r *Remember) Initialize() error {
-	if authboss.Cfg.Storer == nil {
+	if authboss.Cfg.Storer == nil && authboss.Cfg.OAuth2Storer == nil {
 		return errors.New("remember: Need a RememberStorer")
 	}
 
 	if _, ok := authboss.Cfg.Storer.(RememberStorer); !ok {
-		return errors.New("remember: RememberStorer required for remember functionality")
+		if _, ok := authboss.Cfg.OAuth2Storer.(RememberStorer); !ok {
+			return errors.New("remember: RememberStorer required for remember functionality")
+		}
 	}
 
 	authboss.Cfg.Callbacks.Before(authboss.EventGetUserSession, r.auth)
@@ -68,7 +72,9 @@ func (r *Remember) Routes() authboss.RouteTable {
 
 // Storage requirements
 func (r *Remember) Storage() authboss.StorageOptions {
-	return nil
+	return authboss.StorageOptions{
+		authboss.Cfg.PrimaryID: authboss.String,
+	}
 }
 
 // afterAuth is called after authentication is successful.
@@ -146,12 +152,15 @@ func (r *Remember) afterPassword(ctx *authboss.Context) error {
 	}
 
 	ctx.CookieStorer.Del(authboss.CookieRemember)
-	rememberStorer, ok := authboss.Cfg.Storer.(RememberStorer)
-	if !ok {
-		return nil
+
+	var storer RememberStorer
+	if storer, ok = authboss.Cfg.Storer.(RememberStorer); !ok {
+		if storer, ok = authboss.Cfg.OAuth2Storer.(RememberStorer); !ok {
+			return nil
+		}
 	}
 
-	return rememberStorer.DelTokens(id)
+	return storer.DelTokens(id)
 }
 
 // new generates a new remember token and stores it in the configured RememberStorer.
@@ -170,8 +179,14 @@ func (r *Remember) new(cstorer authboss.ClientStorer, storageKey string) (string
 	finalToken := base64.URLEncoding.EncodeToString(token)
 	storageToken := base64.StdEncoding.EncodeToString(sum[:])
 
+	var storer RememberStorer
+	var ok bool
+	if storer, ok = authboss.Cfg.Storer.(RememberStorer); !ok {
+		storer, ok = authboss.Cfg.OAuth2Storer.(RememberStorer)
+	}
+
 	// Save the token in the DB
-	if err := authboss.Cfg.Storer.(RememberStorer).AddToken(storageKey, storageToken); err != nil {
+	if err := storer.AddToken(storageKey, storageToken); err != nil {
 		return "", err
 	}
 
@@ -210,7 +225,12 @@ func (r *Remember) auth(ctx *authboss.Context) (authboss.Interrupt, error) {
 	// Verify the tokens match.
 	sum := md5.Sum(token)
 
-	err = authboss.Cfg.Storer.(RememberStorer).UseToken(givenKey, base64.StdEncoding.EncodeToString(sum[:]))
+	var storer RememberStorer
+	if storer, ok = authboss.Cfg.Storer.(RememberStorer); !ok {
+		storer, ok = authboss.Cfg.OAuth2Storer.(RememberStorer)
+	}
+
+	err = storer.UseToken(givenKey, base64.StdEncoding.EncodeToString(sum[:]))
 	if err == authboss.ErrTokenNotFound {
 		return authboss.InterruptNone, nil
 	} else if err != nil {

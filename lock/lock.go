@@ -50,9 +50,10 @@ func (l *Lock) Routes() authboss.RouteTable {
 // Storage requirements
 func (l *Lock) Storage() authboss.StorageOptions {
 	return authboss.StorageOptions{
-		StoreAttemptNumber: authboss.Integer,
-		StoreAttemptTime:   authboss.DateTime,
-		StoreLocked:        authboss.DateTime,
+		authboss.Cfg.PrimaryID: authboss.String,
+		StoreAttemptNumber:     authboss.Integer,
+		StoreAttemptTime:       authboss.DateTime,
+		StoreLocked:            authboss.DateTime,
 	}
 }
 

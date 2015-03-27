@@ -84,8 +84,10 @@ func (c *Confirm) Routes() authboss.RouteTable {
 // Storage requirements
 func (c *Confirm) Storage() authboss.StorageOptions {
 	return authboss.StorageOptions{
-		StoreConfirmToken: authboss.String,
-		StoreConfirmed:    authboss.Bool,
+		authboss.Cfg.PrimaryID: authboss.String,
+		authboss.StoreEmail:    authboss.String,
+		StoreConfirmToken:      authboss.String,
+		StoreConfirmed:         authboss.Bool,
 	}
 }
 

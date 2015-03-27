@@ -218,6 +218,7 @@ See also: [Validation](#validation)
 - [Views](#views)
 
 **Storage Requirements:**
+- Email (string)
 - ConfirmToken (string)
 - Confirmed (bool)
 

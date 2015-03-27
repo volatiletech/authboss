@@ -84,8 +84,9 @@ primary key, etc...). In that case the cleanup will not be performed.
 
 The w and r parameters are for establishing session and cookie storers.
 
-The ptPassword parameter is for the password to update to, if it is empty then
-nothing is updated and the cleanup routines are not called.
+The ptPassword parameter is the new password to update to. updater is called
+regardless if this is empty or not, but if it is empty, it will not set a new
+password before calling updater.
 
 The user parameter is the user struct which will have it's
 Password string/sql.NullString value set to the new bcrypted password. Therefore

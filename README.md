@@ -113,14 +113,14 @@ user struct, nil     | The user is logged in.
 Because on password reset various cleanings need to happen (for example Remember Me tokens
 should all be deleted) setting the user's password yourself is not a good idea.
 
-Authboss has the UpdatePassword method for you to use. Please consult it's documentation
-for a thorough explanation of each parameter.
+Authboss has the [UpdatePassword](http://godoc.org/gopkg.in/authboss.v0#UpdatePassword) method for you to use. Please consult it's documentation
+for a thorough explanation of each parameter and usage.
 
 ```go
 func UpdatePassword(w http.ResponseWriter, r *http.Request, ptPassword string, user interface{}, updater func() error) error
 ```
 
-Please read it's documentation as it's quite thorough, an example usage might be:
+An example usage might be:
 
 ```go
 myUserSave := func() error {

@@ -28,7 +28,14 @@ Remember       | [gopkg.in/authboss.v0/remember](https://github.com/go-authboss/
 
 Getting Started
 ===============
-The first place to start in any Authboss implementation is the [configuration struct](http://godoc.org/gopkg.in/authboss.v0#Config).
+
+Install the library and import it:
+
+```
+go get gopkg.in/authboss.v0
+```
+
+After that a good place to start in any Authboss implementation is the [configuration struct](http://godoc.org/gopkg.in/authboss.v0#Config).
 There are many defaults setup for you but there are some elements that must be provided.
 to find out what is configurable view the documentation linked to above, each struct element
 is documented.

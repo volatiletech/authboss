@@ -82,6 +82,7 @@ Once you've got this code set up, it's time to implement the use cases you care 
 - Locking user accounts after so many authentication failures ([goto](#lock))
 - Expiring user sessions after inactivity ([goto](#expire))
 - Form Field validation for Authboss forms ([goto](#validation))
+- Redirect after authboss route (login/logout/oauth etc.) ([goto](#redirecting))
 
 <a name="how_to"></a>How To
 ============================
@@ -327,6 +328,18 @@ authboss.Cfg.ConfirmFields: []string{
 	StorePassword, ConfirmPrefix + StorePassword,
 },
 ```
+
+## <a name="redirecting"></a> Redirecting after Authboss routes
+
+Sometimes you want your web application to authenticate a user and redirect him back
+to where he came from, or to a different page. You can do this by passing the "redir" query parameter
+with a path to whatever authboss URL you'd like. For example:
+
+```html
+<a href="/auth/login?redir=/userprofile">Login</a>
+```
+
+These redirection paths only occur on success currently, although this may change in the future.
 
 ## <a name="storers"></a> Implementing Storers
 Authboss makes no presumptions about how you want to store your data. While different web frameworks have their own authentication plugins

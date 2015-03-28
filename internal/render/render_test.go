@@ -124,13 +124,39 @@ func TestRedirect(t *testing.T) {
 	ctx, _ := authboss.ContextFromRequest(r)
 	ctx.SessionStorer = cookies
 
-	Redirect(ctx, w, r, "/", "success", "failure")
+	Redirect(ctx, w, r, "/", "success", "failure", false)
 
 	if w.Code != http.StatusFound {
 		t.Error("Expected a redirect.")
 	}
 
 	if w.Header().Get("Location") != "/" {
+		t.Error("Expected to be redirected to root.")
+	}
+
+	if val, _ := cookies.Get(authboss.FlashSuccessKey); val != "success" {
+		t.Error("Flash success msg wrong:", val)
+	}
+	if val, _ := cookies.Get(authboss.FlashErrorKey); val != "failure" {
+		t.Error("Flash failure msg wrong:", val)
+	}
+}
+
+func TestRedirect_Ovveride(t *testing.T) {
+	cookies := mocks.NewMockClientStorer()
+
+	r, _ := http.NewRequest("GET", "http://localhost?redir=foo/bar", nil)
+	w := httptest.NewRecorder()
+	ctx, _ := authboss.ContextFromRequest(r)
+	ctx.SessionStorer = cookies
+
+	Redirect(ctx, w, r, "/shouldNotGo", "success", "failure", true)
+
+	if w.Code != http.StatusFound {
+		t.Error("Expected a redirect.")
+	}
+
+	if w.Header().Get("Location") != "/foo/bar" {
 		t.Error("Expected to be redirected to root.")
 	}
 

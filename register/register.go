@@ -117,12 +117,12 @@ func (reg *Register) registerPostHandler(ctx *authboss.Context, w http.ResponseW
 	}
 
 	if authboss.IsLoaded("confirm") {
-		render.Redirect(ctx, w, r, authboss.Cfg.RegisterOKPath, "Account successfully created, please verify your e-mail address.", "")
+		render.Redirect(ctx, w, r, authboss.Cfg.RegisterOKPath, "Account successfully created, please verify your e-mail address.", "", true)
 		return nil
 	}
 
 	ctx.SessionStorer.Put(authboss.SessionKey, key)
-	render.Redirect(ctx, w, r, authboss.Cfg.RegisterOKPath, "Account successfully created, you are now logged in.", "")
+	render.Redirect(ctx, w, r, authboss.Cfg.RegisterOKPath, "Account successfully created, you are now logged in.", "", true)
 
 	return nil
 }

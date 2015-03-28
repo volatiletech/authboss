@@ -188,7 +188,7 @@ func (c *Confirm) confirmHandler(ctx *authboss.Context, w http.ResponseWriter, r
 	}
 
 	ctx.SessionStorer.Put(authboss.SessionKey, key)
-	render.Redirect(ctx, w, r, authboss.Cfg.RegisterOKPath, "You have successfully confirmed your account.", "")
+	render.Redirect(ctx, w, r, authboss.Cfg.RegisterOKPath, "You have successfully confirmed your account.", "", true)
 
 	return nil
 }

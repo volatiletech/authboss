@@ -70,7 +70,8 @@ func (a *Auth) loginHandlerFunc(ctx *authboss.Context, w http.ResponseWriter, r 
 	case methodGET:
 		if _, ok := ctx.SessionStorer.Get(authboss.SessionKey); ok {
 			if halfAuthed, ok := ctx.SessionStorer.Get(authboss.SessionHalfAuthKey); !ok || halfAuthed == "false" {
-				http.Redirect(w, r, authboss.Cfg.AuthLoginOKPath, http.StatusFound)
+				//http.Redirect(w, r, authboss.Cfg.AuthLoginOKPath, http.StatusFound, true)
+				render.Redirect(ctx, w, r, authboss.Cfg.AuthLoginOKPath, "", "", true)
 				return nil
 			}
 		}
@@ -114,7 +115,7 @@ func (a *Auth) loginHandlerFunc(ctx *authboss.Context, w http.ResponseWriter, r 
 			case authboss.InterruptAccountNotConfirmed:
 				reason = "Your account has not been confirmed."
 			}
-			render.Redirect(ctx, w, r, authboss.Cfg.AuthLoginFailPath, "", reason)
+			render.Redirect(ctx, w, r, authboss.Cfg.AuthLoginFailPath, "", reason, false)
 			return nil
 		}
 
@@ -124,7 +125,7 @@ func (a *Auth) loginHandlerFunc(ctx *authboss.Context, w http.ResponseWriter, r 
 		if err := authboss.Cfg.Callbacks.FireAfter(authboss.EventAuth, ctx); err != nil {
 			return err
 		}
-		http.Redirect(w, r, authboss.Cfg.AuthLoginOKPath, http.StatusFound)
+		render.Redirect(ctx, w, r, authboss.Cfg.AuthLoginOKPath, "", "", true)
 	default:
 		w.WriteHeader(http.StatusMethodNotAllowed)
 	}
@@ -156,7 +157,7 @@ func (a *Auth) logoutHandlerFunc(ctx *authboss.Context, w http.ResponseWriter, r
 		ctx.CookieStorer.Del(authboss.CookieRemember)
 		ctx.SessionStorer.Del(authboss.SessionLastAction)
 
-		http.Redirect(w, r, authboss.Cfg.AuthLogoutOKPath, http.StatusFound)
+		render.Redirect(ctx, w, r, authboss.Cfg.AuthLogoutOKPath, "", "", true)
 	default:
 		w.WriteHeader(http.StatusMethodNotAllowed)
 	}

@@ -168,7 +168,7 @@ func (rec *Recover) startHandlerFunc(ctx *authboss.Context, w http.ResponseWrite
 		goRecoverEmail(rec, email, encodedToken)
 
 		ctx.SessionStorer.Put(authboss.FlashSuccessKey, recoverInitiateSuccessFlash)
-		http.Redirect(w, r, authboss.Cfg.RecoverOKPath, http.StatusFound)
+		render.Redirect(ctx, w, r, authboss.Cfg.RecoverOKPath, "", "", true)
 	default:
 		w.WriteHeader(http.StatusMethodNotAllowed)
 	}
@@ -266,7 +266,7 @@ func (r *Recover) completeHandlerFunc(ctx *authboss.Context, w http.ResponseWrit
 		}
 
 		ctx.SessionStorer.Put(authboss.SessionKey, primaryID)
-		http.Redirect(w, req, authboss.Cfg.AuthLoginOKPath, http.StatusFound)
+		render.Redirect(ctx, w, req, authboss.Cfg.AuthLoginOKPath, "", "", true)
 	default:
 		w.WriteHeader(http.StatusMethodNotAllowed)
 	}

@@ -14,6 +14,7 @@ import (
 
 	"golang.org/x/oauth2"
 	"gopkg.in/authboss.v0"
+	"gopkg.in/authboss.v0/internal/render"
 )
 
 var (
@@ -218,7 +219,8 @@ func oauthCallback(ctx *authboss.Context, w http.ResponseWriter, r *http.Request
 		redirect = fmt.Sprintf("%s?%s", redirect, query.Encode())
 	}
 
-	http.Redirect(w, r, redirect, http.StatusFound)
+	sf := fmt.Sprintf("Logged in successfully with %s.", strings.Title(provider))
+	render.Redirect(ctx, w, r, redirect, sf, "", false)
 	return nil
 }
 
@@ -229,7 +231,7 @@ func logout(ctx *authboss.Context, w http.ResponseWriter, r *http.Request) error
 		ctx.CookieStorer.Del(authboss.CookieRemember)
 		ctx.SessionStorer.Del(authboss.SessionLastAction)
 
-		http.Redirect(w, r, authboss.Cfg.AuthLogoutOKPath, http.StatusFound)
+		render.Redirect(ctx, w, r, authboss.Cfg.AuthLogoutOKPath, "You have logged out", "", true)
 	default:
 		w.WriteHeader(http.StatusMethodNotAllowed)
 	}

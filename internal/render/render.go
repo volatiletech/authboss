@@ -138,7 +138,11 @@ func RenderEmail(email authboss.Email, htmlTpls Templates, nameHTML string, text
 }
 
 // Redirect sets any flash messages given and redirects the user.
-func Redirect(ctx *authboss.Context, w http.ResponseWriter, r *http.Request, path, flashSuccess, flashError string) {
+func Redirect(ctx *authboss.Context, w http.ResponseWriter, r *http.Request, path, flashSuccess, flashError string, overrideableRedir bool) {
+	if redir := r.FormValue("redir"); redir != "" && overrideableRedir {
+		path = redir
+	}
+
 	if len(flashSuccess) > 0 {
 		ctx.SessionStorer.Put(authboss.FlashSuccessKey, flashSuccess)
 	}

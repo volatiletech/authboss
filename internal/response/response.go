@@ -1,7 +1,7 @@
-// Package render is responsible for loading and rendering authboss templates.
-package render
+// Package response is responsible for loading and rendering authboss templates.
+package response
 
-//go:generate go-bindata -pkg=render -prefix=templates templates
+//go:generate go-bindata -pkg=response -prefix=templates templates
 
 import (
 	"bytes"
@@ -107,7 +107,7 @@ func (t Templates) Render(ctx *authboss.Context, w http.ResponseWriter, r *http.
 }
 
 // RenderEmail renders the html and plaintext views for an email and sends it
-func RenderEmail(email authboss.Email, htmlTpls Templates, nameHTML string, textTpls Templates, namePlain string, data interface{}) error {
+func Email(email authboss.Email, htmlTpls Templates, nameHTML string, textTpls Templates, namePlain string, data interface{}) error {
 	tplHTML, ok := htmlTpls[nameHTML]
 	if !ok {
 		return authboss.RenderErr{tplHTML.Name(), data, ErrTemplateNotFound}

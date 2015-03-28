@@ -8,7 +8,7 @@ import (
 
 	"golang.org/x/crypto/bcrypt"
 	"gopkg.in/authboss.v0"
-	"gopkg.in/authboss.v0/internal/render"
+	"gopkg.in/authboss.v0/internal/response"
 )
 
 const (
@@ -24,7 +24,7 @@ func init() {
 
 // Auth module
 type Auth struct {
-	templates render.Templates
+	templates response.Templates
 }
 
 // Initialize module
@@ -41,7 +41,7 @@ func (a *Auth) Initialize() (err error) {
 		return errors.New("auth: XSRFMaker must be defined")
 	}
 
-	a.templates, err = render.LoadTemplates(authboss.Cfg.Layout, authboss.Cfg.ViewsPath, tplLogin)
+	a.templates, err = response.LoadTemplates(authboss.Cfg.Layout, authboss.Cfg.ViewsPath, tplLogin)
 	if err != nil {
 		return err
 	}
@@ -71,7 +71,7 @@ func (a *Auth) loginHandlerFunc(ctx *authboss.Context, w http.ResponseWriter, r 
 		if _, ok := ctx.SessionStorer.Get(authboss.SessionKey); ok {
 			if halfAuthed, ok := ctx.SessionStorer.Get(authboss.SessionHalfAuthKey); !ok || halfAuthed == "false" {
 				//http.Redirect(w, r, authboss.Cfg.AuthLoginOKPath, http.StatusFound, true)
-				render.Redirect(ctx, w, r, authboss.Cfg.AuthLoginOKPath, "", "", true)
+				response.Redirect(ctx, w, r, authboss.Cfg.AuthLoginOKPath, "", "", true)
 				return nil
 			}
 		}
@@ -115,7 +115,7 @@ func (a *Auth) loginHandlerFunc(ctx *authboss.Context, w http.ResponseWriter, r 
 			case authboss.InterruptAccountNotConfirmed:
 				reason = "Your account has not been confirmed."
 			}
-			render.Redirect(ctx, w, r, authboss.Cfg.AuthLoginFailPath, "", reason, false)
+			response.Redirect(ctx, w, r, authboss.Cfg.AuthLoginFailPath, "", reason, false)
 			return nil
 		}
 
@@ -125,7 +125,7 @@ func (a *Auth) loginHandlerFunc(ctx *authboss.Context, w http.ResponseWriter, r 
 		if err := authboss.Cfg.Callbacks.FireAfter(authboss.EventAuth, ctx); err != nil {
 			return err
 		}
-		render.Redirect(ctx, w, r, authboss.Cfg.AuthLoginOKPath, "", "", true)
+		response.Redirect(ctx, w, r, authboss.Cfg.AuthLoginOKPath, "", "", true)
 	default:
 		w.WriteHeader(http.StatusMethodNotAllowed)
 	}
@@ -157,7 +157,7 @@ func (a *Auth) logoutHandlerFunc(ctx *authboss.Context, w http.ResponseWriter, r
 		ctx.CookieStorer.Del(authboss.CookieRemember)
 		ctx.SessionStorer.Del(authboss.SessionLastAction)
 
-		render.Redirect(ctx, w, r, authboss.Cfg.AuthLogoutOKPath, "", "", true)
+		response.Redirect(ctx, w, r, authboss.Cfg.AuthLogoutOKPath, "You have logged out", "", true)
 	default:
 		w.WriteHeader(http.StatusMethodNotAllowed)
 	}

@@ -7,7 +7,7 @@ import (
 
 	"golang.org/x/crypto/bcrypt"
 	"gopkg.in/authboss.v0"
-	"gopkg.in/authboss.v0/internal/render"
+	"gopkg.in/authboss.v0/internal/response"
 )
 
 const (
@@ -28,7 +28,7 @@ func init() {
 
 // Register module.
 type Register struct {
-	templates render.Templates
+	templates response.Templates
 }
 
 // Initialize the module.
@@ -41,7 +41,7 @@ func (r *Register) Initialize() (err error) {
 		return errors.New("register: RegisterStorer required for register functionality")
 	}
 
-	if r.templates, err = render.LoadTemplates(authboss.Cfg.Layout, authboss.Cfg.ViewsPath, tplRegister); err != nil {
+	if r.templates, err = response.LoadTemplates(authboss.Cfg.Layout, authboss.Cfg.ViewsPath, tplRegister); err != nil {
 		return err
 	}
 
@@ -117,12 +117,12 @@ func (reg *Register) registerPostHandler(ctx *authboss.Context, w http.ResponseW
 	}
 
 	if authboss.IsLoaded("confirm") {
-		render.Redirect(ctx, w, r, authboss.Cfg.RegisterOKPath, "Account successfully created, please verify your e-mail address.", "", true)
+		response.Redirect(ctx, w, r, authboss.Cfg.RegisterOKPath, "Account successfully created, please verify your e-mail address.", "", true)
 		return nil
 	}
 
 	ctx.SessionStorer.Put(authboss.SessionKey, key)
-	render.Redirect(ctx, w, r, authboss.Cfg.RegisterOKPath, "Account successfully created, you are now logged in.", "", true)
+	response.Redirect(ctx, w, r, authboss.Cfg.RegisterOKPath, "Account successfully created, you are now logged in.", "", true)
 
 	return nil
 }

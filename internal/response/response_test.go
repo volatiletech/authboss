@@ -1,4 +1,4 @@
-package render
+package response
 
 import (
 	"html/template"
@@ -84,7 +84,7 @@ func TestTemplates_Render(t *testing.T) {
 	}
 }
 
-func TestTemplates_RenderEmail(t *testing.T) {
+func Test_Email(t *testing.T) {
 	mockMailer := &mocks.MockMailer{}
 	authboss.Cfg.Mailer = mockMailer
 
@@ -95,7 +95,7 @@ func TestTemplates_RenderEmail(t *testing.T) {
 		To: []string{"a@b.c"},
 	}
 
-	err := RenderEmail(email, htmlTpls, "html", textTpls, "plain", "spoon")
+	err := Email(email, htmlTpls, "html", textTpls, "plain", "spoon")
 	if err != nil {
 		t.Error(err)
 	}
@@ -142,7 +142,7 @@ func TestRedirect(t *testing.T) {
 	}
 }
 
-func TestRedirect_Ovveride(t *testing.T) {
+func TestRedirect_Override(t *testing.T) {
 	cookies := mocks.NewMockClientStorer()
 
 	r, _ := http.NewRequest("GET", "http://localhost?redir=foo/bar", nil)

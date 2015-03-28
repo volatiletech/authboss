@@ -12,7 +12,7 @@ import (
 	"path"
 
 	"gopkg.in/authboss.v0"
-	"gopkg.in/authboss.v0/internal/render"
+	"gopkg.in/authboss.v0/internal/response"
 )
 
 // Storer and FormValue constants
@@ -46,8 +46,8 @@ func init() {
 
 // Confirm module
 type Confirm struct {
-	emailHTMLTemplates render.Templates
-	emailTextTemplates render.Templates
+	emailHTMLTemplates response.Templates
+	emailTextTemplates response.Templates
 }
 
 // Initialize the module
@@ -58,11 +58,11 @@ func (c *Confirm) Initialize() (err error) {
 		return errors.New("confirm: Need a ConfirmStorer")
 	}
 
-	c.emailHTMLTemplates, err = render.LoadTemplates(authboss.Cfg.LayoutHTMLEmail, authboss.Cfg.ViewsPath, tplConfirmHTML)
+	c.emailHTMLTemplates, err = response.LoadTemplates(authboss.Cfg.LayoutHTMLEmail, authboss.Cfg.ViewsPath, tplConfirmHTML)
 	if err != nil {
 		return err
 	}
-	c.emailTextTemplates, err = render.LoadTemplates(authboss.Cfg.LayoutTextEmail, authboss.Cfg.ViewsPath, tplConfirmText)
+	c.emailTextTemplates, err = response.LoadTemplates(authboss.Cfg.LayoutTextEmail, authboss.Cfg.ViewsPath, tplConfirmText)
 	if err != nil {
 		return err
 	}
@@ -144,7 +144,7 @@ func (c *Confirm) confirmEmail(to, token string) {
 		Subject: authboss.Cfg.EmailSubjectPrefix + "Confirm New Account",
 	}
 
-	err := render.RenderEmail(email, c.emailHTMLTemplates, tplConfirmHTML, c.emailTextTemplates, tplConfirmText, url)
+	err := response.Email(email, c.emailHTMLTemplates, tplConfirmHTML, c.emailTextTemplates, tplConfirmText, url)
 	if err != nil {
 		fmt.Fprintf(authboss.Cfg.LogWriter, "confirm: Failed to send e-mail: %v", err)
 	}
@@ -188,7 +188,7 @@ func (c *Confirm) confirmHandler(ctx *authboss.Context, w http.ResponseWriter, r
 	}
 
 	ctx.SessionStorer.Put(authboss.SessionKey, key)
-	render.Redirect(ctx, w, r, authboss.Cfg.RegisterOKPath, "You have successfully confirmed your account.", "", true)
+	response.Redirect(ctx, w, r, authboss.Cfg.RegisterOKPath, "You have successfully confirmed your account.", "", true)
 
 	return nil
 }

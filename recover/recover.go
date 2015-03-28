@@ -13,7 +13,7 @@ import (
 
 	"golang.org/x/crypto/bcrypt"
 	"gopkg.in/authboss.v0"
-	"gopkg.in/authboss.v0/internal/render"
+	"gopkg.in/authboss.v0/internal/response"
 )
 
 // Storage constants
@@ -56,9 +56,9 @@ func init() {
 
 // Recover module
 type Recover struct {
-	templates          render.Templates
-	emailHTMLTemplates render.Templates
-	emailTextTemplates render.Templates
+	templates          response.Templates
+	emailHTMLTemplates response.Templates
+	emailTextTemplates response.Templates
 }
 
 // Initialize module
@@ -79,16 +79,16 @@ func (r *Recover) Initialize() (err error) {
 		return errors.New("auth: XSRFMaker must be defined")
 	}
 
-	r.templates, err = render.LoadTemplates(authboss.Cfg.Layout, authboss.Cfg.ViewsPath, tplRecover, tplRecoverComplete)
+	r.templates, err = response.LoadTemplates(authboss.Cfg.Layout, authboss.Cfg.ViewsPath, tplRecover, tplRecoverComplete)
 	if err != nil {
 		return err
 	}
 
-	r.emailHTMLTemplates, err = render.LoadTemplates(authboss.Cfg.LayoutHTMLEmail, authboss.Cfg.ViewsPath, tplInitHTMLEmail)
+	r.emailHTMLTemplates, err = response.LoadTemplates(authboss.Cfg.LayoutHTMLEmail, authboss.Cfg.ViewsPath, tplInitHTMLEmail)
 	if err != nil {
 		return err
 	}
-	r.emailTextTemplates, err = render.LoadTemplates(authboss.Cfg.LayoutTextEmail, authboss.Cfg.ViewsPath, tplInitTextEmail)
+	r.emailTextTemplates, err = response.LoadTemplates(authboss.Cfg.LayoutTextEmail, authboss.Cfg.ViewsPath, tplInitTextEmail)
 	if err != nil {
 		return err
 	}
@@ -168,7 +168,7 @@ func (rec *Recover) startHandlerFunc(ctx *authboss.Context, w http.ResponseWrite
 		goRecoverEmail(rec, email, encodedToken)
 
 		ctx.SessionStorer.Put(authboss.FlashSuccessKey, recoverInitiateSuccessFlash)
-		render.Redirect(ctx, w, r, authboss.Cfg.RecoverOKPath, "", "", true)
+		response.Redirect(ctx, w, r, authboss.Cfg.RecoverOKPath, "", "", true)
 	default:
 		w.WriteHeader(http.StatusMethodNotAllowed)
 	}
@@ -200,7 +200,7 @@ func (r *Recover) sendRecoverEmail(to, encodedToken string) {
 		Subject: authboss.Cfg.EmailSubjectPrefix + "Password Reset",
 	}
 
-	if err := render.RenderEmail(email, r.emailHTMLTemplates, tplInitHTMLEmail, r.emailTextTemplates, tplInitTextEmail, url); err != nil {
+	if err := response.Email(email, r.emailHTMLTemplates, tplInitHTMLEmail, r.emailTextTemplates, tplInitTextEmail, url); err != nil {
 		fmt.Fprintln(authboss.Cfg.LogWriter, "recover: failed to send recover email:", err)
 	}
 }
@@ -266,7 +266,7 @@ func (r *Recover) completeHandlerFunc(ctx *authboss.Context, w http.ResponseWrit
 		}
 
 		ctx.SessionStorer.Put(authboss.SessionKey, primaryID)
-		render.Redirect(ctx, w, req, authboss.Cfg.AuthLoginOKPath, "", "", true)
+		response.Redirect(ctx, w, req, authboss.Cfg.AuthLoginOKPath, "", "", true)
 	default:
 		w.WriteHeader(http.StatusMethodNotAllowed)
 	}

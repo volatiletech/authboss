@@ -333,13 +333,13 @@ authboss.Cfg.ConfirmFields: []string{
 
 Sometimes you want your web application to authenticate a user and redirect him back
 to where he came from, or to a different page. You can do this by passing the "redir" query parameter
-with a path to whatever authboss URL you'd like. For example:
+with a path to whatever URL you'd like. For example:
 
 ```html
 <a href="/auth/login?redir=/userprofile">Login</a>
 ```
 
-These redirection paths only occur on success currently, although this may change in the future.
+These redirection paths only occur on success paths currently, although this may change in the future.
 
 ## <a name="storers"></a> Implementing Storers
 Authboss makes no presumptions about how you want to store your data. While different web frameworks have their own authentication plugins

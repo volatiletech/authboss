@@ -379,7 +379,8 @@ on what you should be returning in each situation.
 
 The idea is to create a struct that matches Authboss's storage requirements so that it can be easily serialized from and to using reflection available
 through the methods: authboss.Attributes.Bind(), and authboss.Unbind(). These methods use a camel-case naming convention and do not have struct tags for
-naming control (yet). Oauth2Uid in the struct -> "oauth2_uid" in the attributes map and vice versa.
+naming control (yet). Oauth2Uid in the struct -> "oauth2_uid" in the attributes map and vice versa. Bind() uses reflection to set attributes so the user
+struct should be returned from storer methods as a pointer.
 
 **Fields:** Each module in authboss has storage requirements. These are listed in the documentation but also at runtime authboss.ModuleAttributes is
 available to list out each required field. The fields must be named appropriately and of the correct type. There are 5 types available: int64, string, bool, time.Time

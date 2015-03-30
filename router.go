@@ -19,7 +19,7 @@ func NewRouter() http.Handler {
 
 	for name, mod := range modules {
 		for route, handler := range mod.Routes() {
-			fmt.Fprintf(Cfg.LogWriter, "%-10s Register Route: %s\n", "["+name+"]", path.Join(Cfg.MountPath, route))
+			fmt.Fprintf(Cfg.LogWriter, "%-10s Route: %s\n", "["+name+"]", path.Join(Cfg.MountPath, route))
 			mux.Handle(path.Join(Cfg.MountPath, route), contextRoute{handler})
 		}
 	}

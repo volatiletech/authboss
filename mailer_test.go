@@ -2,16 +2,18 @@ package authboss
 
 import (
 	"bytes"
+	"io/ioutil"
 	"strings"
 	"testing"
 )
 
 func TestMailer(t *testing.T) {
-	NewConfig()
+	Cfg = NewConfig()
 	mailServer := &bytes.Buffer{}
 
 	Cfg.Mailer = LogMailer(mailServer)
 	Cfg.Storer = mockStorer{}
+	Cfg.LogWriter = ioutil.Discard
 	Init()
 
 	err := SendMail(Email{

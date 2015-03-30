@@ -3,6 +3,7 @@ package auth
 import (
 	"errors"
 	"html/template"
+	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -16,6 +17,7 @@ func testSetup() (a *Auth, s *mocks.MockStorer) {
 	s = mocks.NewMockStorer()
 
 	authboss.Cfg = authboss.NewConfig()
+	authboss.Cfg.LogWriter = ioutil.Discard
 	authboss.Cfg.Layout = template.Must(template.New("").Parse(`{{template "authboss" .}}`))
 	authboss.Cfg.Storer = s
 	authboss.Cfg.XSRFName = "xsrf"

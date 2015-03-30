@@ -170,7 +170,7 @@ func NewConfig() *Config {
 		LockWindow:   5 * time.Minute,
 		LockDuration: 5 * time.Hour,
 
-		LogWriter: ioutil.Discard,
+		LogWriter: NewDefaultLogger(),
 		Callbacks: NewCallbacks(),
 		Mailer:    LogMailer(ioutil.Discard),
 	}

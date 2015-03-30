@@ -3,6 +3,7 @@ package authboss
 import (
 	"database/sql"
 	"errors"
+	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -11,6 +12,7 @@ import (
 
 func TestMain(main *testing.M) {
 	RegisterModule("testmodule", testMod)
+	Cfg.LogWriter = ioutil.Discard
 	Init()
 	code := main.Run()
 	os.Exit(code)
@@ -18,6 +20,7 @@ func TestMain(main *testing.M) {
 
 func TestAuthBossInit(t *testing.T) {
 	Cfg = NewConfig()
+	Cfg.LogWriter = ioutil.Discard
 	err := Init()
 	if err != nil {
 		t.Error("Unexpected error:", err)
@@ -26,6 +29,7 @@ func TestAuthBossInit(t *testing.T) {
 
 func TestAuthBossCurrentUser(t *testing.T) {
 	Cfg = NewConfig()
+	Cfg.LogWriter = ioutil.Discard
 	Cfg.Storer = mockStorer{"joe": Attributes{"email": "john@john.com", "password": "lies"}}
 	Cfg.SessionStoreMaker = func(_ http.ResponseWriter, _ *http.Request) ClientStorer {
 		return mockClientStore{SessionKey: "joe"}

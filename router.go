@@ -15,16 +15,19 @@ type RouteTable map[string]HandlerFunc
 
 // NewRouter returns a router to be mounted at some mountpoint.
 func (a *Authboss) NewRouter() http.Handler {
-	mux := http.NewServeMux()
+	if a.mux != nil {
+		return a.mux
+	}
+	a.mux = http.NewServeMux()
 
-	for name, mod := range modules {
+	for name, mod := range a.loadedModules {
 		for route, handler := range mod.Routes() {
 			fmt.Fprintf(a.LogWriter, "%-10s Route: %s\n", "["+name+"]", path.Join(a.MountPath, route))
-			mux.Handle(path.Join(a.MountPath, route), contextRoute{a, handler})
+			a.mux.Handle(path.Join(a.MountPath, route), contextRoute{a, handler})
 		}
 	}
 
-	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+	a.mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		if a.NotFoundHandler != nil {
 			a.NotFoundHandler.ServeHTTP(w, r)
 		} else {
@@ -33,7 +36,7 @@ func (a *Authboss) NewRouter() http.Handler {
 		}
 	})
 
-	return mux
+	return a.mux
 }
 
 type contextRoute struct {

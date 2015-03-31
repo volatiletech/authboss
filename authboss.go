@@ -21,24 +21,41 @@ import (
 type Authboss struct {
 	Config
 	Callbacks *Callbacks
+
+	loadedModules    map[string]Modularizer
+	moduleAttributes AttributeMeta
+	mux              *http.ServeMux
 }
 
 // New makes a new instance of authboss with a default
 // configuration.
 func New() *Authboss {
 	ab := &Authboss{
-		Callbacks: NewCallbacks(),
+		Callbacks:        NewCallbacks(),
+		loadedModules:    make(map[string]Modularizer),
+		moduleAttributes: make(AttributeMeta),
 	}
-	ab.Defaults()
+	ab.Config.Defaults()
 	return ab
 }
 
-// Init authboss and it's loaded modules.
-func (a *Authboss) Init() error {
-	for name, mod := range modules {
-		fmt.Fprintf(a.LogWriter, "%-10s Initializing\n", "["+name+"]")
-		if err := mod.Initialize(a); err != nil {
+// Init authboss and the requested modules. modulesToLoad is left empty
+// all registered modules will be loaded.
+func (a *Authboss) Init(modulesToLoad ...string) error {
+	if len(modulesToLoad) == 0 {
+		modulesToLoad = RegisteredModules()
+	}
+
+	for _, name := range modulesToLoad {
+		fmt.Fprintf(a.LogWriter, "%-10s Loading\n", "["+name+"]")
+		if err := a.loadModule(name); err != nil {
 			return fmt.Errorf("[%s] Error Initializing: %v", name, err)
+		}
+	}
+
+	for _, mod := range a.loadedModules {
+		for k, v := range mod.Storage() {
+			a.moduleAttributes[k] = v
 		}
 	}
 

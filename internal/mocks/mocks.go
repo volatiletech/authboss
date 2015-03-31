@@ -279,7 +279,7 @@ func (m *MockClientStorer) Put(key, val string) { m.Values[key] = val }
 func (m *MockClientStorer) Del(key string) { delete(m.Values, key) }
 
 // MockRequestContext returns a new context as if it came from POST request.
-func MockRequestContext(postKeyValues ...string) *authboss.Context {
+func MockRequestContext(ab authboss.Authboss, postKeyValues ...string) *authboss.Context {
 	keyValues := &bytes.Buffer{}
 	for i := 0; i < len(postKeyValues); i += 2 {
 		if i != 0 {
@@ -294,7 +294,7 @@ func MockRequestContext(postKeyValues ...string) *authboss.Context {
 	}
 	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 
-	ctx, err := authboss.ContextFromRequest(req)
+	ctx, err := ab.ContextFromRequest(req)
 	if err != nil {
 		panic(err)
 	}

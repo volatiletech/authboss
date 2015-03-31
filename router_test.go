@@ -9,6 +9,12 @@ import (
 	"testing"
 )
 
+const testRouterModName = "testrouter"
+
+func init() {
+	RegisterModule(testRouterModName, testRouterModule{})
+}
+
 type testRouterModule struct {
 	routes RouteTable
 }
@@ -19,21 +25,23 @@ func (t testRouterModule) Storage() StorageOptions       { return nil }
 
 func testRouterSetup() (*Authboss, http.Handler, *bytes.Buffer) {
 	ab := New()
+	logger := &bytes.Buffer{}
+	ab.LogWriter = logger
+	ab.Init(testRouterModName)
 	ab.MountPath = "/prefix"
 	ab.SessionStoreMaker = func(w http.ResponseWriter, r *http.Request) ClientStorer { return mockClientStore{} }
 	ab.CookieStoreMaker = func(w http.ResponseWriter, r *http.Request) ClientStorer { return mockClientStore{} }
-	logger := &bytes.Buffer{}
-	ab.LogWriter = logger
+
+	logger.Reset() // Clear out the module load messages
 
 	return ab, ab.NewRouter(), logger
 }
 
 // testRouterCallbackSetup is NOT safe for use by multiple goroutines, don't use parallel
 func testRouterCallbackSetup(path string, h HandlerFunc) (w *httptest.ResponseRecorder, r *http.Request) {
-	modules = map[string]Modularizer{}
-	RegisterModule("testrouter", testRouterModule{
+	registeredModules[testRouterModName] = testRouterModule{
 		routes: map[string]HandlerFunc{path: h},
-	})
+	}
 
 	w = httptest.NewRecorder()
 	r, _ = http.NewRequest("GET", "http://localhost/prefix"+path, nil)

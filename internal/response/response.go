@@ -21,30 +21,30 @@ import (
 var (
 	// ErrTemplateNotFound should be returned from Get when the view is not found
 	ErrTemplateNotFound = errors.New("Template not found")
-
-	funcMap = template.FuncMap{
-		"title": strings.Title,
-		"mountpathed": func(location string) string {
-			if authboss.a.MountPath == "/" {
-				return location
-			}
-			return path.Join(authboss.a.MountPath, location)
-		},
-	}
 )
 
 // Templates is a map depicting the forms a template needs wrapped within the specified layout
 type Templates map[string]*template.Template
 
-// LoadTemplates parses all specified files located in path.  Each template is wrapped
+// LoadTemplates parses all specified files located in fpath. Each template is wrapped
 // in a unique clone of layout.  All templates are expecting {{authboss}} handlebars
 // for parsing. It will check the override directory specified in the config, replacing any
 // templates as necessary.
-func LoadTemplates(layout *template.Template, path string, files ...string) (Templates, error) {
+func LoadTemplates(ab *authboss.Authboss, layout *template.Template, fpath string, files ...string) (Templates, error) {
 	m := make(Templates)
 
+	funcMap := template.FuncMap{
+		"title": strings.Title,
+		"mountpathed": func(location string) string {
+			if ab.MountPath == "/" {
+				return location
+			}
+			return path.Join(ab.MountPath, location)
+		},
+	}
+
 	for _, file := range files {
-		b, err := ioutil.ReadFile(filepath.Join(path, file))
+		b, err := ioutil.ReadFile(filepath.Join(fpath, file))
 		if exists := !os.IsNotExist(err); err != nil && exists {
 			return nil, err
 		} else if !exists {
@@ -77,10 +77,13 @@ func (t Templates) Render(ctx *authboss.Context, w http.ResponseWriter, r *http.
 		return authboss.RenderErr{tpl.Name(), data, ErrTemplateNotFound}
 	}
 
-	data.MergeKV("xsrfName", template.HTML(authboss.a.XSRFName), "xsrfToken", template.HTML(authboss.a.XSRFMaker(w, r)))
+	data.MergeKV(
+		"xsrfName", template.HTML(ctx.XSRFName),
+		"xsrfToken", template.HTML(ctx.XSRFMaker(w, r)),
+	)
 
-	if authboss.a.LayoutDataMaker != nil {
-		data.Merge(authboss.a.LayoutDataMaker(w, r))
+	if ctx.LayoutDataMaker != nil {
+		data.Merge(ctx.LayoutDataMaker(w, r))
 	}
 
 	if flash, ok := ctx.SessionStorer.Get(authboss.FlashSuccessKey); ok {
@@ -107,7 +110,7 @@ func (t Templates) Render(ctx *authboss.Context, w http.ResponseWriter, r *http.
 }
 
 // RenderEmail renders the html and plaintext views for an email and sends it
-func Email(email authboss.Email, htmlTpls Templates, nameHTML string, textTpls Templates, namePlain string, data interface{}) error {
+func Email(mailer authboss.Mailer, email authboss.Email, htmlTpls Templates, nameHTML string, textTpls Templates, namePlain string, data interface{}) error {
 	tplHTML, ok := htmlTpls[nameHTML]
 	if !ok {
 		return authboss.RenderErr{tplHTML.Name(), data, ErrTemplateNotFound}
@@ -130,7 +133,7 @@ func Email(email authboss.Email, htmlTpls Templates, nameHTML string, textTpls T
 	}
 	email.TextBody = plainBuffer.String()
 
-	if err := authboss.a.Mailer.Send(email); err != nil {
+	if err := mailer.Send(email); err != nil {
 		return err
 	}
 
@@ -138,8 +141,11 @@ func Email(email authboss.Email, htmlTpls Templates, nameHTML string, textTpls T
 }
 
 // Redirect sets any flash messages given and redirects the user.
-func Redirect(ctx *authboss.Context, w http.ResponseWriter, r *http.Request, path, flashSuccess, flashError string, overrideableRedir bool) {
-	if redir := r.FormValue("redir"); redir != "" && overrideableRedir {
+// If flashSuccess or flashError are set they will be set in the session.
+// If followRedir is set to true, it will attempt to grab the redirect path from the
+// query string.
+func Redirect(ctx *authboss.Context, w http.ResponseWriter, r *http.Request, path, flashSuccess, flashError string, followRedir bool) {
+	if redir := r.FormValue(authboss.FormValueRedirect); redir != "" && followRedir {
 		path = redir
 	}
 

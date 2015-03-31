@@ -1,11 +1,8 @@
 package authboss
 
-var modules = make(map[string]Modularizer)
+import "reflect"
 
-// ModuleAttributes is the list of attributes required by all the loaded modules.
-// Authboss implementers can use this at runtime to determine what data is necessary
-// to store.
-var ModuleAttributes = make(AttributeMeta)
+var registeredModules = make(map[string]Modularizer)
 
 // Modularizer should be implemented by all the authboss modules.
 type Modularizer interface {
@@ -17,18 +14,56 @@ type Modularizer interface {
 // RegisterModule with the core providing all the necessary information to
 // integrate into authboss.
 func RegisterModule(name string, m Modularizer) {
-	modules[name] = m
+	registeredModules[name] = m
+}
 
-	for k, v := range m.Storage() {
-		ModuleAttributes[k] = v
+// RegisteredModules returns a list of modules that are currently registered.
+func RegisteredModules() []string {
+	mods := make([]string, len(registeredModules))
+	i := 0
+	for k := range registeredModules {
+		mods[i] = k
+		i++
 	}
+
+	return mods
+}
+
+// loadModule loads a particular module. It uses reflection to create a new
+// instance of the module type. The original value is copied, but not deep copied
+// so care should be taken to make sure most initialization happens inside the Initialize()
+// method of the module.
+func (a *Authboss) loadModule(name string) error {
+	module, ok := registeredModules[name]
+	if !ok {
+		panic("Could not find module: " + name)
+	}
+
+	var wasPtr bool
+	modVal := reflect.ValueOf(module)
+	if modVal.Kind() == reflect.Ptr {
+		wasPtr = true
+		modVal = modVal.Elem()
+	}
+
+	modType := modVal.Type()
+	value := reflect.New(modType)
+	if !wasPtr {
+		value = value.Elem()
+		value.Set(modVal)
+	} else {
+		value.Elem().Set(modVal)
+	}
+	mod, ok := value.Interface().(Modularizer)
+	a.loadedModules[name] = mod
+	return mod.Initialize(a)
 }
 
 // LoadedModules returns a list of modules that are currently loaded.
-func LoadedModules() []string {
-	mods := make([]string, len(modules))
+func (a *Authboss) LoadedModules() []string {
+	mods := make([]string, len(a.loadedModules))
 	i := 0
-	for k := range modules {
+	for k := range a.loadedModules {
 		mods[i] = k
 		i++
 	}
@@ -37,7 +72,7 @@ func LoadedModules() []string {
 }
 
 // IsLoaded checks if a specific module is loaded.
-func IsLoaded(mod string) bool {
-	_, ok := modules[mod]
+func (a *Authboss) IsLoaded(mod string) bool {
+	_, ok := a.loadedModules[mod]
 	return ok
 }

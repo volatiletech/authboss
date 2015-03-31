@@ -1,11 +1,16 @@
 package authboss
 
 import (
+	"io/ioutil"
 	"net/http"
 	"testing"
 )
 
 const testModName = "testmodule"
+
+func init() {
+	RegisterModule(testModName, testMod)
+}
 
 type testModule struct {
 	s StorageOptions
@@ -28,26 +33,39 @@ func (t *testModule) Routes() RouteTable           { return t.r }
 func (t *testModule) Storage() StorageOptions      { return t.s }
 
 func TestRegister(t *testing.T) {
-	modules = make(map[string]Modularizer)
-	RegisterModule("testmodule", testMod)
-
-	if _, ok := modules["testmodule"]; !ok {
+	// RegisterModule called by init()
+	if _, ok := registeredModules[testModName]; !ok {
 		t.Error("Expected module to be saved.")
-	}
-
-	if !IsLoaded("testmodule") {
-		t.Error("Expected module to be loaded.")
 	}
 }
 
 func TestLoadedModules(t *testing.T) {
-	modules = make(map[string]Modularizer)
-	RegisterModule("testmodule", testMod)
-
-	loadedMods := LoadedModules()
-	if len(loadedMods) != 1 {
+	// RegisterModule called by init()
+	registered := RegisteredModules()
+	if len(registered) != 2 { // There is another test module loaded from router
 		t.Error("Expected only a single module to be loaded.")
-	} else if loadedMods[0] != "testmodule" {
-		t.Error("Expected testmodule to be loaded.")
+	} else {
+		found := false
+		for _, name := range registered {
+			if name == testModName {
+				found = true
+				break
+			}
+		}
+		if !found {
+			t.Error("It should have found the module:", registered)
+		}
+	}
+}
+
+func TestIsLoaded(t *testing.T) {
+	ab := New()
+	ab.LogWriter = ioutil.Discard
+	if err := ab.Init(testModName); err != nil {
+		t.Error(err)
+	}
+
+	if loaded := ab.LoadedModules(); len(loaded) == 0 || loaded[0] != testModName {
+		t.Error("Loaded modules wrong:", loaded)
 	}
 }

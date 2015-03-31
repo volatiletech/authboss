@@ -46,30 +46,33 @@ func init() {
 
 // Confirm module
 type Confirm struct {
+	*authboss.Authboss
 	emailHTMLTemplates response.Templates
 	emailTextTemplates response.Templates
 }
 
 // Initialize the module
-func (c *Confirm) Initialize() (err error) {
+func (c *Confirm) Initialize(ab *authboss.Authboss) (err error) {
+	c.Authboss = ab
+
 	var ok bool
-	storer, ok := authboss.a.Storer.(ConfirmStorer)
+	storer, ok := c.Storer.(ConfirmStorer)
 	if storer == nil || !ok {
 		return errors.New("confirm: Need a ConfirmStorer")
 	}
 
-	c.emailHTMLTemplates, err = response.LoadTemplates(authboss.a.LayoutHTMLEmail, authboss.a.ViewsPath, tplConfirmHTML)
+	c.emailHTMLTemplates, err = response.LoadTemplates(ab, c.LayoutHTMLEmail, c.ViewsPath, tplConfirmHTML)
 	if err != nil {
 		return err
 	}
-	c.emailTextTemplates, err = response.LoadTemplates(authboss.a.LayoutTextEmail, authboss.a.ViewsPath, tplConfirmText)
+	c.emailTextTemplates, err = response.LoadTemplates(ab, c.LayoutTextEmail, c.ViewsPath, tplConfirmText)
 	if err != nil {
 		return err
 	}
 
-	authboss.a.Callbacks.Before(authboss.EventGet, c.beforeGet)
-	authboss.a.Callbacks.Before(authboss.EventAuth, c.beforeGet)
-	authboss.a.Callbacks.After(authboss.EventRegister, c.afterRegister)
+	c.Callbacks.Before(authboss.EventGet, c.beforeGet)
+	c.Callbacks.Before(authboss.EventAuth, c.beforeGet)
+	c.Callbacks.After(authboss.EventRegister, c.afterRegister)
 
 	return nil
 }
@@ -84,10 +87,10 @@ func (c *Confirm) Routes() authboss.RouteTable {
 // Storage requirements
 func (c *Confirm) Storage() authboss.StorageOptions {
 	return authboss.StorageOptions{
-		authboss.a.PrimaryID: authboss.String,
-		authboss.StoreEmail:  authboss.String,
-		StoreConfirmToken:    authboss.String,
-		StoreConfirmed:       authboss.Bool,
+		c.PrimaryID:         authboss.String,
+		authboss.StoreEmail: authboss.String,
+		StoreConfirmToken:   authboss.String,
+		StoreConfirmed:      authboss.Bool,
 	}
 }
 
@@ -135,18 +138,18 @@ var goConfirmEmail = func(c *Confirm, to, token string) {
 
 // confirmEmail sends a confirmation e-mail.
 func (c *Confirm) confirmEmail(to, token string) {
-	p := path.Join(authboss.a.MountPath, "confirm")
-	url := fmt.Sprintf("%s%s?%s=%s", authboss.a.RootURL, p, url.QueryEscape(FormValueConfirm), url.QueryEscape(token))
+	p := path.Join(c.MountPath, "confirm")
+	url := fmt.Sprintf("%s%s?%s=%s", c.RootURL, p, url.QueryEscape(FormValueConfirm), url.QueryEscape(token))
 
 	email := authboss.Email{
 		To:      []string{to},
-		From:    authboss.a.EmailFrom,
-		Subject: authboss.a.EmailSubjectPrefix + "Confirm New Account",
+		From:    c.EmailFrom,
+		Subject: c.EmailSubjectPrefix + "Confirm New Account",
 	}
 
-	err := response.Email(email, c.emailHTMLTemplates, tplConfirmHTML, c.emailTextTemplates, tplConfirmText, url)
+	err := response.Email(c.Mailer, email, c.emailHTMLTemplates, tplConfirmHTML, c.emailTextTemplates, tplConfirmText, url)
 	if err != nil {
-		fmt.Fprintf(authboss.a.LogWriter, "confirm: Failed to send e-mail: %v", err)
+		fmt.Fprintf(c.LogWriter, "confirm: Failed to send e-mail: %v", err)
 	}
 }
 
@@ -166,7 +169,7 @@ func (c *Confirm) confirmHandler(ctx *authboss.Context, w http.ResponseWriter, r
 	sum := md5.Sum(toHash)
 
 	dbTok := base64.StdEncoding.EncodeToString(sum[:])
-	user, err := authboss.a.Storer.(ConfirmStorer).ConfirmUser(dbTok)
+	user, err := c.Storer.(ConfirmStorer).ConfirmUser(dbTok)
 	if err == authboss.ErrUserNotFound {
 		return authboss.ErrAndRedirect{Location: "/", Err: errors.New("confirm: token not found")}
 	} else if err != nil {
@@ -178,7 +181,7 @@ func (c *Confirm) confirmHandler(ctx *authboss.Context, w http.ResponseWriter, r
 	ctx.User[StoreConfirmToken] = ""
 	ctx.User[StoreConfirmed] = true
 
-	key, err := ctx.User.StringErr(authboss.a.PrimaryID)
+	key, err := ctx.User.StringErr(c.PrimaryID)
 	if err != nil {
 		return err
 	}
@@ -188,7 +191,7 @@ func (c *Confirm) confirmHandler(ctx *authboss.Context, w http.ResponseWriter, r
 	}
 
 	ctx.SessionStorer.Put(authboss.SessionKey, key)
-	response.Redirect(ctx, w, r, authboss.a.RegisterOKPath, "You have successfully confirmed your account.", "", true)
+	response.Redirect(ctx, w, r, c.RegisterOKPath, "You have successfully confirmed your account.", "", true)
 
 	return nil
 }

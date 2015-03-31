@@ -14,8 +14,8 @@ import (
 )
 
 var testViewTemplate = template.Must(template.New("").Parse(`{{.external}} {{.fun}} {{.flash_success}} {{.flash_error}} {{.xsrfName}} {{.xsrfToken}}`))
-var testEmailHTMLTempalte = template.Must(template.New("").Parse(`<h2>{{.}}</h2>`))
-var testEmailPlainTempalte = template.Must(template.New("").Parse(`i am a {{.}}`))
+var testEmailHTMLTemplate = template.Must(template.New("").Parse(`<h2>{{.}}</h2>`))
+var testEmailPlainTemplate = template.Must(template.New("").Parse(`i am a {{.}}`))
 
 func TestLoadTemplates(t *testing.T) {
 	t.Parallel()
@@ -35,7 +35,7 @@ func TestLoadTemplates(t *testing.T) {
 
 	filename := filepath.Base(file.Name())
 
-	tpls, err := LoadTemplates(layout, filepath.Dir(file.Name()), filename)
+	tpls, err := LoadTemplates(authboss.New(), layout, filepath.Dir(file.Name()), filename)
 	if err != nil {
 		t.Error("Unexpected error:", err)
 	}
@@ -50,15 +50,16 @@ func TestLoadTemplates(t *testing.T) {
 }
 
 func TestTemplates_Render(t *testing.T) {
+	t.Parallel()
+
 	cookies := mocks.NewMockClientStorer()
-	authboss.Cfg = &authboss.Config{
-		LayoutDataMaker: func(_ http.ResponseWriter, _ *http.Request) authboss.HTMLData {
-			return authboss.HTMLData{"fun": "is"}
-		},
-		XSRFName: "do you think",
-		XSRFMaker: func(_ http.ResponseWriter, _ *http.Request) string {
-			return "that's air you're breathing now?"
-		},
+	ab := authboss.New()
+	ab.LayoutDataMaker = func(_ http.ResponseWriter, _ *http.Request) authboss.HTMLData {
+		return authboss.HTMLData{"fun": "is"}
+	}
+	ab.XSRFName = "do you think"
+	ab.XSRFMaker = func(_ http.ResponseWriter, _ *http.Request) string {
+		return "that's air you're breathing now?"
 	}
 
 	// Set up flashes
@@ -67,7 +68,7 @@ func TestTemplates_Render(t *testing.T) {
 
 	r, _ := http.NewRequest("GET", "http://localhost", nil)
 	w := httptest.NewRecorder()
-	ctx, _ := authboss.ContextFromRequest(r)
+	ctx, _ := ab.ContextFromRequest(r)
 	ctx.SessionStorer = cookies
 
 	tpls := Templates{
@@ -85,17 +86,20 @@ func TestTemplates_Render(t *testing.T) {
 }
 
 func Test_Email(t *testing.T) {
-	mockMailer := &mocks.MockMailer{}
-	authboss.a.Mailer = mockMailer
+	t.Parallel()
 
-	htmlTpls := Templates{"html": testEmailHTMLTempalte}
-	textTpls := Templates{"plain": testEmailPlainTempalte}
+	ab := authboss.New()
+	mockMailer := &mocks.MockMailer{}
+	ab.Mailer = mockMailer
+
+	htmlTpls := Templates{"html": testEmailHTMLTemplate}
+	textTpls := Templates{"plain": testEmailPlainTemplate}
 
 	email := authboss.Email{
 		To: []string{"a@b.c"},
 	}
 
-	err := Email(email, htmlTpls, "html", textTpls, "plain", "spoon")
+	err := Email(ab.Mailer, email, htmlTpls, "html", textTpls, "plain", "spoon")
 	if err != nil {
 		t.Error(err)
 	}
@@ -117,11 +121,14 @@ func Test_Email(t *testing.T) {
 }
 
 func TestRedirect(t *testing.T) {
+	t.Parallel()
+
+	ab := authboss.New()
 	cookies := mocks.NewMockClientStorer()
 
 	r, _ := http.NewRequest("GET", "http://localhost", nil)
 	w := httptest.NewRecorder()
-	ctx, _ := authboss.ContextFromRequest(r)
+	ctx, _ := ab.ContextFromRequest(r)
 	ctx.SessionStorer = cookies
 
 	Redirect(ctx, w, r, "/", "success", "failure", false)
@@ -143,11 +150,14 @@ func TestRedirect(t *testing.T) {
 }
 
 func TestRedirect_Override(t *testing.T) {
+	t.Parallel()
+
+	ab := authboss.New()
 	cookies := mocks.NewMockClientStorer()
 
 	r, _ := http.NewRequest("GET", "http://localhost?redir=foo/bar", nil)
 	w := httptest.NewRecorder()
-	ctx, _ := authboss.ContextFromRequest(r)
+	ctx, _ := ab.ContextFromRequest(r)
 	ctx.SessionStorer = cookies
 
 	Redirect(ctx, w, r, "/shouldNotGo", "success", "failure", true)

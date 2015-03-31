@@ -30,29 +30,34 @@ var testProviders = map[string]authboss.OAuth2Provider{
 }
 
 func TestInitialize(t *testing.T) {
-	authboss.Cfg = authboss.NewConfig()
-	authboss.a.OAuth2Storer = mocks.NewMockStorer()
+	t.Parallel()
+
+	ab := authboss.New()
+	ab.OAuth2Storer = mocks.NewMockStorer()
 	o := OAuth2{}
-	if err := o.Initialize(); err != nil {
+	if err := o.Initialize(ab); err != nil {
 		t.Error(err)
 	}
 }
 
 func TestRoutes(t *testing.T) {
+	t.Parallel()
+
 	root := "https://localhost:8080"
 	mount := "/auth"
 
-	authboss.Cfg = authboss.NewConfig()
-	authboss.a.RootURL = root
-	authboss.a.MountPath = mount
-	authboss.a.OAuth2Providers = testProviders
+	ab := authboss.New()
+	o := OAuth2{ab}
 
-	googleCfg := authboss.a.OAuth2Providers["google"].OAuth2Config
+	ab.RootURL = root
+	ab.MountPath = mount
+	ab.OAuth2Providers = testProviders
+
+	googleCfg := ab.OAuth2Providers["google"].OAuth2Config
 	if 0 != len(googleCfg.RedirectURL) {
 		t.Error("RedirectURL should not be set")
 	}
 
-	o := OAuth2{}
 	routes := o.Routes()
 	authURL := path.Join("/oauth2", "google")
 	tokenURL := path.Join("/oauth2", "callback", "google")
@@ -71,18 +76,20 @@ func TestRoutes(t *testing.T) {
 }
 
 func TestOAuth2Init(t *testing.T) {
-	cfg := authboss.NewConfig()
+	t.Parallel()
+
+	ab := authboss.New()
+	oauth := OAuth2{ab}
 	session := mocks.NewMockClientStorer()
 
-	a.OAuth2Providers = testProviders
-	authboss.Cfg = cfg
+	ab.OAuth2Providers = testProviders
 
 	r, _ := http.NewRequest("GET", "/oauth2/google?redir=/my/redirect%23lol&rm=true", nil)
 	w := httptest.NewRecorder()
-	ctx := authboss.NewContext()
+	ctx := ab.NewContext()
 	ctx.SessionStorer = session
 
-	oauthInit(ctx, w, r)
+	oauth.oauthInit(ctx, w, r)
 
 	if w.Code != http.StatusFound {
 		t.Error("Code was wrong:", w.Code)
@@ -112,7 +119,10 @@ func TestOAuth2Init(t *testing.T) {
 }
 
 func TestOAuthSuccess(t *testing.T) {
-	cfg := authboss.NewConfig()
+	t.Parallel()
+
+	ab := authboss.New()
+	oauth := OAuth2{ab}
 
 	expiry := time.Now().UTC().Add(3600 * time.Second)
 	fakeToken := &oauth2.Token{
@@ -137,7 +147,7 @@ func TestOAuthSuccess(t *testing.T) {
 		return fakeToken, nil
 	}
 
-	a.OAuth2Providers = map[string]authboss.OAuth2Provider{
+	ab.OAuth2Providers = map[string]authboss.OAuth2Provider{
 		"fake": authboss.OAuth2Provider{
 			OAuth2Config: &oauth2.Config{
 				ClientID:     `jazz`,
@@ -152,7 +162,6 @@ func TestOAuthSuccess(t *testing.T) {
 			AdditionalParams: url.Values{"include_requested_scopes": []string{"true"}},
 		},
 	}
-	authboss.Cfg = cfg
 
 	values := make(url.Values)
 	values.Set("code", "code")
@@ -161,17 +170,17 @@ func TestOAuthSuccess(t *testing.T) {
 	url := fmt.Sprintf("/oauth2/fake?%s", values.Encode())
 	r, _ := http.NewRequest("GET", url, nil)
 	w := httptest.NewRecorder()
-	ctx := authboss.NewContext()
+	ctx := ab.NewContext()
 	session := mocks.NewMockClientStorer()
 	session.Put(authboss.SessionOAuth2State, authboss.FormValueOAuth2State)
 	session.Put(authboss.SessionOAuth2Params, `{"redir":"/myurl?myparam=5","rm":"true"}`)
 
 	storer := mocks.NewMockStorer()
 	ctx.SessionStorer = session
-	a.OAuth2Storer = storer
-	a.AuthLoginOKPath = "/fakeloginok"
+	ab.OAuth2Storer = storer
+	ab.AuthLoginOKPath = "/fakeloginok"
 
-	if err := oauthCallback(ctx, w, r); err != nil {
+	if err := oauth.oauthCallback(ctx, w, r); err != nil {
 		t.Error(err)
 	}
 
@@ -209,46 +218,50 @@ func TestOAuthSuccess(t *testing.T) {
 }
 
 func TestOAuthXSRFFailure(t *testing.T) {
-	cfg := authboss.NewConfig()
+	t.Parallel()
+
+	ab := authboss.New()
+	oauth := OAuth2{ab}
 
 	session := mocks.NewMockClientStorer()
 	session.Put(authboss.SessionOAuth2State, authboss.FormValueOAuth2State)
 
-	a.OAuth2Providers = testProviders
-	authboss.Cfg = cfg
+	ab.OAuth2Providers = testProviders
 
 	values := url.Values{}
 	values.Set(authboss.FormValueOAuth2State, "notstate")
 	values.Set("code", "code")
 
-	ctx := authboss.NewContext()
+	ctx := ab.NewContext()
 	ctx.SessionStorer = session
 	r, _ := http.NewRequest("GET", "/oauth2/google?"+values.Encode(), nil)
 
-	err := oauthCallback(ctx, nil, r)
+	err := oauth.oauthCallback(ctx, nil, r)
 	if err != errOAuthStateValidation {
 		t.Error("Should have gotten an error about state validation:", err)
 	}
 }
 
 func TestOAuthFailure(t *testing.T) {
-	cfg := authboss.NewConfig()
+	t.Parallel()
 
-	a.OAuth2Providers = testProviders
-	authboss.Cfg = cfg
+	ab := authboss.New()
+	oauth := OAuth2{ab}
+
+	ab.OAuth2Providers = testProviders
 
 	values := url.Values{}
 	values.Set("error", "something")
 	values.Set("error_reason", "auth_failure")
 	values.Set("error_description", "Failed to auth.")
 
-	ctx := authboss.NewContext()
+	ctx := ab.NewContext()
 	session := mocks.NewMockClientStorer()
 	session.Put(authboss.SessionOAuth2State, authboss.FormValueOAuth2State)
 	ctx.SessionStorer = session
 	r, _ := http.NewRequest("GET", "/oauth2/google?"+values.Encode(), nil)
 
-	err := oauthCallback(ctx, nil, r)
+	err := oauth.oauthCallback(ctx, nil, r)
 	if red, ok := err.(authboss.ErrAndRedirect); !ok {
 		t.Error("Should be a redirect error")
 	} else if len(red.FlashError) == 0 {
@@ -259,19 +272,22 @@ func TestOAuthFailure(t *testing.T) {
 }
 
 func TestLogout(t *testing.T) {
-	authboss.Cfg = authboss.NewConfig()
-	authboss.a.AuthLogoutOKPath = "/dashboard"
+	t.Parallel()
+
+	ab := authboss.New()
+	oauth := OAuth2{ab}
+	ab.AuthLogoutOKPath = "/dashboard"
 
 	r, _ := http.NewRequest("GET", "/oauth2/google?", nil)
 	w := httptest.NewRecorder()
 
-	ctx := authboss.NewContext()
+	ctx := ab.NewContext()
 	session := mocks.NewMockClientStorer(authboss.SessionKey, "asdf", authboss.SessionLastAction, "1234")
 	cookies := mocks.NewMockClientStorer(authboss.CookieRemember, "qwert")
 	ctx.SessionStorer = session
 	ctx.CookieStorer = cookies
 
-	if err := logout(ctx, w, r); err != nil {
+	if err := oauth.logout(ctx, w, r); err != nil {
 		t.Error(err)
 	}
 
@@ -292,7 +308,7 @@ func TestLogout(t *testing.T) {
 	}
 
 	location := w.Header().Get("Location")
-	if location != authboss.a.AuthLogoutOKPath {
+	if location != ab.AuthLogoutOKPath {
 		t.Error("Redirect wrong:", location)
 	}
 }

@@ -25,19 +25,21 @@ func init() {
 
 // Lock module
 type Lock struct {
+	*authboss.Authboss
 }
 
 // Initialize the module
-func (l *Lock) Initialize() error {
-	if authboss.a.Storer == nil {
+func (l *Lock) Initialize(ab *authboss.Authboss) error {
+	l.Authboss = ab
+	if l.Storer == nil {
 		return errors.New("lock: Need a Storer")
 	}
 
 	// Events
-	authboss.a.Callbacks.Before(authboss.EventGet, l.beforeAuth)
-	authboss.a.Callbacks.Before(authboss.EventAuth, l.beforeAuth)
-	authboss.a.Callbacks.After(authboss.EventAuth, l.afterAuth)
-	authboss.a.Callbacks.After(authboss.EventAuthFail, l.afterAuthFail)
+	l.Callbacks.Before(authboss.EventGet, l.beforeAuth)
+	l.Callbacks.Before(authboss.EventAuth, l.beforeAuth)
+	l.Callbacks.After(authboss.EventAuth, l.afterAuth)
+	l.Callbacks.After(authboss.EventAuthFail, l.afterAuthFail)
 
 	return nil
 }
@@ -50,10 +52,10 @@ func (l *Lock) Routes() authboss.RouteTable {
 // Storage requirements
 func (l *Lock) Storage() authboss.StorageOptions {
 	return authboss.StorageOptions{
-		authboss.a.PrimaryID: authboss.String,
-		StoreAttemptNumber:   authboss.Integer,
-		StoreAttemptTime:     authboss.DateTime,
-		StoreLocked:          authboss.DateTime,
+		l.PrimaryID:        authboss.String,
+		StoreAttemptNumber: authboss.Integer,
+		StoreAttemptTime:   authboss.DateTime,
+		StoreLocked:        authboss.DateTime,
 	}
 }
 
@@ -104,9 +106,9 @@ func (l *Lock) afterAuthFail(ctx *authboss.Context) error {
 
 	nAttempts++
 
-	if time.Now().UTC().Sub(lastAttempt) <= authboss.a.LockWindow {
-		if nAttempts >= int64(authboss.a.LockAfter) {
-			ctx.User[StoreLocked] = time.Now().UTC().Add(authboss.a.LockDuration)
+	if time.Now().UTC().Sub(lastAttempt) <= l.LockWindow {
+		if nAttempts >= int64(l.LockAfter) {
+			ctx.User[StoreLocked] = time.Now().UTC().Add(l.LockDuration)
 		}
 
 		ctx.User[StoreAttemptNumber] = nAttempts
@@ -124,7 +126,7 @@ func (l *Lock) afterAuthFail(ctx *authboss.Context) error {
 
 // Lock a user manually.
 func (l *Lock) Lock(key string) error {
-	user, err := authboss.a.Storer.Get(key)
+	user, err := l.Storer.Get(key)
 	if err != nil {
 		return err
 	}
@@ -134,14 +136,14 @@ func (l *Lock) Lock(key string) error {
 		return err
 	}
 
-	attr[StoreLocked] = time.Now().UTC().Add(authboss.a.LockDuration)
+	attr[StoreLocked] = time.Now().UTC().Add(l.LockDuration)
 
-	return authboss.a.Storer.Put(key, attr)
+	return l.Storer.Put(key, attr)
 }
 
 // Unlock a user that was locked by this module.
 func (l *Lock) Unlock(key string) error {
-	user, err := authboss.a.Storer.Get(key)
+	user, err := l.Storer.Get(key)
 	if err != nil {
 		return err
 	}
@@ -153,9 +155,9 @@ func (l *Lock) Unlock(key string) error {
 
 	// Set the last attempt to be -window*2 to avoid immediately
 	// giving another login failure.
-	attr[StoreAttemptTime] = time.Now().UTC().Add(-authboss.a.LockWindow * 2)
+	attr[StoreAttemptTime] = time.Now().UTC().Add(-l.LockWindow * 2)
 	attr[StoreAttemptNumber] = int64(0)
-	attr[StoreLocked] = time.Now().UTC().Add(-authboss.a.LockDuration)
+	attr[StoreLocked] = time.Now().UTC().Add(-l.LockDuration)
 
-	return authboss.a.Storer.Put(key, attr)
+	return l.Storer.Put(key, attr)
 }

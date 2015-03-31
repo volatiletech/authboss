@@ -16,43 +16,45 @@ import (
 func testSetup() (a *Auth, s *mocks.MockStorer) {
 	s = mocks.NewMockStorer()
 
-	authboss.Cfg = authboss.NewConfig()
-	authboss.a.LogWriter = ioutil.Discard
-	authboss.a.Layout = template.Must(template.New("").Parse(`{{template "authboss" .}}`))
-	authboss.a.Storer = s
-	authboss.a.XSRFName = "xsrf"
-	authboss.a.XSRFMaker = func(_ http.ResponseWriter, _ *http.Request) string {
+	ab := authboss.New()
+	ab.LogWriter = ioutil.Discard
+	ab.Layout = template.Must(template.New("").Parse(`{{template "authboss" .}}`))
+	ab.Storer = s
+	ab.XSRFName = "xsrf"
+	ab.XSRFMaker = func(_ http.ResponseWriter, _ *http.Request) string {
 		return "xsrfvalue"
 	}
-	authboss.a.PrimaryID = authboss.StoreUsername
+	ab.PrimaryID = authboss.StoreUsername
 
 	a = &Auth{}
-	if err := a.Initialize(); err != nil {
+	if err := a.Initialize(ab); err != nil {
 		panic(err)
 	}
 
 	return a, s
 }
 
-func testRequest(method string, postFormValues ...string) (*authboss.Context, *httptest.ResponseRecorder, *http.Request, authboss.ClientStorerErr) {
+func testRequest(ab *authboss.Authboss, method string, postFormValues ...string) (*authboss.Context, *httptest.ResponseRecorder, *http.Request, authboss.ClientStorerErr) {
 	r, err := http.NewRequest(method, "", nil)
 	if err != nil {
 		panic(err)
 	}
 
 	sessionStorer := mocks.NewMockClientStorer()
-	ctx := mocks.MockRequestContext(postFormValues...)
+	ctx := mocks.MockRequestContext(ab, postFormValues...)
 	ctx.SessionStorer = sessionStorer
 
 	return ctx, httptest.NewRecorder(), r, sessionStorer
 }
 
 func TestAuth(t *testing.T) {
+	t.Parallel()
+
 	a, _ := testSetup()
 
 	storage := a.Storage()
-	if storage[authboss.a.PrimaryID] != authboss.String {
-		t.Error("Expected storage KV:", authboss.a.PrimaryID, authboss.String)
+	if storage[a.PrimaryID] != authboss.String {
+		t.Error("Expected storage KV:", a.PrimaryID, authboss.String)
 	}
 	if storage[authboss.StorePassword] != authboss.String {
 		t.Error("Expected storage KV:", authboss.StorePassword, authboss.String)
@@ -68,13 +70,15 @@ func TestAuth(t *testing.T) {
 }
 
 func TestAuth_loginHandlerFunc_GET_RedirectsWhenHalfAuthed(t *testing.T) {
+	t.Parallel()
+
 	a, _ := testSetup()
-	ctx, w, r, sessionStore := testRequest("GET")
+	ctx, w, r, sessionStore := testRequest(a.Authboss, "GET")
 
 	sessionStore.Put(authboss.SessionKey, "a")
 	sessionStore.Put(authboss.SessionHalfAuthKey, "false")
 
-	authboss.a.AuthLoginOKPath = "/dashboard"
+	a.AuthLoginOKPath = "/dashboard"
 
 	if err := a.loginHandlerFunc(ctx, w, r); err != nil {
 		t.Error("Unexpeced error:", err)
@@ -85,14 +89,16 @@ func TestAuth_loginHandlerFunc_GET_RedirectsWhenHalfAuthed(t *testing.T) {
 	}
 
 	loc := w.Header().Get("Location")
-	if loc != authboss.a.AuthLoginOKPath {
+	if loc != a.AuthLoginOKPath {
 		t.Error("Unexpected redirect:", loc)
 	}
 }
 
 func TestAuth_loginHandlerFunc_GET(t *testing.T) {
+	t.Parallel()
+
 	a, _ := testSetup()
-	ctx, w, r, _ := testRequest("GET")
+	ctx, w, r, _ := testRequest(a.Authboss, "GET")
 
 	if err := a.loginHandlerFunc(ctx, w, r); err != nil {
 		t.Error("Unexpected error:", err)
@@ -106,7 +112,7 @@ func TestAuth_loginHandlerFunc_GET(t *testing.T) {
 	if !strings.Contains(body, "<form") {
 		t.Error("Should have rendered a form")
 	}
-	if !strings.Contains(body, `name="`+authboss.a.PrimaryID) {
+	if !strings.Contains(body, `name="`+a.PrimaryID) {
 		t.Error("Form should contain the primary ID field:", body)
 	}
 	if !strings.Contains(body, `name="password"`) {
@@ -115,15 +121,17 @@ func TestAuth_loginHandlerFunc_GET(t *testing.T) {
 }
 
 func TestAuth_loginHandlerFunc_POST_ReturnsErrorOnCallbackFailure(t *testing.T) {
+	t.Parallel()
+
 	a, storer := testSetup()
 	storer.Users["john"] = authboss.Attributes{"password": "$2a$10$B7aydtqVF9V8RSNx3lCKB.l09jqLV/aMiVqQHajtL7sWGhCS9jlOu"}
 
-	authboss.a.Callbacks = authboss.NewCallbacks()
-	authboss.a.Callbacks.Before(authboss.EventAuth, func(_ *authboss.Context) (authboss.Interrupt, error) {
+	a.Callbacks = authboss.NewCallbacks()
+	a.Callbacks.Before(authboss.EventAuth, func(_ *authboss.Context) (authboss.Interrupt, error) {
 		return authboss.InterruptNone, errors.New("explode")
 	})
 
-	ctx, w, r, _ := testRequest("POST", "username", "john", "password", "1234")
+	ctx, w, r, _ := testRequest(a.Authboss, "POST", "username", "john", "password", "1234")
 
 	if err := a.loginHandlerFunc(ctx, w, r); err.Error() != "explode" {
 		t.Error("Unexpected error:", err)
@@ -131,15 +139,17 @@ func TestAuth_loginHandlerFunc_POST_ReturnsErrorOnCallbackFailure(t *testing.T) 
 }
 
 func TestAuth_loginHandlerFunc_POST_RedirectsWhenInterrupted(t *testing.T) {
+	t.Parallel()
+
 	a, storer := testSetup()
 	storer.Users["john"] = authboss.Attributes{"password": "$2a$10$B7aydtqVF9V8RSNx3lCKB.l09jqLV/aMiVqQHajtL7sWGhCS9jlOu"}
 
-	authboss.a.Callbacks = authboss.NewCallbacks()
-	authboss.a.Callbacks.Before(authboss.EventAuth, func(_ *authboss.Context) (authboss.Interrupt, error) {
+	a.Callbacks = authboss.NewCallbacks()
+	a.Callbacks.Before(authboss.EventAuth, func(_ *authboss.Context) (authboss.Interrupt, error) {
 		return authboss.InterruptAccountLocked, nil
 	})
 
-	ctx, w, r, sessionStore := testRequest("POST", "username", "john", "password", "1234")
+	ctx, w, r, sessionStore := testRequest(a.Authboss, "POST", "username", "john", "password", "1234")
 
 	if err := a.loginHandlerFunc(ctx, w, r); err != nil {
 		t.Error("Unexpected error:", err)
@@ -150,7 +160,7 @@ func TestAuth_loginHandlerFunc_POST_RedirectsWhenInterrupted(t *testing.T) {
 	}
 
 	loc := w.Header().Get("Location")
-	if loc != authboss.a.AuthLoginFailPath {
+	if loc != a.AuthLoginFailPath {
 		t.Error("Unexpeced location:", loc)
 	}
 
@@ -159,8 +169,8 @@ func TestAuth_loginHandlerFunc_POST_RedirectsWhenInterrupted(t *testing.T) {
 		t.Error("Expected error flash message:", expectedMsg)
 	}
 
-	authboss.a.Callbacks = authboss.NewCallbacks()
-	authboss.a.Callbacks.Before(authboss.EventAuth, func(_ *authboss.Context) (authboss.Interrupt, error) {
+	a.Callbacks = authboss.NewCallbacks()
+	a.Callbacks.Before(authboss.EventAuth, func(_ *authboss.Context) (authboss.Interrupt, error) {
 		return authboss.InterruptAccountNotConfirmed, nil
 	})
 
@@ -173,7 +183,7 @@ func TestAuth_loginHandlerFunc_POST_RedirectsWhenInterrupted(t *testing.T) {
 	}
 
 	loc = w.Header().Get("Location")
-	if loc != authboss.a.AuthLoginFailPath {
+	if loc != a.AuthLoginFailPath {
 		t.Error("Unexpeced location:", loc)
 	}
 
@@ -184,9 +194,11 @@ func TestAuth_loginHandlerFunc_POST_RedirectsWhenInterrupted(t *testing.T) {
 }
 
 func TestAuth_loginHandlerFunc_POST_AuthenticationFailure(t *testing.T) {
+	t.Parallel()
+
 	a, _ := testSetup()
 
-	ctx, w, r, _ := testRequest("POST", "username", "john", "password", "1")
+	ctx, w, r, _ := testRequest(a.Authboss, "POST", "username", "john", "password", "1")
 
 	if err := a.loginHandlerFunc(ctx, w, r); err != nil {
 		t.Error("Unexpected error:", err)
@@ -201,7 +213,7 @@ func TestAuth_loginHandlerFunc_POST_AuthenticationFailure(t *testing.T) {
 		t.Error("Should have rendered with error")
 	}
 
-	ctx, w, r, _ = testRequest("POST", "username", "john", "password", "1234")
+	ctx, w, r, _ = testRequest(a.Authboss, "POST", "username", "john", "password", "1234")
 
 	if err := a.loginHandlerFunc(ctx, w, r); err != nil {
 		t.Error("Unexpected error:", err)
@@ -218,15 +230,17 @@ func TestAuth_loginHandlerFunc_POST_AuthenticationFailure(t *testing.T) {
 }
 
 func TestAuth_loginHandlerFunc_POST(t *testing.T) {
+	t.Parallel()
+
 	a, storer := testSetup()
 	storer.Users["john"] = authboss.Attributes{"password": "$2a$10$B7aydtqVF9V8RSNx3lCKB.l09jqLV/aMiVqQHajtL7sWGhCS9jlOu"}
 
-	ctx, w, r, _ := testRequest("POST", "username", "john", "password", "1234")
+	ctx, w, r, _ := testRequest(a.Authboss, "POST", "username", "john", "password", "1234")
 	cb := mocks.NewMockAfterCallback()
 
-	authboss.a.Callbacks = authboss.NewCallbacks()
-	authboss.a.Callbacks.After(authboss.EventAuth, cb.Fn)
-	authboss.a.AuthLoginOKPath = "/dashboard"
+	a.Callbacks = authboss.NewCallbacks()
+	a.Callbacks.After(authboss.EventAuth, cb.Fn)
+	a.AuthLoginOKPath = "/dashboard"
 
 	sessions := mocks.NewMockClientStorer()
 	ctx.SessionStorer = sessions
@@ -244,7 +258,7 @@ func TestAuth_loginHandlerFunc_POST(t *testing.T) {
 	}
 
 	loc := w.Header().Get("Location")
-	if loc != authboss.a.AuthLoginOKPath {
+	if loc != a.AuthLoginOKPath {
 		t.Error("Unexpeced location:", loc)
 	}
 
@@ -257,6 +271,8 @@ func TestAuth_loginHandlerFunc_POST(t *testing.T) {
 }
 
 func TestAuth_loginHandlerFunc_OtherMethods(t *testing.T) {
+	t.Parallel()
+
 	a, _ := testSetup()
 	methods := []string{"HEAD", "PUT", "DELETE", "TRACE", "CONNECT"}
 
@@ -279,35 +295,39 @@ func TestAuth_loginHandlerFunc_OtherMethods(t *testing.T) {
 }
 
 func TestAuth_validateCredentials(t *testing.T) {
-	authboss.Cfg = authboss.NewConfig()
+	t.Parallel()
+
+	ab := authboss.New()
 
 	storer := mocks.NewMockStorer()
 	storer.GetErr = "Failed to load user"
-	authboss.a.Storer = storer
+	ab.Storer = storer
 
-	ctx := authboss.Context{}
+	ctx := ab.NewContext()
 
-	if err := validateCredentials(&ctx, "", ""); err.Error() != "Failed to load user" {
+	if err := validateCredentials(ctx, "", ""); err.Error() != "Failed to load user" {
 		t.Error("Unexpected error:", err)
 	}
 
 	storer.GetErr = ""
 	storer.Users["john"] = authboss.Attributes{"password": "$2a$10$pgFsuQwdhwOdZp/v52dvHeEi53ZaI7dGmtwK4bAzGGN5A4nT6doqm"}
-	if err := validateCredentials(&ctx, "john", "b"); err == nil {
+	if err := validateCredentials(ctx, "john", "b"); err == nil {
 		t.Error("Expected error about passwords mismatch")
 	}
 
-	if err := validateCredentials(&ctx, "john", "a"); err != nil {
+	if err := validateCredentials(ctx, "john", "a"); err != nil {
 		t.Error("Unexpected error:", err)
 	}
 }
 
 func TestAuth_logoutHandlerFunc_GET(t *testing.T) {
+	t.Parallel()
+
 	a, _ := testSetup()
 
-	authboss.a.AuthLogoutOKPath = "/dashboard"
+	a.AuthLogoutOKPath = "/dashboard"
 
-	ctx, w, r, sessionStorer := testRequest("GET")
+	ctx, w, r, sessionStorer := testRequest(a.Authboss, "GET")
 	sessionStorer.Put(authboss.SessionKey, "asdf")
 	sessionStorer.Put(authboss.SessionLastAction, "1234")
 

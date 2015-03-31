@@ -17,22 +17,24 @@ import (
 )
 
 func setup() *Confirm {
-	authboss.NewConfig()
-	authboss.a.Storer = mocks.NewMockStorer()
-	authboss.a.LayoutHTMLEmail = template.Must(template.New("").Parse(`email ^_^`))
-	authboss.a.LayoutTextEmail = template.Must(template.New("").Parse(`email`))
+	ab := authboss.New()
+	ab.Storer = mocks.NewMockStorer()
+	ab.LayoutHTMLEmail = template.Must(template.New("").Parse(`email ^_^`))
+	ab.LayoutTextEmail = template.Must(template.New("").Parse(`email`))
 
 	c := &Confirm{}
-	if err := c.Initialize(); err != nil {
+	if err := c.Initialize(ab); err != nil {
 		panic(err)
 	}
 	return c
 }
 
 func TestConfirm_Initialize(t *testing.T) {
-	authboss.NewConfig()
+	t.Parallel()
+
+	ab := authboss.New()
 	c := &Confirm{}
-	if err := c.Initialize(); err == nil {
+	if err := c.Initialize(ab); err == nil {
 		t.Error("Should cry about not having a storer.")
 	}
 
@@ -58,7 +60,7 @@ func TestConfirm_Routes(t *testing.T) {
 func TestConfirm_Storage(t *testing.T) {
 	t.Parallel()
 
-	c := &Confirm{}
+	c := &Confirm{Authboss: authboss.New()}
 	storage := c.Storage()
 
 	if authboss.String != storage[StoreConfirmToken] {
@@ -70,8 +72,10 @@ func TestConfirm_Storage(t *testing.T) {
 }
 
 func TestConfirm_BeforeGet(t *testing.T) {
+	t.Parallel()
+
 	c := setup()
-	ctx := authboss.NewContext()
+	ctx := c.NewContext()
 
 	if _, err := c.beforeGet(ctx); err == nil {
 		t.Error("Should stop the get due to attribute missing:", err)
@@ -97,12 +101,14 @@ func TestConfirm_BeforeGet(t *testing.T) {
 }
 
 func TestConfirm_AfterRegister(t *testing.T) {
+	t.Parallel()
+
 	c := setup()
-	ctx := authboss.NewContext()
+	ctx := c.NewContext()
 	log := &bytes.Buffer{}
-	authboss.a.LogWriter = log
-	authboss.a.Mailer = authboss.LogMailer(log)
-	authboss.a.PrimaryID = authboss.StoreUsername
+	c.LogWriter = log
+	c.Mailer = authboss.LogMailer(log)
+	c.PrimaryID = authboss.StoreUsername
 
 	sentEmail := false
 
@@ -115,7 +121,7 @@ func TestConfirm_AfterRegister(t *testing.T) {
 		t.Error("Expected it to die with user error:", err)
 	}
 
-	ctx.User = authboss.Attributes{authboss.a.PrimaryID: "username"}
+	ctx.User = authboss.Attributes{c.PrimaryID: "username"}
 	if err := c.afterRegister(ctx); err == nil || err.(authboss.AttributeErr).Name != "email" {
 		t.Error("Expected it to die with e-mail address error:", err)
 	}
@@ -133,10 +139,12 @@ func TestConfirm_AfterRegister(t *testing.T) {
 }
 
 func TestConfirm_ConfirmHandlerErrors(t *testing.T) {
+	t.Parallel()
+
 	c := setup()
 	log := &bytes.Buffer{}
-	authboss.a.LogWriter = log
-	authboss.a.Mailer = authboss.LogMailer(log)
+	c.LogWriter = log
+	c.Mailer = authboss.LogMailer(log)
 
 	tests := []struct {
 		URL       string
@@ -155,7 +163,7 @@ func TestConfirm_ConfirmHandlerErrors(t *testing.T) {
 	for i, test := range tests {
 		r, _ := http.NewRequest("GET", test.URL, nil)
 		w := httptest.NewRecorder()
-		ctx, _ := authboss.ContextFromRequest(r)
+		ctx, _ := c.ContextFromRequest(r)
 
 		err := c.confirmHandler(ctx, w, r)
 		if err == nil {
@@ -174,11 +182,14 @@ func TestConfirm_ConfirmHandlerErrors(t *testing.T) {
 }
 
 func TestConfirm_Confirm(t *testing.T) {
+	t.Parallel()
+
 	c := setup()
-	ctx := authboss.NewContext()
+	ctx := c.NewContext()
 	log := &bytes.Buffer{}
-	authboss.a.LogWriter = log
-	authboss.a.Mailer = authboss.LogMailer(log)
+	c.LogWriter = log
+	c.PrimaryID = authboss.StoreUsername
+	c.Mailer = authboss.LogMailer(log)
 
 	// Create a token
 	token := []byte("hi")
@@ -186,7 +197,7 @@ func TestConfirm_Confirm(t *testing.T) {
 
 	// Create the "database"
 	storer := mocks.NewMockStorer()
-	authboss.a.Storer = storer
+	c.Storer = storer
 	user := authboss.Attributes{
 		authboss.StoreUsername: "usern",
 		StoreConfirmToken:      base64.StdEncoding.EncodeToString(sum[:]),
@@ -196,7 +207,7 @@ func TestConfirm_Confirm(t *testing.T) {
 	// Make a request with session and context support.
 	r, _ := http.NewRequest("GET", "http://localhost?cnf="+base64.URLEncoding.EncodeToString(token), nil)
 	w := httptest.NewRecorder()
-	ctx, _ = authboss.ContextFromRequest(r)
+	ctx, _ = c.ContextFromRequest(r)
 	ctx.CookieStorer = mocks.NewMockClientStorer()
 	session := mocks.NewMockClientStorer()
 	ctx.User = user

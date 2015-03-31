@@ -56,39 +56,42 @@ func init() {
 
 // Recover module
 type Recover struct {
+	*authboss.Authboss
 	templates          response.Templates
 	emailHTMLTemplates response.Templates
 	emailTextTemplates response.Templates
 }
 
 // Initialize module
-func (r *Recover) Initialize() (err error) {
-	if authboss.a.Storer == nil {
+func (r *Recover) Initialize(ab *authboss.Authboss) (err error) {
+	r.Authboss = ab
+
+	if r.Storer == nil {
 		return errors.New("recover: Need a RecoverStorer")
 	}
 
-	if _, ok := authboss.a.Storer.(RecoverStorer); !ok {
+	if _, ok := r.Storer.(RecoverStorer); !ok {
 		return errors.New("recover: RecoverStorer required for recover functionality")
 	}
 
-	if len(authboss.a.XSRFName) == 0 {
+	if len(r.XSRFName) == 0 {
 		return errors.New("auth: XSRFName must be set")
 	}
 
-	if authboss.a.XSRFMaker == nil {
+	if r.XSRFMaker == nil {
 		return errors.New("auth: XSRFMaker must be defined")
 	}
 
-	r.templates, err = response.LoadTemplates(authboss.a.Layout, authboss.a.ViewsPath, tplRecover, tplRecoverComplete)
+	r.templates, err = response.LoadTemplates(r.Authboss, r.Layout, r.ViewsPath, tplRecover, tplRecoverComplete)
 	if err != nil {
 		return err
 	}
 
-	r.emailHTMLTemplates, err = response.LoadTemplates(authboss.a.LayoutHTMLEmail, authboss.a.ViewsPath, tplInitHTMLEmail)
+	r.emailHTMLTemplates, err = response.LoadTemplates(r.Authboss, r.LayoutHTMLEmail, r.ViewsPath, tplInitHTMLEmail)
 	if err != nil {
 		return err
 	}
-	r.emailTextTemplates, err = response.LoadTemplates(authboss.a.LayoutTextEmail, authboss.a.ViewsPath, tplInitTextEmail)
+	r.emailTextTemplates, err = response.LoadTemplates(r.Authboss, r.LayoutTextEmail, r.ViewsPath, tplInitTextEmail)
 	if err != nil {
 		return err
 	}
@@ -107,7 +110,7 @@ func (r *Recover) Routes() authboss.RouteTable {
 // Storage requirements
 func (r *Recover) Storage() authboss.StorageOptions {
 	return authboss.StorageOptions{
-		authboss.a.PrimaryID:    authboss.String,
+		r.PrimaryID:             authboss.String,
 		authboss.StoreEmail:     authboss.String,
 		authboss.StorePassword:  authboss.String,
 		StoreRecoverToken:       authboss.String,
@@ -119,31 +122,31 @@ func (rec *Recover) startHandlerFunc(ctx *authboss.Context, w http.ResponseWrite
 	switch r.Method {
 	case methodGET:
 		data := authboss.NewHTMLData(
-			"primaryID", authboss.a.PrimaryID,
+			"primaryID", rec.PrimaryID,
 			"primaryIDValue", "",
 			"confirmPrimaryIDValue", "",
 		)
 
 		return rec.templates.Render(ctx, w, r, tplRecover, data)
 	case methodPOST:
-		primaryID, _ := ctx.FirstPostFormValue(authboss.a.PrimaryID)
-		confirmPrimaryID, _ := ctx.FirstPostFormValue(fmt.Sprintf("confirm_%s", authboss.a.PrimaryID))
+		primaryID, _ := ctx.FirstPostFormValue(rec.PrimaryID)
+		confirmPrimaryID, _ := ctx.FirstPostFormValue(fmt.Sprintf("confirm_%s", rec.PrimaryID))
 
 		errData := authboss.NewHTMLData(
-			"primaryID", authboss.a.PrimaryID,
+			"primaryID", rec.PrimaryID,
 			"primaryIDValue", primaryID,
 			"confirmPrimaryIDValue", confirmPrimaryID,
 		)
 
-		policies := authboss.FilterValidators(authboss.a.Policies, authboss.a.PrimaryID)
-		if validationErrs := ctx.Validate(policies, authboss.a.PrimaryID, authboss.ConfirmPrefix+authboss.a.PrimaryID).Map(); len(validationErrs) > 0 {
+		policies := authboss.FilterValidators(rec.Policies, rec.PrimaryID)
+		if validationErrs := ctx.Validate(policies, rec.PrimaryID, authboss.ConfirmPrefix+rec.PrimaryID).Map(); len(validationErrs) > 0 {
 			errData.MergeKV("errs", validationErrs)
 			return rec.templates.Render(ctx, w, r, tplRecover, errData)
 		}
 
 		// redirect to login when user not found to prevent username sniffing
 		if err := ctx.LoadUser(primaryID); err == authboss.ErrUserNotFound {
-			return authboss.ErrAndRedirect{err, authboss.a.RecoverOKPath, recoverInitiateSuccessFlash, ""}
+			return authboss.ErrAndRedirect{err, rec.RecoverOKPath, recoverInitiateSuccessFlash, ""}
 		} else if err != nil {
 			return err
 		}
@@ -159,7 +162,7 @@ func (rec *Recover) startHandlerFunc(ctx *authboss.Context, w http.ResponseWrite
 		}
 
 		ctx.User[StoreRecoverToken] = encodedChecksum
-		ctx.User[StoreRecoverTokenExpiry] = time.Now().Add(authboss.a.RecoverTokenDuration)
+		ctx.User[StoreRecoverTokenExpiry] = time.Now().Add(rec.RecoverTokenDuration)
 
 		if err := ctx.SaveUser(); err != nil {
 			return err
@@ -168,7 +171,7 @@ func (rec *Recover) startHandlerFunc(ctx *authboss.Context, w http.ResponseWrite
 		goRecoverEmail(rec, email, encodedToken)
 
 		ctx.SessionStorer.Put(authboss.FlashSuccessKey, recoverInitiateSuccessFlash)
-		response.Redirect(ctx, w, r, authboss.a.RecoverOKPath, "", "", true)
+		response.Redirect(ctx, w, r, rec.RecoverOKPath, "", "", true)
 	default:
 		w.WriteHeader(http.StatusMethodNotAllowed)
 	}
@@ -191,17 +194,17 @@ var goRecoverEmail = func(r *Recover, to, encodedToken string) {
 }
 
 func (r *Recover) sendRecoverEmail(to, encodedToken string) {
-	p := path.Join(authboss.a.MountPath, "recover/complete")
-	url := fmt.Sprintf("%s%s?token=%s", authboss.a.RootURL, p, encodedToken)
+	p := path.Join(r.MountPath, "recover/complete")
+	url := fmt.Sprintf("%s%s?token=%s", r.RootURL, p, encodedToken)
 
 	email := authboss.Email{
 		To:      []string{to},
-		From:    authboss.a.EmailFrom,
-		Subject: authboss.a.EmailSubjectPrefix + "Password Reset",
+		From:    r.EmailFrom,
+		Subject: r.EmailSubjectPrefix + "Password Reset",
 	}
 
-	if err := response.Email(email, r.emailHTMLTemplates, tplInitHTMLEmail, r.emailTextTemplates, tplInitTextEmail, url); err != nil {
-		fmt.Fprintln(authboss.a.LogWriter, "recover: failed to send recover email:", err)
+	if err := response.Email(r.Mailer, email, r.emailHTMLTemplates, tplInitHTMLEmail, r.emailTextTemplates, tplInitTextEmail, url); err != nil {
+		fmt.Fprintln(r.LogWriter, "recover: failed to send recover email:", err)
 	}
 }
 
@@ -227,7 +230,7 @@ func (r *Recover) completeHandlerFunc(ctx *authboss.Context, w http.ResponseWrit
 		password, _ := ctx.FirstPostFormValue("password")
 		confirmPassword, _ := ctx.FirstPostFormValue("confirmPassword")
 
-		policies := authboss.FilterValidators(authboss.a.Policies, "password")
+		policies := authboss.FilterValidators(r.Policies, "password")
 		if validationErrs := ctx.Validate(policies, authboss.StorePassword, authboss.ConfirmPrefix+authboss.StorePassword).Map(); len(validationErrs) > 0 {
 			data := authboss.NewHTMLData(
 				"token", token,
@@ -242,7 +245,7 @@ func (r *Recover) completeHandlerFunc(ctx *authboss.Context, w http.ResponseWrit
 			return err
 		}
 
-		encryptedPassword, err := bcrypt.GenerateFromPassword([]byte(password), authboss.a.BCryptCost)
+		encryptedPassword, err := bcrypt.GenerateFromPassword([]byte(password), r.BCryptCost)
 		if err != nil {
 			return err
 		}
@@ -252,7 +255,7 @@ func (r *Recover) completeHandlerFunc(ctx *authboss.Context, w http.ResponseWrit
 		var nullTime time.Time
 		ctx.User[StoreRecoverTokenExpiry] = nullTime
 
-		primaryID, err := ctx.User.StringErr(authboss.a.PrimaryID)
+		primaryID, err := ctx.User.StringErr(r.PrimaryID)
 		if err != nil {
 			return err
 		}
@@ -261,12 +264,12 @@ func (r *Recover) completeHandlerFunc(ctx *authboss.Context, w http.ResponseWrit
 			return err
 		}
 
-		if err := authboss.a.Callbacks.FireAfter(authboss.EventPasswordReset, ctx); err != nil {
+		if err := r.Callbacks.FireAfter(authboss.EventPasswordReset, ctx); err != nil {
 			return err
 		}
 
 		ctx.SessionStorer.Put(authboss.SessionKey, primaryID)
-		response.Redirect(ctx, w, req, authboss.a.AuthLoginOKPath, "", "", true)
+		response.Redirect(ctx, w, req, r.AuthLoginOKPath, "", "", true)
 	default:
 		w.WriteHeader(http.StatusMethodNotAllowed)
 	}
@@ -287,7 +290,7 @@ func verifyToken(ctx *authboss.Context) (attrs authboss.Attributes, err error) {
 	}
 
 	sum := md5.Sum(decoded)
-	storer := authboss.a.Storer.(RecoverStorer)
+	storer := ctx.Storer.(RecoverStorer)
 
 	userInter, err := storer.RecoverUser(base64.StdEncoding.EncodeToString(sum[:]))
 	if err != nil {

@@ -11,32 +11,34 @@ import (
 )
 
 func TestInitialize(t *testing.T) {
-	authboss.NewConfig()
+	t.Parallel()
 
+	ab := authboss.New()
 	r := &Remember{}
-	err := r.Initialize()
+	err := r.Initialize(ab)
 	if err == nil {
 		t.Error("Expected error about token storers.")
 	}
 
-	authboss.a.Storer = mocks.MockFailStorer{}
-	err = r.Initialize()
+	ab.Storer = mocks.MockFailStorer{}
+	err = r.Initialize(ab)
 	if err == nil {
 		t.Error("Expected error about token storers.")
 	}
 
-	authboss.a.Storer = mocks.NewMockStorer()
-	err = r.Initialize()
+	ab.Storer = mocks.NewMockStorer()
+	err = r.Initialize(ab)
 	if err != nil {
 		t.Error("Unexpected error:", err)
 	}
 }
 
 func TestAfterAuth(t *testing.T) {
-	r := Remember{}
-	authboss.NewConfig()
+	t.Parallel()
+
+	r := Remember{authboss.New()}
 	storer := mocks.NewMockStorer()
-	authboss.a.Storer = storer
+	r.Storer = storer
 
 	cookies := mocks.NewMockClientStorer()
 	session := mocks.NewMockClientStorer()
@@ -47,14 +49,14 @@ func TestAfterAuth(t *testing.T) {
 	}
 	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 
-	ctx, err := authboss.ContextFromRequest(req)
+	ctx, err := r.ContextFromRequest(req)
 	if err != nil {
 		t.Error("Unexpected error:", err)
 	}
 
 	ctx.SessionStorer = session
 	ctx.CookieStorer = cookies
-	ctx.User = authboss.Attributes{authboss.a.PrimaryID: "test@email.com"}
+	ctx.User = authboss.Attributes{r.PrimaryID: "test@email.com"}
 
 	if err := r.afterAuth(ctx); err != nil {
 		t.Error(err)
@@ -66,10 +68,11 @@ func TestAfterAuth(t *testing.T) {
 }
 
 func TestAfterOAuth(t *testing.T) {
-	r := Remember{}
-	authboss.NewConfig()
+	t.Parallel()
+
+	r := Remember{authboss.New()}
 	storer := mocks.NewMockStorer()
-	authboss.a.Storer = storer
+	r.Storer = storer
 
 	cookies := mocks.NewMockClientStorer()
 	session := mocks.NewMockClientStorer(authboss.SessionOAuth2Params, `{"rm":"true"}`)
@@ -80,7 +83,7 @@ func TestAfterOAuth(t *testing.T) {
 		t.Error("Unexpected Error:", err)
 	}
 
-	ctx, err := authboss.ContextFromRequest(req)
+	ctx, err := r.ContextFromRequest(req)
 	if err != nil {
 		t.Error("Unexpected error:", err)
 	}
@@ -102,20 +105,21 @@ func TestAfterOAuth(t *testing.T) {
 }
 
 func TestAfterPasswordReset(t *testing.T) {
-	r := Remember{}
-	authboss.NewConfig()
+	t.Parallel()
+
+	r := Remember{authboss.New()}
 
 	id := "test@email.com"
 
 	storer := mocks.NewMockStorer()
-	authboss.a.Storer = storer
+	r.Storer = storer
 	session := mocks.NewMockClientStorer()
 	cookies := mocks.NewMockClientStorer()
 	storer.Tokens[id] = []string{"one", "two"}
 	cookies.Values[authboss.CookieRemember] = "token"
 
-	ctx := authboss.NewContext()
-	ctx.User = authboss.Attributes{authboss.a.PrimaryID: id}
+	ctx := r.NewContext()
+	ctx.User = authboss.Attributes{r.PrimaryID: id}
 	ctx.SessionStorer = session
 	ctx.CookieStorer = cookies
 
@@ -133,10 +137,11 @@ func TestAfterPasswordReset(t *testing.T) {
 }
 
 func TestNew(t *testing.T) {
-	r := &Remember{}
-	authboss.NewConfig()
+	t.Parallel()
+
+	r := &Remember{authboss.New()}
 	storer := mocks.NewMockStorer()
-	authboss.a.Storer = storer
+	r.Storer = storer
 	cookies := mocks.NewMockClientStorer()
 
 	key := "tester"
@@ -162,14 +167,15 @@ func TestNew(t *testing.T) {
 }
 
 func TestAuth(t *testing.T) {
-	r := &Remember{}
-	authboss.NewConfig()
+	t.Parallel()
+
+	r := &Remember{authboss.New()}
 	storer := mocks.NewMockStorer()
-	authboss.a.Storer = storer
+	r.Storer = storer
 
 	cookies := mocks.NewMockClientStorer()
 	session := mocks.NewMockClientStorer()
-	ctx := authboss.NewContext()
+	ctx := r.NewContext()
 	ctx.CookieStorer = cookies
 	ctx.SessionStorer = session
 

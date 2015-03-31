@@ -3,6 +3,8 @@ package authboss
 import "testing"
 
 func TestHTMLData(t *testing.T) {
+	t.Parallel()
+
 	data := NewHTMLData("a", "b").MergeKV("c", "d").Merge(NewHTMLData("e", "f"))
 	if data["a"].(string) != "b" {
 		t.Error("A was wrong:", data["a"])
@@ -16,6 +18,8 @@ func TestHTMLData(t *testing.T) {
 }
 
 func TestHTMLData_Panics(t *testing.T) {
+	t.Parallel()
+
 	nPanics := 0
 	panicCount := func() {
 		if r := recover(); r != nil {

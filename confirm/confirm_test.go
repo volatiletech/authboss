@@ -18,9 +18,9 @@ import (
 
 func setup() *Confirm {
 	authboss.NewConfig()
-	authboss.Cfg.Storer = mocks.NewMockStorer()
-	authboss.Cfg.LayoutHTMLEmail = template.Must(template.New("").Parse(`email ^_^`))
-	authboss.Cfg.LayoutTextEmail = template.Must(template.New("").Parse(`email`))
+	authboss.a.Storer = mocks.NewMockStorer()
+	authboss.a.LayoutHTMLEmail = template.Must(template.New("").Parse(`email ^_^`))
+	authboss.a.LayoutTextEmail = template.Must(template.New("").Parse(`email`))
 
 	c := &Confirm{}
 	if err := c.Initialize(); err != nil {
@@ -100,9 +100,9 @@ func TestConfirm_AfterRegister(t *testing.T) {
 	c := setup()
 	ctx := authboss.NewContext()
 	log := &bytes.Buffer{}
-	authboss.Cfg.LogWriter = log
-	authboss.Cfg.Mailer = authboss.LogMailer(log)
-	authboss.Cfg.PrimaryID = authboss.StoreUsername
+	authboss.a.LogWriter = log
+	authboss.a.Mailer = authboss.LogMailer(log)
+	authboss.a.PrimaryID = authboss.StoreUsername
 
 	sentEmail := false
 
@@ -115,7 +115,7 @@ func TestConfirm_AfterRegister(t *testing.T) {
 		t.Error("Expected it to die with user error:", err)
 	}
 
-	ctx.User = authboss.Attributes{authboss.Cfg.PrimaryID: "username"}
+	ctx.User = authboss.Attributes{authboss.a.PrimaryID: "username"}
 	if err := c.afterRegister(ctx); err == nil || err.(authboss.AttributeErr).Name != "email" {
 		t.Error("Expected it to die with e-mail address error:", err)
 	}
@@ -135,8 +135,8 @@ func TestConfirm_AfterRegister(t *testing.T) {
 func TestConfirm_ConfirmHandlerErrors(t *testing.T) {
 	c := setup()
 	log := &bytes.Buffer{}
-	authboss.Cfg.LogWriter = log
-	authboss.Cfg.Mailer = authboss.LogMailer(log)
+	authboss.a.LogWriter = log
+	authboss.a.Mailer = authboss.LogMailer(log)
 
 	tests := []struct {
 		URL       string
@@ -177,8 +177,8 @@ func TestConfirm_Confirm(t *testing.T) {
 	c := setup()
 	ctx := authboss.NewContext()
 	log := &bytes.Buffer{}
-	authboss.Cfg.LogWriter = log
-	authboss.Cfg.Mailer = authboss.LogMailer(log)
+	authboss.a.LogWriter = log
+	authboss.a.Mailer = authboss.LogMailer(log)
 
 	// Create a token
 	token := []byte("hi")
@@ -186,7 +186,7 @@ func TestConfirm_Confirm(t *testing.T) {
 
 	// Create the "database"
 	storer := mocks.NewMockStorer()
-	authboss.Cfg.Storer = storer
+	authboss.a.Storer = storer
 	user := authboss.Attributes{
 		authboss.StoreUsername: "usern",
 		StoreConfirmToken:      base64.StdEncoding.EncodeToString(sum[:]),

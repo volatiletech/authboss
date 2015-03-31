@@ -64,8 +64,8 @@ type CookieStoreMaker func(http.ResponseWriter, *http.Request) ClientStorer
 type SessionStoreMaker func(http.ResponseWriter, *http.Request) ClientStorer
 
 // FlashSuccess returns FlashSuccessKey from the session and removes it.
-func FlashSuccess(w http.ResponseWriter, r *http.Request) string {
-	storer := Cfg.SessionStoreMaker(w, r)
+func (a *Authboss) FlashSuccess(w http.ResponseWriter, r *http.Request) string {
+	storer := a.SessionStoreMaker(w, r)
 	msg, ok := storer.Get(FlashSuccessKey)
 	if ok {
 		storer.Del(FlashSuccessKey)
@@ -75,8 +75,8 @@ func FlashSuccess(w http.ResponseWriter, r *http.Request) string {
 }
 
 // FlashError returns FlashError from the session and removes it.
-func FlashError(w http.ResponseWriter, r *http.Request) string {
-	storer := Cfg.SessionStoreMaker(w, r)
+func (a *Authboss) FlashError(w http.ResponseWriter, r *http.Request) string {
+	storer := a.SessionStoreMaker(w, r)
 	msg, ok := storer.Get(FlashErrorKey)
 	if ok {
 		storer.Del(FlashErrorKey)

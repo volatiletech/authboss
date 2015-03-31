@@ -7,15 +7,17 @@ import (
 	"time"
 )
 
+// These tests use the global variable nowTime so cannot be parallelized
+
 func TestDudeIsExpired(t *testing.T) {
-	Cfg = NewConfig()
+	ab := New()
 
 	session := mockClientStore{SessionKey: "username"}
-	refreshExpiry(session)
+	ab.refreshExpiry(session)
 	nowTime = func() time.Time {
-		return time.Now().UTC().Add(Cfg.ExpireAfter * 2)
+		return time.Now().UTC().Add(ab.ExpireAfter * 2)
 	}
-	Cfg.SessionStoreMaker = func(_ http.ResponseWriter, _ *http.Request) ClientStorer {
+	ab.SessionStoreMaker = func(_ http.ResponseWriter, _ *http.Request) ClientStorer {
 		return session
 	}
 
@@ -23,7 +25,7 @@ func TestDudeIsExpired(t *testing.T) {
 	w := httptest.NewRecorder()
 	called := false
 
-	m := ExpireMiddleware(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	m := ab.ExpireMiddleware(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		called = true
 	}))
 
@@ -43,14 +45,14 @@ func TestDudeIsExpired(t *testing.T) {
 }
 
 func TestDudeIsNotExpired(t *testing.T) {
-	Cfg = NewConfig()
+	ab := New()
 
 	session := mockClientStore{SessionKey: "username"}
-	refreshExpiry(session)
+	ab.refreshExpiry(session)
 	nowTime = func() time.Time {
-		return time.Now().UTC().Add(Cfg.ExpireAfter / 2)
+		return time.Now().UTC().Add(ab.ExpireAfter / 2)
 	}
-	Cfg.SessionStoreMaker = func(_ http.ResponseWriter, _ *http.Request) ClientStorer {
+	ab.SessionStoreMaker = func(_ http.ResponseWriter, _ *http.Request) ClientStorer {
 		return session
 	}
 
@@ -58,7 +60,7 @@ func TestDudeIsNotExpired(t *testing.T) {
 	w := httptest.NewRecorder()
 	called := false
 
-	m := ExpireMiddleware(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	m := ab.ExpireMiddleware(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		called = true
 	}))
 

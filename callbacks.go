@@ -115,7 +115,7 @@ func (c *Callbacks) FireBefore(e Event, ctx *Context) (interrupt Interrupt, err 
 	for _, fn := range callbacks {
 		interrupt, err = fn(ctx)
 		if err != nil {
-			fmt.Fprintf(Cfg.LogWriter, "Callback error (%s): %v\n", runtime.FuncForPC(reflect.ValueOf(fn).Pointer()).Name(), err)
+			fmt.Fprintf(ctx.LogWriter, "Callback error (%s): %v\n", runtime.FuncForPC(reflect.ValueOf(fn).Pointer()).Name(), err)
 			return InterruptNone, err
 		}
 		if interrupt != InterruptNone {
@@ -132,7 +132,7 @@ func (c *Callbacks) FireAfter(e Event, ctx *Context) (err error) {
 	callbacks := c.after[e]
 	for _, fn := range callbacks {
 		if err = fn(ctx); err != nil {
-			fmt.Fprintf(Cfg.LogWriter, "Callback error (%s): %v\n", runtime.FuncForPC(reflect.ValueOf(fn).Pointer()).Name(), err)
+			fmt.Fprintf(ctx.LogWriter, "Callback error (%s): %v\n", runtime.FuncForPC(reflect.ValueOf(fn).Pointer()).Name(), err)
 			return err
 		}
 	}

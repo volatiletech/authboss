@@ -53,8 +53,8 @@ func TestAfterAuth(t *testing.T) {
 	}
 
 	storer := mocks.NewMockStorer()
-	authboss.Cfg.Storer = storer
-	ctx.User = authboss.Attributes{authboss.Cfg.PrimaryID: "john@john.com"}
+	authboss.a.Storer = storer
+	ctx.User = authboss.Attributes{authboss.a.PrimaryID: "john@john.com"}
 
 	if err := lock.afterAuth(ctx); err != nil {
 		t.Error(err)
@@ -74,15 +74,15 @@ func TestAfterAuthFail_Lock(t *testing.T) {
 
 	ctx := authboss.NewContext()
 	storer := mocks.NewMockStorer()
-	authboss.Cfg.Storer = storer
+	authboss.a.Storer = storer
 	lock := Lock{}
-	authboss.Cfg.LockWindow = 30 * time.Minute
-	authboss.Cfg.LockDuration = 30 * time.Minute
-	authboss.Cfg.LockAfter = 3
+	authboss.a.LockWindow = 30 * time.Minute
+	authboss.a.LockDuration = 30 * time.Minute
+	authboss.a.LockAfter = 3
 
 	email := "john@john.com"
 
-	ctx.User = map[string]interface{}{authboss.Cfg.PrimaryID: email}
+	ctx.User = map[string]interface{}{authboss.a.PrimaryID: email}
 
 	old = time.Now().UTC().Add(-1 * time.Hour)
 
@@ -123,17 +123,17 @@ func TestAfterAuthFail_Reset(t *testing.T) {
 	ctx := authboss.NewContext()
 	storer := mocks.NewMockStorer()
 	lock := Lock{}
-	authboss.Cfg.LockWindow = 30 * time.Minute
-	authboss.Cfg.Storer = storer
+	authboss.a.LockWindow = 30 * time.Minute
+	authboss.a.Storer = storer
 
 	old = time.Now().UTC().Add(-time.Hour)
 
 	email := "john@john.com"
 	ctx.User = map[string]interface{}{
-		authboss.Cfg.PrimaryID: email,
-		StoreAttemptNumber:     int64(2),
-		StoreAttemptTime:       old,
-		StoreLocked:            old,
+		authboss.a.PrimaryID: email,
+		StoreAttemptNumber:   int64(2),
+		StoreAttemptTime:     old,
+		StoreLocked:          old,
 	}
 
 	lock.afterAuthFail(ctx)
@@ -162,13 +162,13 @@ func TestAfterAuthFail_Errors(t *testing.T) {
 func TestLock(t *testing.T) {
 	authboss.NewConfig()
 	storer := mocks.NewMockStorer()
-	authboss.Cfg.Storer = storer
+	authboss.a.Storer = storer
 	lock := Lock{}
 
 	email := "john@john.com"
 	storer.Users[email] = map[string]interface{}{
-		authboss.Cfg.PrimaryID: email,
-		"password":             "password",
+		authboss.a.PrimaryID: email,
+		"password":           "password",
 	}
 
 	err := lock.Lock(email)
@@ -184,15 +184,15 @@ func TestLock(t *testing.T) {
 func TestUnlock(t *testing.T) {
 	authboss.NewConfig()
 	storer := mocks.NewMockStorer()
-	authboss.Cfg.Storer = storer
+	authboss.a.Storer = storer
 	lock := Lock{}
-	authboss.Cfg.LockWindow = 1 * time.Hour
+	authboss.a.LockWindow = 1 * time.Hour
 
 	email := "john@john.com"
 	storer.Users[email] = map[string]interface{}{
-		authboss.Cfg.PrimaryID: email,
-		"password":             "password",
-		"locked":               true,
+		authboss.a.PrimaryID: email,
+		"password":           "password",
+		"locked":             true,
 	}
 
 	err := lock.Unlock(email)
@@ -201,7 +201,7 @@ func TestUnlock(t *testing.T) {
 	}
 
 	attemptTime := storer.Users[email][StoreAttemptTime].(time.Time)
-	if attemptTime.After(time.Now().UTC().Add(-authboss.Cfg.LockWindow)) {
+	if attemptTime.After(time.Now().UTC().Add(-authboss.a.LockWindow)) {
 		t.Error("StoreLocked not set correctly:", attemptTime)
 	}
 	if number := storer.Users[email][StoreAttemptNumber].(int64); number != int64(0) {

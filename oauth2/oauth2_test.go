@@ -31,7 +31,7 @@ var testProviders = map[string]authboss.OAuth2Provider{
 
 func TestInitialize(t *testing.T) {
 	authboss.Cfg = authboss.NewConfig()
-	authboss.Cfg.OAuth2Storer = mocks.NewMockStorer()
+	authboss.a.OAuth2Storer = mocks.NewMockStorer()
 	o := OAuth2{}
 	if err := o.Initialize(); err != nil {
 		t.Error(err)
@@ -43,11 +43,11 @@ func TestRoutes(t *testing.T) {
 	mount := "/auth"
 
 	authboss.Cfg = authboss.NewConfig()
-	authboss.Cfg.RootURL = root
-	authboss.Cfg.MountPath = mount
-	authboss.Cfg.OAuth2Providers = testProviders
+	authboss.a.RootURL = root
+	authboss.a.MountPath = mount
+	authboss.a.OAuth2Providers = testProviders
 
-	googleCfg := authboss.Cfg.OAuth2Providers["google"].OAuth2Config
+	googleCfg := authboss.a.OAuth2Providers["google"].OAuth2Config
 	if 0 != len(googleCfg.RedirectURL) {
 		t.Error("RedirectURL should not be set")
 	}
@@ -74,7 +74,7 @@ func TestOAuth2Init(t *testing.T) {
 	cfg := authboss.NewConfig()
 	session := mocks.NewMockClientStorer()
 
-	cfg.OAuth2Providers = testProviders
+	a.OAuth2Providers = testProviders
 	authboss.Cfg = cfg
 
 	r, _ := http.NewRequest("GET", "/oauth2/google?redir=/my/redirect%23lol&rm=true", nil)
@@ -137,7 +137,7 @@ func TestOAuthSuccess(t *testing.T) {
 		return fakeToken, nil
 	}
 
-	cfg.OAuth2Providers = map[string]authboss.OAuth2Provider{
+	a.OAuth2Providers = map[string]authboss.OAuth2Provider{
 		"fake": authboss.OAuth2Provider{
 			OAuth2Config: &oauth2.Config{
 				ClientID:     `jazz`,
@@ -168,8 +168,8 @@ func TestOAuthSuccess(t *testing.T) {
 
 	storer := mocks.NewMockStorer()
 	ctx.SessionStorer = session
-	cfg.OAuth2Storer = storer
-	cfg.AuthLoginOKPath = "/fakeloginok"
+	a.OAuth2Storer = storer
+	a.AuthLoginOKPath = "/fakeloginok"
 
 	if err := oauthCallback(ctx, w, r); err != nil {
 		t.Error(err)
@@ -214,7 +214,7 @@ func TestOAuthXSRFFailure(t *testing.T) {
 	session := mocks.NewMockClientStorer()
 	session.Put(authboss.SessionOAuth2State, authboss.FormValueOAuth2State)
 
-	cfg.OAuth2Providers = testProviders
+	a.OAuth2Providers = testProviders
 	authboss.Cfg = cfg
 
 	values := url.Values{}
@@ -234,7 +234,7 @@ func TestOAuthXSRFFailure(t *testing.T) {
 func TestOAuthFailure(t *testing.T) {
 	cfg := authboss.NewConfig()
 
-	cfg.OAuth2Providers = testProviders
+	a.OAuth2Providers = testProviders
 	authboss.Cfg = cfg
 
 	values := url.Values{}
@@ -260,7 +260,7 @@ func TestOAuthFailure(t *testing.T) {
 
 func TestLogout(t *testing.T) {
 	authboss.Cfg = authboss.NewConfig()
-	authboss.Cfg.AuthLogoutOKPath = "/dashboard"
+	authboss.a.AuthLogoutOKPath = "/dashboard"
 
 	r, _ := http.NewRequest("GET", "/oauth2/google?", nil)
 	w := httptest.NewRecorder()
@@ -292,7 +292,7 @@ func TestLogout(t *testing.T) {
 	}
 
 	location := w.Header().Get("Location")
-	if location != authboss.Cfg.AuthLogoutOKPath {
+	if location != authboss.a.AuthLogoutOKPath {
 		t.Error("Redirect wrong:", location)
 	}
 }

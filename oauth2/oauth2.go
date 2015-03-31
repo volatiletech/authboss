@@ -30,7 +30,7 @@ func init() {
 
 // Initialize module
 func (o *OAuth2) Initialize() error {
-	if authboss.Cfg.OAuth2Storer == nil {
+	if authboss.a.OAuth2Storer == nil {
 		return errors.New("oauth2: need an OAuth2Storer")
 	}
 	return nil
@@ -40,7 +40,7 @@ func (o *OAuth2) Initialize() error {
 func (o *OAuth2) Routes() authboss.RouteTable {
 	routes := make(authboss.RouteTable)
 
-	for prov, cfg := range authboss.Cfg.OAuth2Providers {
+	for prov, cfg := range authboss.a.OAuth2Providers {
 		prov = strings.ToLower(prov)
 
 		init := fmt.Sprintf("/oauth2/%s", prov)
@@ -49,11 +49,11 @@ func (o *OAuth2) Routes() authboss.RouteTable {
 		routes[init] = oauthInit
 		routes[callback] = oauthCallback
 
-		if len(authboss.Cfg.MountPath) > 0 {
-			callback = path.Join(authboss.Cfg.MountPath, callback)
+		if len(authboss.a.MountPath) > 0 {
+			callback = path.Join(authboss.a.MountPath, callback)
 		}
 
-		cfg.OAuth2Config.RedirectURL = authboss.Cfg.RootURL + callback
+		a.OAuth2Config.RedirectURL = authboss.a.RootURL + callback
 	}
 
 	routes["/oauth2/logout"] = logout
@@ -75,7 +75,7 @@ func (o *OAuth2) Storage() authboss.StorageOptions {
 
 func oauthInit(ctx *authboss.Context, w http.ResponseWriter, r *http.Request) error {
 	provider := strings.ToLower(filepath.Base(r.URL.Path))
-	cfg, ok := authboss.Cfg.OAuth2Providers[provider]
+	cfg, ok := authboss.a.OAuth2Providers[provider]
 	if !ok {
 		return fmt.Errorf("OAuth2 provider %q not found", provider)
 	}
@@ -106,9 +106,9 @@ func oauthInit(ctx *authboss.Context, w http.ResponseWriter, r *http.Request) er
 		ctx.SessionStorer.Del(authboss.SessionOAuth2Params)
 	}
 
-	url := cfg.OAuth2Config.AuthCodeURL(state)
+	url := a.OAuth2Config.AuthCodeURL(state)
 
-	extraParams := cfg.AdditionalParams.Encode()
+	extraParams := a.AdditionalParams.Encode()
 	if len(extraParams) > 0 {
 		url = fmt.Sprintf("%s&%s", url, extraParams)
 	}
@@ -140,18 +140,18 @@ func oauthCallback(ctx *authboss.Context, w http.ResponseWriter, r *http.Request
 
 	hasErr := r.FormValue("error")
 	if len(hasErr) > 0 {
-		if err := authboss.Cfg.Callbacks.FireAfter(authboss.EventOAuthFail, ctx); err != nil {
+		if err := authboss.a.Callbacks.FireAfter(authboss.EventOAuthFail, ctx); err != nil {
 			return err
 		}
 
 		return authboss.ErrAndRedirect{
 			Err:        errors.New(r.FormValue("error_reason")),
-			Location:   authboss.Cfg.AuthLoginFailPath,
+			Location:   authboss.a.AuthLoginFailPath,
 			FlashError: fmt.Sprintf("%s login cancelled or failed.", strings.Title(provider)),
 		}
 	}
 
-	cfg, ok := authboss.Cfg.OAuth2Providers[provider]
+	cfg, ok := authboss.a.OAuth2Providers[provider]
 	if !ok {
 		return fmt.Errorf("OAuth2 provider %q not found", provider)
 	}
@@ -165,12 +165,12 @@ func oauthCallback(ctx *authboss.Context, w http.ResponseWriter, r *http.Request
 
 	// Get the code
 	code := r.FormValue("code")
-	token, err := exchanger(cfg.OAuth2Config, oauth2.NoContext, code)
+	token, err := exchanger(a.OAuth2Config, oauth2.NoContext, code)
 	if err != nil {
 		return fmt.Errorf("Could not validate oauth2 code: %v", err)
 	}
 
-	user, err := cfg.Callback(*cfg.OAuth2Config, token)
+	user, err := a.Callback(*cfg.OAuth2Config, token)
 	if err != nil {
 		return err
 	}
@@ -189,7 +189,7 @@ func oauthCallback(ctx *authboss.Context, w http.ResponseWriter, r *http.Request
 		user[authboss.StoreOAuth2Refresh] = token.RefreshToken
 	}
 
-	if err = authboss.Cfg.OAuth2Storer.PutOAuth(uid, provider, user); err != nil {
+	if err = authboss.a.OAuth2Storer.PutOAuth(uid, provider, user); err != nil {
 		return err
 	}
 
@@ -197,13 +197,13 @@ func oauthCallback(ctx *authboss.Context, w http.ResponseWriter, r *http.Request
 	ctx.SessionStorer.Put(authboss.SessionKey, fmt.Sprintf("%s;%s", uid, provider))
 	ctx.SessionStorer.Del(authboss.SessionHalfAuthKey)
 
-	if err = authboss.Cfg.Callbacks.FireAfter(authboss.EventOAuth, ctx); err != nil {
+	if err = authboss.a.Callbacks.FireAfter(authboss.EventOAuth, ctx); err != nil {
 		return nil
 	}
 
 	ctx.SessionStorer.Del(authboss.SessionOAuth2Params)
 
-	redirect := authboss.Cfg.AuthLoginOKPath
+	redirect := authboss.a.AuthLoginOKPath
 	query := make(url.Values)
 	for k, v := range values {
 		switch k {
@@ -231,7 +231,7 @@ func logout(ctx *authboss.Context, w http.ResponseWriter, r *http.Request) error
 		ctx.CookieStorer.Del(authboss.CookieRemember)
 		ctx.SessionStorer.Del(authboss.SessionLastAction)
 
-		response.Redirect(ctx, w, r, authboss.Cfg.AuthLogoutOKPath, "You have logged out", "", true)
+		response.Redirect(ctx, w, r, authboss.a.AuthLogoutOKPath, "You have logged out", "", true)
 	default:
 		w.WriteHeader(http.StatusMethodNotAllowed)
 	}

@@ -17,11 +17,24 @@ import (
 	"golang.org/x/crypto/bcrypt"
 )
 
+// Authboss contains a configuration and other details for running.
+type Authboss struct {
+	Config
+}
+
+// New makes a new instance of authboss with a default
+// configuration.
+func New() *Authboss {
+	ab := &Authboss{}
+	ab.Defaults()
+	return ab
+}
+
 // Init authboss and it's loaded modules.
-func Init() error {
+func (a *Authboss) Init() error {
 	for name, mod := range modules {
-		fmt.Fprintf(Cfg.LogWriter, "%-10s Initializing\n", "["+name+"]")
-		if err := mod.Initialize(); err != nil {
+		fmt.Fprintf(a.LogWriter, "%-10s Initializing\n", "["+name+"]")
+		if err := mod.Initialize(a); err != nil {
 			return fmt.Errorf("[%s] Error Initializing: %v", name, err)
 		}
 	}
@@ -30,16 +43,16 @@ func Init() error {
 }
 
 // CurrentUser retrieves the current user from the session and the database.
-func CurrentUser(w http.ResponseWriter, r *http.Request) (interface{}, error) {
-	ctx, err := ContextFromRequest(r)
+func (a *Authboss) CurrentUser(w http.ResponseWriter, r *http.Request) (interface{}, error) {
+	ctx, err := a.ContextFromRequest(r)
 	if err != nil {
 		return nil, err
 	}
 
-	ctx.SessionStorer = clientStoreWrapper{Cfg.SessionStoreMaker(w, r)}
-	ctx.CookieStorer = clientStoreWrapper{Cfg.CookieStoreMaker(w, r)}
+	ctx.SessionStorer = clientStoreWrapper{a.SessionStoreMaker(w, r)}
+	ctx.CookieStorer = clientStoreWrapper{a.CookieStoreMaker(w, r)}
 
-	_, err = Cfg.Callbacks.FireBefore(EventGetUserSession, ctx)
+	_, err = a.Callbacks.FireBefore(EventGetUserSession, ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -54,22 +67,22 @@ func CurrentUser(w http.ResponseWriter, r *http.Request) (interface{}, error) {
 		return nil, err
 	}
 
-	_, err = Cfg.Callbacks.FireBefore(EventGet, ctx)
+	_, err = a.Callbacks.FireBefore(EventGet, ctx)
 	if err != nil {
 		return nil, err
 	}
 
 	if index := strings.IndexByte(key, ';'); index > 0 {
-		return Cfg.OAuth2Storer.GetOAuth(key[:index], key[index+1:])
+		return a.OAuth2Storer.GetOAuth(key[:index], key[index+1:])
 	}
 
-	return Cfg.Storer.Get(key)
+	return a.Storer.Get(key)
 }
 
 // CurrentUserP retrieves the current user but panics if it's not available for
 // any reason.
-func CurrentUserP(w http.ResponseWriter, r *http.Request) interface{} {
-	i, err := CurrentUser(w, r)
+func (a *Authboss) CurrentUserP(w http.ResponseWriter, r *http.Request) interface{} {
+	i, err := a.CurrentUser(w, r)
 	if err != nil {
 		panic(err.Error())
 	}
@@ -96,13 +109,13 @@ will be returned.
 The error returned is returned either from the updater if that produced an error
 or from the cleanup routines.
 */
-func UpdatePassword(w http.ResponseWriter, r *http.Request,
+func (a *Authboss) UpdatePassword(w http.ResponseWriter, r *http.Request,
 	ptPassword string, user interface{}, updater func() error) error {
 
 	updatePwd := len(ptPassword) > 0
 
 	if updatePwd {
-		pass, err := bcrypt.GenerateFromPassword([]byte(ptPassword), Cfg.BCryptCost)
+		pass, err := bcrypt.GenerateFromPassword([]byte(ptPassword), a.BCryptCost)
 		if err != nil {
 			return err
 		}
@@ -131,11 +144,11 @@ func UpdatePassword(w http.ResponseWriter, r *http.Request,
 		return nil
 	}
 
-	ctx, err := ContextFromRequest(r)
+	ctx, err := a.ContextFromRequest(r)
 	if err != nil {
 		return err
 	}
-	ctx.SessionStorer = clientStoreWrapper{Cfg.SessionStoreMaker(w, r)}
-	ctx.CookieStorer = clientStoreWrapper{Cfg.CookieStoreMaker(w, r)}
-	return Cfg.Callbacks.FireAfter(EventPasswordReset, ctx)
+	ctx.SessionStorer = clientStoreWrapper{a.SessionStoreMaker(w, r)}
+	ctx.CookieStorer = clientStoreWrapper{a.CookieStoreMaker(w, r)}
+	return a.Callbacks.FireAfter(EventPasswordReset, ctx)
 }

@@ -9,7 +9,7 @@ var ModuleAttributes = make(AttributeMeta)
 
 // Modularizer should be implemented by all the authboss modules.
 type Modularizer interface {
-	Initialize() error
+	Initialize(*Authboss) error
 	Routes() RouteTable
 	Storage() StorageOptions
 }

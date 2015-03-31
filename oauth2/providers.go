@@ -26,8 +26,8 @@ type googleMeResponse struct {
 var clientGet = (*http.Client).Get
 
 // Google is a callback appropriate for use with Google's OAuth2 configuration.
-func Google(cfg oauth2.Config, token *oauth2.Token) (authboss.Attributes, error) {
-	client := cfg.Client(oauth2.NoContext, token)
+func Google(a.oauth2.Config, token *oauth2.Token) (authboss.Attributes, error) {
+	client := a.Client(oauth2.NoContext, token)
 	resp, err := clientGet(client, googleInfoEndpoint)
 	if err != nil {
 		return nil, err

@@ -10,8 +10,8 @@ import (
 )
 
 // SendMail uses the currently configured mailer to deliver e-mails.
-func SendMail(data Email) error {
-	return Cfg.Mailer.Send(data)
+func (a *Authboss) SendMail(data Email) error {
+	return a.Mailer.Send(data)
 }
 
 // Mailer is a type that is capable of sending an e-mail.

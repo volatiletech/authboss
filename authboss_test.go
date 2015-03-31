@@ -6,46 +6,41 @@ import (
 	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
-	"os"
 	"testing"
 )
 
-func TestMain(main *testing.M) {
-	RegisterModule("testmodule", testMod)
-	Cfg.LogWriter = ioutil.Discard
-	Init()
-	code := main.Run()
-	os.Exit(code)
-}
-
 func TestAuthBossInit(t *testing.T) {
-	Cfg = NewConfig()
-	Cfg.LogWriter = ioutil.Discard
-	err := Init()
+	t.Parallel()
+
+	ab := New()
+	ab.LogWriter = ioutil.Discard
+	err := ab.Init()
 	if err != nil {
 		t.Error("Unexpected error:", err)
 	}
 }
 
 func TestAuthBossCurrentUser(t *testing.T) {
-	Cfg = NewConfig()
-	Cfg.LogWriter = ioutil.Discard
-	Cfg.Storer = mockStorer{"joe": Attributes{"email": "john@john.com", "password": "lies"}}
-	Cfg.SessionStoreMaker = func(_ http.ResponseWriter, _ *http.Request) ClientStorer {
+	t.Parallel()
+
+	ab := New()
+	ab.LogWriter = ioutil.Discard
+	ab.Storer = mockStorer{"joe": Attributes{"email": "john@john.com", "password": "lies"}}
+	ab.SessionStoreMaker = func(_ http.ResponseWriter, _ *http.Request) ClientStorer {
 		return mockClientStore{SessionKey: "joe"}
 	}
-	Cfg.CookieStoreMaker = func(_ http.ResponseWriter, _ *http.Request) ClientStorer {
+	ab.CookieStoreMaker = func(_ http.ResponseWriter, _ *http.Request) ClientStorer {
 		return mockClientStore{}
 	}
 
-	if err := Init(); err != nil {
+	if err := ab.Init(); err != nil {
 		t.Error("Unexpected error:", err)
 	}
 
 	rec := httptest.NewRecorder()
 	req, _ := http.NewRequest("GET", "localhost", nil)
 
-	userStruct := CurrentUserP(rec, req)
+	userStruct := ab.CurrentUserP(rec, req)
 	us := userStruct.(*mockUser)
 
 	if us.Email != "john@john.com" || us.Password != "lies" {
@@ -54,18 +49,20 @@ func TestAuthBossCurrentUser(t *testing.T) {
 }
 
 func TestAuthbossUpdatePassword(t *testing.T) {
-	Cfg = NewConfig()
+	t.Parallel()
+
+	ab := New()
 	session := mockClientStore{}
 	cookies := mockClientStore{}
-	Cfg.SessionStoreMaker = func(_ http.ResponseWriter, _ *http.Request) ClientStorer {
+	ab.SessionStoreMaker = func(_ http.ResponseWriter, _ *http.Request) ClientStorer {
 		return session
 	}
-	Cfg.CookieStoreMaker = func(_ http.ResponseWriter, _ *http.Request) ClientStorer {
+	ab.CookieStoreMaker = func(_ http.ResponseWriter, _ *http.Request) ClientStorer {
 		return cookies
 	}
 
 	called := false
-	Cfg.Callbacks.After(EventPasswordReset, func(ctx *Context) error {
+	ab.Callbacks.After(EventPasswordReset, func(ctx *Context) error {
 		called = true
 		return nil
 	})
@@ -80,7 +77,7 @@ func TestAuthbossUpdatePassword(t *testing.T) {
 	r, _ := http.NewRequest("GET", "http://localhost", nil)
 
 	called = false
-	err := UpdatePassword(nil, r, "newpassword", &user1, func() error { return nil })
+	err := ab.UpdatePassword(nil, r, "newpassword", &user1, func() error { return nil })
 	if err != nil {
 		t.Error(err)
 	}
@@ -93,7 +90,7 @@ func TestAuthbossUpdatePassword(t *testing.T) {
 	}
 
 	called = false
-	err = UpdatePassword(nil, r, "newpassword", &user2, func() error { return nil })
+	err = ab.UpdatePassword(nil, r, "newpassword", &user2, func() error { return nil })
 	if err != nil {
 		t.Error(err)
 	}
@@ -107,7 +104,7 @@ func TestAuthbossUpdatePassword(t *testing.T) {
 
 	called = false
 	oldPassword := user1.Password
-	err = UpdatePassword(nil, r, "", &user1, func() error { return nil })
+	err = ab.UpdatePassword(nil, r, "", &user1, func() error { return nil })
 	if err != nil {
 		t.Error(err)
 	}
@@ -121,12 +118,16 @@ func TestAuthbossUpdatePassword(t *testing.T) {
 }
 
 func TestAuthbossUpdatePasswordFail(t *testing.T) {
+	t.Parallel()
+
+	ab := New()
+
 	user1 := struct {
 		Password string
 	}{}
 
 	anErr := errors.New("AnError")
-	err := UpdatePassword(nil, nil, "update", &user1, func() error { return anErr })
+	err := ab.UpdatePassword(nil, nil, "update", &user1, func() error { return anErr })
 	if err != anErr {
 		t.Error("Expected an specific error:", err)
 	}

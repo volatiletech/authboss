@@ -9,34 +9,31 @@ import (
 	"testing"
 )
 
-type testRouterMod struct {
-	handler HandlerFunc
-	routes  RouteTable
+type testRouterModule struct {
+	routes RouteTable
 }
 
-func (t testRouterMod) Initialize() error       { return nil }
-func (t testRouterMod) Routes() RouteTable      { return t.routes }
-func (t testRouterMod) Storage() StorageOptions { return nil }
+func (t testRouterModule) Initialize(ab *Authboss) error { return nil }
+func (t testRouterModule) Routes() RouteTable            { return t.routes }
+func (t testRouterModule) Storage() StorageOptions       { return nil }
 
-func testRouterSetup() (http.Handler, *bytes.Buffer) {
-	Cfg = NewConfig()
-	Cfg.MountPath = "/prefix"
-	Cfg.SessionStoreMaker = func(w http.ResponseWriter, r *http.Request) ClientStorer { return mockClientStore{} }
-	Cfg.CookieStoreMaker = func(w http.ResponseWriter, r *http.Request) ClientStorer { return mockClientStore{} }
+func testRouterSetup() (*Authboss, http.Handler, *bytes.Buffer) {
+	ab := New()
+	ab.MountPath = "/prefix"
+	ab.SessionStoreMaker = func(w http.ResponseWriter, r *http.Request) ClientStorer { return mockClientStore{} }
+	ab.CookieStoreMaker = func(w http.ResponseWriter, r *http.Request) ClientStorer { return mockClientStore{} }
 	logger := &bytes.Buffer{}
-	Cfg.LogWriter = logger
+	ab.LogWriter = logger
 
-	return NewRouter(), logger
+	return ab, ab.NewRouter(), logger
 }
 
+// testRouterCallbackSetup is NOT safe for use by multiple goroutines, don't use parallel
 func testRouterCallbackSetup(path string, h HandlerFunc) (w *httptest.ResponseRecorder, r *http.Request) {
-	modules = map[string]Modularizer{
-		"test": testRouterMod{
-			routes: map[string]HandlerFunc{
-				path: h,
-			},
-		},
-	}
+	modules = map[string]Modularizer{}
+	RegisterModule("testrouter", testRouterModule{
+		routes: map[string]HandlerFunc{path: h},
+	})
 
 	w = httptest.NewRecorder()
 	r, _ = http.NewRequest("GET", "http://localhost/prefix"+path, nil)
@@ -52,7 +49,7 @@ func TestRouter(t *testing.T) {
 		return nil
 	})
 
-	router, _ := testRouterSetup()
+	_, router, _ := testRouterSetup()
 
 	router.ServeHTTP(w, r)
 
@@ -62,7 +59,7 @@ func TestRouter(t *testing.T) {
 }
 
 func TestRouter_NotFound(t *testing.T) {
-	router, _ := testRouterSetup()
+	ab, router, _ := testRouterSetup()
 	w := httptest.NewRecorder()
 	r, _ := http.NewRequest("GET", "http://localhost/wat", nil)
 
@@ -75,7 +72,7 @@ func TestRouter_NotFound(t *testing.T) {
 	}
 
 	called := false
-	Cfg.NotFoundHandler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	ab.NotFoundHandler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		called = true
 	})
 
@@ -93,7 +90,7 @@ func TestRouter_BadRequest(t *testing.T) {
 		},
 	)
 
-	router, logger := testRouterSetup()
+	ab, router, logger := testRouterSetup()
 	logger.Reset()
 	router.ServeHTTP(w, r)
 
@@ -109,7 +106,7 @@ func TestRouter_BadRequest(t *testing.T) {
 	}
 
 	called := false
-	Cfg.BadRequestHandler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	ab.BadRequestHandler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		called = true
 	})
 
@@ -132,7 +129,7 @@ func TestRouter_Error(t *testing.T) {
 		},
 	)
 
-	router, logger := testRouterSetup()
+	ab, router, logger := testRouterSetup()
 	logger.Reset()
 	router.ServeHTTP(w, r)
 
@@ -148,7 +145,7 @@ func TestRouter_Error(t *testing.T) {
 	}
 
 	called := false
-	Cfg.ErrorHandler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	ab.ErrorHandler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		called = true
 	})
 
@@ -177,10 +174,10 @@ func TestRouter_Redirect(t *testing.T) {
 		},
 	)
 
-	router, logger := testRouterSetup()
+	ab, router, logger := testRouterSetup()
 
 	session := mockClientStore{}
-	Cfg.SessionStoreMaker = func(w http.ResponseWriter, r *http.Request) ClientStorer { return session }
+	ab.SessionStoreMaker = func(w http.ResponseWriter, r *http.Request) ClientStorer { return session }
 
 	logger.Reset()
 	router.ServeHTTP(w, r)

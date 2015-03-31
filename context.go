@@ -19,6 +19,8 @@ var (
 // need for context is a request's session store. It is not safe for use by
 // multiple goroutines.
 type Context struct {
+	*Authboss
+
 	SessionStorer ClientStorerErr
 	CookieStorer  ClientStorerErr
 	User          Attributes
@@ -28,17 +30,19 @@ type Context struct {
 }
 
 // NewContext is exported for testing modules.
-func NewContext() *Context {
-	return &Context{}
+func (a *Authboss) NewContext() *Context {
+	return &Context{
+		Authboss: a,
+	}
 }
 
 // ContextFromRequest creates a context from an http request.
-func ContextFromRequest(r *http.Request) (*Context, error) {
+func (a *Authboss) ContextFromRequest(r *http.Request) (*Context, error) {
 	if err := r.ParseForm(); err != nil {
 		return nil, err
 	}
 
-	c := NewContext()
+	c := a.NewContext()
 	c.formValues = map[string][]string(r.Form)
 	c.postFormValues = map[string][]string(r.PostForm)
 	return c, nil
@@ -111,9 +115,9 @@ func (c *Context) LoadUser(key string) error {
 	var err error
 
 	if index := strings.IndexByte(key, ';'); index > 0 {
-		user, err = Cfg.OAuth2Storer.GetOAuth(key[:index], key[index+1:])
+		user, err = c.OAuth2Storer.GetOAuth(key[:index], key[index+1:])
 	} else {
-		user, err = Cfg.Storer.Get(key)
+		user, err = c.Storer.Get(key)
 	}
 	if err != nil {
 		return err
@@ -144,12 +148,12 @@ func (c *Context) SaveUser() error {
 		return errors.New("User not initialized.")
 	}
 
-	key, ok := c.User.String(Cfg.PrimaryID)
+	key, ok := c.User.String(c.PrimaryID)
 	if !ok {
 		return errors.New("User improperly initialized, primary ID missing")
 	}
 
-	return Cfg.Storer.Put(key, c.User)
+	return c.Storer.Put(key, c.User)
 }
 
 // Attributes converts the post form values into an attributes map.

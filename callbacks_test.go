@@ -8,15 +8,17 @@ import (
 )
 
 func TestCallbacks(t *testing.T) {
+	t.Parallel()
+
+	ab := New()
 	afterCalled := false
 	beforeCalled := false
-	c := NewCallbacks()
 
-	c.Before(EventRegister, func(ctx *Context) (Interrupt, error) {
+	ab.Callbacks.Before(EventRegister, func(ctx *Context) (Interrupt, error) {
 		beforeCalled = true
 		return InterruptNone, nil
 	})
-	c.After(EventRegister, func(ctx *Context) error {
+	ab.Callbacks.After(EventRegister, func(ctx *Context) error {
 		afterCalled = true
 		return nil
 	})
@@ -25,7 +27,7 @@ func TestCallbacks(t *testing.T) {
 		t.Error("Neither should be called.")
 	}
 
-	interrupt, err := c.FireBefore(EventRegister, NewContext())
+	interrupt, err := ab.Callbacks.FireBefore(EventRegister, ab.NewContext())
 	if err != nil {
 		t.Error("Unexpected error:", err)
 	}
@@ -40,27 +42,29 @@ func TestCallbacks(t *testing.T) {
 		t.Error("Expected after not to be called.")
 	}
 
-	c.FireAfter(EventRegister, NewContext())
+	ab.Callbacks.FireAfter(EventRegister, ab.NewContext())
 	if !afterCalled {
 		t.Error("Expected after to be called.")
 	}
 }
 
 func TestCallbacksInterrupt(t *testing.T) {
+	t.Parallel()
+
+	ab := New()
 	before1 := false
 	before2 := false
-	c := NewCallbacks()
 
-	c.Before(EventRegister, func(ctx *Context) (Interrupt, error) {
+	ab.Callbacks.Before(EventRegister, func(ctx *Context) (Interrupt, error) {
 		before1 = true
 		return InterruptAccountLocked, nil
 	})
-	c.Before(EventRegister, func(ctx *Context) (Interrupt, error) {
+	ab.Callbacks.Before(EventRegister, func(ctx *Context) (Interrupt, error) {
 		before2 = true
 		return InterruptNone, nil
 	})
 
-	interrupt, err := c.FireBefore(EventRegister, NewContext())
+	interrupt, err := ab.Callbacks.FireBefore(EventRegister, ab.NewContext())
 	if err != nil {
 		t.Error(err)
 	}
@@ -77,26 +81,26 @@ func TestCallbacksInterrupt(t *testing.T) {
 }
 
 func TestCallbacksBeforeErrors(t *testing.T) {
+	t.Parallel()
+
+	ab := New()
 	log := &bytes.Buffer{}
-	Cfg = &Config{
-		LogWriter: log,
-	}
+	ab.LogWriter = log
 	before1 := false
 	before2 := false
-	c := NewCallbacks()
 
 	errValue := errors.New("Problem occured")
 
-	c.Before(EventRegister, func(ctx *Context) (Interrupt, error) {
+	ab.Callbacks.Before(EventRegister, func(ctx *Context) (Interrupt, error) {
 		before1 = true
 		return InterruptNone, errValue
 	})
-	c.Before(EventRegister, func(ctx *Context) (Interrupt, error) {
+	ab.Callbacks.Before(EventRegister, func(ctx *Context) (Interrupt, error) {
 		before2 = true
 		return InterruptNone, nil
 	})
 
-	interrupt, err := c.FireBefore(EventRegister, NewContext())
+	interrupt, err := ab.Callbacks.FireBefore(EventRegister, ab.NewContext())
 	if err != errValue {
 		t.Error("Expected an error to come back.")
 	}
@@ -117,26 +121,26 @@ func TestCallbacksBeforeErrors(t *testing.T) {
 }
 
 func TestCallbacksAfterErrors(t *testing.T) {
+	t.Parallel()
+
 	log := &bytes.Buffer{}
-	Cfg = &Config{
-		LogWriter: log,
-	}
+	ab := New()
+	ab.LogWriter = log
 	after1 := false
 	after2 := false
-	c := NewCallbacks()
 
 	errValue := errors.New("Problem occured")
 
-	c.After(EventRegister, func(ctx *Context) error {
+	ab.Callbacks.After(EventRegister, func(ctx *Context) error {
 		after1 = true
 		return errValue
 	})
-	c.After(EventRegister, func(ctx *Context) error {
+	ab.Callbacks.After(EventRegister, func(ctx *Context) error {
 		after2 = true
 		return nil
 	})
 
-	err := c.FireAfter(EventRegister, NewContext())
+	err := ab.Callbacks.FireAfter(EventRegister, ab.NewContext())
 	if err != errValue {
 		t.Error("Expected an error to come back.")
 	}
@@ -154,6 +158,8 @@ func TestCallbacksAfterErrors(t *testing.T) {
 }
 
 func TestEventString(t *testing.T) {
+	t.Parallel()
+
 	tests := []struct {
 		ev  Event
 		str string
@@ -178,6 +184,8 @@ func TestEventString(t *testing.T) {
 }
 
 func TestInterruptString(t *testing.T) {
+	t.Parallel()
+
 	tests := []struct {
 		in  Interrupt
 		str string

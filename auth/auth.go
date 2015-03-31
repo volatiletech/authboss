@@ -29,19 +29,19 @@ type Auth struct {
 
 // Initialize module
 func (a *Auth) Initialize() (err error) {
-	if authboss.Cfg.Storer == nil {
+	if authboss.a.Storer == nil {
 		return errors.New("auth: Need a Storer")
 	}
 
-	if len(authboss.Cfg.XSRFName) == 0 {
+	if len(authboss.a.XSRFName) == 0 {
 		return errors.New("auth: XSRFName must be set")
 	}
 
-	if authboss.Cfg.XSRFMaker == nil {
+	if authboss.a.XSRFMaker == nil {
 		return errors.New("auth: XSRFMaker must be defined")
 	}
 
-	a.templates, err = response.LoadTemplates(authboss.Cfg.Layout, authboss.Cfg.ViewsPath, tplLogin)
+	a.templates, err = response.LoadTemplates(authboss.a.Layout, authboss.a.ViewsPath, tplLogin)
 	if err != nil {
 		return err
 	}
@@ -60,7 +60,7 @@ func (a *Auth) Routes() authboss.RouteTable {
 // Storage requirements
 func (a *Auth) Storage() authboss.StorageOptions {
 	return authboss.StorageOptions{
-		authboss.Cfg.PrimaryID: authboss.String,
+		authboss.a.PrimaryID:   authboss.String,
 		authboss.StorePassword: authboss.String,
 	}
 }
@@ -70,8 +70,8 @@ func (a *Auth) loginHandlerFunc(ctx *authboss.Context, w http.ResponseWriter, r 
 	case methodGET:
 		if _, ok := ctx.SessionStorer.Get(authboss.SessionKey); ok {
 			if halfAuthed, ok := ctx.SessionStorer.Get(authboss.SessionHalfAuthKey); !ok || halfAuthed == "false" {
-				//http.Redirect(w, r, authboss.Cfg.AuthLoginOKPath, http.StatusFound, true)
-				response.Redirect(ctx, w, r, authboss.Cfg.AuthLoginOKPath, "", "", true)
+				//http.Redirect(w, r, authboss.a.AuthLoginOKPath, http.StatusFound, true)
+				response.Redirect(ctx, w, r, authboss.a.AuthLoginOKPath, "", "", true)
 				return nil
 			}
 		}
@@ -79,23 +79,23 @@ func (a *Auth) loginHandlerFunc(ctx *authboss.Context, w http.ResponseWriter, r 
 		data := authboss.NewHTMLData(
 			"showRemember", authboss.IsLoaded("remember"),
 			"showRecover", authboss.IsLoaded("recover"),
-			"primaryID", authboss.Cfg.PrimaryID,
+			"primaryID", authboss.a.PrimaryID,
 			"primaryIDValue", "",
 		)
 		return a.templates.Render(ctx, w, r, tplLogin, data)
 	case methodPOST:
-		key, _ := ctx.FirstPostFormValue(authboss.Cfg.PrimaryID)
+		key, _ := ctx.FirstPostFormValue(authboss.a.PrimaryID)
 		password, _ := ctx.FirstPostFormValue("password")
 
 		errData := authboss.NewHTMLData(
-			"error", fmt.Sprintf("invalid %s and/or password", authboss.Cfg.PrimaryID),
-			"primaryID", authboss.Cfg.PrimaryID,
+			"error", fmt.Sprintf("invalid %s and/or password", authboss.a.PrimaryID),
+			"primaryID", authboss.a.PrimaryID,
 			"primaryIDValue", key,
 			"showRemember", authboss.IsLoaded("remember"),
 			"showRecover", authboss.IsLoaded("recover"),
 		)
 
-		policies := authboss.FilterValidators(authboss.Cfg.Policies, authboss.Cfg.PrimaryID, authboss.StorePassword)
+		policies := authboss.FilterValidators(authboss.a.Policies, authboss.a.PrimaryID, authboss.StorePassword)
 		if validationErrs := ctx.Validate(policies); len(validationErrs) > 0 {
 			return a.templates.Render(ctx, w, r, tplLogin, errData)
 		}
@@ -104,7 +104,7 @@ func (a *Auth) loginHandlerFunc(ctx *authboss.Context, w http.ResponseWriter, r 
 			return a.templates.Render(ctx, w, r, tplLogin, errData)
 		}
 
-		interrupted, err := authboss.Cfg.Callbacks.FireBefore(authboss.EventAuth, ctx)
+		interrupted, err := authboss.a.Callbacks.FireBefore(authboss.EventAuth, ctx)
 		if err != nil {
 			return err
 		} else if interrupted != authboss.InterruptNone {
@@ -115,17 +115,17 @@ func (a *Auth) loginHandlerFunc(ctx *authboss.Context, w http.ResponseWriter, r 
 			case authboss.InterruptAccountNotConfirmed:
 				reason = "Your account has not been confirmed."
 			}
-			response.Redirect(ctx, w, r, authboss.Cfg.AuthLoginFailPath, "", reason, false)
+			response.Redirect(ctx, w, r, authboss.a.AuthLoginFailPath, "", reason, false)
 			return nil
 		}
 
 		ctx.SessionStorer.Put(authboss.SessionKey, key)
 		ctx.SessionStorer.Del(authboss.SessionHalfAuthKey)
 
-		if err := authboss.Cfg.Callbacks.FireAfter(authboss.EventAuth, ctx); err != nil {
+		if err := authboss.a.Callbacks.FireAfter(authboss.EventAuth, ctx); err != nil {
 			return err
 		}
-		response.Redirect(ctx, w, r, authboss.Cfg.AuthLoginOKPath, "", "", true)
+		response.Redirect(ctx, w, r, authboss.a.AuthLoginOKPath, "", "", true)
 	default:
 		w.WriteHeader(http.StatusMethodNotAllowed)
 	}
@@ -157,7 +157,7 @@ func (a *Auth) logoutHandlerFunc(ctx *authboss.Context, w http.ResponseWriter, r
 		ctx.CookieStorer.Del(authboss.CookieRemember)
 		ctx.SessionStorer.Del(authboss.SessionLastAction)
 
-		response.Redirect(ctx, w, r, authboss.Cfg.AuthLogoutOKPath, "You have logged out", "", true)
+		response.Redirect(ctx, w, r, authboss.a.AuthLogoutOKPath, "You have logged out", "", true)
 	default:
 		w.WriteHeader(http.StatusMethodNotAllowed)
 	}

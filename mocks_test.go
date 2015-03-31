@@ -56,7 +56,7 @@ func (m mockClientStore) GetErr(key string) (string, error) {
 func (m mockClientStore) Put(key, val string) { m[key] = val }
 func (m mockClientStore) Del(key string)      { delete(m, key) }
 
-func mockRequestContext(postKeyValues ...string) *Context {
+func mockRequestContext(ab *Authboss, postKeyValues ...string) *Context {
 	keyValues := &bytes.Buffer{}
 	for i := 0; i < len(postKeyValues); i += 2 {
 		if i != 0 {
@@ -71,7 +71,7 @@ func mockRequestContext(postKeyValues ...string) *Context {
 	}
 	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 
-	ctx, err := ContextFromRequest(req)
+	ctx, err := ab.ContextFromRequest(req)
 	if err != nil {
 		panic(err)
 	}

@@ -8,15 +8,16 @@ import (
 )
 
 func TestMailer(t *testing.T) {
-	Cfg = NewConfig()
+	t.Parallel()
+
+	ab := New()
 	mailServer := &bytes.Buffer{}
 
-	Cfg.Mailer = LogMailer(mailServer)
-	Cfg.Storer = mockStorer{}
-	Cfg.LogWriter = ioutil.Discard
-	Init()
+	ab.Mailer = LogMailer(mailServer)
+	ab.Storer = mockStorer{}
+	ab.LogWriter = ioutil.Discard
 
-	err := SendMail(Email{
+	err := ab.SendMail(Email{
 		To:       []string{"some@email.com", "a@a.com"},
 		ToNames:  []string{"Jake", "Noname"},
 		From:     "some@guy.com",
@@ -53,6 +54,8 @@ func TestMailer(t *testing.T) {
 }
 
 func TestSMTPMailer(t *testing.T) {
+	t.Parallel()
+
 	var _ Mailer = SMTPMailer("server", nil)
 
 	recovered := false

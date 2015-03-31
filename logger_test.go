@@ -9,6 +9,8 @@ import (
 )
 
 func TestDefaultLogger(t *testing.T) {
+	t.Parallel()
+
 	logger := NewDefaultLogger()
 	if logger == nil {
 		t.Error("Logger was not created.")
@@ -16,6 +18,8 @@ func TestDefaultLogger(t *testing.T) {
 }
 
 func TestDefaultLoggerOutput(t *testing.T) {
+	t.Parallel()
+
 	buffer := &bytes.Buffer{}
 	logger := (*DefaultLogger)(log.New(buffer, "", log.LstdFlags))
 	io.WriteString(logger, "hello world")

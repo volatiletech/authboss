@@ -17,14 +17,14 @@ func testSetup() (a *Auth, s *mocks.MockStorer) {
 	s = mocks.NewMockStorer()
 
 	authboss.Cfg = authboss.NewConfig()
-	authboss.Cfg.LogWriter = ioutil.Discard
-	authboss.Cfg.Layout = template.Must(template.New("").Parse(`{{template "authboss" .}}`))
-	authboss.Cfg.Storer = s
-	authboss.Cfg.XSRFName = "xsrf"
-	authboss.Cfg.XSRFMaker = func(_ http.ResponseWriter, _ *http.Request) string {
+	authboss.a.LogWriter = ioutil.Discard
+	authboss.a.Layout = template.Must(template.New("").Parse(`{{template "authboss" .}}`))
+	authboss.a.Storer = s
+	authboss.a.XSRFName = "xsrf"
+	authboss.a.XSRFMaker = func(_ http.ResponseWriter, _ *http.Request) string {
 		return "xsrfvalue"
 	}
-	authboss.Cfg.PrimaryID = authboss.StoreUsername
+	authboss.a.PrimaryID = authboss.StoreUsername
 
 	a = &Auth{}
 	if err := a.Initialize(); err != nil {
@@ -51,8 +51,8 @@ func TestAuth(t *testing.T) {
 	a, _ := testSetup()
 
 	storage := a.Storage()
-	if storage[authboss.Cfg.PrimaryID] != authboss.String {
-		t.Error("Expected storage KV:", authboss.Cfg.PrimaryID, authboss.String)
+	if storage[authboss.a.PrimaryID] != authboss.String {
+		t.Error("Expected storage KV:", authboss.a.PrimaryID, authboss.String)
 	}
 	if storage[authboss.StorePassword] != authboss.String {
 		t.Error("Expected storage KV:", authboss.StorePassword, authboss.String)
@@ -74,7 +74,7 @@ func TestAuth_loginHandlerFunc_GET_RedirectsWhenHalfAuthed(t *testing.T) {
 	sessionStore.Put(authboss.SessionKey, "a")
 	sessionStore.Put(authboss.SessionHalfAuthKey, "false")
 
-	authboss.Cfg.AuthLoginOKPath = "/dashboard"
+	authboss.a.AuthLoginOKPath = "/dashboard"
 
 	if err := a.loginHandlerFunc(ctx, w, r); err != nil {
 		t.Error("Unexpeced error:", err)
@@ -85,7 +85,7 @@ func TestAuth_loginHandlerFunc_GET_RedirectsWhenHalfAuthed(t *testing.T) {
 	}
 
 	loc := w.Header().Get("Location")
-	if loc != authboss.Cfg.AuthLoginOKPath {
+	if loc != authboss.a.AuthLoginOKPath {
 		t.Error("Unexpected redirect:", loc)
 	}
 }
@@ -106,7 +106,7 @@ func TestAuth_loginHandlerFunc_GET(t *testing.T) {
 	if !strings.Contains(body, "<form") {
 		t.Error("Should have rendered a form")
 	}
-	if !strings.Contains(body, `name="`+authboss.Cfg.PrimaryID) {
+	if !strings.Contains(body, `name="`+authboss.a.PrimaryID) {
 		t.Error("Form should contain the primary ID field:", body)
 	}
 	if !strings.Contains(body, `name="password"`) {
@@ -118,8 +118,8 @@ func TestAuth_loginHandlerFunc_POST_ReturnsErrorOnCallbackFailure(t *testing.T) 
 	a, storer := testSetup()
 	storer.Users["john"] = authboss.Attributes{"password": "$2a$10$B7aydtqVF9V8RSNx3lCKB.l09jqLV/aMiVqQHajtL7sWGhCS9jlOu"}
 
-	authboss.Cfg.Callbacks = authboss.NewCallbacks()
-	authboss.Cfg.Callbacks.Before(authboss.EventAuth, func(_ *authboss.Context) (authboss.Interrupt, error) {
+	authboss.a.Callbacks = authboss.NewCallbacks()
+	authboss.a.Callbacks.Before(authboss.EventAuth, func(_ *authboss.Context) (authboss.Interrupt, error) {
 		return authboss.InterruptNone, errors.New("explode")
 	})
 
@@ -134,8 +134,8 @@ func TestAuth_loginHandlerFunc_POST_RedirectsWhenInterrupted(t *testing.T) {
 	a, storer := testSetup()
 	storer.Users["john"] = authboss.Attributes{"password": "$2a$10$B7aydtqVF9V8RSNx3lCKB.l09jqLV/aMiVqQHajtL7sWGhCS9jlOu"}
 
-	authboss.Cfg.Callbacks = authboss.NewCallbacks()
-	authboss.Cfg.Callbacks.Before(authboss.EventAuth, func(_ *authboss.Context) (authboss.Interrupt, error) {
+	authboss.a.Callbacks = authboss.NewCallbacks()
+	authboss.a.Callbacks.Before(authboss.EventAuth, func(_ *authboss.Context) (authboss.Interrupt, error) {
 		return authboss.InterruptAccountLocked, nil
 	})
 
@@ -150,7 +150,7 @@ func TestAuth_loginHandlerFunc_POST_RedirectsWhenInterrupted(t *testing.T) {
 	}
 
 	loc := w.Header().Get("Location")
-	if loc != authboss.Cfg.AuthLoginFailPath {
+	if loc != authboss.a.AuthLoginFailPath {
 		t.Error("Unexpeced location:", loc)
 	}
 
@@ -159,8 +159,8 @@ func TestAuth_loginHandlerFunc_POST_RedirectsWhenInterrupted(t *testing.T) {
 		t.Error("Expected error flash message:", expectedMsg)
 	}
 
-	authboss.Cfg.Callbacks = authboss.NewCallbacks()
-	authboss.Cfg.Callbacks.Before(authboss.EventAuth, func(_ *authboss.Context) (authboss.Interrupt, error) {
+	authboss.a.Callbacks = authboss.NewCallbacks()
+	authboss.a.Callbacks.Before(authboss.EventAuth, func(_ *authboss.Context) (authboss.Interrupt, error) {
 		return authboss.InterruptAccountNotConfirmed, nil
 	})
 
@@ -173,7 +173,7 @@ func TestAuth_loginHandlerFunc_POST_RedirectsWhenInterrupted(t *testing.T) {
 	}
 
 	loc = w.Header().Get("Location")
-	if loc != authboss.Cfg.AuthLoginFailPath {
+	if loc != authboss.a.AuthLoginFailPath {
 		t.Error("Unexpeced location:", loc)
 	}
 
@@ -224,9 +224,9 @@ func TestAuth_loginHandlerFunc_POST(t *testing.T) {
 	ctx, w, r, _ := testRequest("POST", "username", "john", "password", "1234")
 	cb := mocks.NewMockAfterCallback()
 
-	authboss.Cfg.Callbacks = authboss.NewCallbacks()
-	authboss.Cfg.Callbacks.After(authboss.EventAuth, cb.Fn)
-	authboss.Cfg.AuthLoginOKPath = "/dashboard"
+	authboss.a.Callbacks = authboss.NewCallbacks()
+	authboss.a.Callbacks.After(authboss.EventAuth, cb.Fn)
+	authboss.a.AuthLoginOKPath = "/dashboard"
 
 	sessions := mocks.NewMockClientStorer()
 	ctx.SessionStorer = sessions
@@ -244,7 +244,7 @@ func TestAuth_loginHandlerFunc_POST(t *testing.T) {
 	}
 
 	loc := w.Header().Get("Location")
-	if loc != authboss.Cfg.AuthLoginOKPath {
+	if loc != authboss.a.AuthLoginOKPath {
 		t.Error("Unexpeced location:", loc)
 	}
 
@@ -283,7 +283,7 @@ func TestAuth_validateCredentials(t *testing.T) {
 
 	storer := mocks.NewMockStorer()
 	storer.GetErr = "Failed to load user"
-	authboss.Cfg.Storer = storer
+	authboss.a.Storer = storer
 
 	ctx := authboss.Context{}
 
@@ -305,7 +305,7 @@ func TestAuth_validateCredentials(t *testing.T) {
 func TestAuth_logoutHandlerFunc_GET(t *testing.T) {
 	a, _ := testSetup()
 
-	authboss.Cfg.AuthLogoutOKPath = "/dashboard"
+	authboss.a.AuthLogoutOKPath = "/dashboard"
 
 	ctx, w, r, sessionStorer := testRequest("GET")
 	sessionStorer.Put(authboss.SessionKey, "asdf")

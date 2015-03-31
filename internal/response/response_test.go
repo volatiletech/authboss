@@ -86,7 +86,7 @@ func TestTemplates_Render(t *testing.T) {
 
 func Test_Email(t *testing.T) {
 	mockMailer := &mocks.MockMailer{}
-	authboss.Cfg.Mailer = mockMailer
+	authboss.a.Mailer = mockMailer
 
 	htmlTpls := Templates{"html": testEmailHTMLTempalte}
 	textTpls := Templates{"plain": testEmailPlainTempalte}

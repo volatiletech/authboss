@@ -14,6 +14,8 @@ func (t testClientStorerErr) Get(key string) (string, bool) {
 func (t testClientStorerErr) Del(key string) {}
 
 func TestClientStorerErr(t *testing.T) {
+	t.Parallel()
+
 	var cs testClientStorerErr
 
 	csw := clientStoreWrapper{&cs}
@@ -30,19 +32,22 @@ func TestClientStorerErr(t *testing.T) {
 }
 
 func TestFlashClearer(t *testing.T) {
+	t.Parallel()
+
 	session := mockClientStore{FlashSuccessKey: "success", FlashErrorKey: "error"}
-	Cfg.SessionStoreMaker = func(w http.ResponseWriter, r *http.Request) ClientStorer {
+	ab := New()
+	ab.SessionStoreMaker = func(w http.ResponseWriter, r *http.Request) ClientStorer {
 		return session
 	}
 
-	if msg := FlashSuccess(nil, nil); msg != "success" {
+	if msg := ab.FlashSuccess(nil, nil); msg != "success" {
 		t.Error("Unexpected flash success:", msg)
 	}
 	if msg, ok := session.Get(FlashSuccessKey); ok {
 		t.Error("Unexpected success flash:", msg)
 	}
 
-	if msg := FlashError(nil, nil); msg != "error" {
+	if msg := ab.FlashError(nil, nil); msg != "error" {
 		t.Error("Unexpected flash error:", msg)
 	}
 	if msg, ok := session.Get(FlashErrorKey); ok {

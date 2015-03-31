@@ -19,13 +19,13 @@ func TestInitialize(t *testing.T) {
 		t.Error("Expected error about token storers.")
 	}
 
-	authboss.Cfg.Storer = mocks.MockFailStorer{}
+	authboss.a.Storer = mocks.MockFailStorer{}
 	err = r.Initialize()
 	if err == nil {
 		t.Error("Expected error about token storers.")
 	}
 
-	authboss.Cfg.Storer = mocks.NewMockStorer()
+	authboss.a.Storer = mocks.NewMockStorer()
 	err = r.Initialize()
 	if err != nil {
 		t.Error("Unexpected error:", err)
@@ -36,7 +36,7 @@ func TestAfterAuth(t *testing.T) {
 	r := Remember{}
 	authboss.NewConfig()
 	storer := mocks.NewMockStorer()
-	authboss.Cfg.Storer = storer
+	authboss.a.Storer = storer
 
 	cookies := mocks.NewMockClientStorer()
 	session := mocks.NewMockClientStorer()
@@ -54,7 +54,7 @@ func TestAfterAuth(t *testing.T) {
 
 	ctx.SessionStorer = session
 	ctx.CookieStorer = cookies
-	ctx.User = authboss.Attributes{authboss.Cfg.PrimaryID: "test@email.com"}
+	ctx.User = authboss.Attributes{authboss.a.PrimaryID: "test@email.com"}
 
 	if err := r.afterAuth(ctx); err != nil {
 		t.Error(err)
@@ -69,7 +69,7 @@ func TestAfterOAuth(t *testing.T) {
 	r := Remember{}
 	authboss.NewConfig()
 	storer := mocks.NewMockStorer()
-	authboss.Cfg.Storer = storer
+	authboss.a.Storer = storer
 
 	cookies := mocks.NewMockClientStorer()
 	session := mocks.NewMockClientStorer(authboss.SessionOAuth2Params, `{"rm":"true"}`)
@@ -108,14 +108,14 @@ func TestAfterPasswordReset(t *testing.T) {
 	id := "test@email.com"
 
 	storer := mocks.NewMockStorer()
-	authboss.Cfg.Storer = storer
+	authboss.a.Storer = storer
 	session := mocks.NewMockClientStorer()
 	cookies := mocks.NewMockClientStorer()
 	storer.Tokens[id] = []string{"one", "two"}
 	cookies.Values[authboss.CookieRemember] = "token"
 
 	ctx := authboss.NewContext()
-	ctx.User = authboss.Attributes{authboss.Cfg.PrimaryID: id}
+	ctx.User = authboss.Attributes{authboss.a.PrimaryID: id}
 	ctx.SessionStorer = session
 	ctx.CookieStorer = cookies
 
@@ -136,7 +136,7 @@ func TestNew(t *testing.T) {
 	r := &Remember{}
 	authboss.NewConfig()
 	storer := mocks.NewMockStorer()
-	authboss.Cfg.Storer = storer
+	authboss.a.Storer = storer
 	cookies := mocks.NewMockClientStorer()
 
 	key := "tester"
@@ -165,7 +165,7 @@ func TestAuth(t *testing.T) {
 	r := &Remember{}
 	authboss.NewConfig()
 	storer := mocks.NewMockStorer()
-	authboss.Cfg.Storer = storer
+	authboss.a.Storer = storer
 
 	cookies := mocks.NewMockClientStorer()
 	session := mocks.NewMockClientStorer()

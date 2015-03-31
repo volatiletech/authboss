@@ -53,23 +53,23 @@ type Confirm struct {
 // Initialize the module
 func (c *Confirm) Initialize() (err error) {
 	var ok bool
-	storer, ok := authboss.Cfg.Storer.(ConfirmStorer)
+	storer, ok := authboss.a.Storer.(ConfirmStorer)
 	if storer == nil || !ok {
 		return errors.New("confirm: Need a ConfirmStorer")
 	}
 
-	c.emailHTMLTemplates, err = response.LoadTemplates(authboss.Cfg.LayoutHTMLEmail, authboss.Cfg.ViewsPath, tplConfirmHTML)
+	c.emailHTMLTemplates, err = response.LoadTemplates(authboss.a.LayoutHTMLEmail, authboss.a.ViewsPath, tplConfirmHTML)
 	if err != nil {
 		return err
 	}
-	c.emailTextTemplates, err = response.LoadTemplates(authboss.Cfg.LayoutTextEmail, authboss.Cfg.ViewsPath, tplConfirmText)
+	c.emailTextTemplates, err = response.LoadTemplates(authboss.a.LayoutTextEmail, authboss.a.ViewsPath, tplConfirmText)
 	if err != nil {
 		return err
 	}
 
-	authboss.Cfg.Callbacks.Before(authboss.EventGet, c.beforeGet)
-	authboss.Cfg.Callbacks.Before(authboss.EventAuth, c.beforeGet)
-	authboss.Cfg.Callbacks.After(authboss.EventRegister, c.afterRegister)
+	authboss.a.Callbacks.Before(authboss.EventGet, c.beforeGet)
+	authboss.a.Callbacks.Before(authboss.EventAuth, c.beforeGet)
+	authboss.a.Callbacks.After(authboss.EventRegister, c.afterRegister)
 
 	return nil
 }
@@ -84,10 +84,10 @@ func (c *Confirm) Routes() authboss.RouteTable {
 // Storage requirements
 func (c *Confirm) Storage() authboss.StorageOptions {
 	return authboss.StorageOptions{
-		authboss.Cfg.PrimaryID: authboss.String,
-		authboss.StoreEmail:    authboss.String,
-		StoreConfirmToken:      authboss.String,
-		StoreConfirmed:         authboss.Bool,
+		authboss.a.PrimaryID: authboss.String,
+		authboss.StoreEmail:  authboss.String,
+		StoreConfirmToken:    authboss.String,
+		StoreConfirmed:       authboss.Bool,
 	}
 }
 
@@ -135,18 +135,18 @@ var goConfirmEmail = func(c *Confirm, to, token string) {
 
 // confirmEmail sends a confirmation e-mail.
 func (c *Confirm) confirmEmail(to, token string) {
-	p := path.Join(authboss.Cfg.MountPath, "confirm")
-	url := fmt.Sprintf("%s%s?%s=%s", authboss.Cfg.RootURL, p, url.QueryEscape(FormValueConfirm), url.QueryEscape(token))
+	p := path.Join(authboss.a.MountPath, "confirm")
+	url := fmt.Sprintf("%s%s?%s=%s", authboss.a.RootURL, p, url.QueryEscape(FormValueConfirm), url.QueryEscape(token))
 
 	email := authboss.Email{
 		To:      []string{to},
-		From:    authboss.Cfg.EmailFrom,
-		Subject: authboss.Cfg.EmailSubjectPrefix + "Confirm New Account",
+		From:    authboss.a.EmailFrom,
+		Subject: authboss.a.EmailSubjectPrefix + "Confirm New Account",
 	}
 
 	err := response.Email(email, c.emailHTMLTemplates, tplConfirmHTML, c.emailTextTemplates, tplConfirmText, url)
 	if err != nil {
-		fmt.Fprintf(authboss.Cfg.LogWriter, "confirm: Failed to send e-mail: %v", err)
+		fmt.Fprintf(authboss.a.LogWriter, "confirm: Failed to send e-mail: %v", err)
 	}
 }
 
@@ -166,7 +166,7 @@ func (c *Confirm) confirmHandler(ctx *authboss.Context, w http.ResponseWriter, r
 	sum := md5.Sum(toHash)
 
 	dbTok := base64.StdEncoding.EncodeToString(sum[:])
-	user, err := authboss.Cfg.Storer.(ConfirmStorer).ConfirmUser(dbTok)
+	user, err := authboss.a.Storer.(ConfirmStorer).ConfirmUser(dbTok)
 	if err == authboss.ErrUserNotFound {
 		return authboss.ErrAndRedirect{Location: "/", Err: errors.New("confirm: token not found")}
 	} else if err != nil {
@@ -178,7 +178,7 @@ func (c *Confirm) confirmHandler(ctx *authboss.Context, w http.ResponseWriter, r
 	ctx.User[StoreConfirmToken] = ""
 	ctx.User[StoreConfirmed] = true
 
-	key, err := ctx.User.StringErr(authboss.Cfg.PrimaryID)
+	key, err := ctx.User.StringErr(authboss.a.PrimaryID)
 	if err != nil {
 		return err
 	}
@@ -188,7 +188,7 @@ func (c *Confirm) confirmHandler(ctx *authboss.Context, w http.ResponseWriter, r
 	}
 
 	ctx.SessionStorer.Put(authboss.SessionKey, key)
-	response.Redirect(ctx, w, r, authboss.Cfg.RegisterOKPath, "You have successfully confirmed your account.", "", true)
+	response.Redirect(ctx, w, r, authboss.a.RegisterOKPath, "You have successfully confirmed your account.", "", true)
 
 	return nil
 }

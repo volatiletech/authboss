@@ -8,14 +8,14 @@ import (
 var nowTime = time.Now
 
 // TimeToExpiry returns zero if the user session is expired else the time until expiry.
-func TimeToExpiry(w http.ResponseWriter, r *http.Request) time.Duration {
-	return timeToExpiry(Cfg.SessionStoreMaker(w, r))
+func (a *Authboss) TimeToExpiry(w http.ResponseWriter, r *http.Request) time.Duration {
+	return a.timeToExpiry(a.SessionStoreMaker(w, r))
 }
 
-func timeToExpiry(session ClientStorer) time.Duration {
+func (a *Authboss) timeToExpiry(session ClientStorer) time.Duration {
 	dateStr, ok := session.Get(SessionLastAction)
 	if !ok {
-		return Cfg.ExpireAfter
+		return a.ExpireAfter
 	}
 
 	date, err := time.Parse(time.RFC3339, dateStr)
@@ -23,7 +23,7 @@ func timeToExpiry(session ClientStorer) time.Duration {
 		panic("last_action is not a valid RFC3339 date")
 	}
 
-	remaining := date.Add(Cfg.ExpireAfter).Sub(nowTime().UTC())
+	remaining := date.Add(a.ExpireAfter).Sub(nowTime().UTC())
 	if remaining > 0 {
 		return remaining
 	}
@@ -32,35 +32,36 @@ func timeToExpiry(session ClientStorer) time.Duration {
 }
 
 // RefreshExpiry  updates the last action for the user, so he doesn't become expired.
-func RefreshExpiry(w http.ResponseWriter, r *http.Request) {
-	session := Cfg.SessionStoreMaker(w, r)
-	refreshExpiry(session)
+func (a *Authboss) RefreshExpiry(w http.ResponseWriter, r *http.Request) {
+	session := a.SessionStoreMaker(w, r)
+	a.refreshExpiry(session)
 }
 
-func refreshExpiry(session ClientStorer) {
+func (a *Authboss) refreshExpiry(session ClientStorer) {
 	session.Put(SessionLastAction, nowTime().UTC().Format(time.RFC3339))
 }
 
 type expireMiddleware struct {
+	ab   *Authboss
 	next http.Handler
 }
 
 // ExpireMiddleware ensures that the user's expiry information is kept up-to-date
 // on each request. Deletes the SessionKey from the session if the user is
-// expired (Cfg.ExpireAfter duration since SessionLastAction).
-func ExpireMiddleware(next http.Handler) http.Handler {
-	return expireMiddleware{next}
+// expired (a.ExpireAfter duration since SessionLastAction).
+func (a *Authboss) ExpireMiddleware(next http.Handler) http.Handler {
+	return expireMiddleware{a, next}
 }
 
 func (m expireMiddleware) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	session := Cfg.SessionStoreMaker(w, r)
+	session := m.ab.SessionStoreMaker(w, r)
 	if _, ok := session.Get(SessionKey); ok {
-		ttl := timeToExpiry(session)
+		ttl := m.ab.timeToExpiry(session)
 		if ttl == 0 {
 			session.Del(SessionKey)
 			session.Del(SessionLastAction)
 		} else {
-			refreshExpiry(session)
+			m.ab.refreshExpiry(session)
 		}
 	}
 

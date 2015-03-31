@@ -25,10 +25,10 @@ var (
 	funcMap = template.FuncMap{
 		"title": strings.Title,
 		"mountpathed": func(location string) string {
-			if authboss.Cfg.MountPath == "/" {
+			if authboss.a.MountPath == "/" {
 				return location
 			}
-			return path.Join(authboss.Cfg.MountPath, location)
+			return path.Join(authboss.a.MountPath, location)
 		},
 	}
 )
@@ -77,10 +77,10 @@ func (t Templates) Render(ctx *authboss.Context, w http.ResponseWriter, r *http.
 		return authboss.RenderErr{tpl.Name(), data, ErrTemplateNotFound}
 	}
 
-	data.MergeKV("xsrfName", template.HTML(authboss.Cfg.XSRFName), "xsrfToken", template.HTML(authboss.Cfg.XSRFMaker(w, r)))
+	data.MergeKV("xsrfName", template.HTML(authboss.a.XSRFName), "xsrfToken", template.HTML(authboss.a.XSRFMaker(w, r)))
 
-	if authboss.Cfg.LayoutDataMaker != nil {
-		data.Merge(authboss.Cfg.LayoutDataMaker(w, r))
+	if authboss.a.LayoutDataMaker != nil {
+		data.Merge(authboss.a.LayoutDataMaker(w, r))
 	}
 
 	if flash, ok := ctx.SessionStorer.Get(authboss.FlashSuccessKey); ok {
@@ -130,7 +130,7 @@ func Email(email authboss.Email, htmlTpls Templates, nameHTML string, textTpls T
 	}
 	email.TextBody = plainBuffer.String()
 
-	if err := authboss.Cfg.Mailer.Send(email); err != nil {
+	if err := authboss.a.Mailer.Send(email); err != nil {
 		return err
 	}
 

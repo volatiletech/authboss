@@ -72,6 +72,8 @@ func TestAttributeMeta_Names(t *testing.T) {
 }
 
 func TestAttributeMeta_Helpers(t *testing.T) {
+	t.Parallel()
+
 	now := time.Now()
 	attr := Attributes{
 		"integer":   int64(5),

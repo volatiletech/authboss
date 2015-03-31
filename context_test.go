@@ -8,13 +8,17 @@ import (
 )
 
 func TestContext_Request(t *testing.T) {
+	t.Parallel()
+
+	ab := New()
+
 	req, err := http.NewRequest("POST", "http://localhost?query=string", bytes.NewBufferString("post=form"))
 	if err != nil {
 		t.Error("Unexpected Error:", err)
 	}
 	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 
-	ctx, err := ContextFromRequest(req)
+	ctx, err := ab.ContextFromRequest(req)
 	if err != nil {
 		t.Error("Unexpected Error:", err)
 	}
@@ -69,10 +73,12 @@ func TestContext_Request(t *testing.T) {
 }
 
 func TestContext_SaveUser(t *testing.T) {
-	Cfg = NewConfig()
-	ctx := NewContext()
+	t.Parallel()
+
+	ab := New()
+	ctx := ab.NewContext()
 	storer := mockStorer{}
-	Cfg.Storer = storer
+	ab.Storer = storer
 	ctx.User = Attributes{StoreUsername: "joe", StoreEmail: "hello@joe.com", StorePassword: "mysticalhash"}
 
 	err := ctx.SaveUser()
@@ -93,8 +99,10 @@ func TestContext_SaveUser(t *testing.T) {
 }
 
 func TestContext_LoadUser(t *testing.T) {
-	Cfg = NewConfig()
-	ctx := NewContext()
+	t.Parallel()
+
+	ab := New()
+	ctx := ab.NewContext()
 
 	attr := Attributes{
 		"email":    "hello@joe.com",
@@ -107,8 +115,8 @@ func TestContext_LoadUser(t *testing.T) {
 		"joe":        attr,
 		"whatgoogle": attr,
 	}
-	Cfg.Storer = storer
-	Cfg.OAuth2Storer = storer
+	ab.Storer = storer
+	ab.OAuth2Storer = storer
 
 	ctx.User = nil
 	if err := ctx.LoadUser("joe"); err != nil {
@@ -144,12 +152,14 @@ func TestContext_LoadUser(t *testing.T) {
 }
 
 func TestContext_LoadSessionUser(t *testing.T) {
-	Cfg = NewConfig()
-	ctx := NewContext()
+	t.Parallel()
+
+	ab := New()
+	ctx := ab.NewContext()
 	storer := mockStorer{
 		"joe": Attributes{"email": "hello@joe.com", "password": "mysticalhash"},
 	}
-	Cfg.Storer = storer
+	ab.Storer = storer
 	ctx.SessionStorer = mockClientStore{
 		SessionKey: "joe",
 	}
@@ -169,9 +179,12 @@ func TestContext_LoadSessionUser(t *testing.T) {
 }
 
 func TestContext_Attributes(t *testing.T) {
+	t.Parallel()
+
 	now := time.Now().UTC()
 
-	ctx := NewContext()
+	ab := New()
+	ctx := ab.NewContext()
 	ctx.postFormValues = map[string][]string{
 		"a":        []string{"a", "1"},
 		"b_int":    []string{"5", "hello"},

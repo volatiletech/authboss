@@ -23,12 +23,13 @@ func testHandler(ctx *Context, w http.ResponseWriter, r *http.Request) error {
 	return nil
 }
 
-func (t *testModule) Initialize() error       { return nil }
-func (t *testModule) Routes() RouteTable      { return t.r }
-func (t *testModule) Storage() StorageOptions { return t.s }
+func (t *testModule) Initialize(a *Authboss) error { return nil }
+func (t *testModule) Routes() RouteTable           { return t.r }
+func (t *testModule) Storage() StorageOptions      { return t.s }
 
 func TestRegister(t *testing.T) {
-	// RegisterModule called by TestMain.
+	modules = make(map[string]Modularizer)
+	RegisterModule("testmodule", testMod)
 
 	if _, ok := modules["testmodule"]; !ok {
 		t.Error("Expected module to be saved.")
@@ -40,7 +41,8 @@ func TestRegister(t *testing.T) {
 }
 
 func TestLoadedModules(t *testing.T) {
-	// RegisterModule called by TestMain.
+	modules = make(map[string]Modularizer)
+	RegisterModule("testmodule", testMod)
 
 	loadedMods := LoadedModules()
 	if len(loadedMods) != 1 {

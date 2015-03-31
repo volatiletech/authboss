@@ -10,9 +10,6 @@ import (
 	"golang.org/x/crypto/bcrypt"
 )
 
-// Cfg is the singleton instance of Config
-var Cfg = NewConfig()
-
 // Config holds all the configuration for both authboss and it's modules.
 type Config struct {
 	// MountPath is the path to mount authboss's routes at (eg /auth).
@@ -117,61 +114,55 @@ type Config struct {
 	Mailer Mailer
 }
 
-// NewConfig creates a config full of healthy default values.
-// Notable exceptions to default values are the Storers.
-// This method is called automatically on startup and is set to authboss.Cfg
-// so implementers need not call it. Primarily exported for testing.
-func NewConfig() *Config {
-	return &Config{
-		MountPath:  "/",
-		ViewsPath:  "./",
-		RootURL:    "http://localhost:8080",
-		BCryptCost: bcrypt.DefaultCost,
+// Defaults sets the configuration's default values.
+func (c *Config) Defaults() {
+	c.MountPath = "/"
+	c.ViewsPath = "./"
+	c.RootURL = "http://localhost:8080"
+	c.BCryptCost = bcrypt.DefaultCost
 
-		PrimaryID: StoreEmail,
+	c.PrimaryID = StoreEmail
 
-		Layout:          template.Must(template.New("").Parse(`<!DOCTYPE html><html><body>{{template "authboss" .}}</body></html>`)),
-		LayoutHTMLEmail: template.Must(template.New("").Parse(`<!DOCTYPE html><html><body>{{template "authboss" .}}</body></html>`)),
-		LayoutTextEmail: template.Must(template.New("").Parse(`{{template "authboss" .}}`)),
+	c.Layout = template.Must(template.New("").Parse(`<!DOCTYPE html><html><body>{{template "authboss" .}}</body></html>`))
+	c.LayoutHTMLEmail = template.Must(template.New("").Parse(`<!DOCTYPE html><html><body>{{template "authboss" .}}</body></html>`))
+	c.LayoutTextEmail = template.Must(template.New("").Parse(`{{template "authboss" .}}`))
 
-		AuthLoginOKPath:   "/",
-		AuthLoginFailPath: "/",
-		AuthLogoutOKPath:  "/",
+	c.AuthLoginOKPath = "/"
+	c.AuthLoginFailPath = "/"
+	c.AuthLogoutOKPath = "/"
 
-		RecoverOKPath:        "/",
-		RecoverTokenDuration: time.Duration(24) * time.Hour,
+	c.RecoverOKPath = "/"
+	c.RecoverTokenDuration = time.Duration(24) * time.Hour
 
-		RegisterOKPath: "/",
+	c.RegisterOKPath = "/"
 
-		Policies: []Validator{
-			Rules{
-				FieldName:       "username",
-				Required:        true,
-				MinLength:       2,
-				MaxLength:       4,
-				AllowWhitespace: false,
-			},
-			Rules{
-				FieldName: "password",
-				Required:  true,
-				MinLength: 4,
-				MaxLength: 8,
-
-				AllowWhitespace: false,
-			},
+	c.Policies = []Validator{
+		Rules{
+			FieldName:       "username",
+			Required:        true,
+			MinLength:       2,
+			MaxLength:       4,
+			AllowWhitespace: false,
 		},
-		ConfirmFields: []string{
-			StorePassword, ConfirmPrefix + StorePassword,
+		Rules{
+			FieldName:       "password",
+			Required:        true,
+			MinLength:       4,
+			MaxLength:       8,
+			AllowWhitespace: false,
 		},
-
-		ExpireAfter: 60 * time.Minute,
-
-		LockAfter:    3,
-		LockWindow:   5 * time.Minute,
-		LockDuration: 5 * time.Hour,
-
-		LogWriter: NewDefaultLogger(),
-		Callbacks: NewCallbacks(),
-		Mailer:    LogMailer(ioutil.Discard),
 	}
+	c.ConfirmFields = []string{
+		StorePassword, ConfirmPrefix + StorePassword,
+	}
+
+	c.ExpireAfter = 60 * time.Minute
+
+	c.LockAfter = 3
+	c.LockWindow = 5 * time.Minute
+	c.LockDuration = 5 * time.Hour
+
+	c.LogWriter = NewDefaultLogger()
+	c.Callbacks = NewCallbacks()
+	c.Mailer = LogMailer(ioutil.Discard)
 }

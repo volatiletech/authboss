@@ -15,14 +15,14 @@ import (
 
 func setup() *Register {
 	authboss.Cfg = authboss.NewConfig()
-	authboss.Cfg.RegisterOKPath = "/regsuccess"
-	authboss.Cfg.Layout = template.Must(template.New("").Parse(`{{template "authboss" .}}`))
-	authboss.Cfg.XSRFName = "xsrf"
-	authboss.Cfg.XSRFMaker = func(_ http.ResponseWriter, _ *http.Request) string {
+	authboss.a.RegisterOKPath = "/regsuccess"
+	authboss.a.Layout = template.Must(template.New("").Parse(`{{template "authboss" .}}`))
+	authboss.a.XSRFName = "xsrf"
+	authboss.a.XSRFMaker = func(_ http.ResponseWriter, _ *http.Request) string {
 		return "xsrfvalue"
 	}
-	authboss.Cfg.ConfirmFields = []string{"password", "confirm_password"}
-	authboss.Cfg.Storer = mocks.NewMockStorer()
+	authboss.a.ConfirmFields = []string{"password", "confirm_password"}
+	authboss.a.Storer = mocks.NewMockStorer()
 
 	reg := Register{}
 	if err := reg.Initialize(); err != nil {
@@ -34,7 +34,7 @@ func setup() *Register {
 
 func TestRegister(t *testing.T) {
 	authboss.Cfg = authboss.NewConfig()
-	authboss.Cfg.Storer = mocks.NewMockStorer()
+	authboss.a.Storer = mocks.NewMockStorer()
 	r := Register{}
 
 	if err := r.Initialize(); err != nil {
@@ -46,7 +46,7 @@ func TestRegister(t *testing.T) {
 	}
 
 	sto := r.Storage()
-	if sto[authboss.Cfg.PrimaryID] != authboss.String {
+	if sto[authboss.a.PrimaryID] != authboss.String {
 		t.Error("Wanted primary ID to be a string.")
 	}
 	if sto[authboss.StorePassword] != authboss.String {
@@ -76,7 +76,7 @@ func TestRegisterGet(t *testing.T) {
 
 	if str := w.Body.String(); !strings.Contains(str, "<form") {
 		t.Error("It should have rendered a nice form:", str)
-	} else if !strings.Contains(str, `name="`+authboss.Cfg.PrimaryID) {
+	} else if !strings.Contains(str, `name="`+authboss.a.PrimaryID) {
 		t.Error("Form should contain the primary ID:", str)
 	}
 }
@@ -88,7 +88,7 @@ func TestRegisterPostValidationErrs(t *testing.T) {
 	vals := url.Values{}
 
 	email := "email@address.com"
-	vals.Set(authboss.Cfg.PrimaryID, email)
+	vals.Set(authboss.a.PrimaryID, email)
 	vals.Set(authboss.StorePassword, "pass")
 	vals.Set(authboss.ConfirmPrefix+authboss.StorePassword, "pass2")
 
@@ -113,7 +113,7 @@ func TestRegisterPostValidationErrs(t *testing.T) {
 		t.Error("Confirm password should have an error:", str)
 	}
 
-	if _, err := authboss.Cfg.Storer.Get(email); err != authboss.ErrUserNotFound {
+	if _, err := authboss.a.Storer.Get(email); err != authboss.ErrUserNotFound {
 		t.Error("The user should not have been saved.")
 	}
 }
@@ -125,7 +125,7 @@ func TestRegisterPostSuccess(t *testing.T) {
 	vals := url.Values{}
 
 	email := "email@address.com"
-	vals.Set(authboss.Cfg.PrimaryID, email)
+	vals.Set(authboss.a.PrimaryID, email)
 	vals.Set(authboss.StorePassword, "pass")
 	vals.Set(authboss.ConfirmPrefix+authboss.StorePassword, "pass")
 
@@ -142,17 +142,17 @@ func TestRegisterPostSuccess(t *testing.T) {
 		t.Error("It should have written a redirect:", w.Code)
 	}
 
-	if loc := w.Header().Get("Location"); loc != authboss.Cfg.RegisterOKPath {
+	if loc := w.Header().Get("Location"); loc != authboss.a.RegisterOKPath {
 		t.Error("Redirected to the wrong location", loc)
 	}
 
-	user, err := authboss.Cfg.Storer.Get(email)
+	user, err := authboss.a.Storer.Get(email)
 	if err == authboss.ErrUserNotFound {
 		t.Error("The user have been saved.")
 	}
 
 	attrs := authboss.Unbind(user)
-	if e, err := attrs.StringErr(authboss.Cfg.PrimaryID); err != nil {
+	if e, err := attrs.StringErr(authboss.a.PrimaryID); err != nil {
 		t.Error(err)
 	} else if e != email {
 		t.Errorf("Email was not set properly, want: %s, got: %s", email, e)

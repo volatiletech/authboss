@@ -26,16 +26,16 @@ func testSetup() (r *Recover, s *mocks.MockStorer, l *bytes.Buffer) {
 	l = &bytes.Buffer{}
 
 	authboss.Cfg = authboss.NewConfig()
-	authboss.Cfg.Layout = template.Must(template.New("").Parse(`{{template "authboss" .}}`))
-	authboss.Cfg.LayoutHTMLEmail = template.Must(template.New("").Parse(`<strong>{{template "authboss" .}}</strong>`))
-	authboss.Cfg.LayoutTextEmail = template.Must(template.New("").Parse(`{{template "authboss" .}}`))
-	authboss.Cfg.Storer = s
-	authboss.Cfg.XSRFName = "xsrf"
-	authboss.Cfg.XSRFMaker = func(_ http.ResponseWriter, _ *http.Request) string {
+	authboss.a.Layout = template.Must(template.New("").Parse(`{{template "authboss" .}}`))
+	authboss.a.LayoutHTMLEmail = template.Must(template.New("").Parse(`<strong>{{template "authboss" .}}</strong>`))
+	authboss.a.LayoutTextEmail = template.Must(template.New("").Parse(`{{template "authboss" .}}`))
+	authboss.a.Storer = s
+	authboss.a.XSRFName = "xsrf"
+	authboss.a.XSRFMaker = func(_ http.ResponseWriter, _ *http.Request) string {
 		return "xsrfvalue"
 	}
-	authboss.Cfg.PrimaryID = authboss.StoreUsername
-	authboss.Cfg.LogWriter = l
+	authboss.a.PrimaryID = authboss.StoreUsername
+	authboss.a.LogWriter = l
 
 	r = &Recover{}
 	if err := r.Initialize(); err != nil {
@@ -62,8 +62,8 @@ func TestRecover(t *testing.T) {
 	r, _, _ := testSetup()
 
 	storage := r.Storage()
-	if storage[authboss.Cfg.PrimaryID] != authboss.String {
-		t.Error("Expected storage KV:", authboss.Cfg.PrimaryID, authboss.String)
+	if storage[authboss.a.PrimaryID] != authboss.String {
+		t.Error("Expected storage KV:", authboss.a.PrimaryID, authboss.String)
 	}
 	if storage[authboss.StoreEmail] != authboss.String {
 		t.Error("Expected storage KV:", authboss.StoreEmail, authboss.String)
@@ -103,10 +103,10 @@ func TestRecover_startHandlerFunc_GET(t *testing.T) {
 	if !strings.Contains(body, `<form action="recover"`) {
 		t.Error("Should have rendered a form")
 	}
-	if !strings.Contains(body, `name="`+authboss.Cfg.PrimaryID) {
+	if !strings.Contains(body, `name="`+authboss.a.PrimaryID) {
 		t.Error("Form should contain the primary ID field")
 	}
-	if !strings.Contains(body, `name="confirm_`+authboss.Cfg.PrimaryID) {
+	if !strings.Contains(body, `name="confirm_`+authboss.a.PrimaryID) {
 		t.Error("Form should contain the confirm primary ID field")
 	}
 }
@@ -141,7 +141,7 @@ func TestRecover_startHandlerFunc_POST_UserNotFound(t *testing.T) {
 		t.Error("Expected ErrAndRedirect error")
 	}
 
-	if rerr.Location != authboss.Cfg.RecoverOKPath {
+	if rerr.Location != authboss.a.RecoverOKPath {
 		t.Error("Unexpected location:", rerr.Location)
 	}
 
@@ -187,7 +187,7 @@ func TestRecover_startHandlerFunc_POST(t *testing.T) {
 	}
 
 	loc := w.Header().Get("Location")
-	if loc != authboss.Cfg.RecoverOKPath {
+	if loc != authboss.a.RecoverOKPath {
 		t.Error("Unexpected location:", loc)
 	}
 
@@ -237,7 +237,7 @@ func TestRecover_sendRecoverMail_FailToSend(t *testing.T) {
 
 	mailer := mocks.NewMockMailer()
 	mailer.SendErr = "failed to send"
-	authboss.Cfg.Mailer = mailer
+	authboss.a.Mailer = mailer
 
 	a.sendRecoverEmail("", "")
 
@@ -250,9 +250,9 @@ func TestRecover_sendRecoverEmail(t *testing.T) {
 	a, _, _ := testSetup()
 
 	mailer := mocks.NewMockMailer()
-	authboss.Cfg.EmailSubjectPrefix = "foo "
-	authboss.Cfg.RootURL = "bar"
-	authboss.Cfg.Mailer = mailer
+	authboss.a.EmailSubjectPrefix = "foo "
+	authboss.a.RootURL = "bar"
+	authboss.a.Mailer = mailer
 
 	a.sendRecoverEmail("a@b.c", "abc=")
 	if len(mailer.Last.To) != 1 {
@@ -265,7 +265,7 @@ func TestRecover_sendRecoverEmail(t *testing.T) {
 		t.Error("Unexpected subject:", mailer.Last.Subject)
 	}
 
-	url := fmt.Sprintf("%s/recover/complete?token=abc=", authboss.Cfg.RootURL)
+	url := fmt.Sprintf("%s/recover/complete?token=abc=", authboss.a.RootURL)
 	if !strings.Contains(mailer.Last.HTMLBody, url) {
 		t.Error("Expected HTMLBody to contain url:", url)
 	}
@@ -377,12 +377,12 @@ func TestRecover_completeHandlerFunc_POST_VerificationFails(t *testing.T) {
 func TestRecover_completeHandlerFunc_POST(t *testing.T) {
 	rec, storer, _ := testSetup()
 
-	storer.Users["john"] = authboss.Attributes{authboss.Cfg.PrimaryID: "john", StoreRecoverToken: testStdBase64Token, StoreRecoverTokenExpiry: time.Now().Add(1 * time.Hour), authboss.StorePassword: "asdf"}
+	storer.Users["john"] = authboss.Attributes{authboss.a.PrimaryID: "john", StoreRecoverToken: testStdBase64Token, StoreRecoverTokenExpiry: time.Now().Add(1 * time.Hour), authboss.StorePassword: "asdf"}
 
 	cbCalled := false
 
-	authboss.Cfg.Callbacks = authboss.NewCallbacks()
-	authboss.Cfg.Callbacks.After(authboss.EventPasswordReset, func(_ *authboss.Context) error {
+	authboss.a.Callbacks = authboss.NewCallbacks()
+	authboss.a.Callbacks.After(authboss.EventPasswordReset, func(_ *authboss.Context) error {
 		cbCalled = true
 		return nil
 	})
@@ -421,7 +421,7 @@ func TestRecover_completeHandlerFunc_POST(t *testing.T) {
 	}
 
 	loc := w.Header().Get("Location")
-	if loc != authboss.Cfg.AuthLogoutOKPath {
+	if loc != authboss.a.AuthLogoutOKPath {
 		t.Error("Unexpected location:", loc)
 	}
 }

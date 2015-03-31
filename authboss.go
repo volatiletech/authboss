@@ -20,12 +20,15 @@ import (
 // Authboss contains a configuration and other details for running.
 type Authboss struct {
 	Config
+	Callbacks *Callbacks
 }
 
 // New makes a new instance of authboss with a default
 // configuration.
 func New() *Authboss {
-	ab := &Authboss{}
+	ab := &Authboss{
+		Callbacks: NewCallbacks(),
+	}
 	ab.Defaults()
 	return ab
 }

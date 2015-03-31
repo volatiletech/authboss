@@ -107,8 +107,6 @@ type Config struct {
 	// LogWriter is written to when errors occur, as well as on startup to show which modules are loaded
 	// and which routes they registered. By default writes to io.Discard.
 	LogWriter io.Writer
-	// Callbacks is an internal mechanism that can be used by implementers and will be set automatically.
-	Callbacks *Callbacks
 	// Mailer is the mailer being used to send e-mails out. Authboss defines two loggers for use
 	// LogMailer and SMTPMailer, the default is a LogMailer to io.Discard.
 	Mailer Mailer
@@ -163,6 +161,5 @@ func (c *Config) Defaults() {
 	c.LockDuration = 5 * time.Hour
 
 	c.LogWriter = NewDefaultLogger()
-	c.Callbacks = NewCallbacks()
 	c.Mailer = LogMailer(ioutil.Discard)
 }

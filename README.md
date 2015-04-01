@@ -59,18 +59,17 @@ The amount of code necessary to start and configure authboss is fairly minimal, 
 your storer, cookie storer, session storer, xsrf maker implementations.
 
 ```go
-// Do all configuration here (authboss.Cfg is a global
-// config created automatically at runtime)
-authboss.Cfg.MountPath = "/authboss"
-authboss.Cfg.LogWriter = os.Stdout
+ab := authboss.New() // Usually store this globally
+ab.MountPath = "/authboss"
+ab.LogWriter = os.Stdout
 
-if err := authboss.Init(); err != nil {
+if err := ab.Init(); err != nil {
 	// Handle error, don't let program continue to run
 	log.Fatalln(err)
 }
 
 // Make sure to put authboss's router somewhere
-http.Handle("/authboss", authboss.NewRouter())
+http.Handle("/authboss", ab.NewRouter())
 http.ListenAndServe(":8080")
 ```
 
@@ -106,7 +105,7 @@ The reason for this is because they do checking against Remember me tokens and d
 The interface{} returned is actually your User struct (see: [Storers](#storers)) and you can convert it if it's not nil.
 
 ```go
-func CurrentUser(w http.ResponseWriter, r *http.Request) (interface{}, error)
+func (a *Authboss) CurrentUser(w http.ResponseWriter, r *http.Request) (interface{}, error)
 ```
 
 Return Values        | Meaning
@@ -121,11 +120,11 @@ user struct, nil     | The user is logged in.
 Because on password reset various cleanings need to happen (for example Remember Me tokens
 should all be deleted) setting the user's password yourself is not a good idea.
 
-Authboss has the [UpdatePassword](http://godoc.org/gopkg.in/authboss.v0#UpdatePassword) method for you to use. Please consult it's documentation
+Authboss has the [UpdatePassword](http://godoc.org/gopkg.in/authboss.v0#Authboss.UpdatePassword) method for you to use. Please consult it's documentation
 for a thorough explanation of each parameter and usage.
 
 ```go
-func UpdatePassword(w http.ResponseWriter, r *http.Request, ptPassword string, user interface{}, updater func() error) error
+func (a *Authboss) UpdatePassword(w http.ResponseWriter, r *http.Request, ptPassword string, user interface{}, updater func() error) error
 ```
 
 An example usage might be:
@@ -137,7 +136,7 @@ myUserSave := func() error {
 }
 
 // WARNING: Never pass the form value directly into the database as you see here :D
-err := UpdatePassword(w, r, r.FormValue("password"), &user1, myUserSave)
+err := ab.UpdatePassword(w, r, r.FormValue("password"), &user1, myUserSave)
 if err != nil {
 	// Handle error here, in most cases this will be the error from myUserSave
 }
@@ -294,7 +293,7 @@ locked for the configured LockDuration. After this duration the user will be abl
 
 ## <a name="expire"></a> Expiring Inactive User Sessions
 **Requirements:**
-- [ExpireMiddleware](http://godoc.org/gopkg.in/authboss.v0#ExpireMiddleware)
+- [ExpireMiddleware](http://godoc.org/gopkg.in/authboss.v0#Authboss.ExpireMiddleware)
 - [Session Storer](#client_storers)
 
 **How it works:** A middleware is installed into the stack. This middleware uses the session to log the last action time of the user.
@@ -302,19 +301,19 @@ If the last action occurred longer than the configured expire time ago then the 
 
 ```go
 mux := mux.NewRouter() // Gorilla Mux syntax
-http.ListenAndServe(":8080", authboss.ExpireMiddleware(mux)) // Install the middleware
+http.ListenAndServe(":8080", ab.ExpireMiddleware(mux)) // Install the middleware
 ```
 
 ## <a name="validation"></a> Validation
 
 **Field validation:** Validation is achieved through the use of policies. These policies are in the configuration. They can be added for any field.
 Any type can be used for validation that implements the Validator interface. Authboss supplies a quite flexible field validator called
-[Rules](http://godoc.org/gopkg.in/authboss.v0#ExpireMiddleware) that you can use instead of writing your own. Validation errors are reported and
+[Rules](http://godoc.org/gopkg.in/authboss.v0#Rules) that you can use instead of writing your own. Validation errors are reported and
 handled all in the same way, and the view decides how to display these to the user. See the examples or the authboss default view files to see
 how to display errors.
 
 ```go
-authboss.Cfg.Policies = []Validator{
+ab.Policies = []Validator{
 	authboss.Rules{
 		FieldName:       "username",
 		Required:        true,
@@ -331,7 +330,7 @@ and the second being the name of the confirm field. These confirm fields are onl
 you can add others.
 
 ```go
-authboss.Cfg.ConfirmFields: []string{
+ab.ConfirmFields: []string{
 	StorePassword, ConfirmPrefix + StorePassword,
 },
 ```
@@ -430,12 +429,12 @@ This should typically include the keys: authboss.FlashSuccessKey, authboss.Flash
 ```go
 // Example LayoutDataMaker
 func layoutData(w http.ResponseWriter, r *http.Request) authboss.HTMLData {
-	userInter, err := authboss.CurrentUser(w, r)
+	userInter, err := ab.CurrentUser(w, r)
 
 	return authboss.HTMLData{
 		"loggedin":               userInter != nil,
-		authboss.FlashSuccessKey: authboss.FlashSuccess(w, r),
-		authboss.FlashErrorKey:   authboss.FlashError(w, r),
+		authboss.FlashSuccessKey: ab.FlashSuccess(w, r),
+		authboss.FlashErrorKey:   ab.FlashError(w, r),
 	}
 }
 ```

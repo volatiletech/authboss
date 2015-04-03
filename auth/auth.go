@@ -103,7 +103,11 @@ func (a *Auth) loginHandlerFunc(ctx *authboss.Context, w http.ResponseWriter, r 
 			return a.templates.Render(ctx, w, r, tplLogin, errData)
 		}
 
-		if err := validateCredentials(ctx, key, password); err != nil {
+		if valid, err := validateCredentials(ctx, key, password); err != nil {
+			errData["error"] = "Internal server error"
+			fmt.Fprintf(a.LogWriter, "auth: validate credentials failed: %v", err)
+			return a.templates.Render(ctx, w, r, tplLogin, errData)
+		} else if !valid {
 			return a.templates.Render(ctx, w, r, tplLogin, errData)
 		}
 
@@ -136,21 +140,21 @@ func (a *Auth) loginHandlerFunc(ctx *authboss.Context, w http.ResponseWriter, r 
 	return nil
 }
 
-func validateCredentials(ctx *authboss.Context, key, password string) error {
+func validateCredentials(ctx *authboss.Context, key, password string) (bool, error) {
 	if err := ctx.LoadUser(key); err != nil {
-		return err
+		return false, err
 	}
 
 	actualPassword, err := ctx.User.StringErr(authboss.StorePassword)
 	if err != nil {
-		return err
+		return false, err
 	}
 
 	if err := bcrypt.CompareHashAndPassword([]byte(actualPassword), []byte(password)); err != nil {
-		return err
+		return false, nil
 	}
 
-	return nil
+	return true, nil
 }
 
 func (a *Auth) logoutHandlerFunc(ctx *authboss.Context, w http.ResponseWriter, r *http.Request) error {

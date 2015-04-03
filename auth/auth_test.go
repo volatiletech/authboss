@@ -1,6 +1,7 @@
 package auth
 
 import (
+	"bytes"
 	"errors"
 	"html/template"
 	"io/ioutil"
@@ -198,6 +199,9 @@ func TestAuth_loginHandlerFunc_POST_AuthenticationFailure(t *testing.T) {
 
 	a, _ := testSetup()
 
+	log := &bytes.Buffer{}
+	a.LogWriter = log
+
 	ctx, w, r, _ := testRequest(a.Authboss, "POST", "username", "john", "password", "1")
 
 	if err := a.loginHandlerFunc(ctx, w, r); err != nil {
@@ -224,8 +228,12 @@ func TestAuth_loginHandlerFunc_POST_AuthenticationFailure(t *testing.T) {
 	}
 
 	body = w.Body.String()
-	if !strings.Contains(body, "invalid username and/or password") {
+	if !strings.Contains(body, "Internal server error") {
 		t.Error("Should have rendered with error")
+	}
+
+	if !bytes.Contains(log.Bytes(), []byte("auth: validate credentials failed:")) {
+		t.Error("Should have logged error message")
 	}
 }
 
@@ -305,17 +313,13 @@ func TestAuth_validateCredentials(t *testing.T) {
 
 	ctx := ab.NewContext()
 
-	if err := validateCredentials(ctx, "", ""); err.Error() != "Failed to load user" {
+	if _, err := validateCredentials(ctx, "", ""); err.Error() != "Failed to load user" {
 		t.Error("Unexpected error:", err)
 	}
 
 	storer.GetErr = ""
 	storer.Users["john"] = authboss.Attributes{"password": "$2a$10$pgFsuQwdhwOdZp/v52dvHeEi53ZaI7dGmtwK4bAzGGN5A4nT6doqm"}
-	if err := validateCredentials(ctx, "john", "b"); err == nil {
-		t.Error("Expected error about passwords mismatch")
-	}
-
-	if err := validateCredentials(ctx, "john", "a"); err != nil {
+	if _, err := validateCredentials(ctx, "john", "a"); err != nil {
 		t.Error("Unexpected error:", err)
 	}
 }

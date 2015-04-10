@@ -84,8 +84,7 @@ func (reg *Register) registerPostHandler(ctx *authboss.Context, w http.ResponseW
 	key, _ := ctx.FirstPostFormValue(reg.PrimaryID)
 	password, _ := ctx.FirstPostFormValue(authboss.StorePassword)
 
-	policies := authboss.FilterValidators(reg.Policies, reg.PrimaryID, authboss.StorePassword)
-	validationErrs := ctx.Validate(policies, reg.ConfirmFields...)
+	validationErrs := ctx.Validate(reg.Policies, reg.ConfirmFields...)
 
 	if len(validationErrs) != 0 {
 		data := authboss.HTMLData{

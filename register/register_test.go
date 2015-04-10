@@ -119,6 +119,7 @@ func TestRegisterPostValidationErrs(t *testing.T) {
 
 func TestRegisterPostSuccess(t *testing.T) {
 	reg := setup()
+	reg.Policies = nil
 
 	w := httptest.NewRecorder()
 	vals := url.Values{}

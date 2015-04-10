@@ -121,6 +121,11 @@ func (reg *Register) registerPostHandler(ctx *authboss.Context, w http.ResponseW
 			"primaryIDValue": key,
 			"errs":           map[string][]string{reg.PrimaryID: []string{"Already in use"}},
 		}
+
+		for _, f := range reg.PreserveFields {
+			data[f], _ = ctx.FirstFormValue(f)
+		}
+
 		return reg.templates.Render(ctx, w, r, tplRegister, data)
 	} else if err != nil {
 		return err

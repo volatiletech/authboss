@@ -32,6 +32,8 @@ var (
 	ErrUserNotFound = errors.New("User not found")
 	// ErrTokenNotFound should be returned from UseToken when the record is not found.
 	ErrTokenNotFound = errors.New("Token not found")
+	// ErrUserFound should be retruned from Create when the primaryID of the record is found.
+	ErrUserFound = errors.New("User found")
 )
 
 // StorageOptions is a map depicting the things a module must be able to store.

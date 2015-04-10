@@ -71,6 +71,9 @@ type Config struct {
 	// ConfirmFields are fields that are supposed to be submitted with confirmation
 	// fields alongside them, passwords, emails etc.
 	ConfirmFields []string
+	// PreserveFields are fields used with registration that are to be rendered when
+	// post fails.
+	PreserveFields []string
 
 	// ExpireAfter controls the time an account is idle before being logged out
 	// by the ExpireMiddleware.

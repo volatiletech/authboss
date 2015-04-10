@@ -18,7 +18,8 @@ const (
 // storage requirments.
 type RegisterStorer interface {
 	authboss.Storer
-	// Create is the same as put, except it refers to a non-existent key.
+	// Create is the same as put, except it refers to a non-existent key.  If the key is
+	// found simply return authboss.ErrUserFound
 	Create(key string, attr authboss.Attributes) error
 }
 
@@ -93,6 +94,10 @@ func (reg *Register) registerPostHandler(ctx *authboss.Context, w http.ResponseW
 			"errs":           validationErrs.Map(),
 		}
 
+		for _, f := range reg.PreserveFields {
+			data[f], _ = ctx.FirstFormValue(f)
+		}
+
 		return reg.templates.Render(ctx, w, r, tplRegister, data)
 	}
 
@@ -110,7 +115,14 @@ func (reg *Register) registerPostHandler(ctx *authboss.Context, w http.ResponseW
 	attr[authboss.StorePassword] = string(pass)
 	ctx.User = attr
 
-	if err := reg.Storer.(RegisterStorer).Create(key, attr); err != nil {
+	if err := reg.Storer.(RegisterStorer).Create(key, attr); err == authboss.ErrUserFound {
+		data := authboss.HTMLData{
+			"primaryID":      reg.PrimaryID,
+			"primaryIDValue": key,
+			"errs":           map[string][]string{reg.PrimaryID: []string{"Already in use"}},
+		}
+		return reg.templates.Render(ctx, w, r, tplRegister, data)
+	} else if err != nil {
 		return err
 	}
 

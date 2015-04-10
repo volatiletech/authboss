@@ -73,7 +73,6 @@ func (a *Auth) loginHandlerFunc(ctx *authboss.Context, w http.ResponseWriter, r 
 	case methodGET:
 		if _, ok := ctx.SessionStorer.Get(authboss.SessionKey); ok {
 			if halfAuthed, ok := ctx.SessionStorer.Get(authboss.SessionHalfAuthKey); !ok || halfAuthed == "false" {
-				//http.Redirect(w, r, a.AuthLoginOKPath, http.StatusFound, true)
 				response.Redirect(ctx, w, r, a.AuthLoginOKPath, "", "", true)
 				return nil
 			}
@@ -82,6 +81,7 @@ func (a *Auth) loginHandlerFunc(ctx *authboss.Context, w http.ResponseWriter, r 
 		data := authboss.NewHTMLData(
 			"showRemember", a.IsLoaded("remember"),
 			"showRecover", a.IsLoaded("recover"),
+			"showRegister", a.IsLoaded("register"),
 			"primaryID", a.PrimaryID,
 			"primaryIDValue", "",
 		)
@@ -96,6 +96,7 @@ func (a *Auth) loginHandlerFunc(ctx *authboss.Context, w http.ResponseWriter, r 
 			"primaryIDValue", key,
 			"showRemember", a.IsLoaded("remember"),
 			"showRecover", a.IsLoaded("recover"),
+			"showRegister", a.IsLoaded("register"),
 		)
 
 		policies := authboss.FilterValidators(a.Policies, a.PrimaryID, authboss.StorePassword)

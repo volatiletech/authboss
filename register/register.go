@@ -87,6 +87,12 @@ func (reg *Register) registerPostHandler(ctx *authboss.Context, w http.ResponseW
 
 	validationErrs := ctx.Validate(reg.Policies, reg.ConfirmFields...)
 
+	if user, err := ctx.Storer.Get(key); err != nil && err != authboss.ErrUserNotFound {
+		return err
+	} else if user != nil {
+		validationErrs = append(validationErrs, authboss.FieldError{reg.PrimaryID, errors.New("Already in use")})
+	}
+
 	if len(validationErrs) != 0 {
 		data := authboss.HTMLData{
 			"primaryID":      reg.PrimaryID,

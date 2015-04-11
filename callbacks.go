@@ -6,6 +6,8 @@ import (
 	"runtime"
 )
 
+//go:generate stringer -output stringers.go -type "Event,Interrupt"
+
 // Event is used for callback registration.
 type Event int
 
@@ -22,18 +24,6 @@ const (
 	EventGetUserSession
 	EventPasswordReset
 )
-
-const eventNames = "EventRegisterEventAuthEventOAuthEventAuthFailEventOAuthFailEventRecoverStartEventRecoverEndEventGetEventGetUserSessionEventPasswordReset"
-
-var eventIndexes = [...]uint8{0, 13, 22, 32, 45, 59, 76, 91, 99, 118, 136}
-
-func (i Event) String() string {
-	if i < 0 || i+1 >= Event(len(eventIndexes)) {
-		return fmt.Sprintf("Event(%d)", i)
-	}
-
-	return eventNames[eventIndexes[i]:eventIndexes[i+1]]
-}
 
 // Interrupt is used to signal to callback mechanisms
 // that the current process should not continue.
@@ -53,17 +43,6 @@ const (
 	// configured duration.
 	InterruptSessionExpired
 )
-
-const interruptNames = "InterruptNoneInterruptAccountLockedInterruptAccountNotConfirmedInterruptSessionExpired"
-
-var interruptIndexes = [...]uint8{0, 13, 35, 63, 86}
-
-func (i Interrupt) String() string {
-	if i < 0 || i+1 >= Interrupt(len(interruptIndexes)) {
-		return fmt.Sprintf("Interrupt(%d)", i)
-	}
-	return interruptNames[interruptIndexes[i]:interruptIndexes[i+1]]
-}
 
 // Before callbacks can interrupt the flow by returning a bool. This is used to stop
 // the callback chain and the original handler from continuing execution.

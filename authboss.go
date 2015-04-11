@@ -72,7 +72,11 @@ func (a *Authboss) CurrentUser(w http.ResponseWriter, r *http.Request) (interfac
 	ctx.SessionStorer = clientStoreWrapper{a.SessionStoreMaker(w, r)}
 	ctx.CookieStorer = clientStoreWrapper{a.CookieStoreMaker(w, r)}
 
-	_, err = a.Callbacks.FireBefore(EventGetUserSession, ctx)
+	return a.currentUser(ctx, w, r)
+}
+
+func (a *Authboss) currentUser(ctx *Context, w http.ResponseWriter, r *http.Request) (interface{}, error) {
+	_, err := a.Callbacks.FireBefore(EventGetUserSession, ctx)
 	if err != nil {
 		return nil, err
 	}

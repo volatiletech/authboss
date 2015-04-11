@@ -70,31 +70,6 @@ func TestAuth(t *testing.T) {
 	}
 }
 
-func TestAuth_loginHandlerFunc_GET_RedirectsWhenHalfAuthed(t *testing.T) {
-	t.Parallel()
-
-	a, _ := testSetup()
-	ctx, w, r, sessionStore := testRequest(a.Authboss, "GET")
-
-	sessionStore.Put(authboss.SessionKey, "a")
-	sessionStore.Put(authboss.SessionHalfAuthKey, "false")
-
-	a.AuthLoginOKPath = "/dashboard"
-
-	if err := a.loginHandlerFunc(ctx, w, r); err != nil {
-		t.Error("Unexpeced error:", err)
-	}
-
-	if w.Code != http.StatusFound {
-		t.Error("Unexpcted status:", w.Code)
-	}
-
-	loc := w.Header().Get("Location")
-	if loc != a.AuthLoginOKPath {
-		t.Error("Unexpected redirect:", loc)
-	}
-}
-
 func TestAuth_loginHandlerFunc_GET(t *testing.T) {
 	t.Parallel()
 

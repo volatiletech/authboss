@@ -49,10 +49,13 @@ type expireMiddleware struct {
 // ExpireMiddleware ensures that the user's expiry information is kept up-to-date
 // on each request. Deletes the SessionKey from the session if the user is
 // expired (a.ExpireAfter duration since SessionLastAction).
+// This middleware conflicts with use of the Remember module, don't enable both
+// at the same time.
 func (a *Authboss) ExpireMiddleware(next http.Handler) http.Handler {
 	return expireMiddleware{a, next}
 }
 
+// ServeHTTP removes the session if it's passed the expire time.
 func (m expireMiddleware) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	session := m.ab.SessionStoreMaker(w, r)
 	if _, ok := session.Get(SessionKey); ok {

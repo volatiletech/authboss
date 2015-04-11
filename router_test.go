@@ -3,6 +3,7 @@ package authboss
 import (
 	"bytes"
 	"errors"
+	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -201,5 +202,101 @@ func TestRouter_Redirect(t *testing.T) {
 	}
 	if fail, ok := session.Get(FlashErrorKey); !ok || fail != err.FlashError {
 		t.Error(fail, ok)
+	}
+}
+
+func TestRouter_redirectIfLoggedIn(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		Path       string
+		LoggedIn   bool
+		HalfAuthed bool
+
+		ShouldRedirect bool
+	}{
+		// These routes will be accessed depending on logged in and half auth's value
+		{"/auth", false, false, false},
+		{"/auth", true, false, true},
+		{"/auth", true, true, false},
+		{"/oauth2/facebook", false, false, false},
+		{"/oauth2/facebook", true, false, true},
+		{"/oauth2/facebook", true, true, false},
+		{"/oauth2/callback/facebook", false, false, false},
+		{"/oauth2/callback/facebook", true, false, true},
+		{"/oauth2/callback/facebook", true, true, false},
+		// These are logout routes and never redirect
+		{"/logout", true, false, false},
+		{"/logout", true, true, false},
+		{"/oauth2/logout", true, false, false},
+		{"/oauth2/logout", true, true, false},
+		// These routes should always redirect despite half auth
+		{"/register", true, true, true},
+		{"/recover", true, true, true},
+		{"/register", false, false, false},
+		{"/recover", false, false, false},
+	}
+
+	storer := mockStorer{"john@john.com": Attributes{
+		StoreEmail:    "john@john.com",
+		StorePassword: "password",
+	}}
+	ab := New()
+	ab.Storer = storer
+
+	for i, test := range tests {
+		session := mockClientStore{}
+		cookies := mockClientStore{}
+		ctx := ab.NewContext()
+		ctx.SessionStorer = session
+		ctx.CookieStorer = cookies
+
+		if test.LoggedIn {
+			session[SessionKey] = "john@john.com"
+		}
+		if test.HalfAuthed {
+			session[SessionHalfAuthKey] = "true"
+		}
+
+		r, _ := http.NewRequest("GET", test.Path, nil)
+		w := httptest.NewRecorder()
+		handled := redirectIfLoggedIn(ctx, w, r)
+
+		if test.ShouldRedirect && (!handled || w.Code != http.StatusFound) {
+			t.Errorf("%d) It should have redirected the request: %q %t %d", i, test.Path, handled, w.Code)
+		} else if !test.ShouldRedirect && (handled || w.Code != http.StatusOK) {
+			t.Errorf("%d) It should have NOT redirected the request: %q %t %d", i, test.Path, handled, w.Code)
+		}
+	}
+}
+
+type deathStorer struct{}
+
+func (d deathStorer) Create(key string, attributes Attributes) error { return nil }
+func (d deathStorer) Put(key string, attributes Attributes) error    { return nil }
+func (d deathStorer) Get(key string) (interface{}, error)            { return nil, errors.New("explosion") }
+
+func TestRouter_redirectIfLoggedInError(t *testing.T) {
+	t.Parallel()
+
+	ab := New()
+	ab.LogWriter = ioutil.Discard
+	ab.Storer = deathStorer{}
+
+	session := mockClientStore{SessionKey: "john"}
+	cookies := mockClientStore{}
+	ctx := ab.NewContext()
+	ctx.SessionStorer = session
+	ctx.CookieStorer = cookies
+
+	r, _ := http.NewRequest("GET", "/auth", nil)
+	w := httptest.NewRecorder()
+	handled := redirectIfLoggedIn(ctx, w, r)
+
+	if !handled {
+		t.Error("It should have been handled.")
+	}
+	if w.Code != http.StatusInternalServerError {
+		t.Error("It should have internal server error'd:", w.Code)
 	}
 }

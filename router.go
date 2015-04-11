@@ -5,6 +5,7 @@ import (
 	"io"
 	"net/http"
 	"path"
+	"strings"
 )
 
 // HandlerFunc augments http.HandlerFunc with a context and error handling.
@@ -45,22 +46,30 @@ type contextRoute struct {
 }
 
 func (c contextRoute) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	// Instantiate the context
 	ctx, err := c.Authboss.ContextFromRequest(r)
 	if err != nil {
 		fmt.Fprintf(c.LogWriter, "route: Malformed request, could not create context: %v", err)
 		return
 	}
-
 	ctx.CookieStorer = clientStoreWrapper{c.CookieStoreMaker(w, r)}
 	ctx.SessionStorer = clientStoreWrapper{c.SessionStoreMaker(w, r)}
 
+	// Check to make sure we actually need to visit this route
+	if redirectIfLoggedIn(ctx, w, r) {
+		return
+	}
+
+	// Call the handler
 	err = c.fn(ctx, w, r)
 	if err == nil {
 		return
 	}
 
+	// Log the error
 	fmt.Fprintf(c.LogWriter, "Error Occurred at %s: %v", r.URL.Path, err)
 
+	// Do specific error handling for special kinds of errors.
 	switch e := err.(type) {
 	case ErrAndRedirect:
 		if len(e.FlashSuccess) > 0 {
@@ -85,4 +94,40 @@ func (c contextRoute) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			io.WriteString(w, "500 An error has occurred")
 		}
 	}
+}
+
+// redirectIfLoggedIn checks a user's existence by using currentUser. This is done instead of
+// a simple Session cookie check so that the remember module has a chance to log the user in
+// before they are determined to "not be logged in".
+//
+// The exceptional routes are sort of hardcoded in a terrible way in here, later on this could move to some
+// configuration or something more interesting.
+func redirectIfLoggedIn(ctx *Context, w http.ResponseWriter, r *http.Request) (handled bool) {
+	// If it's a log out url, always let it pass through.
+	if strings.HasSuffix(r.URL.Path, "/logout") {
+		return false
+	}
+
+	// If it's an auth url, allow them through if they're half-authed.
+	if strings.HasSuffix(r.URL.Path, "/auth") || strings.Contains(r.URL.Path, "/oauth2/") {
+		if halfAuthed, ok := ctx.SessionStorer.Get(SessionHalfAuthKey); ok && halfAuthed == "true" {
+			return false
+		}
+	}
+
+	if cu, err := ctx.currentUser(ctx, w, r); err != nil {
+		fmt.Fprintf(ctx.LogWriter, "error occurred reading current user at %s: %v", r.URL.Path, err)
+		w.WriteHeader(http.StatusInternalServerError)
+		io.WriteString(w, "500 An error has occurred")
+		return true
+	} else if cu != nil {
+		if redir, ok := ctx.FirstFormValue(FormValueRedirect); ok && len(redir) > 0 {
+			http.Redirect(w, r, redir, http.StatusFound)
+		} else {
+			http.Redirect(w, r, ctx.AuthLoginOKPath, http.StatusFound)
+		}
+		return true
+	}
+
+	return false
 }

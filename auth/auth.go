@@ -71,13 +71,6 @@ func (a *Auth) Storage() authboss.StorageOptions {
 func (a *Auth) loginHandlerFunc(ctx *authboss.Context, w http.ResponseWriter, r *http.Request) error {
 	switch r.Method {
 	case methodGET:
-		if _, ok := ctx.SessionStorer.Get(authboss.SessionKey); ok {
-			if halfAuthed, ok := ctx.SessionStorer.Get(authboss.SessionHalfAuthKey); !ok || halfAuthed == "false" {
-				response.Redirect(ctx, w, r, a.AuthLoginOKPath, "", "", true)
-				return nil
-			}
-		}
-
 		data := authboss.NewHTMLData(
 			"showRemember", a.IsLoaded("remember"),
 			"showRecover", a.IsLoaded("recover"),

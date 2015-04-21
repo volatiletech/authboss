@@ -228,7 +228,7 @@ func (r *Recover) completeHandlerFunc(ctx *authboss.Context, w http.ResponseWrit
 		}
 
 		password, _ := ctx.FirstPostFormValue("password")
-		confirmPassword, _ := ctx.FirstPostFormValue("confirmPassword")
+		//confirmPassword, _ := ctx.FirstPostFormValue("confirmPassword")
 
 		policies := authboss.FilterValidators(r.Policies, "password")
 		if validationErrs := ctx.Validate(policies, authboss.StorePassword, authboss.ConfirmPrefix+authboss.StorePassword).Map(); len(validationErrs) > 0 {

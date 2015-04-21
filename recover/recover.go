@@ -234,8 +234,6 @@ func (r *Recover) completeHandlerFunc(ctx *authboss.Context, w http.ResponseWrit
 		if validationErrs := ctx.Validate(policies, authboss.StorePassword, authboss.ConfirmPrefix+authboss.StorePassword).Map(); len(validationErrs) > 0 {
 			data := authboss.NewHTMLData(
 				"token", token,
-				"password", password,
-				"confirmPassword", confirmPassword,
 				"errs", validationErrs,
 			)
 			return r.templates.Render(ctx, w, req, tplRecoverComplete, data)

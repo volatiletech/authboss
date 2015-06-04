@@ -37,6 +37,23 @@ func testSetup() (r *Recover, s *mocks.MockStorer, l *bytes.Buffer) {
 	ab.PrimaryID = authboss.StoreUsername
 	ab.LogWriter = l
 
+	ab.Policies = []authboss.Validator{
+		authboss.Rules{
+			FieldName:       "username",
+			Required:        true,
+			MinLength:       2,
+			MaxLength:       4,
+			AllowWhitespace: false,
+		},
+		authboss.Rules{
+			FieldName:       "password",
+			Required:        true,
+			MinLength:       4,
+			MaxLength:       8,
+			AllowWhitespace: false,
+		},
+	}
+
 	r = &Recover{}
 	if err := r.Initialize(ab); err != nil {
 		panic(err)
@@ -130,7 +147,7 @@ func TestRecover_startHandlerFunc_POST_ValidationFails(t *testing.T) {
 	}
 
 	if !strings.Contains(w.Body.String(), "Cannot be blank") {
-		t.Error("Expected error about username being blank")
+		t.Error("Expected error about email being blank")
 	}
 }
 

@@ -139,10 +139,8 @@ func (c *Config) Defaults() {
 
 	c.Policies = []Validator{
 		Rules{
-			FieldName:       "username",
+			FieldName:       "email",
 			Required:        true,
-			MinLength:       2,
-			MaxLength:       4,
 			AllowWhitespace: false,
 		},
 		Rules{

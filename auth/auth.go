@@ -135,7 +135,9 @@ func (a *Auth) loginHandlerFunc(ctx *authboss.Context, w http.ResponseWriter, r 
 }
 
 func validateCredentials(ctx *authboss.Context, key, password string) (bool, error) {
-	if err := ctx.LoadUser(key); err != nil {
+	if err := ctx.LoadUser(key); err == authboss.ErrUserNotFound {
+		return false, nil
+	} else if err != nil {
 		return false, err
 	}
 

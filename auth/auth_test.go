@@ -203,12 +203,23 @@ func TestAuth_loginHandlerFunc_POST_AuthenticationFailure(t *testing.T) {
 	}
 
 	body = w.Body.String()
-	if !strings.Contains(body, "Internal server error") {
+	if !strings.Contains(body, "invalid username and/or password") {
 		t.Error("Should have rendered with error")
 	}
 
-	if !bytes.Contains(log.Bytes(), []byte("auth: validate credentials failed:")) {
-		t.Error("Should have logged error message")
+	ctx, w, r, _ = testRequest(a.Authboss, "POST", "username", "jake", "password", "1")
+
+	if err := a.loginHandlerFunc(ctx, w, r); err != nil {
+		t.Error("Unexpected error:", err)
+	}
+
+	if w.Code != http.StatusOK {
+		t.Error("Unexpected status:", w.Code)
+	}
+
+	body = w.Body.String()
+	if !strings.Contains(body, "invalid username and/or password") {
+		t.Error("Should have rendered with error")
 	}
 }
 
@@ -281,22 +292,28 @@ func TestAuth_validateCredentials(t *testing.T) {
 	t.Parallel()
 
 	ab := authboss.New()
-
 	storer := mocks.NewMockStorer()
-	storer.GetErr = "Failed to load user"
 	ab.Storer = storer
 
 	ctx := ab.NewContext()
-
-	if _, err := validateCredentials(ctx, "", ""); err.Error() != "Failed to load user" {
-		t.Error("Unexpected error:", err)
-	}
-
-	storer.GetErr = ""
 	storer.Users["john"] = authboss.Attributes{"password": "$2a$10$pgFsuQwdhwOdZp/v52dvHeEi53ZaI7dGmtwK4bAzGGN5A4nT6doqm"}
 	if _, err := validateCredentials(ctx, "john", "a"); err != nil {
 		t.Error("Unexpected error:", err)
 	}
+
+	ctx = ab.NewContext()
+	if valid, err := validateCredentials(ctx, "jake", "a"); err != nil {
+		t.Error("Expect no error when user not found:", err)
+	} else if valid {
+		t.Error("Expect invalid when not user found")
+	}
+
+	ctx = ab.NewContext()
+	storer.GetErr = "Failed to load user"
+	if _, err := validateCredentials(ctx, "", ""); err.Error() != "Failed to load user" {
+		t.Error("Unexpected error:", err)
+	}
+
 }
 
 func TestAuth_logoutHandlerFunc_GET(t *testing.T) {

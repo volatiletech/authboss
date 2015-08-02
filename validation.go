@@ -65,7 +65,7 @@ func (f FieldError) Error() string {
 }
 
 // Validate validates a request using the given ruleset.
-func (ctx *Context) Validate(r *http.Request, ruleset []Validator, confirmFields ...string) ErrorList {
+func Validate(r *http.Request, ruleset []Validator, confirmFields ...string) ErrorList {
 	errList := make(ErrorList, 0)
 
 	for _, validator := range ruleset {

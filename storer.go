@@ -77,6 +77,7 @@ var (
 	dateTimeType = reflect.TypeOf(time.Time{})
 )
 
+// String returns a string for the DataType representation.
 func (d DataType) String() string {
 	switch d {
 	case Integer:
@@ -241,7 +242,6 @@ func (a Attributes) Bind(strct interface{}, ignoreMissing bool) error {
 			return fmt.Errorf("Bind: Found field %s, but was not writeable", k)
 		}
 
-		fieldKind := field.Kind()
 		fieldType := field.Type()
 		fieldPtr := field.Addr()
 
@@ -259,29 +259,10 @@ func (a Attributes) Bind(strct interface{}, ignoreMissing bool) error {
 			continue
 		}
 
-		switch val := v.(type) {
-		case int:
-			if fieldKind != reflect.Int {
-				return fmt.Errorf("Bind: Field %s's type should be %s but was %s", k, reflect.Int.String(), fieldType)
-			}
-			field.SetInt(int64(val))
-		case string:
-			if fieldKind != reflect.String {
-				return fmt.Errorf("Bind: Field %s's type should be %s but was %s", k, reflect.String.String(), fieldType)
-			}
-			field.SetString(val)
-		case bool:
-			if fieldKind != reflect.Bool {
-				return fmt.Errorf("Bind: Field %s's type should be %s but was %s", k, reflect.Bool.String(), fieldType)
-			}
-			field.SetBool(val)
-		case time.Time:
-			timeType := dateTimeType
-			if fieldType != timeType {
-				return fmt.Errorf("Bind: Field %s's type should be %s but was %s", k, timeType.String(), fieldType)
-			}
-			field.Set(reflect.ValueOf(val))
+		if valType := reflect.TypeOf(v); fieldType != valType {
+			return fmt.Errorf("Bind: Field %s's type should be %s but was %s", k, valType, fieldType)
 		}
+		field.Set(reflect.ValueOf(v))
 	}
 
 	return nil
@@ -322,14 +303,7 @@ func Unbind(intf interface{}) Attributes {
 			continue
 		}
 
-		switch field.Kind() {
-		case reflect.Struct:
-			if field.Type() == dateTimeType {
-				attr[name] = field.Interface()
-			}
-		case reflect.Bool, reflect.String, reflect.Int:
-			attr[name] = field.Interface()
-		}
+		attr[name] = field.Interface()
 	}
 
 	return attr

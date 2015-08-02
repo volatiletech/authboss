@@ -1,6 +1,7 @@
 package authboss
 
 import (
+	"bytes"
 	"database/sql"
 	"database/sql/driver"
 	"strings"
@@ -159,12 +160,14 @@ func TestAttributes_Bind(t *testing.T) {
 	aString := "string"
 	aBool := true
 	aTime := time.Now()
+	anUnknown := []byte("I'm not a recognizable type")
 
 	data := Attributes{
 		"integer":   anInteger,
 		"string":    aString,
 		"bool":      aBool,
 		"date_time": aTime,
+		"unknown":   anUnknown,
 	}
 
 	s := struct {
@@ -172,6 +175,7 @@ func TestAttributes_Bind(t *testing.T) {
 		String   string
 		Bool     bool
 		DateTime time.Time
+		Unknown  []byte
 	}{}
 
 	if err := data.Bind(&s, false); err != nil {
@@ -189,6 +193,9 @@ func TestAttributes_Bind(t *testing.T) {
 	}
 	if s.DateTime != aTime {
 		t.Error("DateTime was not set.")
+	}
+	if 0 != bytes.Compare(s.Unknown, anUnknown) {
+		t.Error("The []byte slice was not set.")
 	}
 }
 
@@ -336,15 +343,15 @@ func TestUnbind(t *testing.T) {
 		Bool    bool
 		Time    time.Time
 
-		SomethingElse1 int32
-		SomethingElse2 *Config
+		Int32        int32
+		ConfigStruct *Config
 
 		unexported int
-	}{5, "string", true, time.Now(), 5, nil, 5}
+	}{5, "string", true, time.Now(), 5, &Config{}, 5}
 
 	attr := Unbind(&s1)
-	if len(attr) != 4 {
-		t.Error("Expected 4 fields, got:", len(attr))
+	if len(attr) != 6 {
+		t.Error("Expected 6 fields, got:", len(attr))
 	}
 
 	if v, ok := attr["integer"]; !ok {
@@ -378,6 +385,22 @@ func TestUnbind(t *testing.T) {
 	} else if s1.Time != val {
 		t.Error("Underlying value is wrong:", val)
 	}
+
+	if v, ok := attr["int32"]; !ok {
+		t.Error("Could not find Int32 entry.")
+	} else if val, ok := v.(int32); !ok {
+		t.Errorf("Underlying type is wrong: %T", v)
+	} else if s1.Int32 != val {
+		t.Error("Underlying value is wrong:", val)
+	}
+
+	if v, ok := attr["config_struct"]; !ok {
+		t.Error("Could not find ConfigStruct entry.")
+	} else if val, ok := v.(*Config); !ok {
+		t.Errorf("Underlying type is wrong: %T", v)
+	} else if s1.ConfigStruct != val {
+		t.Error("Underlying value is wrong:", val)
+	}
 }
 
 func TestUnbind_Valuer(t *testing.T) {
@@ -404,7 +427,7 @@ func TestUnbind_Valuer(t *testing.T) {
 	}
 
 	if v, ok := attr["time"]; !ok {
-		t.Error("Could not find NulLTime entry.")
+		t.Error("Could not find NullTime entry.")
 	} else if val, ok := v.(time.Time); !ok {
 		t.Errorf("Underlying type is wrong: %T", v)
 	} else if !nowTime.Equal(val) {

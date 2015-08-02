@@ -20,6 +20,9 @@ type Context struct {
 	SessionStorer ClientStorerErr
 	CookieStorer  ClientStorerErr
 	User          Attributes
+
+	// Values is a free-form key-value store to pass data to callbacks
+	Values map[string]string
 }
 
 // NewContext is exported for testing modules.

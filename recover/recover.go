@@ -144,7 +144,7 @@ func (rec *Recover) startHandlerFunc(ctx *authboss.Context, w http.ResponseWrite
 		)
 
 		policies := authboss.FilterValidators(rec.Policies, rec.PrimaryID)
-		if validationErrs := ctx.Validate(r, policies, rec.PrimaryID, authboss.ConfirmPrefix+rec.PrimaryID).Map(); len(validationErrs) > 0 {
+		if validationErrs := authboss.Validate(r, policies, rec.PrimaryID, authboss.ConfirmPrefix+rec.PrimaryID).Map(); len(validationErrs) > 0 {
 			errData.MergeKV("errs", validationErrs)
 			return rec.templates.Render(ctx, w, r, tplRecover, errData)
 		}
@@ -237,7 +237,7 @@ func (r *Recover) completeHandlerFunc(ctx *authboss.Context, w http.ResponseWrit
 		//confirmPassword, _ := ctx.FirstPostFormValue("confirmPassword")
 
 		policies := authboss.FilterValidators(r.Policies, authboss.StorePassword)
-		if validationErrs := ctx.Validate(req, policies, authboss.StorePassword, authboss.ConfirmPrefix+authboss.StorePassword).Map(); len(validationErrs) > 0 {
+		if validationErrs := authboss.Validate(req, policies, authboss.StorePassword, authboss.ConfirmPrefix+authboss.StorePassword).Map(); len(validationErrs) > 0 {
 			data := authboss.NewHTMLData(
 				formValueToken, token,
 				"errs", validationErrs,

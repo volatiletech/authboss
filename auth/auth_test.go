@@ -239,6 +239,9 @@ func TestAuth_loginHandlerFunc_POST(t *testing.T) {
 		t.Error("Unexpected error:", err)
 	}
 
+	if _, ok := ctx.Values[authboss.CookieRemember]; !ok {
+		t.Error("Authboss cookie remember should be set for the callback")
+	}
 	if !cb.HasBeenCalled {
 		t.Error("Expected after callback to have been called")
 	}

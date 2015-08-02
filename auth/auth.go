@@ -120,6 +120,7 @@ func (a *Auth) loginHandlerFunc(ctx *authboss.Context, w http.ResponseWriter, r 
 
 		ctx.SessionStorer.Put(authboss.SessionKey, key)
 		ctx.SessionStorer.Del(authboss.SessionHalfAuthKey)
+		ctx.Values = map[string]string{authboss.CookieRemember: r.FormValue(authboss.CookieRemember)}
 
 		if err := a.Callbacks.FireAfter(authboss.EventAuth, ctx); err != nil {
 			return err

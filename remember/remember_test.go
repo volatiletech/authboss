@@ -2,7 +2,6 @@ package remember
 
 import (
 	"bytes"
-	"fmt"
 	"net/http"
 	"testing"
 
@@ -49,14 +48,12 @@ func TestAfterAuth(t *testing.T) {
 	}
 	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 
-	ctx, err := r.ContextFromRequest(req)
-	if err != nil {
-		t.Error("Unexpected error:", err)
-	}
-
+	ctx := r.NewContext()
 	ctx.SessionStorer = session
 	ctx.CookieStorer = cookies
 	ctx.User = authboss.Attributes{r.PrimaryID: "test@email.com"}
+
+	ctx.Values = map[string]string{authboss.CookieRemember: "true"}
 
 	if err := r.afterAuth(ctx); err != nil {
 		t.Error(err)
@@ -77,17 +74,7 @@ func TestAfterOAuth(t *testing.T) {
 	cookies := mocks.NewMockClientStorer()
 	session := mocks.NewMockClientStorer(authboss.SessionOAuth2Params, `{"rm":"true"}`)
 
-	uri := fmt.Sprintf("%s?state=%s", "localhost/oauthed", "xsrf")
-	req, err := http.NewRequest("GET", uri, nil)
-	if err != nil {
-		t.Error("Unexpected Error:", err)
-	}
-
-	ctx, err := r.ContextFromRequest(req)
-	if err != nil {
-		t.Error("Unexpected error:", err)
-	}
-
+	ctx := r.NewContext()
 	ctx.SessionStorer = session
 	ctx.CookieStorer = cookies
 	ctx.User = authboss.Attributes{

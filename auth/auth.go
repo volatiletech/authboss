@@ -92,16 +92,14 @@ func (a *Auth) loginHandlerFunc(ctx *authboss.Context, w http.ResponseWriter, r 
 			"showRegister", a.IsLoaded("register"),
 		)
 
-		policies := authboss.FilterValidators(a.Policies, a.PrimaryID, authboss.StorePassword)
-		if validationErrs := ctx.Validate(policies); len(validationErrs) > 0 {
-			return a.templates.Render(ctx, w, r, tplLogin, errData)
-		}
-
 		if valid, err := validateCredentials(ctx, key, password); err != nil {
 			errData["error"] = "Internal server error"
 			fmt.Fprintf(a.LogWriter, "auth: validate credentials failed: %v\n", err)
 			return a.templates.Render(ctx, w, r, tplLogin, errData)
 		} else if !valid {
+			if err := a.Callbacks.FireAfter(authboss.EventAuthFail, ctx); err != nil {
+				fmt.Fprintf(a.LogWriter, "EventAuthFail callback error'd out: %v\n", err)
+			}
 			return a.templates.Render(ctx, w, r, tplLogin, errData)
 		}
 

@@ -36,13 +36,9 @@ func testSetup() (a *Auth, s *mocks.MockStorer) {
 }
 
 func testRequest(ab *authboss.Authboss, method string, postFormValues ...string) (*authboss.Context, *httptest.ResponseRecorder, *http.Request, authboss.ClientStorerErr) {
-	r, err := http.NewRequest(method, "", nil)
-	if err != nil {
-		panic(err)
-	}
-
 	sessionStorer := mocks.NewMockClientStorer()
-	ctx := mocks.MockRequestContext(ab, postFormValues...)
+	ctx := ab.NewContext()
+	r := mocks.MockRequest(method, postFormValues...)
 	ctx.SessionStorer = sessionStorer
 
 	return ctx, httptest.NewRecorder(), r, sessionStorer

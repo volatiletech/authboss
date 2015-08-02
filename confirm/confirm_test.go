@@ -163,7 +163,7 @@ func TestConfirm_ConfirmHandlerErrors(t *testing.T) {
 	for i, test := range tests {
 		r, _ := http.NewRequest("GET", test.URL, nil)
 		w := httptest.NewRecorder()
-		ctx, _ := c.ContextFromRequest(r)
+		ctx := c.NewContext()
 
 		err := c.confirmHandler(ctx, w, r)
 		if err == nil {
@@ -207,7 +207,7 @@ func TestConfirm_Confirm(t *testing.T) {
 	// Make a request with session and context support.
 	r, _ := http.NewRequest("GET", "http://localhost?cnf="+base64.URLEncoding.EncodeToString(token), nil)
 	w := httptest.NewRecorder()
-	ctx, _ = c.ContextFromRequest(r)
+	ctx = c.NewContext()
 	ctx.CookieStorer = mocks.NewMockClientStorer()
 	session := mocks.NewMockClientStorer()
 	ctx.User = user

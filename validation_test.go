@@ -65,9 +65,9 @@ func TestValidate(t *testing.T) {
 	t.Parallel()
 
 	ab := New()
-	ctx := mockRequestContext(ab, StoreUsername, "john", StoreEmail, "john@john.com")
+	ctx, req := mockRequestContext(ab, StoreUsername, "john", StoreEmail, "john@john.com")
 
-	errList := ctx.Validate([]Validator{
+	errList := ctx.Validate(req, []Validator{
 		mockValidator{
 			FieldName: StoreUsername,
 			Errs:      ErrorList{FieldError{StoreUsername, errors.New("must be longer than 4")}},
@@ -97,20 +97,20 @@ func TestValidate_Confirm(t *testing.T) {
 	t.Parallel()
 
 	ab := New()
-	ctx := mockRequestContext(ab, StoreUsername, "john", "confirmUsername", "johnny")
-	errs := ctx.Validate(nil, StoreUsername, "confirmUsername").Map()
+	ctx, req := mockRequestContext(ab, StoreUsername, "john", "confirmUsername", "johnny")
+	errs := ctx.Validate(req, nil, StoreUsername, "confirmUsername").Map()
 	if errs["confirmUsername"][0] != "Does not match username" {
 		t.Error("Expected a different error for confirmUsername:", errs["confirmUsername"][0])
 	}
 
-	ctx = mockRequestContext(ab, StoreUsername, "john", "confirmUsername", "john")
-	errs = ctx.Validate(nil, StoreUsername, "confirmUsername").Map()
+	ctx, req = mockRequestContext(ab, StoreUsername, "john", "confirmUsername", "john")
+	errs = ctx.Validate(req, nil, StoreUsername, "confirmUsername").Map()
 	if len(errs) != 0 {
 		t.Error("Expected no errors:", errs)
 	}
 
-	ctx = mockRequestContext(ab, StoreUsername, "john", "confirmUsername", "john")
-	errs = ctx.Validate(nil, StoreUsername).Map()
+	ctx, req = mockRequestContext(ab, StoreUsername, "john", "confirmUsername", "john")
+	errs = ctx.Validate(req, nil, StoreUsername).Map()
 	if len(errs) != 0 {
 		t.Error("Expected no errors:", errs)
 	}

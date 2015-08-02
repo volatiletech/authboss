@@ -6,7 +6,10 @@ import (
 	"database/sql/driver"
 	"errors"
 	"fmt"
+	"net/http"
 	"reflect"
+	"strconv"
+	"strings"
 	"time"
 	"unicode"
 )
@@ -108,6 +111,45 @@ func (a AttributeMeta) Names() []string {
 
 // Attributes is just a key-value mapping of data.
 type Attributes map[string]interface{}
+
+// Attributes converts the post form values into an attributes map.
+func AttributesFromRequest(r *http.Request) (Attributes, error) {
+	attr := make(Attributes)
+
+	if err := r.ParseForm(); err != nil {
+		return nil, err
+	}
+
+	for name, values := range r.Form {
+		if len(values) == 0 {
+			continue
+		}
+
+		val := values[0]
+		if len(val) == 0 {
+			continue
+		}
+
+		switch {
+		case strings.HasSuffix(name, "_int"):
+			integer, err := strconv.Atoi(val)
+			if err != nil {
+				return nil, fmt.Errorf("%q (%q): could not be converted to an integer: %v", name, val, err)
+			}
+			attr[strings.TrimRight(name, "_int")] = integer
+		case strings.HasSuffix(name, "_date"):
+			date, err := time.Parse(time.RFC3339, val)
+			if err != nil {
+				return nil, fmt.Errorf("%q (%q): could not be converted to a datetime: %v", name, val, err)
+			}
+			attr[strings.TrimRight(name, "_date")] = date.UTC()
+		default:
+			attr[name] = val
+		}
+	}
+
+	return attr, nil
+}
 
 // Names returns the names of all the attributes.
 func (a Attributes) Names() []string {

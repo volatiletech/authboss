@@ -3,6 +3,7 @@ package authboss
 import (
 	"bytes"
 	"fmt"
+	"net/http"
 )
 
 const (
@@ -64,26 +65,26 @@ func (f FieldError) Error() string {
 }
 
 // Validate validates a request using the given ruleset.
-func (ctx *Context) Validate(ruleset []Validator, confirmFields ...string) ErrorList {
+func (ctx *Context) Validate(r *http.Request, ruleset []Validator, confirmFields ...string) ErrorList {
 	errList := make(ErrorList, 0)
 
 	for _, validator := range ruleset {
 		field := validator.Field()
 
-		val, _ := ctx.FirstFormValue(field)
+		val := r.FormValue(field)
 		if errs := validator.Errors(val); len(errs) > 0 {
 			errList = append(errList, errs...)
 		}
 	}
 
 	for i := 0; i < len(confirmFields)-1; i += 2 {
-		main, ok := ctx.FirstPostFormValue(confirmFields[i])
-		if !ok {
+		main := r.FormValue(confirmFields[i])
+		if len(main) == 0 {
 			continue
 		}
 
-		confirm, ok := ctx.FirstPostFormValue(confirmFields[i+1])
-		if !ok || main != confirm {
+		confirm := r.FormValue(confirmFields[i+1])
+		if len(confirm) == 0 || main != confirm {
 			errList = append(errList, FieldError{confirmFields[i+1], fmt.Errorf("Does not match %s", confirmFields[i])})
 		}
 	}

@@ -282,16 +282,22 @@ func (m *MockClientStorer) Del(key string) { delete(m.Values, key) }
 // MockRequest returns a new mock request with optional key-value body (form-post)
 func MockRequest(method string, postKeyValues ...string) *http.Request {
 	var body io.Reader
+	location := "http://localhost"
 
 	if len(postKeyValues) > 0 {
 		urlValues := make(url.Values)
 		for i := 0; i < len(postKeyValues); i += 2 {
 			urlValues.Set(postKeyValues[i], postKeyValues[i+1])
 		}
-		body = strings.NewReader(urlValues.Encode())
+
+		if method == "POST" || method == "PUT" {
+			body = strings.NewReader(urlValues.Encode())
+		} else {
+			location += "?" + urlValues.Encode()
+		}
 	}
 
-	req, err := http.NewRequest(method, "http://localhost", body)
+	req, err := http.NewRequest(method, location, body)
 	if err != nil {
 		panic(err.Error())
 	}

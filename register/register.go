@@ -85,7 +85,7 @@ func (reg *Register) registerPostHandler(ctx *authboss.Context, w http.ResponseW
 	key := r.FormValue(reg.PrimaryID)
 	password := r.FormValue(authboss.StorePassword)
 
-	validationErrs := ctx.Validate(req, reg.Policies, reg.ConfirmFields...)
+	validationErrs := authboss.Validate(r, reg.Policies, reg.ConfirmFields...)
 
 	if user, err := ctx.Storer.Get(key); err != nil && err != authboss.ErrUserNotFound {
 		return err
@@ -107,7 +107,7 @@ func (reg *Register) registerPostHandler(ctx *authboss.Context, w http.ResponseW
 		return reg.templates.Render(ctx, w, r, tplRegister, data)
 	}
 
-	attr, err := ctx.Attributes() // Attributes from overriden forms
+	attr, err := authboss.AttributesFromRequest(r) // Attributes from overriden forms
 	if err != nil {
 		return err
 	}
@@ -129,7 +129,7 @@ func (reg *Register) registerPostHandler(ctx *authboss.Context, w http.ResponseW
 		}
 
 		for _, f := range reg.PreserveFields {
-			data[f], _ = ctx.FirstFormValue(f)
+			data[f] = r.FormValue(f)
 		}
 
 		return reg.templates.Render(ctx, w, r, tplRegister, data)

@@ -58,7 +58,7 @@ func TestRegisterGet(t *testing.T) {
 
 	w := httptest.NewRecorder()
 	r, _ := http.NewRequest("GET", "/register", nil)
-	ctx, _ := reg.ContextFromRequest(r)
+	ctx := reg.NewContext()
 	ctx.SessionStorer = mocks.NewMockClientStorer()
 
 	if err := reg.registerHandler(ctx, w, r); err != nil {
@@ -93,7 +93,7 @@ func TestRegisterPostValidationErrs(t *testing.T) {
 
 	r, _ := http.NewRequest("POST", "/register", bytes.NewBufferString(vals.Encode()))
 	r.Header.Set("Content-Type", "application/x-www-form-urlencoded")
-	ctx, _ := reg.ContextFromRequest(r)
+	ctx := reg.NewContext()
 	ctx.SessionStorer = mocks.NewMockClientStorer()
 
 	if err := reg.registerHandler(ctx, w, r); err != nil {
@@ -131,7 +131,7 @@ func TestRegisterPostSuccess(t *testing.T) {
 
 	r, _ := http.NewRequest("POST", "/register", bytes.NewBufferString(vals.Encode()))
 	r.Header.Set("Content-Type", "application/x-www-form-urlencoded")
-	ctx, _ := reg.ContextFromRequest(r)
+	ctx := reg.NewContext()
 	ctx.SessionStorer = mocks.NewMockClientStorer()
 
 	if err := reg.registerHandler(ctx, w, r); err != nil {

@@ -282,7 +282,7 @@ to pages with sensitive information if this value is true in the session, and fo
 - [Storer](#storers)
 
 **Storage Requirements:**
-- AttemptNumber (int)
+- AttemptNumber (int64)
 - AttemptTime (time.Time)
 - Locked (time.Time)
 
@@ -382,8 +382,7 @@ naming control (yet). Oauth2Uid in the struct -> "oauth2_uid" in the attributes 
 struct should be returned from storer methods as a pointer.
 
 **Fields:** Each module in authboss has storage requirements. These are listed in the documentation but also at runtime authboss.ModuleAttributes is
-available to list out each required field. The fields must be named appropriately and of the correct type. There are 5 types available: int64, string, bool, time.Time
-and anything that implements database/sql.Scanner and database/sql/driver.Valuer standard library interfaces.
+available to list out each required field. The fields must be named appropriately and of the correct type.
 
 **Choose a PrimaryID:** Email or Username can be selected for a primary id for the user (default email). This must be a unique field in the data store
 and must be set to the Authboss configuration's PrimaryID, you can use authboss.StoreEmail and authboss.StoreUsername constants

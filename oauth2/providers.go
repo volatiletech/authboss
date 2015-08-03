@@ -8,8 +8,9 @@ import (
 	"gopkg.in/authboss.v0"
 )
 
-var (
-	googleInfoEndpoint = `https://www.googleapis.com/userinfo/v2/me`
+const (
+	googleInfoEndpoint   = `https://www.googleapis.com/userinfo/v2/me`
+	facebookInfoEndpoint = `https://graph.facebook.com/me?fields=name,email`
 )
 
 type googleMeResponse struct {
@@ -46,10 +47,6 @@ type facebookMeResponse struct {
 	Email string `json:"email"`
 	Name  string `json:"name"`
 }
-
-const (
-	facebookInfoEndpoint = "https://graph.facebook.com/me?fields=name,email"
-)
 
 // Facebook is a callback appropriate for use with Facebook's OAuth2 configuration.
 func Facebook(cfg oauth2.Config, token *oauth2.Token) (authboss.Attributes, error) {

@@ -9,11 +9,6 @@ import (
 )
 
 var (
-	// GoogleEndpoint can be used to
-	GoogleEndpoint = oauth2.Endpoint{
-		AuthURL:  `https://accounts.google.com/o/oauth2/auth`,
-		TokenURL: `https://accounts.google.com/o/oauth2/token`,
-	}
 	googleInfoEndpoint = `https://www.googleapis.com/userinfo/v2/me`
 )
 

@@ -13,6 +13,7 @@ import (
 	"golang.org/x/net/context"
 	"golang.org/x/oauth2"
 	"golang.org/x/oauth2/facebook"
+	"golang.org/x/oauth2/google"
 	"gopkg.in/authboss.v0"
 	"gopkg.in/authboss.v0/internal/mocks"
 )
@@ -23,7 +24,7 @@ var testProviders = map[string]authboss.OAuth2Provider{
 			ClientID:     `jazz`,
 			ClientSecret: `hands`,
 			Scopes:       []string{`profile`, `email`},
-			Endpoint:     GoogleEndpoint,
+			Endpoint:     google.Endpoint,
 		},
 		Callback:         Google,
 		AdditionalParams: url.Values{"include_requested_scopes": []string{"true"}},
@@ -110,7 +111,7 @@ func TestOAuth2Init(t *testing.T) {
 	if err != nil {
 		t.Error(err)
 	}
-	if !strings.Contains(loc, GoogleEndpoint.AuthURL) {
+	if !strings.Contains(loc, google.Endpoint.AuthURL) {
 		t.Error("Redirected to wrong url:", loc)
 	}
 

@@ -12,6 +12,7 @@ import (
 
 	"golang.org/x/net/context"
 	"golang.org/x/oauth2"
+	"golang.org/x/oauth2/facebook"
 	"gopkg.in/authboss.v0"
 	"gopkg.in/authboss.v0/internal/mocks"
 )
@@ -26,6 +27,15 @@ var testProviders = map[string]authboss.OAuth2Provider{
 		},
 		Callback:         Google,
 		AdditionalParams: url.Values{"include_requested_scopes": []string{"true"}},
+	},
+	"facebook": authboss.OAuth2Provider{
+		OAuth2Config: &oauth2.Config{
+			ClientID:     `jazz`,
+			ClientSecret: `hands`,
+			Scopes:       []string{`email`},
+			Endpoint:     facebook.Endpoint,
+		},
+		Callback: Facebook,
 	},
 }
 

@@ -40,3 +40,35 @@ func Google(cfg oauth2.Config, token *oauth2.Token) (authboss.Attributes, error)
 		authboss.StoreEmail:     jsonResp.Email,
 	}, nil
 }
+
+type facebookMeResponse struct {
+	ID    string `json:"id"`
+	Email string `json:"email"`
+	Name  string `json:"name"`
+}
+
+const (
+	facebookInfoEndpoint = "https://graph.facebook.com/me?fields=name,email"
+)
+
+// Facebook is a callback appropriate for use with Facebook's OAuth2 configuration.
+func Facebook(cfg oauth2.Config, token *oauth2.Token) (authboss.Attributes, error) {
+	client := cfg.Client(oauth2.NoContext, token)
+	resp, err := clientGet(client, facebookInfoEndpoint)
+	if err != nil {
+		return nil, err
+	}
+
+	defer resp.Body.Close()
+	dec := json.NewDecoder(resp.Body)
+	var jsonResp facebookMeResponse
+	if err = dec.Decode(&jsonResp); err != nil {
+		return nil, err
+	}
+
+	return authboss.Attributes{
+		"name":                  jsonResp.Name,
+		authboss.StoreOAuth2UID: jsonResp.ID,
+		authboss.StoreEmail:     jsonResp.Email,
+	}, nil
+}

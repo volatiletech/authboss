@@ -48,7 +48,7 @@ type facebookMeResponse struct {
 	Name  string `json:"name"`
 }
 
-// Facebook is a callback appropriate for use with Facebook's OAuth2 configuration.
+// Google is a callback appropriate for use with Google's OAuth2 configuration.
 func Facebook(cfg oauth2.Config, token *oauth2.Token) (authboss.Attributes, error) {
 	client := cfg.Client(oauth2.NoContext, token)
 	resp, err := clientGet(client, facebookInfoEndpoint)

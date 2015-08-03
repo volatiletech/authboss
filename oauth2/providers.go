@@ -51,7 +51,7 @@ const (
 	facebookInfoEndpoint = "https://graph.facebook.com/me?fields=name,email"
 )
 
-// Google is a callback appropriate for use with Google's OAuth2 configuration.
+// Facebook is a callback appropriate for use with Facebook's OAuth2 configuration.
 func Facebook(cfg oauth2.Config, token *oauth2.Token) (authboss.Attributes, error) {
 	client := cfg.Client(oauth2.NoContext, token)
 	resp, err := clientGet(client, facebookInfoEndpoint)

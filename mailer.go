@@ -125,15 +125,15 @@ MIME-Version: 1.0
 Content-Type: multipart/alternative; boundary="===============284fad24nao8f4na284f2n4=="
 Content-Transfer-Encoding: 7bit
 
---===============284fad24nao8f4na284f2n4==
+{{with .TextBody}}--===============284fad24nao8f4na284f2n4==
 Content-Type: text/plain; charset=UTF-8
 Content-Transfer-Encoding: 7bit
 
-{{.TextBody}}
---===============284fad24nao8f4na284f2n4==
+{{.}{{end}}
+{{with .HTMLBody}}--===============284fad24nao8f4na284f2n4==
 Content-Type: text/html; charset=UTF-8
 Content-Transfer-Encoding: 7bit
 
-{{.HTMLBody}}
+{{.}}{{end}}
 --===============284fad24nao8f4na284f2n4==--
 `))

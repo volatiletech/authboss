@@ -300,3 +300,34 @@ func TestRouter_redirectIfLoggedInError(t *testing.T) {
 		t.Error("It should have internal server error'd:", w.Code)
 	}
 }
+
+type notFoundStorer struct{}
+
+func (n notFoundStorer) Create(key string, attributes Attributes) error { return nil }
+func (n notFoundStorer) Put(key string, attributes Attributes) error    { return nil }
+func (n notFoundStorer) Get(key string) (interface{}, error)            { return nil, ErrUserNotFound }
+
+func TestRouter_redirectIfLoggedInUserNotFound(t *testing.T) {
+	t.Parallel()
+
+	ab := New()
+	ab.LogWriter = ioutil.Discard
+	ab.Storer = notFoundStorer{}
+
+	session := mockClientStore{SessionKey: "john"}
+	cookies := mockClientStore{}
+	ctx := ab.NewContext()
+	ctx.SessionStorer = session
+	ctx.CookieStorer = cookies
+
+	r, _ := http.NewRequest("GET", "/auth", nil)
+	w := httptest.NewRecorder()
+	handled := redirectIfLoggedIn(ctx, w, r)
+
+	if handled {
+		t.Error("It should not have been handled.")
+	}
+	if _, ok := session.Get(SessionKey); ok {
+		t.Error("It should have removed the bad session cookie")
+	}
+}

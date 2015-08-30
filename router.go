@@ -111,12 +111,28 @@ func redirectIfLoggedIn(ctx *Context, w http.ResponseWriter, r *http.Request) (h
 		}
 	}
 
-	if cu, err := ctx.currentUser(ctx, w, r); err != nil {
+	// Otherwise, check if they're logged in, this uses hooks to allow remember
+	// to set the session cookie
+	cu, err := ctx.currentUser(ctx, w, r)
+
+	// if the user was not found, that means the user was deleted from the underlying
+	// storer and we should just remove this session cookie and allow them through.
+	// if it's a generic error, 500
+	// if the user is found, redirect them away from this page, because they don't need
+	// to see it.
+	if err == ErrUserNotFound {
+		uname, _ := ctx.SessionStorer.Get(SessionKey)
+		fmt.Fprintf(ctx.LogWriter, "user (%s) has session cookie but user not found, removing cookie", uname)
+		ctx.SessionStorer.Del(SessionKey)
+		return false
+	} else if err != nil {
 		fmt.Fprintf(ctx.LogWriter, "error occurred reading current user at %s: %v", r.URL.Path, err)
 		w.WriteHeader(http.StatusInternalServerError)
 		io.WriteString(w, "500 An error has occurred")
 		return true
-	} else if cu != nil {
+	}
+
+	if cu != nil {
 		if redir := r.FormValue(FormValueRedirect); len(redir) > 0 {
 			http.Redirect(w, r, redir, http.StatusFound)
 		} else {

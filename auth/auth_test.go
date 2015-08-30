@@ -36,13 +36,9 @@ func testSetup() (a *Auth, s *mocks.MockStorer) {
 }
 
 func testRequest(ab *authboss.Authboss, method string, postFormValues ...string) (*authboss.Context, *httptest.ResponseRecorder, *http.Request, authboss.ClientStorerErr) {
-	r, err := http.NewRequest(method, "", nil)
-	if err != nil {
-		panic(err)
-	}
-
 	sessionStorer := mocks.NewMockClientStorer()
-	ctx := mocks.MockRequestContext(ab, postFormValues...)
+	ctx := ab.NewContext()
+	r := mocks.MockRequest(method, postFormValues...)
 	ctx.SessionStorer = sessionStorer
 
 	return ctx, httptest.NewRecorder(), r, sessionStorer
@@ -243,6 +239,9 @@ func TestAuth_loginHandlerFunc_POST(t *testing.T) {
 		t.Error("Unexpected error:", err)
 	}
 
+	if _, ok := ctx.Values[authboss.CookieRemember]; !ok {
+		t.Error("Authboss cookie remember should be set for the callback")
+	}
 	if !cb.HasBeenCalled {
 		t.Error("Expected after callback to have been called")
 	}

@@ -80,8 +80,8 @@ func (a *Auth) loginHandlerFunc(ctx *authboss.Context, w http.ResponseWriter, r 
 		)
 		return a.templates.Render(ctx, w, r, tplLogin, data)
 	case methodPOST:
-		key, _ := ctx.FirstPostFormValue(a.PrimaryID)
-		password, _ := ctx.FirstPostFormValue("password")
+		key := r.FormValue(a.PrimaryID)
+		password := r.FormValue("password")
 
 		errData := authboss.NewHTMLData(
 			"error", fmt.Sprintf("invalid %s and/or password", a.PrimaryID),
@@ -120,6 +120,7 @@ func (a *Auth) loginHandlerFunc(ctx *authboss.Context, w http.ResponseWriter, r 
 
 		ctx.SessionStorer.Put(authboss.SessionKey, key)
 		ctx.SessionStorer.Del(authboss.SessionHalfAuthKey)
+		ctx.Values = map[string]string{authboss.CookieRemember: r.FormValue(authboss.CookieRemember)}
 
 		if err := a.Callbacks.FireAfter(authboss.EventAuth, ctx); err != nil {
 			return err

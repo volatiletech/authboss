@@ -2,10 +2,11 @@
 package mocks
 
 import (
-	"bytes"
 	"errors"
-	"fmt"
+	"io"
 	"net/http"
+	"net/url"
+	"strings"
 	"time"
 
 	"gopkg.in/authboss.v0"
@@ -278,28 +279,34 @@ func (m *MockClientStorer) Put(key, val string) { m.Values[key] = val }
 // Del a key/value pair
 func (m *MockClientStorer) Del(key string) { delete(m.Values, key) }
 
-// MockRequestContext returns a new context as if it came from POST request.
-func MockRequestContext(ab *authboss.Authboss, postKeyValues ...string) *authboss.Context {
-	keyValues := &bytes.Buffer{}
-	for i := 0; i < len(postKeyValues); i += 2 {
-		if i != 0 {
-			keyValues.WriteByte('&')
+// MockRequest returns a new mock request with optional key-value body (form-post)
+func MockRequest(method string, postKeyValues ...string) *http.Request {
+	var body io.Reader
+	location := "http://localhost"
+
+	if len(postKeyValues) > 0 {
+		urlValues := make(url.Values)
+		for i := 0; i < len(postKeyValues); i += 2 {
+			urlValues.Set(postKeyValues[i], postKeyValues[i+1])
 		}
-		fmt.Fprintf(keyValues, "%s=%s", postKeyValues[i], postKeyValues[i+1])
+
+		if method == "POST" || method == "PUT" {
+			body = strings.NewReader(urlValues.Encode())
+		} else {
+			location += "?" + urlValues.Encode()
+		}
 	}
 
-	req, err := http.NewRequest("POST", "http://localhost", keyValues)
+	req, err := http.NewRequest(method, location, body)
 	if err != nil {
 		panic(err.Error())
 	}
-	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 
-	ctx, err := ab.ContextFromRequest(req)
-	if err != nil {
-		panic(err)
+	if len(postKeyValues) > 0 {
+		req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 	}
 
-	return ctx
+	return req
 }
 
 // MockMailer helps simplify mailer testing by storing the last sent email

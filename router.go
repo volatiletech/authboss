@@ -47,11 +47,7 @@ type contextRoute struct {
 
 func (c contextRoute) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	// Instantiate the context
-	ctx, err := c.Authboss.ContextFromRequest(r)
-	if err != nil {
-		fmt.Fprintf(c.LogWriter, "route: Malformed request, could not create context: %v", err)
-		return
-	}
+	ctx := c.Authboss.NewContext()
 	ctx.CookieStorer = clientStoreWrapper{c.CookieStoreMaker(w, r)}
 	ctx.SessionStorer = clientStoreWrapper{c.SessionStoreMaker(w, r)}
 
@@ -61,7 +57,7 @@ func (c contextRoute) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Call the handler
-	err = c.fn(ctx, w, r)
+	err := c.fn(ctx, w, r)
 	if err == nil {
 		return
 	}
@@ -121,7 +117,7 @@ func redirectIfLoggedIn(ctx *Context, w http.ResponseWriter, r *http.Request) (h
 		io.WriteString(w, "500 An error has occurred")
 		return true
 	} else if cu != nil {
-		if redir, ok := ctx.FirstFormValue(FormValueRedirect); ok && len(redir) > 0 {
+		if redir := r.FormValue(FormValueRedirect); len(redir) > 0 {
 			http.Redirect(w, r, redir, http.StatusFound)
 		} else {
 			http.Redirect(w, r, ctx.AuthLoginOKPath, http.StatusFound)

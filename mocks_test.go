@@ -1,9 +1,9 @@
 package authboss
 
 import (
-	"bytes"
-	"fmt"
 	"net/http"
+	"net/url"
+	"strings"
 )
 
 type mockUser struct {
@@ -56,27 +56,19 @@ func (m mockClientStore) GetErr(key string) (string, error) {
 func (m mockClientStore) Put(key, val string) { m[key] = val }
 func (m mockClientStore) Del(key string)      { delete(m, key) }
 
-func mockRequestContext(ab *Authboss, postKeyValues ...string) *Context {
-	keyValues := &bytes.Buffer{}
+func mockRequest(postKeyValues ...string) *http.Request {
+	urlValues := make(url.Values)
 	for i := 0; i < len(postKeyValues); i += 2 {
-		if i != 0 {
-			keyValues.WriteByte('&')
-		}
-		fmt.Fprintf(keyValues, "%s=%s", postKeyValues[i], postKeyValues[i+1])
+		urlValues.Set(postKeyValues[i], postKeyValues[i+1])
 	}
 
-	req, err := http.NewRequest("POST", "http://localhost", keyValues)
+	req, err := http.NewRequest("POST", "http://localhost", strings.NewReader(urlValues.Encode()))
 	if err != nil {
 		panic(err.Error())
 	}
 	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 
-	ctx, err := ab.ContextFromRequest(req)
-	if err != nil {
-		panic(err)
-	}
-
-	return ctx
+	return req
 }
 
 type mockValidator struct {

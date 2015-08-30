@@ -8,6 +8,7 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"net/url"
 	"path"
 	"time"
 
@@ -20,6 +21,10 @@ import (
 const (
 	StoreRecoverToken       = "recover_token"
 	StoreRecoverTokenExpiry = "recover_token_expiry"
+)
+
+const (
+	formValueToken = "token"
 )
 
 const (
@@ -129,8 +134,8 @@ func (rec *Recover) startHandlerFunc(ctx *authboss.Context, w http.ResponseWrite
 
 		return rec.templates.Render(ctx, w, r, tplRecover, data)
 	case methodPOST:
-		primaryID, _ := ctx.FirstPostFormValue(rec.PrimaryID)
-		confirmPrimaryID, _ := ctx.FirstPostFormValue(fmt.Sprintf("confirm_%s", rec.PrimaryID))
+		primaryID := r.FormValue(rec.PrimaryID)
+		confirmPrimaryID := r.FormValue(fmt.Sprintf("confirm_%s", rec.PrimaryID))
 
 		errData := authboss.NewHTMLData(
 			"primaryID", rec.PrimaryID,
@@ -139,7 +144,7 @@ func (rec *Recover) startHandlerFunc(ctx *authboss.Context, w http.ResponseWrite
 		)
 
 		policies := authboss.FilterValidators(rec.Policies, rec.PrimaryID)
-		if validationErrs := ctx.Validate(policies, rec.PrimaryID, authboss.ConfirmPrefix+rec.PrimaryID).Map(); len(validationErrs) > 0 {
+		if validationErrs := authboss.Validate(r, policies, rec.PrimaryID, authboss.ConfirmPrefix+rec.PrimaryID).Map(); len(validationErrs) > 0 {
 			errData.MergeKV("errs", validationErrs)
 			return rec.templates.Render(ctx, w, r, tplRecover, errData)
 		}
@@ -195,7 +200,8 @@ var goRecoverEmail = func(r *Recover, to, encodedToken string) {
 
 func (r *Recover) sendRecoverEmail(to, encodedToken string) {
 	p := path.Join(r.MountPath, "recover/complete")
-	url := fmt.Sprintf("%s%s?token=%s", r.RootURL, p, encodedToken)
+	query := url.Values{formValueToken: []string{encodedToken}}
+	url := fmt.Sprintf("%s%s?%s", r.RootURL, p, query.Encode())
 
 	email := authboss.Email{
 		To:      []string{to},
@@ -211,35 +217,35 @@ func (r *Recover) sendRecoverEmail(to, encodedToken string) {
 func (r *Recover) completeHandlerFunc(ctx *authboss.Context, w http.ResponseWriter, req *http.Request) (err error) {
 	switch req.Method {
 	case methodGET:
-		_, err = verifyToken(ctx)
+		_, err = verifyToken(ctx, req)
 		if err == errRecoveryTokenExpired {
 			return authboss.ErrAndRedirect{err, "/recover", "", recoverTokenExpiredFlash}
 		} else if err != nil {
 			return authboss.ErrAndRedirect{err, "/", "", ""}
 		}
 
-		token, _ := ctx.FirstFormValue("token")
-		data := authboss.NewHTMLData("token", token)
+		token := req.FormValue(formValueToken)
+		data := authboss.NewHTMLData(formValueToken, token)
 		return r.templates.Render(ctx, w, req, tplRecoverComplete, data)
 	case methodPOST:
-		token, err := ctx.FirstFormValueErr("token")
-		if err != nil {
-			return err
+		token := req.FormValue(formValueToken)
+		if len(token) == 0 {
+			return authboss.ClientDataErr{formValueToken}
 		}
 
-		password, _ := ctx.FirstPostFormValue("password")
+		password := req.FormValue(authboss.StorePassword)
 		//confirmPassword, _ := ctx.FirstPostFormValue("confirmPassword")
 
-		policies := authboss.FilterValidators(r.Policies, "password")
-		if validationErrs := ctx.Validate(policies, authboss.StorePassword, authboss.ConfirmPrefix+authboss.StorePassword).Map(); len(validationErrs) > 0 {
+		policies := authboss.FilterValidators(r.Policies, authboss.StorePassword)
+		if validationErrs := authboss.Validate(req, policies, authboss.StorePassword, authboss.ConfirmPrefix+authboss.StorePassword).Map(); len(validationErrs) > 0 {
 			data := authboss.NewHTMLData(
-				"token", token,
+				formValueToken, token,
 				"errs", validationErrs,
 			)
 			return r.templates.Render(ctx, w, req, tplRecoverComplete, data)
 		}
 
-		if ctx.User, err = verifyToken(ctx); err != nil {
+		if ctx.User, err = verifyToken(ctx, req); err != nil {
 			return err
 		}
 
@@ -276,10 +282,10 @@ func (r *Recover) completeHandlerFunc(ctx *authboss.Context, w http.ResponseWrit
 }
 
 // verifyToken expects a base64.URLEncoded token.
-func verifyToken(ctx *authboss.Context) (attrs authboss.Attributes, err error) {
-	token, err := ctx.FirstFormValueErr("token")
-	if err != nil {
-		return nil, err
+func verifyToken(ctx *authboss.Context, r *http.Request) (attrs authboss.Attributes, err error) {
+	token := r.FormValue(formValueToken)
+	if len(token) == 0 {
+		return nil, authboss.ClientDataErr{token}
 	}
 
 	decoded, err := base64.URLEncoding.DecodeString(token)

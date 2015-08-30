@@ -63,13 +63,9 @@ func testSetup() (r *Recover, s *mocks.MockStorer, l *bytes.Buffer) {
 }
 
 func testRequest(ab *authboss.Authboss, method string, postFormValues ...string) (*authboss.Context, *httptest.ResponseRecorder, *http.Request, authboss.ClientStorerErr) {
-	r, err := http.NewRequest(method, "", nil)
-	if err != nil {
-		panic(err)
-	}
-
 	sessionStorer := mocks.NewMockClientStorer()
-	ctx := mocks.MockRequestContext(ab, postFormValues...)
+	ctx := ab.NewContext()
+	r := mocks.MockRequest(method, postFormValues...)
 	ctx.SessionStorer = sessionStorer
 
 	return ctx, httptest.NewRecorder(), r, sessionStorer
@@ -300,7 +296,7 @@ func TestRecover_sendRecoverEmail(t *testing.T) {
 		t.Error("Unexpected subject:", mailer.Last.Subject)
 	}
 
-	url := fmt.Sprintf("%s/recover/complete?token=abc=", r.RootURL)
+	url := fmt.Sprintf("%s/recover/complete?token=abc%%3D", r.RootURL)
 	if !strings.Contains(mailer.Last.HTMLBody, url) {
 		t.Error("Expected HTMLBody to contain url:", url)
 	}
@@ -319,7 +315,7 @@ func TestRecover_completeHandlerFunc_GET_VerifyFails(t *testing.T) {
 	err := rec.completeHandlerFunc(ctx, w, r)
 	rerr, ok := err.(authboss.ErrAndRedirect)
 	if !ok {
-		t.Error("Expected ErrAndRedirect")
+		t.Error("Expected ErrAndRedirect:", err)
 	}
 	if rerr.Location != "/" {
 		t.Error("Unexpected location:", rerr.Location)
@@ -382,7 +378,7 @@ func TestRecover_completeHandlerFunc_POST_TokenMissing(t *testing.T) {
 	ctx, w, r, _ := testRequest(rec.Authboss, "POST")
 
 	err := rec.completeHandlerFunc(ctx, w, r)
-	if err.Error() != "Failed to retrieve client attribute: token" {
+	if err == nil || err.Error() != "Failed to retrieve client attribute: token" {
 		t.Error("Unexpected error:", err)
 	}
 
@@ -477,9 +473,9 @@ func Test_verifyToken_MissingToken(t *testing.T) {
 	t.Parallel()
 
 	testSetup()
+	r := mocks.MockRequest("GET")
 
-	ctx := &authboss.Context{}
-	if _, err := verifyToken(ctx); err == nil {
+	if _, err := verifyToken(nil, r); err == nil {
 		t.Error("Expected error about missing token")
 	}
 }
@@ -492,8 +488,9 @@ func Test_verifyToken_InvalidToken(t *testing.T) {
 		StoreRecoverToken: testStdBase64Token,
 	}
 
-	ctx := mocks.MockRequestContext(rec.Authboss, "token", "asdf")
-	if _, err := verifyToken(ctx); err != authboss.ErrUserNotFound {
+	ctx := rec.Authboss.NewContext()
+	req, _ := http.NewRequest("GET", "/?token=asdf", nil)
+	if _, err := verifyToken(ctx, req); err != authboss.ErrUserNotFound {
 		t.Error("Unexpected error:", err)
 	}
 }
@@ -507,8 +504,9 @@ func Test_verifyToken_ExpiredToken(t *testing.T) {
 		StoreRecoverTokenExpiry: time.Now().Add(time.Duration(-24) * time.Hour),
 	}
 
-	ctx := mocks.MockRequestContext(rec.Authboss, "token", testURLBase64Token)
-	if _, err := verifyToken(ctx); err != errRecoveryTokenExpired {
+	ctx := rec.Authboss.NewContext()
+	req, _ := http.NewRequest("GET", "/?token="+testURLBase64Token, nil)
+	if _, err := verifyToken(ctx, req); err != errRecoveryTokenExpired {
 		t.Error("Unexpected error:", err)
 	}
 }
@@ -522,8 +520,9 @@ func Test_verifyToken(t *testing.T) {
 		StoreRecoverTokenExpiry: time.Now().Add(time.Duration(24) * time.Hour),
 	}
 
-	ctx := mocks.MockRequestContext(rec.Authboss, "token", testURLBase64Token)
-	attrs, err := verifyToken(ctx)
+	ctx := rec.Authboss.NewContext()
+	req, _ := http.NewRequest("GET", "/?token="+testURLBase64Token, nil)
+	attrs, err := verifyToken(ctx, req)
 	if err != nil {
 		t.Error("Unexpected error:", err)
 	}

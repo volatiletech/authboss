@@ -68,7 +68,7 @@ func TestTemplates_Render(t *testing.T) {
 
 	r, _ := http.NewRequest("GET", "http://localhost", nil)
 	w := httptest.NewRecorder()
-	ctx, _ := ab.ContextFromRequest(r)
+	ctx := ab.NewContext()
 	ctx.SessionStorer = cookies
 
 	tpls := Templates{
@@ -128,7 +128,7 @@ func TestRedirect(t *testing.T) {
 
 	r, _ := http.NewRequest("GET", "http://localhost", nil)
 	w := httptest.NewRecorder()
-	ctx, _ := ab.ContextFromRequest(r)
+	ctx := ab.NewContext()
 	ctx.SessionStorer = cookies
 
 	Redirect(ctx, w, r, "/", "success", "failure", false)
@@ -157,7 +157,7 @@ func TestRedirect_Override(t *testing.T) {
 
 	r, _ := http.NewRequest("GET", "http://localhost?redir=foo/bar", nil)
 	w := httptest.NewRecorder()
-	ctx, _ := ab.ContextFromRequest(r)
+	ctx := ab.NewContext()
 	ctx.SessionStorer = cookies
 
 	Redirect(ctx, w, r, "/shouldNotGo", "success", "failure", true)

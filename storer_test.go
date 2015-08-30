@@ -4,6 +4,8 @@ import (
 	"bytes"
 	"database/sql"
 	"database/sql/driver"
+	"net/http"
+	"net/url"
 	"strings"
 	"testing"
 	"time"
@@ -24,6 +26,41 @@ func (nt NullTime) Value() (driver.Value, error) {
 		return nil, nil
 	}
 	return nt.Time, nil
+}
+
+func TestAttributes_FromRequest(t *testing.T) {
+	t.Parallel()
+
+	now := time.Now().UTC()
+
+	vals := make(url.Values)
+	vals.Set("a", "a")
+	vals.Set("b_int", "5")
+	vals.Set("wildcard", "")
+	vals.Set("c_date", now.Format(time.RFC3339))
+	req, err := http.NewRequest("POST", "/", strings.NewReader(vals.Encode()))
+	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	if err != nil {
+		t.Error(err)
+	}
+
+	attr, err := AttributesFromRequest(req)
+	if err != nil {
+		t.Error(err)
+	}
+
+	if got := attr["a"].(string); got != "a" {
+		t.Error("a's value is wrong:", got)
+	}
+	if got := attr["b"].(int); got != 5 {
+		t.Error("b's value is wrong:", got)
+	}
+	if got := attr["c"].(time.Time); got.Unix() != now.Unix() {
+		t.Error("c's value is wrong:", now, got)
+	}
+	if _, ok := attr["wildcard"]; ok {
+		t.Error("We don't need totally empty fields.")
+	}
 }
 
 func TestAttributes_Names(t *testing.T) {

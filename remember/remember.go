@@ -83,7 +83,7 @@ func (r *Remember) Storage() authboss.StorageOptions {
 
 // afterAuth is called after authentication is successful.
 func (r *Remember) afterAuth(ctx *authboss.Context) error {
-	if val, ok := ctx.FirstPostFormValue(authboss.CookieRemember); !ok || val != "true" {
+	if val := ctx.Values[authboss.CookieRemember]; val != "true" {
 		return nil
 	}
 

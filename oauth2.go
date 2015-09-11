@@ -4,6 +4,7 @@ import (
 	"net/url"
 
 	"golang.org/x/oauth2"
+	"golang.org/x/net/context"
 )
 
 /*
@@ -35,5 +36,5 @@ database/driver.Valuer.
 type OAuth2Provider struct {
 	OAuth2Config     *oauth2.Config
 	AdditionalParams url.Values
-	Callback         func(oauth2.Config, *oauth2.Token) (Attributes, error)
+	Callback         func(context.Context, oauth2.Config, *oauth2.Token) (Attributes, error)
 }

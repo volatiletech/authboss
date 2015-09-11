@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"golang.org/x/crypto/bcrypt"
+	"golang.org/x/net/context"
 )
 
 // Config holds all the configuration for both authboss and it's modules.
@@ -113,6 +114,8 @@ type Config struct {
 	// Mailer is the mailer being used to send e-mails out. Authboss defines two loggers for use
 	// LogMailer and SMTPMailer, the default is a LogMailer to io.Discard.
 	Mailer Mailer
+	// ContextProvider provides a context for a given request
+	ContextProvider func(*http.Request) context.Context
 }
 
 // Defaults sets the configuration's default values.
@@ -163,4 +166,7 @@ func (c *Config) Defaults() {
 
 	c.LogWriter = NewDefaultLogger()
 	c.Mailer = LogMailer(ioutil.Discard)
+	c.ContextProvider = func(req *http.Request) context.Context {
+		return context.TODO()
+	}
 }

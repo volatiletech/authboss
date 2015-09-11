@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"net/http"
 
+	"golang.org/x/net/context"
 	"golang.org/x/oauth2"
 	"gopkg.in/authboss.v0"
 )
@@ -22,8 +23,8 @@ type googleMeResponse struct {
 var clientGet = (*http.Client).Get
 
 // Google is a callback appropriate for use with Google's OAuth2 configuration.
-func Google(cfg oauth2.Config, token *oauth2.Token) (authboss.Attributes, error) {
-	client := cfg.Client(oauth2.NoContext, token)
+func Google(ctx context.Context, cfg oauth2.Config, token *oauth2.Token) (authboss.Attributes, error) {
+	client := cfg.Client(ctx, token)
 	resp, err := clientGet(client, googleInfoEndpoint)
 	if err != nil {
 		return nil, err
@@ -48,9 +49,9 @@ type facebookMeResponse struct {
 	Name  string `json:"name"`
 }
 
-// Google is a callback appropriate for use with Google's OAuth2 configuration.
-func Facebook(cfg oauth2.Config, token *oauth2.Token) (authboss.Attributes, error) {
-	client := cfg.Client(oauth2.NoContext, token)
+// Facebook is a callback appropriate for use with Facebook's OAuth2 configuration.
+func Facebook(ctx context.Context, cfg oauth2.Config, token *oauth2.Token) (authboss.Attributes, error) {
+	client := cfg.Client(ctx, token)
 	resp, err := clientGet(client, facebookInfoEndpoint)
 	if err != nil {
 		return nil, err

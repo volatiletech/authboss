@@ -168,12 +168,12 @@ func (o *OAuth2) oauthCallback(ctx *authboss.Context, w http.ResponseWriter, r *
 
 	// Get the code
 	code := r.FormValue("code")
-	token, err := exchanger(cfg.OAuth2Config, oauth2.NoContext, code)
+	token, err := exchanger(cfg.OAuth2Config, o.Config.ContextProvider(r), code)
 	if err != nil {
 		return fmt.Errorf("Could not validate oauth2 code: %v", err)
 	}
 
-	user, err := cfg.Callback(*cfg.OAuth2Config, token)
+	user, err := cfg.Callback(o.Config.ContextProvider(r), *cfg.OAuth2Config, token)
 	if err != nil {
 		return err
 	}

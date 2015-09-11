@@ -143,7 +143,7 @@ func TestOAuthSuccess(t *testing.T) {
 		Expiry:       expiry,
 	}
 
-	fakeCallback := func(_ oauth2.Config, _ *oauth2.Token) (authboss.Attributes, error) {
+	fakeCallback := func(_ context.Context, _ oauth2.Config, _ *oauth2.Token) (authboss.Attributes, error) {
 		return authboss.Attributes{
 			authboss.StoreOAuth2UID: "uid",
 			authboss.StoreEmail:     "email",

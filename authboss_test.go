@@ -48,6 +48,52 @@ func TestAuthBossCurrentUser(t *testing.T) {
 	}
 }
 
+func TestAuthBossCurrentUserCallbacks(t *testing.T) {
+	t.Parallel()
+
+	ab := New()
+	ab.LogWriter = ioutil.Discard
+	ab.Storer = mockStorer{"joe": Attributes{"email": "john@john.com", "password": "lies"}}
+	ab.SessionStoreMaker = func(_ http.ResponseWriter, _ *http.Request) ClientStorer {
+		return mockClientStore{SessionKey: "joe"}
+	}
+	ab.CookieStoreMaker = func(_ http.ResponseWriter, _ *http.Request) ClientStorer {
+		return mockClientStore{}
+	}
+
+	if err := ab.Init(); err != nil {
+		t.Error("Unexpected error:", err)
+	}
+
+	rec := httptest.NewRecorder()
+	req, _ := http.NewRequest("GET", "localhost", nil)
+
+	afterGetUser := errors.New("afterGetUser")
+	beforeGetUser := errors.New("beforeGetUser")
+	beforeGetUserSession := errors.New("beforeGetUserSession")
+
+	ab.Callbacks.After(EventGetUser, func(*Context) error {
+		return afterGetUser
+	})
+	if _, err := ab.CurrentUser(rec, req); err != afterGetUser {
+		t.Error("Want:", afterGetUser, "Got:", err)
+	}
+
+	ab.Callbacks.Before(EventGetUser, func(*Context) (Interrupt, error) {
+		return InterruptNone, beforeGetUser
+	})
+	if _, err := ab.CurrentUser(rec, req); err != beforeGetUser {
+		t.Error("Want:", beforeGetUser, "Got:", err)
+	}
+
+	ab.Callbacks.Before(EventGetUserSession, func(*Context) (Interrupt, error) {
+		return InterruptNone, beforeGetUserSession
+	})
+	if _, err := ab.CurrentUser(rec, req); err != beforeGetUserSession {
+		t.Error("Want:", beforeGetUserSession, "Got:", err)
+	}
+}
+
 func TestAuthbossUpdatePassword(t *testing.T) {
 	t.Parallel()
 

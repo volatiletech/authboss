@@ -4,9 +4,9 @@ package authboss
 
 import "fmt"
 
-const _Event_name = "EventRegisterEventAuthEventOAuthEventAuthFailEventOAuthFailEventRecoverStartEventRecoverEndEventGetEventGetUserSessionEventPasswordReset"
+const _Event_name = "EventRegisterEventAuthEventOAuthEventAuthFailEventOAuthFailEventRecoverStartEventRecoverEndEventGetUserEventGetUserSessionEventPasswordReset"
 
-var _Event_index = [...]uint8{13, 22, 32, 45, 59, 76, 91, 99, 118, 136}
+var _Event_index = [...]uint8{13, 22, 32, 45, 59, 76, 91, 103, 122, 140}
 
 func (i Event) String() string {
 	if i < 0 || i >= Event(len(_Event_index)) {

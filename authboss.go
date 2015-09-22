@@ -83,21 +83,31 @@ func (a *Authboss) currentUser(ctx *Context, w http.ResponseWriter, r *http.Requ
 		return nil, nil
 	}
 
-	err = ctx.LoadUser(key)
+	_, err = a.Callbacks.FireBefore(EventGetUser, ctx)
 	if err != nil {
 		return nil, err
 	}
 
-	_, err = a.Callbacks.FireBefore(EventGet, ctx)
-	if err != nil {
-		return nil, err
-	}
+	var user interface{}
 
 	if index := strings.IndexByte(key, ';'); index > 0 {
-		return a.OAuth2Storer.GetOAuth(key[:index], key[index+1:])
+		user, err = a.OAuth2Storer.GetOAuth(key[:index], key[index+1:])
+	} else {
+		user, err = a.Storer.Get(key)
 	}
 
-	return a.Storer.Get(key)
+	if err != nil {
+		return nil, err
+	}
+
+	ctx.User = Unbind(user)
+
+	err = a.Callbacks.FireAfter(EventGetUser, ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	return user, err
 }
 
 // CurrentUserP retrieves the current user but panics if it's not available for

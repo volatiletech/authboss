@@ -20,7 +20,7 @@ const (
 	EventOAuthFail
 	EventRecoverStart
 	EventRecoverEnd
-	EventGet
+	EventGetUser
 	EventGetUserSession
 	EventPasswordReset
 )

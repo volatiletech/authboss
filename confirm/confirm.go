@@ -70,7 +70,10 @@ func (c *Confirm) Initialize(ab *authboss.Authboss) (err error) {
 		return err
 	}
 
-	c.Callbacks.Before(authboss.EventGet, c.beforeGet)
+	c.Callbacks.After(authboss.EventGetUser, func(ctx *authboss.Context) error {
+		_, err := c.beforeGet(ctx)
+		return err
+	})
 	c.Callbacks.Before(authboss.EventAuth, c.beforeGet)
 	c.Callbacks.After(authboss.EventRegister, c.afterRegister)
 

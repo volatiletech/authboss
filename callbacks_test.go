@@ -171,7 +171,7 @@ func TestEventString(t *testing.T) {
 		{EventOAuthFail, "EventOAuthFail"},
 		{EventRecoverStart, "EventRecoverStart"},
 		{EventRecoverEnd, "EventRecoverEnd"},
-		{EventGet, "EventGet"},
+		{EventGetUser, "EventGetUser"},
 		{EventGetUserSession, "EventGetUserSession"},
 		{EventPasswordReset, "EventPasswordReset"},
 	}

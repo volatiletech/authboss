@@ -5,12 +5,12 @@ import (
 	"compress/gzip"
 	"fmt"
 	"io"
-	"strings"
-	"os"
-	"time"
 	"io/ioutil"
+	"os"
 	"path"
 	"path/filepath"
+	"strings"
+	"time"
 )
 
 func bindata_read(data []byte, name string) ([]byte, error) {
@@ -36,9 +36,9 @@ type asset struct {
 }
 
 type bindata_file_info struct {
-	name string
-	size int64
-	mode os.FileMode
+	name    string
+	size    int64
+	mode    os.FileMode
 	modTime time.Time
 }
 
@@ -77,7 +77,7 @@ func confirm_email_html_tpl() (*asset, error) {
 	}
 
 	info := bindata_file_info{name: "confirm_email.html.tpl", size: 108, mode: os.FileMode(438), modTime: time.Unix(1425861488, 0)}
-	a := &asset{bytes: bytes, info:  info}
+	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
 
@@ -97,7 +97,7 @@ func confirm_email_txt_tpl() (*asset, error) {
 	}
 
 	info := bindata_file_info{name: "confirm_email.txt.tpl", size: 91, mode: os.FileMode(438), modTime: time.Unix(1425861619, 0)}
-	a := &asset{bytes: bytes, info:  info}
+	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
 
@@ -117,7 +117,7 @@ func login_html_tpl() (*asset, error) {
 	}
 
 	info := bindata_file_info{name: "login.html.tpl", size: 746, mode: os.FileMode(438), modTime: time.Unix(1428692472, 0)}
-	a := &asset{bytes: bytes, info:  info}
+	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
 
@@ -137,7 +137,7 @@ func recover_html_tpl() (*asset, error) {
 	}
 
 	info := bindata_file_info{name: "recover.html.tpl", size: 771, mode: os.FileMode(438), modTime: time.Unix(1425014937, 0)}
-	a := &asset{bytes: bytes, info:  info}
+	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
 
@@ -157,7 +157,7 @@ func recover_complete_html_tpl() (*asset, error) {
 	}
 
 	info := bindata_file_info{name: "recover_complete.html.tpl", size: 752, mode: os.FileMode(438), modTime: time.Unix(1425060725, 0)}
-	a := &asset{bytes: bytes, info:  info}
+	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
 
@@ -177,7 +177,7 @@ func recover_email_html_tpl() (*asset, error) {
 	}
 
 	info := bindata_file_info{name: "recover_email.html.tpl", size: 108, mode: os.FileMode(438), modTime: time.Unix(1425861503, 0)}
-	a := &asset{bytes: bytes, info:  info}
+	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
 
@@ -197,7 +197,7 @@ func recover_email_txt_tpl() (*asset, error) {
 	}
 
 	info := bindata_file_info{name: "recover_email.txt.tpl", size: 91, mode: os.FileMode(438), modTime: time.Unix(1425861617, 0)}
-	a := &asset{bytes: bytes, info:  info}
+	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
 
@@ -217,7 +217,7 @@ func register_html_tpl() (*asset, error) {
 	}
 
 	info := bindata_file_info{name: "register.html.tpl", size: 940, mode: os.FileMode(438), modTime: time.Unix(1424982621, 0)}
-	a := &asset{bytes: bytes, info:  info}
+	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
 
@@ -262,14 +262,14 @@ func AssetNames() []string {
 
 // _bindata is a table, holding each asset generator, mapped to its name.
 var _bindata = map[string]func() (*asset, error){
-	"confirm_email.html.tpl": confirm_email_html_tpl,
-	"confirm_email.txt.tpl": confirm_email_txt_tpl,
-	"login.html.tpl": login_html_tpl,
-	"recover.html.tpl": recover_html_tpl,
+	"confirm_email.html.tpl":    confirm_email_html_tpl,
+	"confirm_email.txt.tpl":     confirm_email_txt_tpl,
+	"login.html.tpl":            login_html_tpl,
+	"recover.html.tpl":          recover_html_tpl,
 	"recover_complete.html.tpl": recover_complete_html_tpl,
-	"recover_email.html.tpl": recover_email_html_tpl,
-	"recover_email.txt.tpl": recover_email_txt_tpl,
-	"register.html.tpl": register_html_tpl,
+	"recover_email.html.tpl":    recover_email_html_tpl,
+	"recover_email.txt.tpl":     recover_email_txt_tpl,
+	"register.html.tpl":         register_html_tpl,
 }
 
 // AssetDir returns the file names below a certain
@@ -308,71 +308,63 @@ func AssetDir(name string) ([]string, error) {
 }
 
 type _bintree_t struct {
-	Func func() (*asset, error)
+	Func     func() (*asset, error)
 	Children map[string]*_bintree_t
 }
+
 var _bintree = &_bintree_t{nil, map[string]*_bintree_t{
-	"confirm_email.html.tpl": &_bintree_t{confirm_email_html_tpl, map[string]*_bintree_t{
-	}},
-	"confirm_email.txt.tpl": &_bintree_t{confirm_email_txt_tpl, map[string]*_bintree_t{
-	}},
-	"login.html.tpl": &_bintree_t{login_html_tpl, map[string]*_bintree_t{
-	}},
-	"recover.html.tpl": &_bintree_t{recover_html_tpl, map[string]*_bintree_t{
-	}},
-	"recover_complete.html.tpl": &_bintree_t{recover_complete_html_tpl, map[string]*_bintree_t{
-	}},
-	"recover_email.html.tpl": &_bintree_t{recover_email_html_tpl, map[string]*_bintree_t{
-	}},
-	"recover_email.txt.tpl": &_bintree_t{recover_email_txt_tpl, map[string]*_bintree_t{
-	}},
-	"register.html.tpl": &_bintree_t{register_html_tpl, map[string]*_bintree_t{
-	}},
+	"confirm_email.html.tpl":    &_bintree_t{confirm_email_html_tpl, map[string]*_bintree_t{}},
+	"confirm_email.txt.tpl":     &_bintree_t{confirm_email_txt_tpl, map[string]*_bintree_t{}},
+	"login.html.tpl":            &_bintree_t{login_html_tpl, map[string]*_bintree_t{}},
+	"recover.html.tpl":          &_bintree_t{recover_html_tpl, map[string]*_bintree_t{}},
+	"recover_complete.html.tpl": &_bintree_t{recover_complete_html_tpl, map[string]*_bintree_t{}},
+	"recover_email.html.tpl":    &_bintree_t{recover_email_html_tpl, map[string]*_bintree_t{}},
+	"recover_email.txt.tpl":     &_bintree_t{recover_email_txt_tpl, map[string]*_bintree_t{}},
+	"register.html.tpl":         &_bintree_t{register_html_tpl, map[string]*_bintree_t{}},
 }}
 
 // Restore an asset under the given directory
 func RestoreAsset(dir, name string) error {
-        data, err := Asset(name)
-        if err != nil {
-                return err
-        }
-        info, err := AssetInfo(name)
-        if err != nil {
-                return err
-        }
-        err = os.MkdirAll(_filePath(dir, path.Dir(name)), os.FileMode(0755))
-        if err != nil {
-                return err
-        }
-        err = ioutil.WriteFile(_filePath(dir, name), data, info.Mode())
-        if err != nil {
-                return err
-        }
-        err = os.Chtimes(_filePath(dir, name), info.ModTime(), info.ModTime())
-        if err != nil {
-                return err
-        }
-        return nil
+	data, err := Asset(name)
+	if err != nil {
+		return err
+	}
+	info, err := AssetInfo(name)
+	if err != nil {
+		return err
+	}
+	err = os.MkdirAll(_filePath(dir, path.Dir(name)), os.FileMode(0755))
+	if err != nil {
+		return err
+	}
+	err = ioutil.WriteFile(_filePath(dir, name), data, info.Mode())
+	if err != nil {
+		return err
+	}
+	err = os.Chtimes(_filePath(dir, name), info.ModTime(), info.ModTime())
+	if err != nil {
+		return err
+	}
+	return nil
 }
 
 // Restore assets under the given directory recursively
 func RestoreAssets(dir, name string) error {
-        children, err := AssetDir(name)
-        if err != nil { // File
-                return RestoreAsset(dir, name)
-        } else { // Dir
-                for _, child := range children {
-                        err = RestoreAssets(dir, path.Join(name, child))
-                        if err != nil {
-                                return err
-                        }
-                }
-        }
-        return nil
+	children, err := AssetDir(name)
+	if err != nil { // File
+		return RestoreAsset(dir, name)
+	} else { // Dir
+		for _, child := range children {
+			err = RestoreAssets(dir, path.Join(name, child))
+			if err != nil {
+				return err
+			}
+		}
+	}
+	return nil
 }
 
 func _filePath(dir, name string) string {
-        cannonicalName := strings.Replace(name, "\\", "/", -1)
-        return filepath.Join(append([]string{dir}, strings.Split(cannonicalName, "/")...)...)
+	cannonicalName := strings.Replace(name, "\\", "/", -1)
+	return filepath.Join(append([]string{dir}, strings.Split(cannonicalName, "/")...)...)
 }
-

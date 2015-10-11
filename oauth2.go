@@ -3,8 +3,8 @@ package authboss
 import (
 	"net/url"
 
-	"golang.org/x/oauth2"
 	"golang.org/x/net/context"
+	"golang.org/x/oauth2"
 )
 
 /*

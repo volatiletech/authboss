@@ -70,9 +70,12 @@ func (r *Register) Storage() authboss.StorageOptions {
 func (reg *Register) registerHandler(ctx *authboss.Context, w http.ResponseWriter, r *http.Request) error {
 	switch r.Method {
 	case "GET":
+		primaryID := r.FormValue("primaryID")
+
 		data := authboss.HTMLData{
-			"primaryID":      reg.PrimaryID,
-			"primaryIDValue": "",
+			"primaryID":         reg.PrimaryID,
+			"primaryIDValue":    primaryID,
+			"primaryIDReadonly": len(primaryID) > 0,
 		}
 		return reg.templates.Render(ctx, w, r, tplRegister, data)
 	case "POST":

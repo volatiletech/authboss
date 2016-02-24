@@ -287,14 +287,14 @@ func AssetNames() []string {
 
 // _bindata is a table, holding each asset generator, mapped to its name.
 var _bindata = map[string]func() (*asset, error){
-	"confirm_email.html.tpl": confirm_emailHtmlTpl,
-	"confirm_email.txt.tpl": confirm_emailTxtTpl,
-	"login.html.tpl": loginHtmlTpl,
-	"recover.html.tpl": recoverHtmlTpl,
+	"confirm_email.html.tpl":    confirm_emailHtmlTpl,
+	"confirm_email.txt.tpl":     confirm_emailTxtTpl,
+	"login.html.tpl":            loginHtmlTpl,
+	"recover.html.tpl":          recoverHtmlTpl,
 	"recover_complete.html.tpl": recover_completeHtmlTpl,
-	"recover_email.html.tpl": recover_emailHtmlTpl,
-	"recover_email.txt.tpl": recover_emailTxtTpl,
-	"register.html.tpl": registerHtmlTpl,
+	"recover_email.html.tpl":    recover_emailHtmlTpl,
+	"recover_email.txt.tpl":     recover_emailTxtTpl,
+	"register.html.tpl":         registerHtmlTpl,
 }
 
 // AssetDir returns the file names below a certain
@@ -336,15 +336,16 @@ type bintree struct {
 	Func     func() (*asset, error)
 	Children map[string]*bintree
 }
+
 var _bintree = &bintree{nil, map[string]*bintree{
-	"confirm_email.html.tpl": &bintree{confirm_emailHtmlTpl, map[string]*bintree{}},
-	"confirm_email.txt.tpl": &bintree{confirm_emailTxtTpl, map[string]*bintree{}},
-	"login.html.tpl": &bintree{loginHtmlTpl, map[string]*bintree{}},
-	"recover.html.tpl": &bintree{recoverHtmlTpl, map[string]*bintree{}},
+	"confirm_email.html.tpl":    &bintree{confirm_emailHtmlTpl, map[string]*bintree{}},
+	"confirm_email.txt.tpl":     &bintree{confirm_emailTxtTpl, map[string]*bintree{}},
+	"login.html.tpl":            &bintree{loginHtmlTpl, map[string]*bintree{}},
+	"recover.html.tpl":          &bintree{recoverHtmlTpl, map[string]*bintree{}},
 	"recover_complete.html.tpl": &bintree{recover_completeHtmlTpl, map[string]*bintree{}},
-	"recover_email.html.tpl": &bintree{recover_emailHtmlTpl, map[string]*bintree{}},
-	"recover_email.txt.tpl": &bintree{recover_emailTxtTpl, map[string]*bintree{}},
-	"register.html.tpl": &bintree{registerHtmlTpl, map[string]*bintree{}},
+	"recover_email.html.tpl":    &bintree{recover_emailHtmlTpl, map[string]*bintree{}},
+	"recover_email.txt.tpl":     &bintree{recover_emailTxtTpl, map[string]*bintree{}},
+	"register.html.tpl":         &bintree{registerHtmlTpl, map[string]*bintree{}},
 }}
 
 // RestoreAsset restores an asset under the given directory
@@ -393,4 +394,3 @@ func _filePath(dir, name string) string {
 	cannonicalName := strings.Replace(name, "\\", "/", -1)
 	return filepath.Join(append([]string{dir}, strings.Split(cannonicalName, "/")...)...)
 }
-

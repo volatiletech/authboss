@@ -7,6 +7,7 @@ import (
 	"testing"
 	"time"
 
+	"golang.org/x/net/context"
 	"golang.org/x/oauth2"
 	"gopkg.in/authboss.v0"
 )
@@ -31,7 +32,7 @@ func TestGoogle(t *testing.T) {
 		Expiry:       time.Now().Add(60 * time.Minute),
 	}
 
-	user, err := Google(cfg, tok)
+	user, err := Google(context.TODO(), cfg, tok)
 	if err != nil {
 		t.Error(err)
 	}
@@ -64,7 +65,7 @@ func TestFacebook(t *testing.T) {
 		Expiry:       time.Now().Add(60 * time.Minute),
 	}
 
-	user, err := Facebook(cfg, tok)
+	user, err := Facebook(context.TODO(), cfg, tok)
 	if err != nil {
 		t.Error(err)
 	}

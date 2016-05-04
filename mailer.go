@@ -82,6 +82,9 @@ func (s smtpMailer) Send(data Email) error {
 	return smtp.SendMail(s.Server, s.Auth, data.From, data.To, toSend)
 }
 
+// MailMaker is used to create a mailer from an http request.
+type MailMaker func(http.ResponseWriter, *http.Request) Mailer
+
 func namedAddress(name, address string) string {
 	if len(name) == 0 {
 		return address

@@ -10,6 +10,8 @@ import (
 
 // Storage key constants
 const (
+	ModuleName = "Lock"
+
 	StoreAttemptNumber = "attempt_number"
 	StoreAttemptTime   = "attempt_time"
 	StoreLocked        = "locked"
@@ -20,7 +22,7 @@ var (
 )
 
 func init() {
-	authboss.RegisterModule("lock", &Lock{})
+	authboss.RegisterModule(ModuleName, &Lock{})
 }
 
 // Lock module
@@ -31,7 +33,7 @@ type Lock struct {
 // Initialize the module
 func (l *Lock) Initialize(ab *authboss.Authboss) error {
 	l.Authboss = ab
-	if l.Storer == nil {
+	if l.Storer == nil && l.StoreMaker == nil {
 		return errors.New("lock: Need a Storer")
 	}
 

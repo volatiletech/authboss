@@ -21,6 +21,8 @@ type Config struct {
 	RootURL string
 	// BCryptCost is the cost of the bcrypt password hashing function.
 	BCryptCost int
+	// If true, authboss won't use any goroutines. Dependencies of authboss may or may not use goroutines.
+	DisableGoroutines bool
 
 	// PrimaryID is the primary identifier of the user. Set to one of:
 	// authboss.StoreEmail, authboss.StoreUsername (StoreEmail is default)
@@ -123,6 +125,12 @@ type Config struct {
 	// LogWriter is written to when errors occur, as well as on startup to show which modules are loaded
 	// and which routes they registered. By default writes to io.Discard.
 	LogWriter io.Writer
+	// LogWriteMaker is an alternative to defining LogWriter directly, which facilitates creating
+	// a LogWriter on demand from the current http request. Unless you have an exceedingly unusual
+	// special requirement, defining LogWriter directly is the preferred pattern; literally the only
+	// known use case at the time of this property being added is Google App Engine, which requires
+	// the current context as an argument to its logging API methods.
+	LogWriteMaker LogWriteMaker
 	// Mailer is the mailer being used to send e-mails out. Authboss defines two loggers for use
 	// LogMailer and SMTPMailer, the default is a LogMailer to io.Discard.
 	Mailer Mailer

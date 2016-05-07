@@ -17,6 +17,10 @@ import (
 	"gopkg.in/authboss.v0/internal/response"
 )
 
+const (
+	ModuleName = "oauth2"
+)
+
 var (
 	errOAuthStateValidation = errors.New("Could not validate oauth2 state param")
 )
@@ -27,13 +31,13 @@ type OAuth2 struct {
 }
 
 func init() {
-	authboss.RegisterModule("oauth2", &OAuth2{})
+	authboss.RegisterModule(ModuleName, &OAuth2{})
 }
 
 // Initialize module
 func (o *OAuth2) Initialize(ab *authboss.Authboss) error {
 	o.Authboss = ab
-	if o.OAuth2Storer == nil {
+	if o.OAuth2Storer == nil && o.OAuth2StoreMaker == nil {
 		return errors.New("oauth2: need an OAuth2Storer")
 	}
 	return nil
@@ -192,7 +196,7 @@ func (o *OAuth2) oauthCallback(ctx *authboss.Context, w http.ResponseWriter, r *
 		user[authboss.StoreOAuth2Refresh] = token.RefreshToken
 	}
 
-	if err = o.OAuth2Storer.PutOAuth(uid, provider, user); err != nil {
+	if err = ctx.OAuth2Storer.PutOAuth(uid, provider, user); err != nil {
 		return err
 	}
 

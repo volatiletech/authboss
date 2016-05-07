@@ -17,6 +17,8 @@ import (
 
 // Storer and FormValue constants
 const (
+	ModuleName = "confirm"
+
 	StoreConfirmToken = "confirm_token"
 	StoreConfirmed    = "confirmed"
 
@@ -41,7 +43,7 @@ type ConfirmStorer interface {
 }
 
 func init() {
-	authboss.RegisterModule("confirm", &Confirm{})
+	authboss.RegisterModule(ModuleName, &Confirm{})
 }
 
 // Confirm module
@@ -57,7 +59,7 @@ func (c *Confirm) Initialize(ab *authboss.Authboss) (err error) {
 
 	var ok bool
 	storer, ok := c.Storer.(ConfirmStorer)
-	if storer == nil || !ok {
+	if c.StoreMaker == nil && (storer == nil || !ok) {
 		return errors.New("confirm: Need a ConfirmStorer")
 	}
 
@@ -130,17 +132,21 @@ func (c *Confirm) afterRegister(ctx *authboss.Context) error {
 		return err
 	}
 
-	goConfirmEmail(c, email, base64.URLEncoding.EncodeToString(token))
+	goConfirmEmail(c, ctx, email, base64.URLEncoding.EncodeToString(token))
 
 	return nil
 }
 
-var goConfirmEmail = func(c *Confirm, to, token string) {
-	go c.confirmEmail(to, token)
+var goConfirmEmail = func(c *Confirm, ctx *authboss.Context, to, token string) {
+	if ctx.DisableGoroutines {
+		c.confirmEmail(ctx, to, token)
+	} else {
+		go c.confirmEmail(ctx, to, token)
+	}
 }
 
 // confirmEmail sends a confirmation e-mail.
-func (c *Confirm) confirmEmail(to, token string) {
+func (c *Confirm) confirmEmail(ctx *authboss.Context, to, token string) {
 	p := path.Join(c.MountPath, "confirm")
 	url := fmt.Sprintf("%s%s?%s=%s", c.RootURL, p, url.QueryEscape(FormValueConfirm), url.QueryEscape(token))
 
@@ -150,9 +156,9 @@ func (c *Confirm) confirmEmail(to, token string) {
 		Subject: c.EmailSubjectPrefix + "Confirm New Account",
 	}
 
-	err := response.Email(c.Mailer, email, c.emailHTMLTemplates, tplConfirmHTML, c.emailTextTemplates, tplConfirmText, url)
+	err := response.Email(ctx.Mailer, email, c.emailHTMLTemplates, tplConfirmHTML, c.emailTextTemplates, tplConfirmText, url)
 	if err != nil {
-		fmt.Fprintf(c.LogWriter, "confirm: Failed to send e-mail: %v", err)
+		fmt.Fprintf(ctx.LogWriter, "confirm: Failed to send e-mail: %v", err)
 	}
 }
 
@@ -172,7 +178,7 @@ func (c *Confirm) confirmHandler(ctx *authboss.Context, w http.ResponseWriter, r
 	sum := md5.Sum(toHash)
 
 	dbTok := base64.StdEncoding.EncodeToString(sum[:])
-	user, err := c.Storer.(ConfirmStorer).ConfirmUser(dbTok)
+	user, err := ctx.Storer.(ConfirmStorer).ConfirmUser(dbTok)
 	if err == authboss.ErrUserNotFound {
 		return authboss.ErrAndRedirect{Location: "/", Err: errors.New("confirm: token not found")}
 	} else if err != nil {

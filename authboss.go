@@ -64,7 +64,7 @@ func (a *Authboss) Init(modulesToLoad ...string) error {
 
 // CurrentUser retrieves the current user from the session and the database.
 func (a *Authboss) CurrentUser(w http.ResponseWriter, r *http.Request) (interface{}, error) {
-	return a.currentUser(a.initContext(w, r), w, r)
+	return a.currentUser(a.InitContext(w, r), w, r)
 }
 
 func (a *Authboss) currentUser(ctx *Context, w http.ResponseWriter, r *http.Request) (interface{}, error) {
@@ -103,27 +103,6 @@ func (a *Authboss) currentUser(ctx *Context, w http.ResponseWriter, r *http.Requ
 	}
 
 	return user, err
-}
-
-func (a *Authboss) initContext(w http.ResponseWriter, r *http.Request) *Context {
-	ctx := a.NewContext()
-
-	if ctx.StoreMaker != nil {
-		ctx.Storer = a.StoreMaker(w, r)
-	}
-
-	if ctx.OAuth2StoreMaker != nil {
-		ctx.OAuth2Storer = a.OAuth2StoreMaker(w, r)
-	}
-
-	if ctx.MailMaker != nil {
-		ctx.Mailer = a.MailMaker(w, r)
-	}
-
-	ctx.SessionStorer = clientStoreWrapper{a.SessionStoreMaker(w, r)}
-	ctx.CookieStorer = clientStoreWrapper{a.CookieStoreMaker(w, r)}
-
-	return ctx
 }
 
 // CurrentUserP retrieves the current user but panics if it's not available for
@@ -191,5 +170,5 @@ func (a *Authboss) UpdatePassword(w http.ResponseWriter, r *http.Request,
 		return nil
 	}
 
-	return a.Callbacks.FireAfter(EventPasswordReset, a.initContext(w, r))
+	return a.Callbacks.FireAfter(EventPasswordReset, a.InitContext(w, r))
 }

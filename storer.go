@@ -314,7 +314,7 @@ func (a Attributes) Bind(strct interface{}, ignoreMissing bool) error {
 type StoreMaker func(http.ResponseWriter, *http.Request) Storer
 
 // OAuth2StoreMaker is used to create an oauth2 storer from an http request.
-type OAuth2StoreMaker func(http.ResponseWriter, *http.Request) Storer
+type OAuth2StoreMaker func(http.ResponseWriter, *http.Request) OAuth2Storer
 
 // Unbind is the opposite of Bind, taking a struct in and producing a list of attributes.
 func Unbind(intf interface{}) Attributes {

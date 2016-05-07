@@ -179,7 +179,7 @@ func TestRecover_startHandlerFunc_POST(t *testing.T) {
 	storer.Users["john"] = authboss.Attributes{authboss.StoreUsername: "john", authboss.StoreEmail: "a@b.c"}
 
 	sentEmail := false
-	goRecoverEmail = func(_ *Recover, _, _ string) {
+	goRecoverEmail = func(_ *Recover, _ *authboss.Context, _, _ string) {
 		sentEmail = true
 	}
 

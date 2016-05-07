@@ -11,6 +11,8 @@ import (
 )
 
 const (
+	ModuleName = "register"
+
 	tplRegister = "register.html.tpl"
 )
 
@@ -24,7 +26,7 @@ type RegisterStorer interface {
 }
 
 func init() {
-	authboss.RegisterModule("register", &Register{})
+	authboss.RegisterModule(ModuleName, &Register{})
 }
 
 // Register module.
@@ -37,12 +39,12 @@ type Register struct {
 func (r *Register) Initialize(ab *authboss.Authboss) (err error) {
 	r.Authboss = ab
 
-	if r.Storer == nil {
+	if r.Storer != nil {
+		if _, ok := r.Storer.(RegisterStorer); !ok {
+			return errors.New("register: RegisterStorer required for register functionality")
+		}
+	} else if r.StoreMaker == nil {
 		return errors.New("register: Need a RegisterStorer")
-	}
-
-	if _, ok := r.Storer.(RegisterStorer); !ok {
-		return errors.New("register: RegisterStorer required for register functionality")
 	}
 
 	if r.templates, err = response.LoadTemplates(r.Authboss, r.Layout, r.ViewsPath, tplRegister); err != nil {
@@ -124,7 +126,7 @@ func (reg *Register) registerPostHandler(ctx *authboss.Context, w http.ResponseW
 	attr[authboss.StorePassword] = string(pass)
 	ctx.User = attr
 
-	if err := reg.Storer.(RegisterStorer).Create(key, attr); err == authboss.ErrUserFound {
+	if err := ctx.Storer.(RegisterStorer).Create(key, attr); err == authboss.ErrUserFound {
 		data := authboss.HTMLData{
 			"primaryID":      reg.PrimaryID,
 			"primaryIDValue": key,

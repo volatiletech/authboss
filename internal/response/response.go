@@ -74,7 +74,7 @@ func LoadTemplates(ab *authboss.Authboss, layout *template.Template, fpath strin
 func (t Templates) Render(ctx *authboss.Context, w http.ResponseWriter, r *http.Request, name string, data authboss.HTMLData) error {
 	tpl, ok := t[name]
 	if !ok {
-		return authboss.RenderErr{tpl.Name(), data, ErrTemplateNotFound}
+		return authboss.RenderErr{TemplateName: tpl.Name(), Data: data, Err: ErrTemplateNotFound}
 	}
 
 	data.MergeKV(
@@ -98,12 +98,12 @@ func (t Templates) Render(ctx *authboss.Context, w http.ResponseWriter, r *http.
 	buffer := &bytes.Buffer{}
 	err := tpl.ExecuteTemplate(buffer, tpl.Name(), data)
 	if err != nil {
-		return authboss.RenderErr{tpl.Name(), data, err}
+		return authboss.RenderErr{TemplateName: tpl.Name(), Data: data, Err: ErrTemplateNotFound}
 	}
 
 	_, err = io.Copy(w, buffer)
 	if err != nil {
-		return authboss.RenderErr{tpl.Name(), data, err}
+		return authboss.RenderErr{TemplateName: tpl.Name(), Data: data, Err: ErrTemplateNotFound}
 	}
 
 	return nil
@@ -113,23 +113,23 @@ func (t Templates) Render(ctx *authboss.Context, w http.ResponseWriter, r *http.
 func Email(mailer authboss.Mailer, email authboss.Email, htmlTpls Templates, nameHTML string, textTpls Templates, namePlain string, data interface{}) error {
 	tplHTML, ok := htmlTpls[nameHTML]
 	if !ok {
-		return authboss.RenderErr{tplHTML.Name(), data, ErrTemplateNotFound}
+		return authboss.RenderErr{TemplateName: tplHTML.Name(), Data: data, Err: ErrTemplateNotFound}
 	}
 
 	tplPlain, ok := textTpls[namePlain]
 	if !ok {
-		return authboss.RenderErr{tplPlain.Name(), data, ErrTemplateNotFound}
+		return authboss.RenderErr{TemplateName: tplPlain.Name(), Data: data, Err: ErrTemplateNotFound}
 	}
 
 	htmlBuffer := &bytes.Buffer{}
 	if err := tplHTML.ExecuteTemplate(htmlBuffer, tplHTML.Name(), data); err != nil {
-		return authboss.RenderErr{tplHTML.Name(), data, err}
+		return authboss.RenderErr{TemplateName: tplHTML.Name(), Data: data, Err: err}
 	}
 	email.HTMLBody = htmlBuffer.String()
 
 	plainBuffer := &bytes.Buffer{}
 	if err := tplPlain.ExecuteTemplate(plainBuffer, tplPlain.Name(), data); err != nil {
-		return authboss.RenderErr{tplPlain.Name(), data, err}
+		return authboss.RenderErr{TemplateName: tplPlain.Name(), Data: data, Err: err}
 	}
 	email.TextBody = plainBuffer.String()
 

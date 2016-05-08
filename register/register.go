@@ -93,7 +93,7 @@ func (reg *Register) registerPostHandler(ctx *authboss.Context, w http.ResponseW
 	if user, err := ctx.Storer.Get(key); err != nil && err != authboss.ErrUserNotFound {
 		return err
 	} else if user != nil {
-		validationErrs = append(validationErrs, authboss.FieldError{reg.PrimaryID, errors.New("Already in use")})
+		validationErrs = append(validationErrs, authboss.FieldError{Name: reg.PrimaryID, Err: errors.New("Already in use")})
 	}
 
 	if len(validationErrs) != 0 {

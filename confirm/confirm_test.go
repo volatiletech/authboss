@@ -151,7 +151,7 @@ func TestConfirm_ConfirmHandlerErrors(t *testing.T) {
 		Confirmed bool
 		Error     error
 	}{
-		{"http://localhost", false, authboss.ClientDataErr{FormValueConfirm}},
+		{"http://localhost", false, authboss.ClientDataErr{Name: FormValueConfirm}},
 		{"http://localhost?cnf=c$ats", false,
 			authboss.ErrAndRedirect{Location: "/", Err: errors.New("confirm: token failed to decode \"c$ats\" => illegal base64 data at input byte 1\n")},
 		},

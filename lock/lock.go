@@ -31,7 +31,7 @@ type Lock struct {
 // Initialize the module
 func (l *Lock) Initialize(ab *authboss.Authboss) error {
 	l.Authboss = ab
-	if l.Storer == nil {
+	if l.Storer == nil && l.StoreMaker == nil {
 		return errors.New("lock: Need a Storer")
 	}
 

@@ -263,12 +263,12 @@ func (m *MockClientStorer) Get(key string) (string, bool) {
 // GetErr gets a key's value or err if not exist
 func (m *MockClientStorer) GetErr(key string) (string, error) {
 	if m.GetShouldFail {
-		return "", authboss.ClientDataErr{key}
+		return "", authboss.ClientDataErr{Name: key}
 	}
 
 	v, ok := m.Values[key]
 	if !ok {
-		return v, authboss.ClientDataErr{key}
+		return v, authboss.ClientDataErr{Name: key}
 	}
 	return v, nil
 }

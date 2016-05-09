@@ -165,7 +165,7 @@ func (c *Confirm) confirmEmail(ctx *authboss.Context, to, token string) {
 func (c *Confirm) confirmHandler(ctx *authboss.Context, w http.ResponseWriter, r *http.Request) error {
 	token := r.FormValue(FormValueConfirm)
 	if len(token) == 0 {
-		return authboss.ClientDataErr{FormValueConfirm}
+		return authboss.ClientDataErr{Name: FormValueConfirm}
 	}
 
 	toHash, err := base64.URLEncoding.DecodeString(token)

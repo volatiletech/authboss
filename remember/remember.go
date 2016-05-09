@@ -14,8 +14,6 @@ import (
 )
 
 const (
-	ModuleName = "remember"
-
 	nRandBytes = 32
 )
 
@@ -41,7 +39,7 @@ type RememberStorer interface {
 }
 
 func init() {
-	authboss.RegisterModule(ModuleName, &Remember{})
+	authboss.RegisterModule("remember", &Remember{})
 }
 
 // Remember module

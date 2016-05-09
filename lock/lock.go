@@ -10,8 +10,6 @@ import (
 
 // Storage key constants
 const (
-	ModuleName = "Lock"
-
 	StoreAttemptNumber = "attempt_number"
 	StoreAttemptTime   = "attempt_time"
 	StoreLocked        = "locked"
@@ -22,7 +20,7 @@ var (
 )
 
 func init() {
-	authboss.RegisterModule(ModuleName, &Lock{})
+	authboss.RegisterModule("lock", &Lock{})
 }
 
 // Lock module

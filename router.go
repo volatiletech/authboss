@@ -47,9 +47,7 @@ type contextRoute struct {
 
 func (c contextRoute) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	// Instantiate the context
-	ctx := c.Authboss.NewContext()
-	ctx.CookieStorer = clientStoreWrapper{c.CookieStoreMaker(w, r)}
-	ctx.SessionStorer = clientStoreWrapper{c.SessionStoreMaker(w, r)}
+	ctx := c.Authboss.InitContext(w, r)
 
 	// Check to make sure we actually need to visit this route
 	if redirectIfLoggedIn(ctx, w, r) {

@@ -71,12 +71,12 @@ type Recover struct {
 func (r *Recover) Initialize(ab *authboss.Authboss) (err error) {
 	r.Authboss = ab
 
-	if r.Storer == nil {
+	if r.Storer != nil {
+		if _, ok := r.Storer.(RecoverStorer); !ok {
+			return errors.New("recover: RecoverStorer required for recover functionality")
+		}
+	} else if r.StoreMaker == nil {
 		return errors.New("recover: Need a RecoverStorer")
-	}
-
-	if _, ok := r.Storer.(RecoverStorer); !ok {
-		return errors.New("recover: RecoverStorer required for recover functionality")
 	}
 
 	if len(r.XSRFName) == 0 {
@@ -173,7 +173,7 @@ func (rec *Recover) startHandlerFunc(ctx *authboss.Context, w http.ResponseWrite
 			return err
 		}
 
-		goRecoverEmail(rec, email, encodedToken)
+		goRecoverEmail(rec, ctx, email, encodedToken)
 
 		ctx.SessionStorer.Put(authboss.FlashSuccessKey, recoverInitiateSuccessFlash)
 		response.Redirect(ctx, w, r, rec.RecoverOKPath, "", "", true)
@@ -194,11 +194,15 @@ func newToken() (encodedToken, encodedChecksum string, err error) {
 	return base64.URLEncoding.EncodeToString(token), base64.StdEncoding.EncodeToString(sum[:]), nil
 }
 
-var goRecoverEmail = func(r *Recover, to, encodedToken string) {
-	go r.sendRecoverEmail(to, encodedToken)
+var goRecoverEmail = func(r *Recover, ctx *authboss.Context, to, encodedToken string) {
+	if ctx.MailMaker != nil {
+		r.sendRecoverEmail(ctx, to, encodedToken)
+	} else {
+		go r.sendRecoverEmail(ctx, to, encodedToken)
+	}
 }
 
-func (r *Recover) sendRecoverEmail(to, encodedToken string) {
+func (r *Recover) sendRecoverEmail(ctx *authboss.Context, to, encodedToken string) {
 	p := path.Join(r.MountPath, "recover/complete")
 	query := url.Values{formValueToken: []string{encodedToken}}
 	url := fmt.Sprintf("%s%s?%s", r.RootURL, p, query.Encode())
@@ -209,8 +213,8 @@ func (r *Recover) sendRecoverEmail(to, encodedToken string) {
 		Subject: r.EmailSubjectPrefix + "Password Reset",
 	}
 
-	if err := response.Email(r.Mailer, email, r.emailHTMLTemplates, tplInitHTMLEmail, r.emailTextTemplates, tplInitTextEmail, url); err != nil {
-		fmt.Fprintln(r.LogWriter, "recover: failed to send recover email:", err)
+	if err := response.Email(ctx.Mailer, email, r.emailHTMLTemplates, tplInitHTMLEmail, r.emailTextTemplates, tplInitTextEmail, url); err != nil {
+		fmt.Fprintln(ctx.LogWriter, "recover: failed to send recover email:", err)
 	}
 }
 

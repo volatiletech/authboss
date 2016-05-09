@@ -2,6 +2,7 @@ package authboss
 
 import (
 	"errors"
+	"net/http"
 	"strings"
 )
 
@@ -30,6 +31,31 @@ func (a *Authboss) NewContext() *Context {
 	return &Context{
 		Authboss: a,
 	}
+}
+
+func (a *Authboss) InitContext(w http.ResponseWriter, r *http.Request) *Context {
+	ctx := a.NewContext()
+
+	if ctx.StoreMaker != nil {
+		ctx.Storer = ctx.StoreMaker(w, r)
+	}
+
+	if ctx.OAuth2StoreMaker != nil {
+		ctx.OAuth2Storer = ctx.OAuth2StoreMaker(w, r)
+	}
+
+	if ctx.LogWriteMaker != nil {
+		ctx.LogWriter = ctx.LogWriteMaker(w, r)
+	}
+
+	if ctx.MailMaker != nil {
+		ctx.Mailer = ctx.MailMaker(w, r)
+	}
+
+	ctx.SessionStorer = clientStoreWrapper{a.SessionStoreMaker(w, r)}
+	ctx.CookieStorer = clientStoreWrapper{a.CookieStoreMaker(w, r)}
+
+	return ctx
 }
 
 // LoadUser loads the user Attributes if they haven't already been loaded.

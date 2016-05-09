@@ -179,7 +179,7 @@ func TestRecover_startHandlerFunc_POST(t *testing.T) {
 	storer.Users["john"] = authboss.Attributes{authboss.StoreUsername: "john", authboss.StoreEmail: "a@b.c"}
 
 	sentEmail := false
-	goRecoverEmail = func(_ *Recover, _, _ string) {
+	goRecoverEmail = func(_ *Recover, _ *authboss.Context, _, _ string) {
 		sentEmail = true
 	}
 
@@ -268,7 +268,7 @@ func TestRecover_sendRecoverMail_FailToSend(t *testing.T) {
 	mailer.SendErr = "failed to send"
 	r.Mailer = mailer
 
-	r.sendRecoverEmail("", "")
+	r.sendRecoverEmail(r.NewContext(), "", "")
 
 	if !strings.Contains(logger.String(), "failed to send") {
 		t.Error("Expected logged to have msg:", "failed to send")
@@ -285,7 +285,7 @@ func TestRecover_sendRecoverEmail(t *testing.T) {
 	r.RootURL = "bar"
 	r.Mailer = mailer
 
-	r.sendRecoverEmail("a@b.c", "abc=")
+	r.sendRecoverEmail(r.NewContext(), "a@b.c", "abc=")
 	if len(mailer.Last.To) != 1 {
 		t.Error("Expected 1 to email")
 	}

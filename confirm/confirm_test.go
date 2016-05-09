@@ -112,8 +112,8 @@ func TestConfirm_AfterRegister(t *testing.T) {
 
 	sentEmail := false
 
-	goConfirmEmail = func(c *Confirm, to, token string) {
-		c.confirmEmail(to, token)
+	goConfirmEmail = func(c *Confirm, ctx *authboss.Context, to, token string) {
+		c.confirmEmail(ctx, to, token)
 		sentEmail = true
 	}
 

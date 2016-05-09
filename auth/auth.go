@@ -32,7 +32,7 @@ type Auth struct {
 func (a *Auth) Initialize(ab *authboss.Authboss) (err error) {
 	a.Authboss = ab
 
-	if a.Storer == nil {
+	if a.Storer == nil && a.StoreMaker == nil {
 		return errors.New("auth: Need a Storer")
 	}
 
@@ -94,11 +94,11 @@ func (a *Auth) loginHandlerFunc(ctx *authboss.Context, w http.ResponseWriter, r 
 
 		if valid, err := validateCredentials(ctx, key, password); err != nil {
 			errData["error"] = "Internal server error"
-			fmt.Fprintf(a.LogWriter, "auth: validate credentials failed: %v\n", err)
+			fmt.Fprintf(ctx.LogWriter, "auth: validate credentials failed: %v\n", err)
 			return a.templates.Render(ctx, w, r, tplLogin, errData)
 		} else if !valid {
 			if err := a.Callbacks.FireAfter(authboss.EventAuthFail, ctx); err != nil {
-				fmt.Fprintf(a.LogWriter, "EventAuthFail callback error'd out: %v\n", err)
+				fmt.Fprintf(ctx.LogWriter, "EventAuthFail callback error'd out: %v\n", err)
 			}
 			return a.templates.Render(ctx, w, r, tplLogin, errData)
 		}

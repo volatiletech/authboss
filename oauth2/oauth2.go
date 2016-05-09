@@ -33,7 +33,7 @@ func init() {
 // Initialize module
 func (o *OAuth2) Initialize(ab *authboss.Authboss) error {
 	o.Authboss = ab
-	if o.OAuth2Storer == nil {
+	if o.OAuth2Storer == nil && o.OAuth2StoreMaker == nil {
 		return errors.New("oauth2: need an OAuth2Storer")
 	}
 	return nil
@@ -192,7 +192,7 @@ func (o *OAuth2) oauthCallback(ctx *authboss.Context, w http.ResponseWriter, r *
 		user[authboss.StoreOAuth2Refresh] = token.RefreshToken
 	}
 
-	if err = o.OAuth2Storer.PutOAuth(uid, provider, user); err != nil {
+	if err = ctx.OAuth2Storer.PutOAuth(uid, provider, user); err != nil {
 		return err
 	}
 

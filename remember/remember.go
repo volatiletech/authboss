@@ -51,14 +51,14 @@ type Remember struct {
 func (r *Remember) Initialize(ab *authboss.Authboss) error {
 	r.Authboss = ab
 
-	if r.Storer == nil && r.OAuth2Storer == nil {
-		return errors.New("remember: Need a RememberStorer")
-	}
-
-	if _, ok := r.Storer.(RememberStorer); !ok {
-		if _, ok := r.OAuth2Storer.(RememberStorer); !ok {
-			return errors.New("remember: RememberStorer required for remember functionality")
+	if r.Storer != nil || r.OAuth2Storer != nil {
+		if _, ok := r.Storer.(RememberStorer); !ok {
+			if _, ok := r.OAuth2Storer.(RememberStorer); !ok {
+				return errors.New("remember: RememberStorer required for remember functionality")
+			}
 		}
+	} else if r.StoreMaker == nil && r.OAuth2StoreMaker == nil {
+		return errors.New("remember: Need a RememberStorer")
 	}
 
 	r.Callbacks.Before(authboss.EventGetUserSession, r.auth)
@@ -158,8 +158,8 @@ func (r *Remember) afterPassword(ctx *authboss.Context) error {
 	ctx.CookieStorer.Del(authboss.CookieRemember)
 
 	var storer RememberStorer
-	if storer, ok = r.Storer.(RememberStorer); !ok {
-		if storer, ok = r.OAuth2Storer.(RememberStorer); !ok {
+	if storer, ok = ctx.Storer.(RememberStorer); !ok {
+		if storer, ok = ctx.OAuth2Storer.(RememberStorer); !ok {
 			return nil
 		}
 	}
@@ -230,8 +230,8 @@ func (r *Remember) auth(ctx *authboss.Context) (authboss.Interrupt, error) {
 	sum := md5.Sum(token)
 
 	var storer RememberStorer
-	if storer, ok = r.Storer.(RememberStorer); !ok {
-		storer, ok = r.OAuth2Storer.(RememberStorer)
+	if storer, ok = ctx.Storer.(RememberStorer); !ok {
+		storer, ok = ctx.OAuth2Storer.(RememberStorer)
 	}
 
 	err = storer.UseToken(givenKey, base64.StdEncoding.EncodeToString(sum[:]))

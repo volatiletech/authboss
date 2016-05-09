@@ -64,12 +64,7 @@ func (a *Authboss) Init(modulesToLoad ...string) error {
 
 // CurrentUser retrieves the current user from the session and the database.
 func (a *Authboss) CurrentUser(w http.ResponseWriter, r *http.Request) (interface{}, error) {
-	ctx := a.NewContext()
-
-	ctx.SessionStorer = clientStoreWrapper{a.SessionStoreMaker(w, r)}
-	ctx.CookieStorer = clientStoreWrapper{a.CookieStoreMaker(w, r)}
-
-	return a.currentUser(ctx, w, r)
+	return a.currentUser(a.InitContext(w, r), w, r)
 }
 
 func (a *Authboss) currentUser(ctx *Context, w http.ResponseWriter, r *http.Request) (interface{}, error) {
@@ -175,8 +170,5 @@ func (a *Authboss) UpdatePassword(w http.ResponseWriter, r *http.Request,
 		return nil
 	}
 
-	ctx := a.NewContext()
-	ctx.SessionStorer = clientStoreWrapper{a.SessionStoreMaker(w, r)}
-	ctx.CookieStorer = clientStoreWrapper{a.CookieStoreMaker(w, r)}
-	return a.Callbacks.FireAfter(EventPasswordReset, ctx)
+	return a.Callbacks.FireAfter(EventPasswordReset, a.InitContext(w, r))
 }

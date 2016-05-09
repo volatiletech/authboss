@@ -21,8 +21,6 @@ type Config struct {
 	RootURL string
 	// BCryptCost is the cost of the bcrypt password hashing function.
 	BCryptCost int
-	// If true, authboss won't use any goroutines. Dependencies of authboss may or may not use goroutines.
-	DisableGoroutines bool
 
 	// PrimaryID is the primary identifier of the user. Set to one of:
 	// authboss.StoreEmail, authboss.StoreUsername (StoreEmail is default)
@@ -106,7 +104,9 @@ type Config struct {
 	// a Storer on demand from the current http request. Unless you have an exceedingly unusual
 	// special requirement, defining Storer directly is the preferred pattern; literally the only
 	// known use case at the time of this property being added is Google App Engine, which requires
-	// the current context as an argument to its datastore API methods.
+	// the current context as an argument to its datastore API methods. To avoid passing StoreMaker
+	// an expired request object, where relevant, calls to this function will never be spun off as
+	// goroutines.
 	StoreMaker StoreMaker
 	// OAuth2Storer is a different kind of storer only meant for OAuth2.
 	OAuth2Storer OAuth2Storer
@@ -114,7 +114,9 @@ type Config struct {
 	// a OAuth2Storer on demand from the current http request. Unless you have an exceedingly unusual
 	// special requirement, defining OAuth2Storer directly is the preferred pattern; literally the only
 	// known use case at the time of this property being added is Google App Engine, which requires
-	// the current context as an argument to its datastore API methods.
+	// the current context as an argument to its datastore API methods. To avoid passing OAuth2StoreMaker
+	// an expired request object, where relevant, calls to this function will never be spun off as
+	// goroutines.
 	OAuth2StoreMaker OAuth2StoreMaker
 	// CookieStoreMaker must be defined to provide an interface capapable of storing cookies
 	// for the given response, and reading them from the request.
@@ -129,7 +131,9 @@ type Config struct {
 	// a LogWriter on demand from the current http request. Unless you have an exceedingly unusual
 	// special requirement, defining LogWriter directly is the preferred pattern; literally the only
 	// known use case at the time of this property being added is Google App Engine, which requires
-	// the current context as an argument to its logging API methods.
+	// the current context as an argument to its logging API methods. To avoid passing LogWriteMaker
+	// an expired request object, where relevant, calls to this function will never be spun off as
+	// goroutines.
 	LogWriteMaker LogWriteMaker
 	// Mailer is the mailer being used to send e-mails out. Authboss defines two loggers for use
 	// LogMailer and SMTPMailer, the default is a LogMailer to io.Discard.
@@ -138,7 +142,9 @@ type Config struct {
 	// a Mailer on demand from the current http request. Unless you have an exceedingly unusual
 	// special requirement, defining Mailer directly is the preferred pattern; literally the only
 	// known use case at the time of this property being added is Google App Engine, which requires
-	// the current context as an argument to its mail API methods.
+	// the current context as an argument to its mail API methods. To avoid passing MailMaker
+	// an expired request object, where relevant, calls to this function will never be spun off as
+	// goroutines.
 	MailMaker MailMaker
 	// ContextProvider provides a context for a given request
 	ContextProvider func(*http.Request) context.Context

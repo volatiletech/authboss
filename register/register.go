@@ -11,8 +11,6 @@ import (
 )
 
 const (
-	ModuleName = "register"
-
 	tplRegister = "register.html.tpl"
 )
 
@@ -26,7 +24,7 @@ type RegisterStorer interface {
 }
 
 func init() {
-	authboss.RegisterModule(ModuleName, &Register{})
+	authboss.RegisterModule("register", &Register{})
 }
 
 // Register module.

@@ -12,8 +12,6 @@ import (
 )
 
 const (
-	ModuleName = "auth"
-
 	methodGET  = "GET"
 	methodPOST = "POST"
 
@@ -21,7 +19,7 @@ const (
 )
 
 func init() {
-	authboss.RegisterModule(ModuleName, &Auth{})
+	authboss.RegisterModule("auth", &Auth{})
 }
 
 // Auth module

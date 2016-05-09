@@ -28,8 +28,6 @@ const (
 )
 
 const (
-	ModuleName = "recover"
-
 	methodGET  = "GET"
 	methodPOST = "POST"
 
@@ -58,7 +56,7 @@ type RecoverStorer interface {
 
 func init() {
 	m := &Recover{}
-	authboss.RegisterModule(ModuleName, m)
+	authboss.RegisterModule("recover", m)
 }
 
 // Recover module
@@ -197,7 +195,7 @@ func newToken() (encodedToken, encodedChecksum string, err error) {
 }
 
 var goRecoverEmail = func(r *Recover, ctx *authboss.Context, to, encodedToken string) {
-	if ctx.DisableGoroutines {
+	if ctx.MailMaker != nil {
 		r.sendRecoverEmail(ctx, to, encodedToken)
 	} else {
 		go r.sendRecoverEmail(ctx, to, encodedToken)

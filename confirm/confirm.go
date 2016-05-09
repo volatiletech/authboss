@@ -17,8 +17,6 @@ import (
 
 // Storer and FormValue constants
 const (
-	ModuleName = "confirm"
-
 	StoreConfirmToken = "confirm_token"
 	StoreConfirmed    = "confirmed"
 
@@ -43,7 +41,7 @@ type ConfirmStorer interface {
 }
 
 func init() {
-	authboss.RegisterModule(ModuleName, &Confirm{})
+	authboss.RegisterModule("confirm", &Confirm{})
 }
 
 // Confirm module
@@ -138,7 +136,7 @@ func (c *Confirm) afterRegister(ctx *authboss.Context) error {
 }
 
 var goConfirmEmail = func(c *Confirm, ctx *authboss.Context, to, token string) {
-	if ctx.DisableGoroutines {
+	if ctx.MailMaker != nil {
 		c.confirmEmail(ctx, to, token)
 	} else {
 		go c.confirmEmail(ctx, to, token)

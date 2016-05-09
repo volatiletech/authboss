@@ -17,10 +17,6 @@ import (
 	"gopkg.in/authboss.v0/internal/response"
 )
 
-const (
-	ModuleName = "oauth2"
-)
-
 var (
 	errOAuthStateValidation = errors.New("Could not validate oauth2 state param")
 )
@@ -31,7 +27,7 @@ type OAuth2 struct {
 }
 
 func init() {
-	authboss.RegisterModule(ModuleName, &OAuth2{})
+	authboss.RegisterModule("oauth2", &OAuth2{})
 }
 
 // Initialize module

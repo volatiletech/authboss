@@ -45,6 +45,12 @@ func (r *Register) Initialize(ab *authboss.Authboss) (err error) {
 		return errors.New("register: Need a RegisterStorer")
 	}
 
+	if ab.SessionStoreMaker == nil {
+		return errors.New("register: Need a SessionStoreMaker")
+	} else if ab.CookieStoreMaker == nil {
+		return errors.New("register: Need a CookieStoreMaker")
+	}
+
 	if r.templates, err = response.LoadTemplates(r.Authboss, r.Layout, r.ViewsPath, tplRegister); err != nil {
 		return err
 	}

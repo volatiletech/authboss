@@ -1,4 +1,14 @@
+machine:
+  environment:
+    GOPATH: "${HOME}/.go_project"
 checkout:
   post:
-    - rm /home/ubuntu/.go_project/src/github.com/go-authboss/authboss
+    - mkdir -p /home/ubuntu/.go_project/src/gopkg.in
     - ln -s /home/ubuntu/authboss /home/ubuntu/.go_project/src/gopkg.in/authboss.v0
+dependencies:
+  override:
+    - cd /home/ubuntu/.go_project/src/gopkg.in/authboss.v0 && go get -t -d -v ./...
+    - cd /home/ubuntu/.go_project/src/gopkg.in/authboss.v0 && go build -v
+test:
+  override:
+    - cd /home/ubuntu/.go_project/src/gopkg.in/authboss.v0 && go test -v -race ./...

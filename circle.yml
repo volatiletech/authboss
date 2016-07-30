@@ -1,0 +1,4 @@
+checkout:
+  post:
+    - rm /home/ubuntu/.go_project/src/github.com/go-authboss/authboss
+    - ln -s /home/ubuntu/authboss /home/ubuntu/.go_project/src/gopkg.in/authboss.v0

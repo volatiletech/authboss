@@ -3,7 +3,7 @@
 Authboss
 ========
 
-[![GoDoc](https://godoc.org/gopkg.in/authboss.v0?status.svg)](https://godoc.org/gopkg.in/authboss.v0) [![Build Status](https://drone.io/github.com/go-authboss/authboss/status.png)](https://drone.io/github.com/go-authboss/authboss/latest) [![Coverage Status](https://coveralls.io/repos/go-authboss/authboss/badge.svg?branch=master)](https://coveralls.io/r/go-authboss/authboss?branch=master) [![Gitter](https://badges.gitter.im/Join%20Chat.svg)](https://gitter.im/go-authboss/authboss?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge)
+[![GoDoc](https://godoc.org/gopkg.in/authboss.v0?status.svg)](https://godoc.org/gopkg.in/authboss.v0) [![Build Status](https://circleci.com/gh/go-authboss/authboss.svg?style=shield&circle-token=:circle-token)](https://circleci.com/gh/go-authboss/authboss) [![Coverage Status](https://coveralls.io/repos/go-authboss/authboss/badge.svg?branch=master)](https://coveralls.io/r/go-authboss/authboss?branch=master) [![Gitter](https://badges.gitter.im/Join%20Chat.svg)](https://gitter.im/go-authboss/authboss?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge)
 
 Authboss is a modular authentication system for the web. It tries to remove as much boilerplate and "hard things" as possible so that
 each time you start a new web project in Go, you can plug it in, configure, and start building your app without having to build an

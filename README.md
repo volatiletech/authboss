@@ -18,7 +18,7 @@ use them in your app.
 
 Name           | Import Path                                                                                         | Description
 ---------------|-----------------------------------------------------------------------------------------------------|------------
-Auth           | [gopkg.in/authboss.v0/register](https://github.com/go-authboss/authboss/tree/master/auth)           | Provides database password authentication for users.
+Auth           | [gopkg.in/authboss.v0/auth](https://github.com/go-authboss/authboss/tree/master/auth)           | Provides database password authentication for users.
 Confirm        | [gopkg.in/authboss.v0/confirm](https://github.com/go-authboss/authboss/tree/master/confirm)         | Sends an e-mail verification before allowing users to log in.
 Lock           | [gopkg.in/authboss.v0/lock](https://github.com/go-authboss/authboss/tree/master/lock)               | Locks user accounts after N authentication failures in M time.
 OAuth2         | [gopkg.in/authboss.v0/oauth2](https://github.com/go-authboss/authboss/tree/master/oauth2)           | Provides oauth2 authentication for users.

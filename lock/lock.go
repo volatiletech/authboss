@@ -116,7 +116,7 @@ func (l *Lock) afterAuthFail(ctx *authboss.Context) error {
 
 		ctx.User[StoreAttemptNumber] = nAttempts
 	} else {
-		ctx.User[StoreAttemptNumber] = int64(0)
+		ctx.User[StoreAttemptNumber] = int64(1)
 	}
 	ctx.User[StoreAttemptTime] = time.Now().UTC()
 

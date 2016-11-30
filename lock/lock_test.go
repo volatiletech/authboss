@@ -146,7 +146,7 @@ func TestAfterAuthFail_Reset(t *testing.T) {
 	}
 
 	lock.afterAuthFail(ctx)
-	if val := storer.Users[email][StoreAttemptNumber].(int64); val != int64(0) {
+	if val := storer.Users[email][StoreAttemptNumber].(int64); val != int64(1) {
 		t.Error("StoreAttemptNumber set incorrectly:", val)
 	}
 	if current, ok = storer.Users[email][StoreAttemptTime].(time.Time); !ok || current.Before(old) {

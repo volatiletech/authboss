@@ -28,5 +28,7 @@ test:
   post:
     - cat $CIRCLE_ARTIFACTS/gotest.txt | /home/ubuntu/.go_project/bin/go-junit-report > $CIRCLE_TEST_REPORTS/junit.xml
     - >
+      if [ -n "$COVERALLS_TOKEN" ]; then
       cd /home/ubuntu/.go_project/src/gopkg.in/authboss.v0 &&
       /home/ubuntu/.go_project/bin/goveralls -coverprofile=$CIRCLE_ARTIFACTS/coverage.txt -service=circle-ci -repotoken=$COVERALLS_TOKEN
+      fi

@@ -70,7 +70,7 @@ if err := ab.Init(); err != nil {
 
 // Make sure to put authboss's router somewhere
 http.Handle("/authboss", ab.NewRouter())
-http.ListenAndServe(":8080")
+http.ListenAndServe(":8080", nil)
 ```
 
 Once you've got this code set up, it's time to implement the use cases you care about.

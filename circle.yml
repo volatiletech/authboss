@@ -30,5 +30,5 @@ test:
     - >
       if [ -n "$COVERALLS_TOKEN" ]; then
       cd /home/ubuntu/.go_project/src/gopkg.in/authboss.v0 &&
-      /home/ubuntu/.go_project/bin/goveralls -coverprofile=$CIRCLE_ARTIFACTS/coverage.txt -service=circle-ci -repotoken=$COVERALLS_TOKEN
+      /home/ubuntu/.go_project/bin/goveralls -coverprofile=$CIRCLE_ARTIFACTS/coverage.txt -service=circle-ci -repotoken=$COVERALLS_TOKEN;
       fi

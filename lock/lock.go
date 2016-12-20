@@ -5,7 +5,7 @@ import (
 	"errors"
 	"time"
 
-	"gopkg.in/authboss.v0"
+	"github.com/go-authboss/authboss"
 )
 
 // Storage key constants

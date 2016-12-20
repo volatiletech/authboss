@@ -15,7 +15,7 @@ import (
 	"path/filepath"
 	"strings"
 
-	"gopkg.in/authboss.v0"
+	"github.com/go-authboss/authboss"
 )
 
 var (

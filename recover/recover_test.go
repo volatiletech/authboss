@@ -12,8 +12,8 @@ import (
 	"testing"
 	"time"
 
-	"gopkg.in/authboss.v0"
-	"gopkg.in/authboss.v0/internal/mocks"
+	"github.com/go-authboss/authboss"
+	"github.com/go-authboss/authboss/internal/mocks"
 )
 
 const (

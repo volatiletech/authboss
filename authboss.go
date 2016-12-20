@@ -4,7 +4,7 @@ remove as much boilerplate and "hard things" as possible so that each time you
 start a new web project in Go, you can plug it in, configure and be off to the
 races without having to think about how to store passwords or remember tokens.
 */
-package authboss // import "gopkg.in/authboss.v0"
+package authboss
 
 import (
 	"database/sql"

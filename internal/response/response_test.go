@@ -9,8 +9,8 @@ import (
 	"path/filepath"
 	"testing"
 
-	"gopkg.in/authboss.v0"
-	"gopkg.in/authboss.v0/internal/mocks"
+	"github.com/go-authboss/authboss"
+	"github.com/go-authboss/authboss/internal/mocks"
 )
 
 var testViewTemplate = template.Must(template.New("").Parse(`{{.external}} {{.fun}} {{.flash_success}} {{.flash_error}} {{.xsrfName}} {{.xsrfToken}}`))

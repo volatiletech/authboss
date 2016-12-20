@@ -23,7 +23,7 @@ type Authboss struct {
 	Callbacks *Callbacks
 
 	loadedModules    map[string]Modularizer
-	moduleAttributes AttributeMeta
+	ModuleAttributes AttributeMeta
 	mux              *http.ServeMux
 }
 
@@ -33,7 +33,7 @@ func New() *Authboss {
 	ab := &Authboss{
 		Callbacks:        NewCallbacks(),
 		loadedModules:    make(map[string]Modularizer),
-		moduleAttributes: make(AttributeMeta),
+		ModuleAttributes: make(AttributeMeta),
 	}
 	ab.Config.Defaults()
 	return ab
@@ -55,7 +55,7 @@ func (a *Authboss) Init(modulesToLoad ...string) error {
 
 	for _, mod := range a.loadedModules {
 		for k, v := range mod.Storage() {
-			a.moduleAttributes[k] = v
+			a.ModuleAttributes[k] = v
 		}
 	}
 

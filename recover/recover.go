@@ -13,8 +13,8 @@ import (
 	"time"
 
 	"golang.org/x/crypto/bcrypt"
-	"gopkg.in/authboss.v0"
-	"gopkg.in/authboss.v0/internal/response"
+	"gopkg.in/authboss.v1"
+	"gopkg.in/authboss.v1/internal/response"
 )
 
 // Storage constants

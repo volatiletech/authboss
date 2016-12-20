@@ -9,8 +9,8 @@ import (
 	"strings"
 	"testing"
 
-	"gopkg.in/authboss.v0"
-	"gopkg.in/authboss.v0/internal/mocks"
+	"gopkg.in/authboss.v1"
+	"gopkg.in/authboss.v1/internal/mocks"
 )
 
 func setup() *Register {

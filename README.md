@@ -379,10 +379,10 @@ There are three parts to storage: Storer interfaces, User Struct, Binding/Unbind
 
 - [Storer](http://godoc.org/gopkg.in/authboss.v1#Storer)
 - [OAuth2Storer](http://godoc.org/gopkg.in/authboss.v1#OAuth2Storer)
-- [ConfirmStorer](http://godoc.org/gopkg.in/confirm/authboss.v1#ConfirmStorer)
-- [RecoverStorer](http://godoc.org/gopkg.in/recover/authboss.v1#RecoverStorer)
-- [RegisterStorer](http://godoc.org/gopkg.in/register/authboss.v1#RegisterStorer)
-- [RememberStorer](http://godoc.org/gopkg.in/remember/authboss.v1#RememberStorer)
+- [ConfirmStorer](http://godoc.org/gopkg.in/authboss.v1/confirm#ConfirmStorer)
+- [RecoverStorer](http://godoc.org/gopkg.in/authboss.v1/recover#RecoverStorer)
+- [RegisterStorer](http://godoc.org/gopkg.in/authboss.v1/register#RegisterStorer)
+- [RememberStorer](http://godoc.org/gopkg.in/authboss.v1/remember#RememberStorer)
 
 Each of the store interfaces provides some amount of functionality to a module. Without the appropriate storer type the module cannot function.
 Most of these interfaces simply do look ups on the user based on different field. Some of them like the RememberStorer are more special in their
@@ -424,7 +424,7 @@ extract it's data into authboss.Attributes, which is used for all authboss opera
 
 ## <a name="client_storers"></a> Implementing Client Storers
 
-[ClientStorer Interface](http://godoc.org/gopkg.in/remember/authboss.v1#ClientStorer)
+[ClientStorer Interface](http://godoc.org/gopkg.in/authboss.v1#ClientStorer)
 
 ClientStorer's encapsulate the functionality of cookies for the web application. The session storer is for session data, the cookie storer is actually
 only used for the remember tokens so it should create cookies of very long durations (however long you want your users remembered for).

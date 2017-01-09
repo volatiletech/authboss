@@ -293,9 +293,11 @@ func (a Attributes) Bind(strct interface{}, ignoreMissing bool) error {
 				return errors.New("Bind: Was a scanner without a Scan method")
 			}
 
-			rvals := method.Call([]reflect.Value{reflect.ValueOf(v)})
-			if err, ok := rvals[0].Interface().(error); ok && err != nil {
-				return err
+			if v != nil {
+				rvals := method.Call([]reflect.Value{reflect.ValueOf(v)})
+				if err, ok := rvals[0].Interface().(error); ok && err != nil {
+					return err
+				}
 			}
 
 			continue

@@ -290,6 +290,19 @@ func TestAttributes_BindMissingField(t *testing.T) {
 	}
 }
 
+func TestAttributes_SQLNullTypes(t *testing.T) {
+	t.Parallel()
+
+	data := Attributes{"string": nil}
+	s := struct {
+		String sql.NullString
+	}{}
+
+	if err := data.Bind(&s, false); err != nil {
+		t.Error(err)
+	}
+}
+
 func TestAttributes_BindTypeFail(t *testing.T) {
 	t.Parallel()
 

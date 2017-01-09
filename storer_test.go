@@ -301,6 +301,13 @@ func TestAttributes_SQLNullTypes(t *testing.T) {
 	if err := data.Bind(&s, false); err != nil {
 		t.Error(err)
 	}
+
+	if s.String.Valid != false {
+		t.Error("Expected nil")
+	}
+	if len(s.String.String) != 0 {
+		t.Error("Expected empty string, got:", s.String.String)
+	}
 }
 
 func TestAttributes_BindTypeFail(t *testing.T) {

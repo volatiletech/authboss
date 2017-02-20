@@ -8,11 +8,8 @@ import (
 	"strings"
 )
 
-// HandlerFunc augments http.HandlerFunc with a context and error handling.
-type HandlerFunc func(*Context, http.ResponseWriter, *http.Request) error
-
 // RouteTable is a routing table from a path to a handlerfunc.
-type RouteTable map[string]HandlerFunc
+type RouteTable map[string]http.HandlerFunc
 
 // NewRouter returns a router to be mounted at some mountpoint.
 func (a *Authboss) NewRouter() http.Handler {

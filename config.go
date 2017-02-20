@@ -99,25 +99,8 @@ type Config struct {
 	XSRFMaker XSRF
 
 	// Storer is the interface through which Authboss accesses the web apps database.
-	Storer Storer
-	// StoreMaker is an alternative to defining Storer directly, which facilitates creating
-	// a Storer on demand from the current http request. Unless you have an exceedingly unusual
-	// special requirement, defining Storer directly is the preferred pattern; literally the only
-	// known use case at the time of this property being added is Google App Engine, which requires
-	// the current context as an argument to its datastore API methods. To avoid passing StoreMaker
-	// an expired request object, where relevant, calls to this function will never be spun off as
-	// goroutines.
-	StoreMaker StoreMaker
-	// OAuth2Storer is a different kind of storer only meant for OAuth2.
-	OAuth2Storer OAuth2Storer
-	// OAuth2StoreMaker is an alternative to defining OAuth2Storer directly, which facilitates creating
-	// a OAuth2Storer on demand from the current http request. Unless you have an exceedingly unusual
-	// special requirement, defining OAuth2Storer directly is the preferred pattern; literally the only
-	// known use case at the time of this property being added is Google App Engine, which requires
-	// the current context as an argument to its datastore API methods. To avoid passing OAuth2StoreMaker
-	// an expired request object, where relevant, calls to this function will never be spun off as
-	// goroutines.
-	OAuth2StoreMaker OAuth2StoreMaker
+	StoreLoader Storer
+
 	// CookieStoreMaker must be defined to provide an interface capapable of storing cookies
 	// for the given response, and reading them from the request.
 	CookieStoreMaker CookieStoreMaker
@@ -127,25 +110,10 @@ type Config struct {
 	// LogWriter is written to when errors occur, as well as on startup to show which modules are loaded
 	// and which routes they registered. By default writes to io.Discard.
 	LogWriter io.Writer
-	// LogWriteMaker is an alternative to defining LogWriter directly, which facilitates creating
-	// a LogWriter on demand from the current http request. Unless you have an exceedingly unusual
-	// special requirement, defining LogWriter directly is the preferred pattern; literally the only
-	// known use case at the time of this property being added is Google App Engine, which requires
-	// the current context as an argument to its logging API methods. To avoid passing LogWriteMaker
-	// an expired request object, where relevant, calls to this function will never be spun off as
-	// goroutines.
-	LogWriteMaker LogWriteMaker
 	// Mailer is the mailer being used to send e-mails out. Authboss defines two loggers for use
 	// LogMailer and SMTPMailer, the default is a LogMailer to io.Discard.
 	Mailer Mailer
-	// MailMaker is an alternative to defining Mailer directly, which facilitates creating
-	// a Mailer on demand from the current http request. Unless you have an exceedingly unusual
-	// special requirement, defining Mailer directly is the preferred pattern; literally the only
-	// known use case at the time of this property being added is Google App Engine, which requires
-	// the current context as an argument to its mail API methods. To avoid passing MailMaker
-	// an expired request object, where relevant, calls to this function will never be spun off as
-	// goroutines.
-	MailMaker MailMaker
+
 	// ContextProvider provides a context for a given request
 	ContextProvider func(*http.Request) context.Context
 }

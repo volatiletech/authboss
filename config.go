@@ -1,6 +1,7 @@
 package authboss
 
 import (
+	"context"
 	"html/template"
 	"io"
 	"io/ioutil"
@@ -8,7 +9,6 @@ import (
 	"time"
 
 	"golang.org/x/crypto/bcrypt"
-	"golang.org/x/net/context"
 )
 
 // Config holds all the configuration for both authboss and it's modules.
@@ -26,14 +26,7 @@ type Config struct {
 	// authboss.StoreEmail, authboss.StoreUsername (StoreEmail is default)
 	PrimaryID string
 
-	// Layout that all authboss views will be inserted into.
-	Layout *template.Template
-	// LayoutHTMLEmail is for emails going out in HTML form, authbosses e-mail templates
-	// will be inserted into this layout.
-	LayoutHTMLEmail *template.Template
-	// LayoutTextEmail is for emails going out in text form, authbosses e-mail templates
-	// will be inserted into this layout.
-	LayoutTextEmail *template.Template
+	ViewLoader RenderLoader
 	// LayoutDataMaker is a function that can provide authboss with the layout's
 	// template data. It will be merged with the data being provided for the current
 	// view in order to render the templates.
@@ -103,10 +96,10 @@ type Config struct {
 
 	// CookieStoreMaker must be defined to provide an interface capapable of storing cookies
 	// for the given response, and reading them from the request.
-	CookieStoreMaker CookieStoreMaker
+	CookieStoreMaker ClientStoreMaker
 	// SessionStoreMaker must be defined to provide an interface capable of storing session-only
 	// values for the given response, and reading them from the request.
-	SessionStoreMaker SessionStoreMaker
+	SessionStoreMaker ClientStoreMaker
 	// LogWriter is written to when errors occur, as well as on startup to show which modules are loaded
 	// and which routes they registered. By default writes to io.Discard.
 	LogWriter io.Writer

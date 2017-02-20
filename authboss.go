@@ -22,18 +22,16 @@ type Authboss struct {
 	Config
 	Callbacks *Callbacks
 
-	loadedModules    map[string]Modularizer
-	ModuleAttributes AttributeMeta
-	mux              *http.ServeMux
+	loadedModules map[string]Modularizer
+	mux           *http.ServeMux
 }
 
 // New makes a new instance of authboss with a default
 // configuration.
 func New() *Authboss {
 	ab := &Authboss{
-		Callbacks:        NewCallbacks(),
-		loadedModules:    make(map[string]Modularizer),
-		ModuleAttributes: make(AttributeMeta),
+		Callbacks:     NewCallbacks(),
+		loadedModules: make(map[string]Modularizer),
 	}
 	ab.Config.Defaults()
 	return ab
@@ -53,12 +51,6 @@ func (a *Authboss) Init(modulesToLoad ...string) error {
 		}
 	}
 
-	for _, mod := range a.loadedModules {
-		for k, v := range mod.Storage() {
-			a.ModuleAttributes[k] = v
-		}
-	}
-
 	return nil
 }
 
@@ -67,7 +59,7 @@ func (a *Authboss) CurrentUser(w http.ResponseWriter, r *http.Request) (interfac
 	return a.currentUser(a.InitContext(w, r), w, r)
 }
 
-func (a *Authboss) currentUser(ctx *Context, w http.ResponseWriter, r *http.Request) (interface{}, error) {
+func (a *Authboss) currentUser(w http.ResponseWriter, r *http.Request) (interface{}, error) {
 	_, err := a.Callbacks.FireBefore(EventGetUserSession, ctx)
 	if err != nil {
 		return nil, err

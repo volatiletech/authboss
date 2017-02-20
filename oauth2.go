@@ -1,10 +1,15 @@
 package authboss
 
 import (
+	"context"
 	"net/url"
 
-	"golang.org/x/net/context"
 	"golang.org/x/oauth2"
+)
+
+// FormValue constants
+const (
+	FormValueOAuth2State = "state"
 )
 
 /*
@@ -25,16 +30,15 @@ specifically: UID (the ID according to the provider) and the Email address.
 The UID must be passed back or there will be an error as it is the means of identifying the
 user in the system, e-mail is optional but should be returned in systems using
 emailing. The keys authboss.StoreOAuth2UID and authboss.StoreEmail can be used to set
-these values in the authboss.Attributes map returned by the callback.
+these values in the map returned by the callback.
 
 In addition to the required values mentioned above any additional
 values that you wish to have in your user struct can be included here, such as the
-Name of the user at the endpoint. Keep in mind that only types that are valid for the
-Attributes type should be used: string, bool, time.Time, int64, or any type that implements
-database/driver.Valuer.
+Name of the user at the endpoint. This will be passed back in the Arbitrary()
+function if it exists.
 */
 type OAuth2Provider struct {
 	OAuth2Config     *oauth2.Config
 	AdditionalParams url.Values
-	Callback         func(context.Context, oauth2.Config, *oauth2.Token) (Attributes, error)
+	Callback         func(context.Context, oauth2.Config, *oauth2.Token) (map[string]string, error)
 }

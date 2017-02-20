@@ -2,22 +2,24 @@ package authboss
 
 import (
 	"bytes"
+	"context"
 	"fmt"
 	"io"
-	"net/http"
+	"math/rand"
 	"net/smtp"
 	"strings"
 	"text/template"
+	"time"
 )
 
 // SendMail uses the currently configured mailer to deliver e-mails.
-func (a *Authboss) SendMail(data Email) error {
-	return a.Mailer.Send(data)
+func (a *Authboss) SendMail(ctx context.Context, data Email) error {
+	return a.Mailer.Send(ctx, data)
 }
 
 // Mailer is a type that is capable of sending an e-mail.
 type Mailer interface {
-	Send(Email) error
+	Send(context.Context, Email) error
 }
 
 // LogMailer creates a mailer that doesn't deliver e-mails but
@@ -31,7 +33,8 @@ func SMTPMailer(server string, auth smtp.Auth) Mailer {
 	if len(server) == 0 {
 		panic("SMTP Mailer must be created with a server string.")
 	}
-	return smtpMailer{server, auth}
+	random := rand.New(rand.NewSource(time.Now()))
+	return smtpMailer{server, auth, random}
 }
 
 // Email all the things. The ToNames and friends are parallel arrays and must
@@ -53,8 +56,17 @@ type logMailer struct {
 	io.Writer
 }
 
-func (l logMailer) Send(data Email) error {
+func (l logMailer) Send(mail Email) error {
 	buf := &bytes.Buffer{}
+
+	data := struct {
+		Boundary string
+		Mail     Email
+	}{
+		Boundary: "284fad24nao8f4na284f2n4",
+		Mail:     mail,
+	}
+
 	err := emailTmpl.Execute(buf, data)
 	if err != nil {
 		return err
@@ -69,10 +81,20 @@ func (l logMailer) Send(data Email) error {
 type smtpMailer struct {
 	Server string
 	Auth   smtp.Auth
+	rand   *rand.Rand
 }
 
-func (s smtpMailer) Send(data Email) error {
+func (s smtpMailer) Send(mail Email) error {
 	buf := &bytes.Buffer{}
+
+	data := struct {
+		Boundary string
+		Mail     Email
+	}{
+		Boundary: boundary(),
+		Mail:     mail,
+	}
+
 	err := emailTmpl.Execute(buf, data)
 	if err != nil {
 		return err
@@ -83,8 +105,21 @@ func (s smtpMailer) Send(data Email) error {
 	return smtp.SendMail(s.Server, s.Auth, data.From, data.To, toSend)
 }
 
-// MailMaker is used to create a mailer from an http request.
-type MailMaker func(http.ResponseWriter, *http.Request) Mailer
+// boundary makes mime boundaries, these are largely useless strings that just
+// need to be the same in the mime structure. We choose from the alphabet below
+// and create a random string of length 23
+// Example:
+// 284fad24nao8f4na284f2n4
+func (s smtpMailer) boundary() string {
+	const alphabet = "abcdefghijklmnopqrstuvwxyz0123456789"
+	buf := &bytes.Buffer{}
+
+	for i := 0; i < 23; i++ {
+		buf.WriteByte(alphabet[s.rand.Int()%len(alphabet)])
+	}
+
+	return buf.String()
+}
 
 func namedAddress(name, address string) string {
 	if len(name) == 0 {
@@ -119,25 +154,25 @@ var emailTmpl = template.Must(template.New("email").Funcs(template.FuncMap{
 	"join":           strings.Join,
 	"namedAddress":   namedAddress,
 	"namedAddresses": namedAddresses,
-}).Parse(`To: {{namedAddresses .ToNames .To}}{{if .Cc}}
-Cc: {{namedAddresses .CcNames .Cc}}{{end}}{{if .Bcc}}
-Bcc: {{namedAddresses .BccNames .Bcc}}{{end}}
-From: {{namedAddress .FromName .From}}
-Subject: {{.Subject}}{{if .ReplyTo}}
-Reply-To: {{namedAddress .ReplyToName .ReplyTo}}{{end}}
+}).Parse(`To: {{namedAddresses .Mail.ToNames .Mail.To}}{{if .Mail.Cc}}
+Cc: {{namedAddresses .Mail.CcNames .Mail.Cc}}{{end}}{{if .Mail.Bcc}}
+Bcc: {{namedAddresses .Mail.BccNames .Mail.Bcc}}{{end}}
+From: {{namedAddress .Mail.FromName .Mail.From}}
+Subject: {{.Mail.Subject}}{{if .Mail.ReplyTo}}
+Reply-To: {{namedAddress .Mail.ReplyToName .Mail.ReplyTo}}{{end}}
 MIME-Version: 1.0
-Content-Type: multipart/alternative; boundary="===============284fad24nao8f4na284f2n4=="
+Content-Type: multipart/alternative; boundary="==============={{.Boundary}}=="
 Content-Transfer-Encoding: 7bit
 
---===============284fad24nao8f4na284f2n4==
+--==============={{.Boundary}}==
 Content-Type: text/plain; charset=UTF-8
 Content-Transfer-Encoding: 7bit
 
-{{.TextBody}}
---===============284fad24nao8f4na284f2n4==
+{{.Mail.TextBody}}
+--==============={{.Boundary}}==
 Content-Type: text/html; charset=UTF-8
 Content-Transfer-Encoding: 7bit
 
-{{.HTMLBody}}
---===============284fad24nao8f4na284f2n4==--
+{{.Mail.HTMLBody}}
+--==============={{.Boundary}}==--
 `))

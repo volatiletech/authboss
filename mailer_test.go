@@ -3,6 +3,7 @@ package authboss
 import (
 	"bytes"
 	"io/ioutil"
+	"math/rand"
 	"strings"
 	"testing"
 )
@@ -67,5 +68,14 @@ func TestSMTPMailer(t *testing.T) {
 
 	if !recovered {
 		t.Error("Should have panicd.")
+	}
+}
+
+func TestBoundary(t *testing.T) {
+	t.Parallel()
+
+	mailer := smtpMailer{nil, nil, rand.New(rand.NewSource(3))}
+	if got := mailer.boundary(); got != "ntadoe" {
+		t.Error("boundary was wrong", got)
 	}
 }

@@ -53,6 +53,10 @@ type Storer interface {
 	GetUsername(ctx context.Context) (username string, err error)
 	GetPassword(ctx context.Context) (password string, err error)
 
+	// Create the user with the state, this should throw errors if
+	// it's created already.
+	Create(ctx context.Context) error
+
 	// Save the state
 	Save(ctx context.Context) error
 
@@ -66,7 +70,7 @@ type ArbitraryStorer interface {
 
 	// PutArbitrary allows arbitrary fields defined by the authboss library
 	// consumer to add fields to the user registration piece.
-	PutArbitrary(ctx context.Context) error
+	PutArbitrary(ctx context.Context, arbitrary map[string]string) error
 	// GetArbitrary is used only to display the arbitrary data back to the user
 	// when the form is reset.
 	GetArbitrary(ctx context.Context) (arbitrary map[string]string, err error)

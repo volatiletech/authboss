@@ -1,6 +1,7 @@
 package oauth2
 
 import (
+	"context"
 	"fmt"
 	"net/http"
 	"net/http/httptest"
@@ -10,12 +11,11 @@ import (
 	"testing"
 	"time"
 
-	"golang.org/x/net/context"
+	"github.com/go-authboss/authboss"
+	"github.com/go-authboss/authboss/internal/mocks"
 	"golang.org/x/oauth2"
 	"golang.org/x/oauth2/facebook"
 	"golang.org/x/oauth2/google"
-	"github.com/go-authboss/authboss"
-	"github.com/go-authboss/authboss/internal/mocks"
 )
 
 var testProviders = map[string]authboss.OAuth2Provider{

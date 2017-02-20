@@ -8,7 +8,6 @@ var registeredModules = make(map[string]Modularizer)
 type Modularizer interface {
 	Initialize(*Authboss) error
 	Routes() RouteTable
-	Storage() StorageOptions
 }
 
 // RegisterModule with the core providing all the necessary information to

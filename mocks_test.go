@@ -11,7 +11,12 @@ type mockUser struct {
 	Password string
 }
 
-type mockStorer map[string]Attributes
+type mockStoredUser struct {
+	mockUser
+	mockStoreLoader
+}
+
+type mockStoreLoader map[string]mockUser
 
 func (m mockStorer) Create(key string, attr Attributes) error {
 	m[key] = attr

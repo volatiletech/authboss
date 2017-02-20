@@ -1,6 +1,7 @@
 package authboss
 
 import (
+	"context"
 	"fmt"
 	"reflect"
 	"runtime"
@@ -48,10 +49,10 @@ const (
 // the callback chain and the original handler from continuing execution.
 // The execution should also stopped if there is an error (and therefore if error is set
 // the bool is automatically considered set).
-type Before func(*Context) (Interrupt, error)
+type Before func(context.Context) (Interrupt, error)
 
 // After is a request callback that happens after the event.
-type After func(*Context) error
+type After func(context.Context) error
 
 // Callbacks is a collection of callbacks that fire before and after certain
 // methods.
@@ -89,7 +90,7 @@ func (c *Callbacks) After(e Event, f After) {
 // check the value of interrupted. If error is nil then the interrupt
 // value should be checked. If it is not InterruptNone then there is a reason
 // the current process should stop it's course of action.
-func (c *Callbacks) FireBefore(e Event, ctx *Context) (interrupt Interrupt, err error) {
+func (c *Callbacks) FireBefore(e Event, ctx context.Context) (interrupt Interrupt, err error) {
 	callbacks := c.before[e]
 	for _, fn := range callbacks {
 		interrupt, err = fn(ctx)
@@ -107,7 +108,7 @@ func (c *Callbacks) FireBefore(e Event, ctx *Context) (interrupt Interrupt, err 
 
 // FireAfter event to all the callbacks with a context. The error can safely be
 // ignored as it is logged.
-func (c *Callbacks) FireAfter(e Event, ctx *Context) (err error) {
+func (c *Callbacks) FireAfter(e Event, ctx context.Context) (err error) {
 	callbacks := c.after[e]
 	for _, fn := range callbacks {
 		if err = fn(ctx); err != nil {

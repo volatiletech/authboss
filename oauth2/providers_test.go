@@ -1,15 +1,15 @@
 package oauth2
 
 import (
+	"context"
 	"io/ioutil"
 	"net/http"
 	"strings"
 	"testing"
 	"time"
 
-	"golang.org/x/net/context"
-	"golang.org/x/oauth2"
 	"github.com/go-authboss/authboss"
+	"golang.org/x/oauth2"
 )
 
 func TestGoogle(t *testing.T) {

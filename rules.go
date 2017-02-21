@@ -1,10 +1,11 @@
 package authboss
 
 import (
-	"errors"
 	"fmt"
 	"regexp"
 	"unicode"
+
+	"github.com/pkg/errors"
 )
 
 var blankRegex = regexp.MustCompile(`^\s*$`)

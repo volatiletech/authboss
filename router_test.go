@@ -2,12 +2,14 @@ package authboss
 
 import (
 	"bytes"
-	"errors"
+	"context"
 	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
 	"strings"
 	"testing"
+
+	"github.com/pkg/errors"
 )
 
 const testRouterModName = "testrouter"
@@ -22,7 +24,6 @@ type testRouterModule struct {
 
 func (t testRouterModule) Initialize(ab *Authboss) error { return nil }
 func (t testRouterModule) Routes() RouteTable            { return t.routes }
-func (t testRouterModule) Storage() StorageOptions       { return nil }
 
 func testRouterSetup() (*Authboss, http.Handler, *bytes.Buffer) {
 	ab := New()
@@ -53,7 +54,7 @@ func testRouterCallbackSetup(path string, h HandlerFunc) (w *httptest.ResponseRe
 func TestRouter(t *testing.T) {
 	called := false
 
-	w, r := testRouterCallbackSetup("/called", func(ctx *Context, w http.ResponseWriter, r *http.Request) error {
+	w, r := testRouterCallbackSetup("/called", func(http.ResponseWriter, *http.Request) error {
 		called = true
 		return nil
 	})
@@ -94,7 +95,7 @@ func TestRouter_NotFound(t *testing.T) {
 func TestRouter_BadRequest(t *testing.T) {
 	err := ClientDataErr{"what"}
 	w, r := testRouterCallbackSetup("/badrequest",
-		func(ctx *Context, w http.ResponseWriter, r *http.Request) error {
+		func(http.ResponseWriter, *http.Request) error {
 			return err
 		},
 	)
@@ -133,7 +134,7 @@ func TestRouter_BadRequest(t *testing.T) {
 func TestRouter_Error(t *testing.T) {
 	err := errors.New("error")
 	w, r := testRouterCallbackSetup("/error",
-		func(ctx *Context, w http.ResponseWriter, r *http.Request) error {
+		func(http.ResponseWriter, *http.Request) error {
 			return err
 		},
 	)
@@ -178,7 +179,7 @@ func TestRouter_Redirect(t *testing.T) {
 	}
 
 	w, r := testRouterCallbackSetup("/error",
-		func(ctx *Context, w http.ResponseWriter, r *http.Request) error {
+		func(http.ResponseWriter, *http.Request) error {
 			return err
 		},
 	)
@@ -237,17 +238,17 @@ func TestRouter_redirectIfLoggedIn(t *testing.T) {
 		{"/recover", false, false, false},
 	}
 
-	storer := mockStorer{"john@john.com": Attributes{
-		StoreEmail:    "john@john.com",
-		StorePassword: "password",
+	storer := mockStoreLoader{"john@john.com": mockUser{
+		Email:    "john@john.com",
+		Password: "password",
 	}}
 	ab := New()
-	ab.Storer = storer
+	ab.StoreLoader = storer
 
 	for i, test := range tests {
 		session := mockClientStore{}
 		cookies := mockClientStore{}
-		ctx := ab.NewContext()
+		ctx := context.TODO()
 		ctx.SessionStorer = session
 		ctx.CookieStorer = cookies
 
@@ -285,7 +286,7 @@ func TestRouter_redirectIfLoggedInError(t *testing.T) {
 
 	session := mockClientStore{SessionKey: "john"}
 	cookies := mockClientStore{}
-	ctx := ab.NewContext()
+	ctx := context.TODO()
 	ctx.SessionStorer = session
 	ctx.CookieStorer = cookies
 
@@ -316,7 +317,7 @@ func TestRouter_redirectIfLoggedInUserNotFound(t *testing.T) {
 
 	session := mockClientStore{SessionKey: "john"}
 	cookies := mockClientStore{}
-	ctx := ab.NewContext()
+	ctx := context.TODO()
 	ctx.SessionStorer = session
 	ctx.CookieStorer = cookies
 

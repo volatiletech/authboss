@@ -2,9 +2,11 @@ package authboss
 
 import (
 	"bytes"
-	"errors"
+	"context"
 	"strings"
 	"testing"
+
+	"github.com/pkg/errors"
 )
 
 func TestCallbacks(t *testing.T) {
@@ -14,11 +16,11 @@ func TestCallbacks(t *testing.T) {
 	afterCalled := false
 	beforeCalled := false
 
-	ab.Callbacks.Before(EventRegister, func(ctx *Context) (Interrupt, error) {
+	ab.Callbacks.Before(EventRegister, func(ctx context.Context) (Interrupt, error) {
 		beforeCalled = true
 		return InterruptNone, nil
 	})
-	ab.Callbacks.After(EventRegister, func(ctx *Context) error {
+	ab.Callbacks.After(EventRegister, func(ctx context.Context) error {
 		afterCalled = true
 		return nil
 	})
@@ -27,7 +29,7 @@ func TestCallbacks(t *testing.T) {
 		t.Error("Neither should be called.")
 	}
 
-	interrupt, err := ab.Callbacks.FireBefore(EventRegister, ab.NewContext())
+	interrupt, err := ab.Callbacks.FireBefore(EventRegister, context.TODO())
 	if err != nil {
 		t.Error("Unexpected error:", err)
 	}
@@ -42,7 +44,7 @@ func TestCallbacks(t *testing.T) {
 		t.Error("Expected after not to be called.")
 	}
 
-	ab.Callbacks.FireAfter(EventRegister, ab.NewContext())
+	ab.Callbacks.FireAfter(EventRegister, context.TODO())
 	if !afterCalled {
 		t.Error("Expected after to be called.")
 	}
@@ -55,16 +57,16 @@ func TestCallbacksInterrupt(t *testing.T) {
 	before1 := false
 	before2 := false
 
-	ab.Callbacks.Before(EventRegister, func(ctx *Context) (Interrupt, error) {
+	ab.Callbacks.Before(EventRegister, func(ctx context.Context) (Interrupt, error) {
 		before1 = true
 		return InterruptAccountLocked, nil
 	})
-	ab.Callbacks.Before(EventRegister, func(ctx *Context) (Interrupt, error) {
+	ab.Callbacks.Before(EventRegister, func(ctx context.Context) (Interrupt, error) {
 		before2 = true
 		return InterruptNone, nil
 	})
 
-	interrupt, err := ab.Callbacks.FireBefore(EventRegister, ab.NewContext())
+	interrupt, err := ab.Callbacks.FireBefore(EventRegister, context.TODO())
 	if err != nil {
 		t.Error(err)
 	}
@@ -89,18 +91,18 @@ func TestCallbacksBeforeErrors(t *testing.T) {
 	before1 := false
 	before2 := false
 
-	errValue := errors.New("Problem occured")
+	errValue := errors.New("problem occured")
 
-	ab.Callbacks.Before(EventRegister, func(ctx *Context) (Interrupt, error) {
+	ab.Callbacks.Before(EventRegister, func(ctx context.Context) (Interrupt, error) {
 		before1 = true
 		return InterruptNone, errValue
 	})
-	ab.Callbacks.Before(EventRegister, func(ctx *Context) (Interrupt, error) {
+	ab.Callbacks.Before(EventRegister, func(ctx context.Context) (Interrupt, error) {
 		before2 = true
 		return InterruptNone, nil
 	})
 
-	interrupt, err := ab.Callbacks.FireBefore(EventRegister, ab.NewContext())
+	interrupt, err := ab.Callbacks.FireBefore(EventRegister, context.TODO())
 	if err != errValue {
 		t.Error("Expected an error to come back.")
 	}
@@ -129,18 +131,18 @@ func TestCallbacksAfterErrors(t *testing.T) {
 	after1 := false
 	after2 := false
 
-	errValue := errors.New("Problem occured")
+	errValue := errors.New("problem occured")
 
-	ab.Callbacks.After(EventRegister, func(ctx *Context) error {
+	ab.Callbacks.After(EventRegister, func(ctx context.Context) error {
 		after1 = true
 		return errValue
 	})
-	ab.Callbacks.After(EventRegister, func(ctx *Context) error {
+	ab.Callbacks.After(EventRegister, func(ctx context.Context) error {
 		after2 = true
 		return nil
 	})
 
-	err := ab.Callbacks.FireAfter(EventRegister, ab.NewContext())
+	err := ab.Callbacks.FireAfter(EventRegister, context.TODO())
 	if err != errValue {
 		t.Error("Expected an error to come back.")
 	}

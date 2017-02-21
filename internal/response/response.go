@@ -5,7 +5,6 @@ package response
 
 import (
 	"bytes"
-	"errors"
 	"html/template"
 	"io"
 	"io/ioutil"
@@ -15,12 +14,14 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/pkg/errors"
+
 	"github.com/go-authboss/authboss"
 )
 
 var (
 	// ErrTemplateNotFound should be returned from Get when the view is not found
-	ErrTemplateNotFound = errors.New("Template not found")
+	ErrTemplateNotFound = errors.New("template not found")
 )
 
 // Templates is a map depicting the forms a template needs wrapped within the specified layout

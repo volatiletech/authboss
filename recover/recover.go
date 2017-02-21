@@ -5,16 +5,17 @@ import (
 	"crypto/md5"
 	"crypto/rand"
 	"encoding/base64"
-	"errors"
 	"fmt"
 	"net/http"
 	"net/url"
 	"path"
 	"time"
 
-	"golang.org/x/crypto/bcrypt"
+	"github.com/pkg/errors"
+
 	"github.com/go-authboss/authboss"
 	"github.com/go-authboss/authboss/internal/response"
+	"golang.org/x/crypto/bcrypt"
 )
 
 // Storage constants
@@ -73,18 +74,18 @@ func (r *Recover) Initialize(ab *authboss.Authboss) (err error) {
 
 	if r.Storer != nil {
 		if _, ok := r.Storer.(RecoverStorer); !ok {
-			return errors.New("recover: RecoverStorer required for recover functionality")
+			return errors.New("recoverStorer required for recover functionality")
 		}
 	} else if r.StoreMaker == nil {
-		return errors.New("recover: Need a RecoverStorer")
+		return errors.New("need a RecoverStorer")
 	}
 
 	if len(r.XSRFName) == 0 {
-		return errors.New("auth: XSRFName must be set")
+		return errors.New("xsrfName must be set")
 	}
 
 	if r.XSRFMaker == nil {
-		return errors.New("auth: XSRFMaker must be defined")
+		return errors.New("xsrfMaker must be defined")
 	}
 
 	r.templates, err = response.LoadTemplates(r.Authboss, r.Layout, r.ViewsPath, tplRecover, tplRecoverComplete)

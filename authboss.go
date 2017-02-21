@@ -7,14 +7,10 @@ races without having to think about how to store passwords or remember tokens.
 package authboss
 
 import (
-	"database/sql"
-	"errors"
 	"fmt"
 	"net/http"
-	"reflect"
-	"strings"
 
-	"golang.org/x/crypto/bcrypt"
+	"github.com/pkg/errors"
 )
 
 // Authboss contains a configuration and other details for running.
@@ -45,9 +41,9 @@ func (a *Authboss) Init(modulesToLoad ...string) error {
 	}
 
 	for _, name := range modulesToLoad {
-		fmt.Fprintf(a.LogWriter, "%-10s Loading\n", "["+name+"]")
+		fmt.Fprintf(a.LogWriter, "%-10s loading\n", "["+name+"]")
 		if err := a.loadModule(name); err != nil {
-			return fmt.Errorf("[%s] Error Initializing: %v", name, err)
+			return errors.Wrapf(err, "[%s] error initializing", name)
 		}
 	}
 
@@ -56,55 +52,61 @@ func (a *Authboss) Init(modulesToLoad ...string) error {
 
 // CurrentUser retrieves the current user from the session and the database.
 func (a *Authboss) CurrentUser(w http.ResponseWriter, r *http.Request) (interface{}, error) {
-	return a.currentUser(a.InitContext(w, r), w, r)
+	return nil, errors.New("TODO")
 }
 
 func (a *Authboss) currentUser(w http.ResponseWriter, r *http.Request) (interface{}, error) {
-	_, err := a.Callbacks.FireBefore(EventGetUserSession, ctx)
-	if err != nil {
-		return nil, err
-	}
+	/*
+		_, err := a.Callbacks.FireBefore(EventGetUserSession, ctx)
+		if err != nil {
+			return nil, err
+		}
 
-	key, ok := ctx.SessionStorer.Get(SessionKey)
-	if !ok {
-		return nil, nil
-	}
+		key, ok := ctx.SessionStorer.Get(SessionKey)
+		if !ok {
+			return nil, nil
+		}
 
-	_, err = a.Callbacks.FireBefore(EventGetUser, ctx)
-	if err != nil {
-		return nil, err
-	}
+		_, err = a.Callbacks.FireBefore(EventGetUser, ctx)
+		if err != nil {
+			return nil, err
+		}
 
-	var user interface{}
+		var user interface{}
 
-	if index := strings.IndexByte(key, ';'); index > 0 {
-		user, err = a.OAuth2Storer.GetOAuth(key[:index], key[index+1:])
-	} else {
-		user, err = a.Storer.Get(key)
-	}
+		if index := strings.IndexByte(key, ';'); index > 0 {
+			user, err = a.OAuth2Storer.GetOAuth(key[:index], key[index+1:])
+		} else {
+			user, err = a.Storer.Get(key)
+		}
 
-	if err != nil {
-		return nil, err
-	}
+		if err != nil {
+			return nil, err
+		}
 
-	ctx.User = Unbind(user)
+		ctx.User = Unbind(user)
 
-	err = a.Callbacks.FireAfter(EventGetUser, ctx)
-	if err != nil {
-		return nil, err
-	}
+		err = a.Callbacks.FireAfter(EventGetUser, ctx)
+		if err != nil {
+			return nil, err
+		}
 
-	return user, err
+		return user, err
+	*/
+	return nil, errors.New("not implemented")
 }
 
 // CurrentUserP retrieves the current user but panics if it's not available for
 // any reason.
 func (a *Authboss) CurrentUserP(w http.ResponseWriter, r *http.Request) interface{} {
-	i, err := a.CurrentUser(w, r)
-	if err != nil {
-		panic(err.Error())
-	}
-	return i
+	/*
+		i, err := a.CurrentUser(w, r)
+		if err != nil {
+			panic(err.Error())
+		}
+		return i
+	*/
+	panic("TODO")
 }
 
 /*
@@ -130,37 +132,41 @@ or from the cleanup routines.
 func (a *Authboss) UpdatePassword(w http.ResponseWriter, r *http.Request,
 	ptPassword string, user interface{}, updater func() error) error {
 
-	updatePwd := len(ptPassword) > 0
+	/*
+		updatePwd := len(ptPassword) > 0
 
-	if updatePwd {
-		pass, err := bcrypt.GenerateFromPassword([]byte(ptPassword), a.BCryptCost)
-		if err != nil {
+		if updatePwd {
+			pass, err := bcrypt.GenerateFromPassword([]byte(ptPassword), a.BCryptCost)
+			if err != nil {
+				return err
+			}
+
+			val := reflect.ValueOf(user).Elem()
+			field := val.FieldByName("Password")
+			if !field.CanSet() {
+				return errors.New("authboss: updatePassword called without a modifyable user struct")
+			}
+			fieldPtr := field.Addr()
+
+			if scanner, ok := fieldPtr.Interface().(sql.Scanner); ok {
+				if err := scanner.Scan(string(pass)); err != nil {
+					return err
+				}
+			} else {
+				field.SetString(string(pass))
+			}
+		}
+
+		if err := updater(); err != nil {
 			return err
 		}
 
-		val := reflect.ValueOf(user).Elem()
-		field := val.FieldByName("Password")
-		if !field.CanSet() {
-			return errors.New("authboss: UpdatePassword called without a modifyable user struct")
+		if !updatePwd {
+			return nil
 		}
-		fieldPtr := field.Addr()
 
-		if scanner, ok := fieldPtr.Interface().(sql.Scanner); ok {
-			if err := scanner.Scan(string(pass)); err != nil {
-				return err
-			}
-		} else {
-			field.SetString(string(pass))
-		}
-	}
+		return a.Callbacks.FireAfter(EventPasswordReset, a.InitContext(w, r))
+	*/
 
-	if err := updater(); err != nil {
-		return err
-	}
-
-	if !updatePwd {
-		return nil
-	}
-
-	return a.Callbacks.FireAfter(EventPasswordReset, a.InitContext(w, r))
+	return errors.New("TODO")
 }

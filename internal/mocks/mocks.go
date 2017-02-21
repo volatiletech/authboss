@@ -2,12 +2,13 @@
 package mocks
 
 import (
-	"errors"
 	"io"
 	"net/http"
 	"net/url"
 	"strings"
 	"time"
+
+	"github.com/pkg/errors"
 
 	"github.com/go-authboss/authboss"
 )

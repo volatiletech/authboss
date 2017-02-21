@@ -1,8 +1,9 @@
 package authboss
 
 import (
-	"errors"
 	"testing"
+
+	"github.com/pkg/errors"
 )
 
 func TestErrorList_Error(t *testing.T) {

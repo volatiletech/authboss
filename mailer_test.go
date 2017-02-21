@@ -2,6 +2,7 @@ package authboss
 
 import (
 	"bytes"
+	"context"
 	"io/ioutil"
 	"math/rand"
 	"strings"
@@ -15,10 +16,10 @@ func TestMailer(t *testing.T) {
 	mailServer := &bytes.Buffer{}
 
 	ab.Mailer = LogMailer(mailServer)
-	ab.Storer = mockStorer{}
+	ab.StoreLoader = mockStoreLoader{}
 	ab.LogWriter = ioutil.Discard
 
-	err := ab.SendMail(Email{
+	err := ab.SendMail(context.TODO(), Email{
 		To:       []string{"some@email.com", "a@a.com"},
 		ToNames:  []string{"Jake", "Noname"},
 		From:     "some@guy.com",
@@ -74,7 +75,7 @@ func TestSMTPMailer(t *testing.T) {
 func TestBoundary(t *testing.T) {
 	t.Parallel()
 
-	mailer := smtpMailer{nil, nil, rand.New(rand.NewSource(3))}
+	mailer := smtpMailer{"server", nil, rand.New(rand.NewSource(3))}
 	if got := mailer.boundary(); got != "ntadoe" {
 		t.Error("boundary was wrong", got)
 	}

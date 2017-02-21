@@ -2,12 +2,13 @@
 package register
 
 import (
-	"errors"
 	"net/http"
 
-	"golang.org/x/crypto/bcrypt"
+	"github.com/pkg/errors"
+
 	"github.com/go-authboss/authboss"
 	"github.com/go-authboss/authboss/internal/response"
+	"golang.org/x/crypto/bcrypt"
 )
 
 const (
@@ -39,10 +40,10 @@ func (r *Register) Initialize(ab *authboss.Authboss) (err error) {
 
 	if r.Storer != nil {
 		if _, ok := r.Storer.(RegisterStorer); !ok {
-			return errors.New("register: RegisterStorer required for register functionality")
+			return errors.New("registerStorer required for register functionality")
 		}
 	} else if r.StoreMaker == nil {
-		return errors.New("register: Need a RegisterStorer")
+		return errors.New("need a registerStorer")
 	}
 
 	if r.templates, err = response.LoadTemplates(r.Authboss, r.Layout, r.ViewsPath, tplRegister); err != nil {

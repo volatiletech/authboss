@@ -2,13 +2,14 @@ package auth
 
 import (
 	"bytes"
-	"errors"
 	"html/template"
 	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
 	"strings"
 	"testing"
+
+	"github.com/pkg/errors"
 
 	"github.com/go-authboss/authboss"
 	"github.com/go-authboss/authboss/internal/mocks"

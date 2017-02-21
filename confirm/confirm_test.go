@@ -4,13 +4,14 @@ import (
 	"bytes"
 	"crypto/md5"
 	"encoding/base64"
-	"errors"
 	"html/template"
 	"net/http"
 	"net/http/httptest"
 	"reflect"
 	"strings"
 	"testing"
+
+	"github.com/pkg/errors"
 
 	"github.com/go-authboss/authboss"
 	"github.com/go-authboss/authboss/internal/mocks"

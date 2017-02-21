@@ -2,8 +2,9 @@
 package lock
 
 import (
-	"errors"
 	"time"
+
+	"github.com/pkg/errors"
 
 	"github.com/go-authboss/authboss"
 )
@@ -16,7 +17,7 @@ const (
 )
 
 var (
-	errUserMissing = errors.New("lock: user not loaded in BeforeAuth callback")
+	errUserMissing = errors.New("user not loaded in BeforeAuth callback")
 )
 
 func init() {
@@ -32,7 +33,7 @@ type Lock struct {
 func (l *Lock) Initialize(ab *authboss.Authboss) error {
 	l.Authboss = ab
 	if l.Storer == nil && l.StoreMaker == nil {
-		return errors.New("lock: Need a Storer")
+		return errors.New("need a storer")
 	}
 
 	// Events

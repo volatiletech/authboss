@@ -2,10 +2,11 @@ package authboss
 
 import (
 	"context"
-	"errors"
 	"net/http"
 	"net/url"
 	"strings"
+
+	"github.com/pkg/errors"
 )
 
 type mockUser struct {
@@ -20,29 +21,60 @@ type mockStoredUser struct {
 
 type mockStoreLoader map[string]mockUser
 
-func (m mockStoredUser) PutEmail(ctx context.Context, key string, email string) error {
+func (m mockStoreLoader) Load(ctx context.Context, key string) (Storer, error) {
+	u, ok := m[key]
+	if !ok {
+		return nil, ErrUserNotFound
+	}
+
+	return mockStoredUser{
+		mockUser:        u,
+		mockStoreLoader: m,
+	}, nil
+}
+
+func (m mockStoredUser) Load(ctx context.Context) error {
+	u, ok := m.mockStoreLoader[m.Email]
+	if !ok {
+		return ErrUserNotFound
+	}
+
+	m.Email = u.Email
+	m.Password = u.Password
+
+	return nil
+}
+
+func (m mockStoredUser) Save(ctx context.Context) error {
+	m.mockStoreLoader[m.Email] = m.mockUser
+
+	return nil
+}
+
+func (m mockStoredUser) PutEmail(ctx context.Context, email string) error {
 	m.Email = email
 	return nil
 }
 
-func (m mockStoredUser) PutUsername(ctx context.Context, key string, username string) error {
+func (m mockStoredUser) PutUsername(ctx context.Context, username string) error {
 	return errors.New("not impl")
 }
 
-func (m mockStoredUser) PutPassword(ctx context.Context, key string, password string) error {
+func (m mockStoredUser) PutPassword(ctx context.Context, password string) error {
 	m.Password = password
 	return nil
 }
 
-func (m mockStorer) PutOAuth(uid, provider string, attr Attributes) error {
-	m[uid+provider] = attr
-	return nil
+func (m mockStoredUser) GetEmail(ctx context.Context) (email string, err error) {
+	return m.Email, nil
 }
 
-func (m mockStorer) GetOAuth(uid, provider string) (result interface{}, err error) {
-	return &mockUser{
-		m[uid+provider]["email"].(string), m[uid+provider]["password"].(string),
-	}, nil
+func (m mockStoredUser) GetUsername(ctx context.Context) (username string, err error) {
+	return "", errors.New("not impl")
+}
+
+func (m mockStoredUser) GetPassword(ctx context.Context) (password string, err error) {
+	return m.Password, nil
 }
 
 type mockClientStore map[string]string

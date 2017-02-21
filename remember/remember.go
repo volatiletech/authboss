@@ -7,8 +7,8 @@ import (
 	"crypto/rand"
 	"encoding/base64"
 	"encoding/json"
-	"errors"
-	"fmt"
+
+	"github.com/pkg/errors"
 
 	"github.com/go-authboss/authboss"
 )
@@ -18,7 +18,7 @@ const (
 )
 
 var (
-	errUserMissing = errors.New("remember: User not loaded in callback")
+	errUserMissing = errors.New("user not loaded in callback")
 )
 
 // RememberStorer must be implemented in order to satisfy the remember module's
@@ -54,11 +54,11 @@ func (r *Remember) Initialize(ab *authboss.Authboss) error {
 	if r.Storer != nil || r.OAuth2Storer != nil {
 		if _, ok := r.Storer.(RememberStorer); !ok {
 			if _, ok := r.OAuth2Storer.(RememberStorer); !ok {
-				return errors.New("remember: RememberStorer required for remember functionality")
+				return errors.New("rememberStorer required for remember functionality")
 			}
 		}
 	} else if r.StoreMaker == nil && r.OAuth2StoreMaker == nil {
-		return errors.New("remember: Need a RememberStorer")
+		return errors.New("need a rememberStorer")
 	}
 
 	r.Callbacks.Before(authboss.EventGetUserSession, r.auth)
@@ -97,7 +97,7 @@ func (r *Remember) afterAuth(ctx *authboss.Context) error {
 	}
 
 	if _, err := r.new(ctx.CookieStorer, key); err != nil {
-		return fmt.Errorf("remember: Failed to create remember token: %v", err)
+		return errors.Wrapf(err, "failed to create remember token")
 	}
 
 	return nil
@@ -138,7 +138,7 @@ func (r *Remember) afterOAuth(ctx *authboss.Context) error {
 	}
 
 	if _, err := r.new(ctx.CookieStorer, uid+";"+provider); err != nil {
-		return fmt.Errorf("remember: Failed to create remember token: %v", err)
+		return errors.Wrap(err, "failed to create remember token")
 	}
 
 	return nil
@@ -220,7 +220,7 @@ func (r *Remember) auth(ctx *authboss.Context) (authboss.Interrupt, error) {
 
 	index := bytes.IndexByte(token, ';')
 	if index < 0 {
-		return authboss.InterruptNone, errors.New("remember: Invalid remember token")
+		return authboss.InterruptNone, errors.New("invalid remember token")
 	}
 
 	// Get the key.

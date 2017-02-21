@@ -2,7 +2,6 @@ package authboss
 
 import (
 	"context"
-	"html/template"
 	"io"
 	"io/ioutil"
 	"net/http"
@@ -26,7 +25,11 @@ type Config struct {
 	// authboss.StoreEmail, authboss.StoreUsername (StoreEmail is default)
 	PrimaryID string
 
+	// ViewLoader loads the templates for the application.
 	ViewLoader RenderLoader
+	// MailViewLoader loads the templates for mail. If this is nil, it will
+	// fall back to using the Renderer created from the ViewLoader instead.
+	MailViewLoader RenderLoader
 	// LayoutDataMaker is a function that can provide authboss with the layout's
 	// template data. It will be merged with the data being provided for the current
 	// view in order to render the templates.
@@ -92,7 +95,7 @@ type Config struct {
 	XSRFMaker XSRF
 
 	// Storer is the interface through which Authboss accesses the web apps database.
-	StoreLoader Storer
+	StoreLoader StoreLoader
 
 	// CookieStoreMaker must be defined to provide an interface capapable of storing cookies
 	// for the given response, and reading them from the request.
@@ -119,10 +122,6 @@ func (c *Config) Defaults() {
 	c.BCryptCost = bcrypt.DefaultCost
 
 	c.PrimaryID = StoreEmail
-
-	c.Layout = template.Must(template.New("").Parse(`<!DOCTYPE html><html><body>{{template "authboss" .}}</body></html>`))
-	c.LayoutHTMLEmail = template.Must(template.New("").Parse(`<!DOCTYPE html><html><body>{{template "authboss" .}}</body></html>`))
-	c.LayoutTextEmail = template.Must(template.New("").Parse(`{{template "authboss" .}}`))
 
 	c.AuthLoginOKPath = "/"
 	c.AuthLoginFailPath = "/"

@@ -13,7 +13,6 @@ func init() {
 }
 
 type testModule struct {
-	s StorageOptions
 	r RouteTable
 }
 
@@ -23,14 +22,13 @@ var testMod = &testModule{
 	},
 }
 
-func testHandler(ctx *Context, w http.ResponseWriter, r *http.Request) error {
+func testHandler(w http.ResponseWriter, r *http.Request) error {
 	w.Header().Set("testhandler", "test")
 	return nil
 }
 
 func (t *testModule) Initialize(a *Authboss) error { return nil }
 func (t *testModule) Routes() RouteTable           { return t.r }
-func (t *testModule) Storage() StorageOptions      { return t.s }
 
 func TestRegister(t *testing.T) {
 	// RegisterModule called by init()

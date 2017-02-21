@@ -4,7 +4,6 @@ import (
 	"crypto/rand"
 	"encoding/base64"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"net/http"
 	"net/url"
@@ -12,13 +11,15 @@ import (
 	"path/filepath"
 	"strings"
 
-	"golang.org/x/oauth2"
+	"github.com/pkg/errors"
+
 	"github.com/go-authboss/authboss"
 	"github.com/go-authboss/authboss/internal/response"
+	"golang.org/x/oauth2"
 )
 
 var (
-	errOAuthStateValidation = errors.New("Could not validate oauth2 state param")
+	errOAuthStateValidation = errors.New("could not validate oauth2 state param")
 )
 
 // OAuth2 module
@@ -34,7 +35,7 @@ func init() {
 func (o *OAuth2) Initialize(ab *authboss.Authboss) error {
 	o.Authboss = ab
 	if o.OAuth2Storer == nil && o.OAuth2StoreMaker == nil {
-		return errors.New("oauth2: need an OAuth2Storer")
+		return errors.New("need an oauth2Storer")
 	}
 	return nil
 }
@@ -80,7 +81,7 @@ func (o *OAuth2) oauthInit(ctx *authboss.Context, w http.ResponseWriter, r *http
 	provider := strings.ToLower(filepath.Base(r.URL.Path))
 	cfg, ok := o.OAuth2Providers[provider]
 	if !ok {
-		return fmt.Errorf("OAuth2 provider %q not found", provider)
+		return errors.Errorf("OAuth2 provider %q not found", provider)
 	}
 
 	random := make([]byte, 32)
@@ -156,7 +157,7 @@ func (o *OAuth2) oauthCallback(ctx *authboss.Context, w http.ResponseWriter, r *
 
 	cfg, ok := o.OAuth2Providers[provider]
 	if !ok {
-		return fmt.Errorf("OAuth2 provider %q not found", provider)
+		return errors.Errorf("oauth2 provider %q not found", provider)
 	}
 
 	// Ensure request is genuine
@@ -170,7 +171,7 @@ func (o *OAuth2) oauthCallback(ctx *authboss.Context, w http.ResponseWriter, r *
 	code := r.FormValue("code")
 	token, err := exchanger(cfg.OAuth2Config, o.Config.ContextProvider(r), code)
 	if err != nil {
-		return fmt.Errorf("Could not validate oauth2 code: %v", err)
+		return errors.Wrap(err, "could not validate oauth2 code")
 	}
 
 	user, err := cfg.Callback(o.Config.ContextProvider(r), *cfg.OAuth2Config, token)

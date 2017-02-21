@@ -33,7 +33,7 @@ func SMTPMailer(server string, auth smtp.Auth) Mailer {
 	if len(server) == 0 {
 		panic("SMTP Mailer must be created with a server string.")
 	}
-	random := rand.New(rand.NewSource(time.Now()))
+	random := rand.New(rand.NewSource(time.Now().UnixNano()))
 	return smtpMailer{server, auth, random}
 }
 
@@ -56,7 +56,7 @@ type logMailer struct {
 	io.Writer
 }
 
-func (l logMailer) Send(mail Email) error {
+func (l logMailer) Send(ctx context.Context, mail Email) error {
 	buf := &bytes.Buffer{}
 
 	data := struct {
@@ -84,14 +84,14 @@ type smtpMailer struct {
 	rand   *rand.Rand
 }
 
-func (s smtpMailer) Send(mail Email) error {
+func (s smtpMailer) Send(ctx context.Context, mail Email) error {
 	buf := &bytes.Buffer{}
 
 	data := struct {
 		Boundary string
 		Mail     Email
 	}{
-		Boundary: boundary(),
+		Boundary: s.boundary(),
 		Mail:     mail,
 	}
 
@@ -102,7 +102,7 @@ func (s smtpMailer) Send(mail Email) error {
 
 	toSend := bytes.Replace(buf.Bytes(), []byte{'\n'}, []byte{'\r', '\n'}, -1)
 
-	return smtp.SendMail(s.Server, s.Auth, data.From, data.To, toSend)
+	return smtp.SendMail(s.Server, s.Auth, mail.From, mail.To, toSend)
 }
 
 // boundary makes mime boundaries, these are largely useless strings that just

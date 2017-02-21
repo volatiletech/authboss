@@ -3,6 +3,7 @@ package authboss
 import (
 	"context"
 	"fmt"
+	"io/ioutil"
 	"reflect"
 	"runtime"
 )
@@ -45,10 +46,9 @@ const (
 	InterruptSessionExpired
 )
 
-// Before callbacks can interrupt the flow by returning a bool. This is used to stop
-// the callback chain and the original handler from continuing execution.
-// The execution should also stopped if there is an error (and therefore if error is set
-// the bool is automatically considered set).
+// Before callbacks can interrupt the flow by returning an interrupt value.
+// This is used to stop the callback chain and the original handler from
+// continuing execution. The execution should also stopped if there is an error.
 type Before func(context.Context) (Interrupt, error)
 
 // After is a request callback that happens after the event.
@@ -95,7 +95,8 @@ func (c *Callbacks) FireBefore(e Event, ctx context.Context) (interrupt Interrup
 	for _, fn := range callbacks {
 		interrupt, err = fn(ctx)
 		if err != nil {
-			fmt.Fprintf(ctx.LogWriter, "Callback error (%s): %v\n", runtime.FuncForPC(reflect.ValueOf(fn).Pointer()).Name(), err)
+			// TODO(aarondl): logwriter fail
+			fmt.Fprintf(ioutil.Discard, "Callback error (%s): %v\n", runtime.FuncForPC(reflect.ValueOf(fn).Pointer()).Name(), err)
 			return InterruptNone, err
 		}
 		if interrupt != InterruptNone {
@@ -112,7 +113,8 @@ func (c *Callbacks) FireAfter(e Event, ctx context.Context) (err error) {
 	callbacks := c.after[e]
 	for _, fn := range callbacks {
 		if err = fn(ctx); err != nil {
-			fmt.Fprintf(ctx.LogWriter, "Callback error (%s): %v\n", runtime.FuncForPC(reflect.ValueOf(fn).Pointer()).Name(), err)
+			// TODO(aarondl): logwriter fail
+			fmt.Fprintf(ioutil.Discard, "Callback error (%s): %v\n", runtime.FuncForPC(reflect.ValueOf(fn).Pointer()).Name(), err)
 			return err
 		}
 	}

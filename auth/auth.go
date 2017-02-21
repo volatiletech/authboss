@@ -2,13 +2,14 @@
 package auth
 
 import (
-	"errors"
 	"fmt"
 	"net/http"
 
-	"golang.org/x/crypto/bcrypt"
+	"github.com/pkg/errors"
+
 	"github.com/go-authboss/authboss"
 	"github.com/go-authboss/authboss/internal/response"
+	"golang.org/x/crypto/bcrypt"
 )
 
 const (
@@ -33,15 +34,15 @@ func (a *Auth) Initialize(ab *authboss.Authboss) (err error) {
 	a.Authboss = ab
 
 	if a.Storer == nil && a.StoreMaker == nil {
-		return errors.New("auth: Need a Storer")
+		return errors.New("need a storer")
 	}
 
 	if len(a.XSRFName) == 0 {
-		return errors.New("auth: XSRFName must be set")
+		return errors.New("xsrfName must be set")
 	}
 
 	if a.XSRFMaker == nil {
-		return errors.New("auth: XSRFMaker must be defined")
+		return errors.New("xsrfMaker must be defined")
 	}
 
 	a.templates, err = response.LoadTemplates(a.Authboss, a.Layout, a.ViewsPath, tplLogin)

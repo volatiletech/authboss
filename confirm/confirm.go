@@ -5,11 +5,12 @@ import (
 	"crypto/md5"
 	"crypto/rand"
 	"encoding/base64"
-	"errors"
 	"fmt"
 	"net/http"
 	"net/url"
 	"path"
+
+	"github.com/pkg/errors"
 
 	"github.com/go-authboss/authboss"
 	"github.com/go-authboss/authboss/internal/response"
@@ -27,7 +28,7 @@ const (
 )
 
 var (
-	errUserMissing = errors.New("confirm: After registration user must be loaded")
+	errUserMissing = errors.New("after registration user must be loaded")
 )
 
 // ConfirmStorer must be implemented in order to satisfy the confirm module's
@@ -58,7 +59,7 @@ func (c *Confirm) Initialize(ab *authboss.Authboss) (err error) {
 	var ok bool
 	storer, ok := c.Storer.(ConfirmStorer)
 	if c.StoreMaker == nil && (storer == nil || !ok) {
-		return errors.New("confirm: Need a ConfirmStorer")
+		return errors.New("need a confirmStorer")
 	}
 
 	c.emailHTMLTemplates, err = response.LoadTemplates(ab, c.LayoutHTMLEmail, c.ViewsPath, tplConfirmHTML)
@@ -169,7 +170,7 @@ func (c *Confirm) confirmHandler(ctx *authboss.Context, w http.ResponseWriter, r
 	toHash, err := base64.URLEncoding.DecodeString(token)
 	if err != nil {
 		return authboss.ErrAndRedirect{
-			Location: "/", Err: fmt.Errorf("confirm: token failed to decode %q => %v\n", token, err),
+			Location: "/", Err: errors.Wrapf(err, "token failed to decode %q", token),
 		}
 	}
 
@@ -178,7 +179,7 @@ func (c *Confirm) confirmHandler(ctx *authboss.Context, w http.ResponseWriter, r
 	dbTok := base64.StdEncoding.EncodeToString(sum[:])
 	user, err := ctx.Storer.(ConfirmStorer).ConfirmUser(dbTok)
 	if err == authboss.ErrUserNotFound {
-		return authboss.ErrAndRedirect{Location: "/", Err: errors.New("confirm: token not found")}
+		return authboss.ErrAndRedirect{Location: "/", Err: errors.New("token not found")}
 	} else if err != nil {
 		return err
 	}

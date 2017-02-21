@@ -3,9 +3,10 @@ package authboss
 import (
 	"bytes"
 	"context"
-	"errors"
 	"reflect"
 	"time"
+
+	"github.com/pkg/errors"
 )
 
 // Data store constants for attribute names.
@@ -26,11 +27,11 @@ const (
 
 var (
 	// ErrUserNotFound should be returned from Get when the record is not found.
-	ErrUserNotFound = errors.New("User not found")
+	ErrUserNotFound = errors.New("user not found")
 	// ErrTokenNotFound should be returned from UseToken when the record is not found.
-	ErrTokenNotFound = errors.New("Token not found")
+	ErrTokenNotFound = errors.New("token not found")
 	// ErrUserFound should be returned from Create when the primaryID of the record is found.
-	ErrUserFound = errors.New("User found")
+	ErrUserFound = errors.New("user found")
 )
 
 // StoreLoader represents the data store that's capable of loading users

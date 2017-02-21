@@ -1,12 +1,14 @@
 package authboss
 
 import (
+	"context"
 	"database/sql"
-	"errors"
 	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
 	"testing"
+
+	"github.com/pkg/errors"
 )
 
 func TestAuthBossInit(t *testing.T) {
@@ -25,7 +27,7 @@ func TestAuthBossCurrentUser(t *testing.T) {
 
 	ab := New()
 	ab.LogWriter = ioutil.Discard
-	ab.Storer = mockStorer{"joe": Attributes{"email": "john@john.com", "password": "lies"}}
+	ab.StoreLoader = mockStoreLoader{"joe": mockUser{Email: "john@john.com", Password: "lies"}}
 	ab.SessionStoreMaker = func(_ http.ResponseWriter, _ *http.Request) ClientStorer {
 		return mockClientStore{SessionKey: "joe"}
 	}
@@ -53,7 +55,7 @@ func TestAuthBossCurrentUserCallbacks(t *testing.T) {
 
 	ab := New()
 	ab.LogWriter = ioutil.Discard
-	ab.Storer = mockStorer{"joe": Attributes{"email": "john@john.com", "password": "lies"}}
+	ab.StoreLoader = mockStoreLoader{"joe": mockUser{Email: "john@john.com", Password: "lies"}}
 	ab.SessionStoreMaker = func(_ http.ResponseWriter, _ *http.Request) ClientStorer {
 		return mockClientStore{SessionKey: "joe"}
 	}
@@ -72,21 +74,21 @@ func TestAuthBossCurrentUserCallbacks(t *testing.T) {
 	beforeGetUser := errors.New("beforeGetUser")
 	beforeGetUserSession := errors.New("beforeGetUserSession")
 
-	ab.Callbacks.After(EventGetUser, func(*Context) error {
+	ab.Callbacks.After(EventGetUser, func(context.Context) error {
 		return afterGetUser
 	})
 	if _, err := ab.CurrentUser(rec, req); err != afterGetUser {
 		t.Error("Want:", afterGetUser, "Got:", err)
 	}
 
-	ab.Callbacks.Before(EventGetUser, func(*Context) (Interrupt, error) {
+	ab.Callbacks.Before(EventGetUser, func(context.Context) (Interrupt, error) {
 		return InterruptNone, beforeGetUser
 	})
 	if _, err := ab.CurrentUser(rec, req); err != beforeGetUser {
 		t.Error("Want:", beforeGetUser, "Got:", err)
 	}
 
-	ab.Callbacks.Before(EventGetUserSession, func(*Context) (Interrupt, error) {
+	ab.Callbacks.Before(EventGetUserSession, func(context.Context) (Interrupt, error) {
 		return InterruptNone, beforeGetUserSession
 	})
 	if _, err := ab.CurrentUser(rec, req); err != beforeGetUserSession {
@@ -108,7 +110,7 @@ func TestAuthbossUpdatePassword(t *testing.T) {
 	}
 
 	called := false
-	ab.Callbacks.After(EventPasswordReset, func(ctx *Context) error {
+	ab.Callbacks.After(EventPasswordReset, func(ctx context.Context) error {
 		called = true
 		return nil
 	})
@@ -172,7 +174,7 @@ func TestAuthbossUpdatePasswordFail(t *testing.T) {
 		Password string
 	}{}
 
-	anErr := errors.New("AnError")
+	anErr := errors.New("anError")
 	err := ab.UpdatePassword(nil, nil, "update", &user1, func() error { return anErr })
 	if err != anErr {
 		t.Error("Expected an specific error:", err)

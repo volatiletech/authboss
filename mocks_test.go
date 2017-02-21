@@ -1,6 +1,8 @@
 package authboss
 
 import (
+	"context"
+	"errors"
 	"net/http"
 	"net/url"
 	"strings"
@@ -18,20 +20,18 @@ type mockStoredUser struct {
 
 type mockStoreLoader map[string]mockUser
 
-func (m mockStorer) Create(key string, attr Attributes) error {
-	m[key] = attr
+func (m mockStoredUser) PutEmail(ctx context.Context, key string, email string) error {
+	m.Email = email
 	return nil
 }
 
-func (m mockStorer) Put(key string, attr Attributes) error {
-	m[key] = attr
-	return nil
+func (m mockStoredUser) PutUsername(ctx context.Context, key string, username string) error {
+	return errors.New("not impl")
 }
 
-func (m mockStorer) Get(key string) (result interface{}, err error) {
-	return &mockUser{
-		m[key]["email"].(string), m[key]["password"].(string),
-	}, nil
+func (m mockStoredUser) PutPassword(ctx context.Context, key string, password string) error {
+	m.Password = password
+	return nil
 }
 
 func (m mockStorer) PutOAuth(uid, provider string, attr Attributes) error {

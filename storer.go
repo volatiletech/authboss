@@ -53,11 +53,7 @@ type Storer interface {
 	GetUsername(ctx context.Context) (username string, err error)
 	GetPassword(ctx context.Context) (password string, err error)
 
-	// Create the user with the state, this should throw errors if
-	// it's created already.
-	Create(ctx context.Context) error
-
-	// Save the state
+	// Save the state.
 	Save(ctx context.Context) error
 
 	// Load the state based on the properties that have been given (typically

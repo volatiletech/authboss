@@ -18,14 +18,18 @@ func (c contextKey) String() string {
 
 // CurrentUserID retrieves the current user from the session.
 func (a *Authboss) CurrentUserID(w http.ResponseWriter, r *http.Request) (string, error) {
+	if pid := r.Context().Value(ctxKeyPID); pid != nil {
+		return pid.(string), nil
+	}
+
 	_, err := a.Callbacks.FireBefore(EventGetUserSession, r.Context())
 	if err != nil {
 		return "", err
 	}
 
 	session := a.SessionStoreMaker.Make(w, r)
-	key, _ := session.Get(SessionKey)
-	return key, nil
+	pid, _ := session.Get(SessionKey)
+	return pid, nil
 }
 
 // CurrentUserIDP retrieves the current user but panics if it's not available for
@@ -43,6 +47,10 @@ func (a *Authboss) CurrentUserIDP(w http.ResponseWriter, r *http.Request) string
 
 // CurrentUser retrieves the current user from the session and the database.
 func (a *Authboss) CurrentUser(w http.ResponseWriter, r *http.Request) (Storer, error) {
+	if user := r.Context().Value(ctxKeyUser); user != nil {
+		return user.(Storer), nil
+	}
+
 	pid, err := a.CurrentUserID(w, r)
 	if err != nil {
 		return nil, err
@@ -87,6 +95,10 @@ func (a *Authboss) currentUser(ctx context.Context, pid string) (Storer, error) 
 // change the current method's request pointer itself to the new request that
 // contains the new context that has the pid in it.
 func (a *Authboss) LoadCurrentUserID(w http.ResponseWriter, r **http.Request) (string, error) {
+	if pid := (*r).Context().Value(ctxKeyPID); pid != nil {
+		return pid.(string), nil
+	}
+
 	pid, err := a.CurrentUserID(w, *r)
 	if err != nil {
 		return "", err
@@ -118,6 +130,10 @@ func (a *Authboss) LoadCurrentUserIDP(w http.ResponseWriter, r **http.Request) s
 // contains the new context that has the user in it. Calls LoadCurrentUserID
 // so the primary id is also put in the context.
 func (a *Authboss) LoadCurrentUser(w http.ResponseWriter, r **http.Request) (Storer, error) {
+	if user := (*r).Context().Value(ctxKeyUser); user != nil {
+		return user.(Storer), nil
+	}
+
 	pid, err := a.LoadCurrentUserID(w, r)
 	if err != nil {
 		return nil, err

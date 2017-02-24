@@ -24,6 +24,22 @@ func TestCurrentUserID(t *testing.T) {
 	}
 }
 
+func TestCurrentUserIDContext(t *testing.T) {
+	t.Parallel()
+
+	ab := New()
+	req := httptest.NewRequest("GET", "/", nil)
+	req = req.WithContext(context.WithValue(req.Context(), ctxKeyPID, "george-pid"))
+	id, err := ab.CurrentUserID(nil, req)
+	if err != nil {
+		t.Error(err)
+	}
+
+	if id != "george-pid" {
+		t.Error("got:", id)
+	}
+}
+
 func TestCurrentUserIDP(t *testing.T) {
 	t.Parallel()
 
@@ -51,6 +67,31 @@ func TestCurrentUser(t *testing.T) {
 	}
 
 	user, err := ab.CurrentUser(nil, httptest.NewRequest("GET", "/", nil))
+	if err != nil {
+		t.Error(err)
+	}
+
+	if got, err := user.GetEmail(context.TODO()); err != nil {
+		t.Error(err)
+	} else if got != "george-pid" {
+		t.Error("got:", got)
+	}
+}
+
+func TestCurrentUserContext(t *testing.T) {
+	t.Parallel()
+
+	ab := New()
+	wantUser := mockStoredUser{
+		mockUser: mockUser{Email: "george-pid", Password: "unreadable"},
+	}
+
+	req := httptest.NewRequest("GET", "/", nil)
+	ctx := context.WithValue(req.Context(), ctxKeyPID, "george-id")
+	ctx = context.WithValue(ctx, ctxKeyUser, wantUser)
+	req = req.WithContext(ctx)
+
+	user, err := ab.CurrentUser(nil, req)
 	if err != nil {
 		t.Error(err)
 	}
@@ -147,6 +188,30 @@ func TestLoadCurrentUser(t *testing.T) {
 	got := req.Context().Value(ctxKeyUser).(mockStoredUser).mockUser
 	if got != want {
 		t.Error("users mismatched:\nwant: %#v\ngot: %#v", want, got)
+	}
+}
+
+func TestLoadCurrentUserContext(t *testing.T) {
+	t.Parallel()
+
+	ab := New()
+	wantUser := mockStoredUser{
+		mockUser: mockUser{Email: "george-pid", Password: "unreadable"},
+	}
+
+	req := httptest.NewRequest("GET", "/", nil)
+	ctx := context.WithValue(req.Context(), ctxKeyPID, "george-id")
+	ctx = context.WithValue(ctx, ctxKeyUser, wantUser)
+	req = req.WithContext(ctx)
+
+	user, err := ab.LoadCurrentUser(nil, &req)
+	if err != nil {
+		t.Error(err)
+	}
+
+	got := user.(mockStoredUser).mockUser
+	if got != wantUser.mockUser {
+		t.Error("users mismatched:\nwant: %#v\ngot: %#v", wantUser.mockUser, got)
 	}
 }
 

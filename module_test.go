@@ -29,6 +29,7 @@ func testHandler(w http.ResponseWriter, r *http.Request) error {
 
 func (t *testModule) Initialize(a *Authboss) error { return nil }
 func (t *testModule) Routes() RouteTable           { return t.r }
+func (t *testModule) Templates() []string          { return []string{"template1.tpl"} }
 
 func TestRegister(t *testing.T) {
 	// RegisterModule called by init()
@@ -59,6 +60,7 @@ func TestLoadedModules(t *testing.T) {
 func TestIsLoaded(t *testing.T) {
 	ab := New()
 	ab.LogWriter = ioutil.Discard
+	ab.ViewLoader = mockRenderLoader{}
 	if err := ab.Init(testModName); err != nil {
 		t.Error(err)
 	}

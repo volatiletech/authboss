@@ -20,6 +20,9 @@ type Authboss struct {
 
 	loadedModules map[string]Modularizer
 	mux           *http.ServeMux
+
+	templateNames []string
+	renderer      Renderer
 }
 
 // New makes a new instance of authboss with a default
@@ -47,66 +50,13 @@ func (a *Authboss) Init(modulesToLoad ...string) error {
 		}
 	}
 
+	renderer, err := a.ViewLoader.Init(a.templateNames)
+	if err != nil {
+		return errors.Wrap(err, "failed to init view loader")
+	}
+	a.renderer = renderer
+
 	return nil
-}
-
-// CurrentUser retrieves the current user from the session and the database.
-func (a *Authboss) CurrentUser(w http.ResponseWriter, r *http.Request) (interface{}, error) {
-	return nil, errors.New("TODO")
-}
-
-func (a *Authboss) currentUser(w http.ResponseWriter, r *http.Request) (interface{}, error) {
-	/*
-		_, err := a.Callbacks.FireBefore(EventGetUserSession, ctx)
-		if err != nil {
-			return nil, err
-		}
-
-		key, ok := ctx.SessionStorer.Get(SessionKey)
-		if !ok {
-			return nil, nil
-		}
-
-		_, err = a.Callbacks.FireBefore(EventGetUser, ctx)
-		if err != nil {
-			return nil, err
-		}
-
-		var user interface{}
-
-		if index := strings.IndexByte(key, ';'); index > 0 {
-			user, err = a.OAuth2Storer.GetOAuth(key[:index], key[index+1:])
-		} else {
-			user, err = a.Storer.Get(key)
-		}
-
-		if err != nil {
-			return nil, err
-		}
-
-		ctx.User = Unbind(user)
-
-		err = a.Callbacks.FireAfter(EventGetUser, ctx)
-		if err != nil {
-			return nil, err
-		}
-
-		return user, err
-	*/
-	return nil, errors.New("not implemented")
-}
-
-// CurrentUserP retrieves the current user but panics if it's not available for
-// any reason.
-func (a *Authboss) CurrentUserP(w http.ResponseWriter, r *http.Request) interface{} {
-	/*
-		i, err := a.CurrentUser(w, r)
-		if err != nil {
-			panic(err.Error())
-		}
-		return i
-	*/
-	panic("TODO")
 }
 
 /*
@@ -130,43 +80,28 @@ The error returned is returned either from the updater if that produced an error
 or from the cleanup routines.
 */
 func (a *Authboss) UpdatePassword(w http.ResponseWriter, r *http.Request,
-	ptPassword string, user interface{}, updater func() error) error {
+	ptPassword string, user Storer, updater func() error) error {
 
-	/*
-		updatePwd := len(ptPassword) > 0
+	/*updatePwd := len(ptPassword) > 0
 
-		if updatePwd {
-			pass, err := bcrypt.GenerateFromPassword([]byte(ptPassword), a.BCryptCost)
-			if err != nil {
-				return err
-			}
-
-			val := reflect.ValueOf(user).Elem()
-			field := val.FieldByName("Password")
-			if !field.CanSet() {
-				return errors.New("authboss: updatePassword called without a modifyable user struct")
-			}
-			fieldPtr := field.Addr()
-
-			if scanner, ok := fieldPtr.Interface().(sql.Scanner); ok {
-				if err := scanner.Scan(string(pass)); err != nil {
-					return err
-				}
-			} else {
-				field.SetString(string(pass))
-			}
-		}
-
-		if err := updater(); err != nil {
+	if updatePwd {
+		pass, err := bcrypt.GenerateFromPassword([]byte(ptPassword), a.BCryptCost)
+		if err != nil {
 			return err
 		}
 
-		if !updatePwd {
-			return nil
-		}
+		user.PutPassword(r.Context(),
+	}
 
-		return a.Callbacks.FireAfter(EventPasswordReset, a.InitContext(w, r))
-	*/
+	if err := updater(); err != nil {
+		return err
+	}
 
-	return errors.New("TODO")
+	if !updatePwd {
+		return nil
+	}
+
+	return a.Callbacks.FireAfter(EventPasswordReset, r.Context())*/
+	// TODO(aarondl): Fix
+	return errors.New("not implemented")
 }

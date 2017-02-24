@@ -9,7 +9,7 @@ var nowTime = time.Now
 
 // TimeToExpiry returns zero if the user session is expired else the time until expiry.
 func (a *Authboss) TimeToExpiry(w http.ResponseWriter, r *http.Request) time.Duration {
-	return a.timeToExpiry(a.SessionStoreMaker(w, r))
+	return a.timeToExpiry(a.SessionStoreMaker.Make(w, r))
 }
 
 func (a *Authboss) timeToExpiry(session ClientStorer) time.Duration {
@@ -33,7 +33,7 @@ func (a *Authboss) timeToExpiry(session ClientStorer) time.Duration {
 
 // RefreshExpiry  updates the last action for the user, so he doesn't become expired.
 func (a *Authboss) RefreshExpiry(w http.ResponseWriter, r *http.Request) {
-	session := a.SessionStoreMaker(w, r)
+	session := a.SessionStoreMaker.Make(w, r)
 	a.refreshExpiry(session)
 }
 
@@ -57,7 +57,7 @@ func (a *Authboss) ExpireMiddleware(next http.Handler) http.Handler {
 
 // ServeHTTP removes the session if it's passed the expire time.
 func (m expireMiddleware) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	session := m.ab.SessionStoreMaker(w, r)
+	session := m.ab.SessionStoreMaker.Make(w, r)
 	if _, ok := session.Get(SessionKey); ok {
 		ttl := m.ab.timeToExpiry(session)
 		if ttl == 0 {

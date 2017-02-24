@@ -3,29 +3,12 @@ package response
 
 //go:generate go-bindata -pkg=response -prefix=templates templates
 
-import (
-	"bytes"
-	"html/template"
-	"io"
-	"io/ioutil"
-	"net/http"
-	"os"
-	"path"
-	"path/filepath"
-	"strings"
+// TODO(aarondl): Extract this into the default "template" provider
 
-	"github.com/pkg/errors"
-
-	"github.com/go-authboss/authboss"
-)
-
-var (
-	// ErrTemplateNotFound should be returned from Get when the view is not found
-	ErrTemplateNotFound = errors.New("template not found")
-)
-
+/*
 // Templates is a map depicting the forms a template needs wrapped within the specified layout
 type Templates map[string]*template.Template
+
 
 // LoadTemplates parses all specified files located in fpath. Each template is wrapped
 // in a unique clone of layout.  All templates are expecting {{authboss}} handlebars
@@ -158,3 +141,4 @@ func Redirect(ctx *authboss.Context, w http.ResponseWriter, r *http.Request, pat
 	}
 	http.Redirect(w, r, path, http.StatusFound)
 }
+*/

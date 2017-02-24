@@ -25,8 +25,9 @@ const (
 	FlashErrorKey = "flash_error"
 )
 
-// ClientStoreMaker is used to create a cookie storer from an http request. Keep in mind
-// security considerations for your implementation, Secure, HTTP-Only, etc flags.
+// ClientStoreMaker is used to create a cookie storer from an http request.
+// Keep in mind security considerations for your implementation, Secure,
+// HTTP-Only, etc flags.
 //
 // There's two major uses for this. To create session storage, and remember me
 // cookies.
@@ -64,7 +65,7 @@ func (c clientStoreWrapper) GetErr(key string) (string, error) {
 
 // FlashSuccess returns FlashSuccessKey from the session and removes it.
 func (a *Authboss) FlashSuccess(w http.ResponseWriter, r *http.Request) string {
-	storer := a.SessionStoreMaker(w, r)
+	storer := a.SessionStoreMaker.Make(w, r)
 	msg, ok := storer.Get(FlashSuccessKey)
 	if ok {
 		storer.Del(FlashSuccessKey)
@@ -75,7 +76,7 @@ func (a *Authboss) FlashSuccess(w http.ResponseWriter, r *http.Request) string {
 
 // FlashError returns FlashError from the session and removes it.
 func (a *Authboss) FlashError(w http.ResponseWriter, r *http.Request) string {
-	storer := a.SessionStoreMaker(w, r)
+	storer := a.SessionStoreMaker.Make(w, r)
 	msg, ok := storer.Get(FlashErrorKey)
 	if ok {
 		storer.Del(FlashErrorKey)

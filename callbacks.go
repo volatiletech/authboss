@@ -1,12 +1,6 @@
 package authboss
 
-import (
-	"context"
-	"fmt"
-	"io/ioutil"
-	"reflect"
-	"runtime"
-)
+import "context"
 
 //go:generate stringer -output stringers.go -type "Event,Interrupt"
 
@@ -65,8 +59,8 @@ type Callbacks struct {
 // Called only by authboss internals and for testing.
 func NewCallbacks() *Callbacks {
 	return &Callbacks{
-		make(map[Event][]Before),
-		make(map[Event][]After),
+		before: make(map[Event][]Before),
+		after:  make(map[Event][]After),
 	}
 }
 
@@ -95,8 +89,6 @@ func (c *Callbacks) FireBefore(e Event, ctx context.Context) (interrupt Interrup
 	for _, fn := range callbacks {
 		interrupt, err = fn(ctx)
 		if err != nil {
-			// TODO(aarondl): logwriter fail
-			fmt.Fprintf(ioutil.Discard, "Callback error (%s): %v\n", runtime.FuncForPC(reflect.ValueOf(fn).Pointer()).Name(), err)
 			return InterruptNone, err
 		}
 		if interrupt != InterruptNone {
@@ -113,8 +105,6 @@ func (c *Callbacks) FireAfter(e Event, ctx context.Context) (err error) {
 	callbacks := c.after[e]
 	for _, fn := range callbacks {
 		if err = fn(ctx); err != nil {
-			// TODO(aarondl): logwriter fail
-			fmt.Fprintf(ioutil.Discard, "Callback error (%s): %v\n", runtime.FuncForPC(reflect.ValueOf(fn).Pointer()).Name(), err)
 			return err
 		}
 	}

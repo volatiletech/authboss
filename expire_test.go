@@ -11,15 +11,18 @@ import (
 
 func TestDudeIsExpired(t *testing.T) {
 	ab := New()
-
 	session := mockClientStore{SessionKey: "username"}
 	ab.refreshExpiry(session)
+
+	// No t.Parallel()
 	nowTime = func() time.Time {
 		return time.Now().UTC().Add(ab.ExpireAfter * 2)
 	}
-	ab.SessionStoreMaker = func(_ http.ResponseWriter, _ *http.Request) ClientStorer {
-		return session
-	}
+	defer func() {
+		nowTime = time.Now
+	}()
+
+	ab.SessionStoreMaker = newMockClientStoreMaker(session)
 
 	r, _ := http.NewRequest("GET", "tra/la/la", nil)
 	w := httptest.NewRecorder()
@@ -36,25 +39,28 @@ func TestDudeIsExpired(t *testing.T) {
 	}
 
 	if key, ok := session.Get(SessionKey); ok {
-		t.Error("Unexpcted session key:", key)
+		t.Error("Unexpected session key:", key)
 	}
 
 	if key, ok := session.Get(SessionLastAction); ok {
-		t.Error("Unexpcted last action key:", key)
+		t.Error("Unexpected last action key:", key)
 	}
 }
 
 func TestDudeIsNotExpired(t *testing.T) {
 	ab := New()
-
 	session := mockClientStore{SessionKey: "username"}
 	ab.refreshExpiry(session)
+
+	// No t.Parallel()
 	nowTime = func() time.Time {
 		return time.Now().UTC().Add(ab.ExpireAfter / 2)
 	}
-	ab.SessionStoreMaker = func(_ http.ResponseWriter, _ *http.Request) ClientStorer {
-		return session
-	}
+	defer func() {
+		nowTime = time.Now
+	}()
+
+	ab.SessionStoreMaker = newMockClientStoreMaker(session)
 
 	r, _ := http.NewRequest("GET", "tra/la/la", nil)
 	w := httptest.NewRecorder()

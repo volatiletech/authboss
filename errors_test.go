@@ -6,21 +6,6 @@ import (
 	"github.com/pkg/errors"
 )
 
-func TestAttributeErr(t *testing.T) {
-	t.Parallel()
-
-	estr := "Failed to retrieve database attribute, type was wrong: lol (want: String, got: int)"
-	if str := NewAttributeErr("lol", String, 5).Error(); str != estr {
-		t.Error("Error was wrong:", str)
-	}
-
-	estr = "Failed to retrieve database attribute: lol"
-	err := AttributeErr{Name: "lol"}
-	if str := err.Error(); str != estr {
-		t.Error("Error was wrong:", str)
-	}
-}
-
 func TestClientDataErr(t *testing.T) {
 	t.Parallel()
 
@@ -31,20 +16,10 @@ func TestClientDataErr(t *testing.T) {
 	}
 }
 
-func TestErrAndRedirect(t *testing.T) {
-	t.Parallel()
-
-	estr := "Error: cause, Redirecting to: /"
-	err := ErrAndRedirect{errors.New("cause"), "/", "success", "failure"}
-	if str := err.Error(); str != estr {
-		t.Error("Error was wrong:", str)
-	}
-}
-
 func TestRenderErr(t *testing.T) {
 	t.Parallel()
 
-	estr := `Error rendering template "lol": cause, data: authboss.HTMLData{"a":5}`
+	estr := `error rendering response "lol": cause, data: authboss.HTMLData{"a":5}`
 	err := RenderErr{"lol", NewHTMLData("a", 5), errors.New("cause")}
 	if str := err.Error(); str != estr {
 		t.Error("Error was wrong:", str)

@@ -2,6 +2,7 @@
 package confirm
 
 import (
+	"context"
 	"crypto/md5"
 	"crypto/rand"
 	"encoding/base64"
@@ -31,14 +32,25 @@ var (
 	errUserMissing = errors.New("after registration user must be loaded")
 )
 
-// ConfirmStorer must be implemented in order to satisfy the confirm module's
-// storage requirements.
-type ConfirmStorer interface {
-	authboss.Storer
+// ConfirmStoreLoader allows lookup of users by different parameters.
+type ConfirmStoreLoader interface {
+	authboss.StoreLoader
+
 	// ConfirmUser looks up a user by a confirm token. See confirm module for
 	// attribute names. If the token is not found in the data store,
 	// simply return nil, ErrUserNotFound.
-	ConfirmUser(confirmToken string) (interface{}, error)
+	LoadByConfirmToken(confirmToken string) (ConfirmStorer, error)
+}
+
+// ConfirmStorer defines attributes for the confirm module.
+type ConfirmStorer interface {
+	authboss.Storer
+
+	PutConfirmed(ctx context.Context, confirmed bool) error
+	PutConfirmToken(ctx context.Context, token string) error
+
+	GetConfirmed(ctx context.Context) (confirmed bool, err error)
+	GetConfirmToken(ctx context.Context) (token string, err error)
 }
 
 func init() {
@@ -48,30 +60,13 @@ func init() {
 // Confirm module
 type Confirm struct {
 	*authboss.Authboss
-	emailHTMLTemplates response.Templates
-	emailTextTemplates response.Templates
 }
 
 // Initialize the module
 func (c *Confirm) Initialize(ab *authboss.Authboss) (err error) {
 	c.Authboss = ab
 
-	var ok bool
-	storer, ok := c.Storer.(ConfirmStorer)
-	if c.StoreMaker == nil && (storer == nil || !ok) {
-		return errors.New("need a confirmStorer")
-	}
-
-	c.emailHTMLTemplates, err = response.LoadTemplates(ab, c.LayoutHTMLEmail, c.ViewsPath, tplConfirmHTML)
-	if err != nil {
-		return err
-	}
-	c.emailTextTemplates, err = response.LoadTemplates(ab, c.LayoutTextEmail, c.ViewsPath, tplConfirmText)
-	if err != nil {
-		return err
-	}
-
-	c.Callbacks.After(authboss.EventGetUser, func(ctx *authboss.Context) error {
+	c.Callbacks.After(authboss.EventGetUser, func(ctx context.Context) error {
 		_, err := c.beforeGet(ctx)
 		return err
 	})
@@ -88,17 +83,12 @@ func (c *Confirm) Routes() authboss.RouteTable {
 	}
 }
 
-// Storage requirements
-func (c *Confirm) Storage() authboss.StorageOptions {
-	return authboss.StorageOptions{
-		c.PrimaryID:         authboss.String,
-		authboss.StoreEmail: authboss.String,
-		StoreConfirmToken:   authboss.String,
-		StoreConfirmed:      authboss.Bool,
-	}
+// Templates returns the list of templates required by this module
+func (c *Confirm) Templates() []string {
+	return []string{tplConfirmHTML, tplConfirmText}
 }
 
-func (c *Confirm) beforeGet(ctx *authboss.Context) (authboss.Interrupt, error) {
+func (c *Confirm) beforeGet(ctx context.Context) (authboss.Interrupt, error) {
 	if confirmed, err := ctx.User.BoolErr(StoreConfirmed); err != nil {
 		return authboss.InterruptNone, err
 	} else if !confirmed {
@@ -109,7 +99,7 @@ func (c *Confirm) beforeGet(ctx *authboss.Context) (authboss.Interrupt, error) {
 }
 
 // AfterRegister ensures the account is not activated.
-func (c *Confirm) afterRegister(ctx *authboss.Context) error {
+func (c *Confirm) afterRegister(ctx context.Context) error {
 	if ctx.User == nil {
 		return errUserMissing
 	}
@@ -136,7 +126,7 @@ func (c *Confirm) afterRegister(ctx *authboss.Context) error {
 	return nil
 }
 
-var goConfirmEmail = func(c *Confirm, ctx *authboss.Context, to, token string) {
+var goConfirmEmail = func(c *Confirm, ctx context.Context, to, token string) {
 	if ctx.MailMaker != nil {
 		c.confirmEmail(ctx, to, token)
 	} else {
@@ -145,7 +135,7 @@ var goConfirmEmail = func(c *Confirm, ctx *authboss.Context, to, token string) {
 }
 
 // confirmEmail sends a confirmation e-mail.
-func (c *Confirm) confirmEmail(ctx *authboss.Context, to, token string) {
+func (c *Confirm) confirmEmail(ctx context.Context, to, token string) {
 	p := path.Join(c.MountPath, "confirm")
 	url := fmt.Sprintf("%s%s?%s=%s", c.RootURL, p, url.QueryEscape(FormValueConfirm), url.QueryEscape(token))
 
@@ -161,7 +151,7 @@ func (c *Confirm) confirmEmail(ctx *authboss.Context, to, token string) {
 	}
 }
 
-func (c *Confirm) confirmHandler(ctx *authboss.Context, w http.ResponseWriter, r *http.Request) error {
+func (c *Confirm) confirmHandler(w http.ResponseWriter, r *http.Request) error {
 	token := r.FormValue(FormValueConfirm)
 	if len(token) == 0 {
 		return authboss.ClientDataErr{Name: FormValueConfirm}

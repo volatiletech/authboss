@@ -2,6 +2,7 @@
 package mocks
 
 import (
+	"context"
 	"io"
 	"net/http"
 	"net/url"
@@ -25,113 +26,99 @@ type MockUser struct {
 	Locked             bool
 	AttemptNumber      int
 	AttemptTime        time.Time
-	OauthToken         string
-	OauthRefresh       string
-	OauthExpiry        time.Time
+	OAuthToken         string
+	OAuthRefresh       string
+	OAuthExpiry        time.Time
+}
+
+func (m MockUser) GetUsername(context.Context) (string, error)     { return m.Username, nil }
+func (m MockUser) GetEmail(context.Context) (string, error)        { return m.Email, nil }
+func (m MockUser) GetPassword(context.Context) (string, error)     { return m.Password, nil }
+func (m MockUser) GetRecoverToken(context.Context) (string, error) { return m.RecoverToken, nil }
+func (m MockUser) GetRecoverTokenExpiry(context.Context) (time.Time, error) {
+	return m.RecoverTokenExpiry, nil
+}
+func (m MockUser) GetConfirmToken(context.Context) (string, error) { return m.ConfirmToken, nil }
+func (m MockUser) GetConfirmed(context.Context) (bool, error)      { return m.Confirmed, nil }
+func (m MockUser) GetLocked(context.Context) (bool, error)         { return m.Locked, nil }
+func (m MockUser) GetAttemptNumber(context.Context) (int, error)   { return m.AttemptNumber, nil }
+func (m MockUser) GetAttemptTime(context.Context) (time.Time, error) {
+	return m.AttemptTime, nil
+}
+func (m MockUser) GetOAuthToken(context.Context) (string, error)   { return m.OAuthToken, nil }
+func (m MockUser) GetOAuthRefresh(context.Context) (string, error) { return m.OAuthRefresh, nil }
+func (m MockUser) GetOAuthExpiry(context.Context) (time.Time, error) {
+	return m.OAuthExpiry, nil
+}
+
+func (m *MockUser) SetUsername(ctx context.Context, username string) error {
+	m.Username = username
+	return nil
+}
+func (m *MockUser) SetEmail(ctx context.Context, email string) error {
+	m.Email = email
+	return nil
+}
+func (m *MockUser) SetPassword(ctx context.Context, password string) error {
+	m.Password = password
+	return nil
+}
+func (m *MockUser) SetRecoverToken(ctx context.Context, recoverToken string) error {
+	m.RecoverToken = recoverToken
+	return nil
+}
+func (m *MockUser) SetRecoverTokenExpiry(ctx context.Context, recoverTokenExpiry time.Time) error {
+	m.RecoverTokenExpiry = recoverTokenExpiry
+	return nil
+}
+func (m *MockUser) SetConfirmToken(ctx context.Context, confirmToken string) error {
+	m.ConfirmToken = confirmToken
+	return nil
+}
+func (m *MockUser) SetConfirmed(ctx context.Context, confirmed bool) error {
+	m.Confirmed = confirmed
+	return nil
+}
+func (m *MockUser) SetLocked(ctx context.Context, locked bool) error {
+	m.Locked = locked
+	return nil
+}
+func (m *MockUser) SetAttemptNumber(ctx context.Context, attemptNumber int) error {
+	m.AttemptNumber = attemptNumber
+	return nil
+}
+func (m *MockUser) SetAttemptTime(ctx context.Context, attemptTime time.Time) error {
+	m.AttemptTime = attemptTime
+	return nil
+}
+func (m *MockUser) SetOAuthToken(ctx context.Context, oAuthToken string) error {
+	m.OAuthToken = oAuthToken
+	return nil
+}
+func (m *MockUser) SetOAuthRefresh(ctx context.Context, oAuthRefresh string) error {
+	m.OAuthRefresh = oAuthRefresh
+	return nil
+}
+func (m *MockUser) SetOAuthExpiry(ctx context.Context, oAuthExpiry time.Time) error {
+	m.OAuthExpiry = oAuthExpiry
+	return nil
 }
 
 // MockStorer should be valid for any module storer defined in authboss.
-type MockStorer struct {
-	Users          map[string]authboss.Attributes
-	Tokens         map[string][]string
-	CreateErr      string
-	PutErr         string
-	GetErr         string
-	AddTokenErr    string
-	DelTokensErr   string
-	UseTokenErr    string
-	RecoverUserErr string
-	ConfirmUserErr string
+type MockStoreLoader struct {
+	Users    map[string]*MockUser
+	RMTokens map[string][]string
 }
 
 // NewMockStorer constructor
-func NewMockStorer() *MockStorer {
-	return &MockStorer{
-		Users:  make(map[string]authboss.Attributes),
-		Tokens: make(map[string][]string),
+func NewMockStoreLoader() *MockStoreLoader {
+	return &MockStoreLoader{
+		Users:    make(map[string]*MockUser),
+		RMTokens: make(map[string][]string),
 	}
 }
 
-// Create a new user
-func (m *MockStorer) Create(key string, attr authboss.Attributes) error {
-	if len(m.CreateErr) > 0 {
-		return errors.New(m.CreateErr)
-	}
-
-	m.Users[key] = attr
-	return nil
-}
-
-// Put updates to a user
-func (m *MockStorer) Put(key string, attr authboss.Attributes) error {
-	if len(m.PutErr) > 0 {
-		return errors.New(m.PutErr)
-	}
-
-	if _, ok := m.Users[key]; !ok {
-		m.Users[key] = attr
-		return nil
-	}
-	for k, v := range attr {
-		m.Users[key][k] = v
-	}
-	return nil
-}
-
-// Get a user
-func (m *MockStorer) Get(key string) (result interface{}, err error) {
-	if len(m.GetErr) > 0 {
-		return nil, errors.New(m.GetErr)
-	}
-
-	userAttrs, ok := m.Users[key]
-	if !ok {
-		return nil, authboss.ErrUserNotFound
-	}
-
-	u := &MockUser{}
-	if err := userAttrs.Bind(u, true); err != nil {
-		panic(err)
-	}
-
-	return u, nil
-}
-
-// PutOAuth user
-func (m *MockStorer) PutOAuth(uid, provider string, attr authboss.Attributes) error {
-	if len(m.PutErr) > 0 {
-		return errors.New(m.PutErr)
-	}
-
-	if _, ok := m.Users[uid+provider]; !ok {
-		m.Users[uid+provider] = attr
-		return nil
-	}
-	for k, v := range attr {
-		m.Users[uid+provider][k] = v
-	}
-	return nil
-}
-
-// GetOAuth user
-func (m *MockStorer) GetOAuth(uid, provider string) (result interface{}, err error) {
-	if len(m.GetErr) > 0 {
-		return nil, errors.New(m.GetErr)
-	}
-
-	userAttrs, ok := m.Users[uid+provider]
-	if !ok {
-		return nil, authboss.ErrUserNotFound
-	}
-
-	u := &MockUser{}
-	if err := userAttrs.Bind(u, true); err != nil {
-		panic(err)
-	}
-
-	return u, nil
-}
-
+/*
 // AddToken for remember me
 func (m *MockStorer) AddToken(key, token string) error {
 	if len(m.AddTokenErr) > 0 {
@@ -211,23 +198,26 @@ func (m *MockStorer) ConfirmUser(confirmToken string) (result interface{}, err e
 
 	return nil, authboss.ErrUserNotFound
 }
+*/
 
 // MockFailStorer is used for testing module initialize functions that recover more than the base storer
-type MockFailStorer struct{}
+type MockFailStorer struct {
+	MockUser
+}
 
 // Create fails
-func (_ MockFailStorer) Create(_ string, _ authboss.Attributes) error {
+func (_ MockFailStorer) Create(context.Context) error {
 	return errors.New("fail storer: create")
 }
 
 // Put fails
-func (_ MockFailStorer) Put(_ string, _ authboss.Attributes) error {
+func (_ MockFailStorer) Save(context.Context) error {
 	return errors.New("fail storer: put")
 }
 
 // Get fails
-func (_ MockFailStorer) Get(_ string) (interface{}, error) {
-	return nil, errors.New("fail storer: get")
+func (_ MockFailStorer) Load(context.Context) error {
+	return errors.New("fail storer: get")
 }
 
 // MockClientStorer is used for testing the client stores on context
@@ -322,7 +312,7 @@ func NewMockMailer() *MockMailer {
 }
 
 // Send an e-mail
-func (m *MockMailer) Send(email authboss.Email) error {
+func (m *MockMailer) Send(ctx context.Context, email authboss.Email) error {
 	if len(m.SendErr) > 0 {
 		return errors.New(m.SendErr)
 	}
@@ -341,7 +331,7 @@ type MockAfterCallback struct {
 func NewMockAfterCallback() *MockAfterCallback {
 	m := MockAfterCallback{}
 
-	m.Fn = func(_ *authboss.Context) error {
+	m.Fn = func(context.Context) error {
 		m.HasBeenCalled = true
 		return nil
 	}

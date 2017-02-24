@@ -76,7 +76,7 @@ func TestBoundary(t *testing.T) {
 	t.Parallel()
 
 	mailer := smtpMailer{"server", nil, rand.New(rand.NewSource(3))}
-	if got := mailer.boundary(); got != "ntadoe" {
+	if got := mailer.boundary(); got != "fe3fhpsm69lx8jvnrnju0wr" {
 		t.Error("boundary was wrong", got)
 	}
 }

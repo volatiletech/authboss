@@ -1,9 +1,6 @@
 package authboss
 
-import (
-	"net/http"
-	"testing"
-)
+import "testing"
 
 type testClientStorerErr string
 
@@ -36,9 +33,7 @@ func TestFlashClearer(t *testing.T) {
 
 	session := mockClientStore{FlashSuccessKey: "success", FlashErrorKey: "error"}
 	ab := New()
-	ab.SessionStoreMaker = func(w http.ResponseWriter, r *http.Request) ClientStorer {
-		return session
-	}
+	ab.SessionStoreMaker = newMockClientStoreMaker(session)
 
 	if msg := ab.FlashSuccess(nil, nil); msg != "success" {
 		t.Error("Unexpected flash success:", msg)

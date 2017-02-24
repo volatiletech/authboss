@@ -3,7 +3,6 @@ package authboss
 import (
 	"bytes"
 	"context"
-	"strings"
 	"testing"
 
 	"github.com/pkg/errors"
@@ -116,10 +115,6 @@ func TestCallbacksBeforeErrors(t *testing.T) {
 	if before2 {
 		t.Error("Before2 should not have been called.")
 	}
-
-	if estr := log.String(); !strings.Contains(estr, errValue.Error()) {
-		t.Error("Error string wrong:", estr)
-	}
 }
 
 func TestCallbacksAfterErrors(t *testing.T) {
@@ -152,10 +147,6 @@ func TestCallbacksAfterErrors(t *testing.T) {
 	}
 	if after2 {
 		t.Error("After2 should not have been called.")
-	}
-
-	if estr := log.String(); !strings.Contains(estr, errValue.Error()) {
-		t.Error("Error string wrong:", estr)
 	}
 }
 

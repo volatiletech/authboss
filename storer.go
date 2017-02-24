@@ -3,7 +3,6 @@ package authboss
 import (
 	"bytes"
 	"context"
-	"reflect"
 	"time"
 
 	"github.com/pkg/errors"
@@ -73,9 +72,11 @@ type ArbitraryStorer interface {
 	GetArbitrary(ctx context.Context) (arbitrary map[string]string, err error)
 }
 
-// OAuth2Storer allows reading and writing values
+// OAuth2Storer allows reading and writing values relating to OAuth2
 type OAuth2Storer interface {
 	Storer
+
+	IsOAuth2User(ctx context.Context) (bool, error)
 
 	PutUID(ctx context.Context, uid string) error
 	PutProvider(ctx context.Context, provider string) error
@@ -88,36 +89,6 @@ type OAuth2Storer interface {
 	GetToken(ctx context.Context) (token string, err error)
 	GetRefreshToken(ctx context.Context) (refreshToken string, err error)
 	GetExpiry(ctx context.Context) (expiry time.Duration, err error)
-}
-
-// DataType represents the various types that clients must be able to store.
-type DataType int
-
-// DataType constants
-const (
-	Integer DataType = iota
-	String
-	Bool
-	DateTime
-)
-
-var (
-	dateTimeType = reflect.TypeOf(time.Time{})
-)
-
-// String returns a string for the DataType representation.
-func (d DataType) String() string {
-	switch d {
-	case Integer:
-		return "Integer"
-	case String:
-		return "String"
-	case Bool:
-		return "Bool"
-	case DateTime:
-		return "DateTime"
-	}
-	return ""
 }
 
 func camelToUnder(in string) string {

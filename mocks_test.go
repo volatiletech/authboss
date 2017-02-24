@@ -2,6 +2,7 @@ package authboss
 
 import (
 	"context"
+	"encoding/json"
 	"net/http"
 	"net/url"
 	"strings"
@@ -77,7 +78,19 @@ func (m mockStoredUser) GetPassword(ctx context.Context) (password string, err e
 	return m.Password, nil
 }
 
+type mockClientStoreMaker struct {
+	store mockClientStore
+}
 type mockClientStore map[string]string
+
+func newMockClientStoreMaker(store mockClientStore) mockClientStoreMaker {
+	return mockClientStoreMaker{
+		store: store,
+	}
+}
+func (m mockClientStoreMaker) Make(w http.ResponseWriter, r *http.Request) ClientStorer {
+	return m.store
+}
 
 func (m mockClientStore) Get(key string) (string, bool) {
 	v, ok := m[key]
@@ -124,4 +137,21 @@ func (m mockValidator) Errors(in string) ErrorList {
 
 func (m mockValidator) Rules() []string {
 	return m.Ruleset
+}
+
+type mockRenderLoader struct{}
+
+func (m mockRenderLoader) Init(names []string) (Renderer, error) {
+	return mockRenderer{}, nil
+}
+
+type mockRenderer struct{}
+
+func (m mockRenderer) Render(ctx context.Context, name string, data HTMLData) ([]byte, string, error) {
+	b, err := json.Marshal(data)
+	if err != nil {
+		return nil, "", err
+	}
+
+	return b, "application/json", nil
 }

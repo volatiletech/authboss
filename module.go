@@ -8,6 +8,7 @@ var registeredModules = make(map[string]Modularizer)
 type Modularizer interface {
 	Initialize(*Authboss) error
 	Routes() RouteTable
+	Templates() []string
 }
 
 // RegisterModule with the core providing all the necessary information to
@@ -55,6 +56,7 @@ func (a *Authboss) loadModule(name string) error {
 	}
 	mod, ok := value.Interface().(Modularizer)
 	a.loadedModules[name] = mod
+	a.templateNames = append(a.templateNames, mod.Templates()...)
 	return mod.Initialize(a)
 }
 

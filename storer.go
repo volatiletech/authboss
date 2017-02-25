@@ -61,6 +61,10 @@ type Storer interface {
 	Load(ctx context.Context) error
 }
 
+// TODO(aarondl): Document & move to Register module
+// ArbitraryStorer allows arbitrary data from the web form through. You should
+// definitely only pull the keys you want from the map, since this is unfiltered
+// input from a web request and is an attack vector.
 type ArbitraryStorer interface {
 	Storer
 

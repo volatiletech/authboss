@@ -97,14 +97,16 @@ type Config struct {
 	// Storer is the interface through which Authboss accesses the web apps database.
 	StoreLoader StoreLoader
 
-	// CookieStoreMaker must be defined to provide an interface capapable of storing cookies
-	// for the given response, and reading them from the request.
-	CookieStoreMaker ClientStoreMaker
-	// SessionStoreMaker must be defined to provide an interface capable of storing session-only
-	// values for the given response, and reading them from the request.
-	SessionStoreMaker ClientStoreMaker
-	// LogWriter is written to when errors occur, as well as on startup to show which modules are loaded
-	// and which routes they registered. By default writes to io.Discard.
+	// CookieStateStorer must be defined to provide an interface capapable of
+	// storing cookies for the given response, and reading them from the request.
+	CookieStateStorer ClientStateReadWriter
+	// SessionStateStorer must be defined to provide an interface capable of
+	// storing session-only values for the given response, and reading them
+	// from the request.
+	SessionStateStorer ClientStateReadWriter
+	// LogWriter is written to when errors occur, as well as on startup to show
+	// which modules are loaded and which routes they registered. By default
+	// writes to io.Discard.
 	LogWriter io.Writer
 	// Mailer is the mailer being used to send e-mails out. Authboss defines two loggers for use
 	// LogMailer and SMTPMailer, the default is a LogMailer to io.Discard.

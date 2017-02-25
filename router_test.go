@@ -31,8 +31,8 @@ func testRouterSetup() (*Authboss, http.Handler, *bytes.Buffer) {
 	ab.ViewLoader = mockRenderLoader{}
 	ab.Init(testRouterModName)
 	ab.MountPath = "/prefix"
-	ab.SessionStoreMaker = newMockClientStoreMaker(mockClientStore{})
-	ab.CookieStoreMaker = newMockClientStoreMaker(mockClientStore{})
+	//ab.SessionStoreMaker = newMockClientStoreMaker(mockClientStore{})
+	//ab.CookieStoreMaker = newMockClientStoreMaker(mockClientStore{})
 
 	logger.Reset() // Clear out the module load messages
 

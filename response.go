@@ -7,30 +7,8 @@ import (
 	"github.com/pkg/errors"
 )
 
-// RedirectOptions packages up all the pieces a module needs to write out a
-// response.
-type RedirectOptions struct {
-	// Success & Failure are used to set Flash messages / JSON messages
-	// if set. They should be mutually exclusive.
-	Success string
-	Failure string
-
-	// Code is used when it's an API request instead of 200.
-	Code int
-
-	// When a request should redirect a user somewhere on completion, these
-	// should be set. RedirectURL tells it where to go. And optionally set
-	// FollowRedirParam to override the RedirectURL if the form parameter defined
-	// by FormValueRedirect is passed in the request.
-	//
-	// Redirecting works differently whether it's an API request or not.
-	// If it's an API request, then it will leave the URL in a "redirect"
-	// parameter.
-	RedirectPath     string
-	FollowRedirParam bool
-}
-
-// Respond to an HTTP request.
+// Respond to an HTTP request. Renders templates, flash messages, does XSRF
+// and writes the headers out.
 func (a *Authboss) Respond(w http.ResponseWriter, r *http.Request, code int, templateName string, data HTMLData) error {
 	data.MergeKV(
 		"xsrfName", template.HTML(a.XSRFName),
@@ -41,14 +19,13 @@ func (a *Authboss) Respond(w http.ResponseWriter, r *http.Request, code int, tem
 		data.Merge(a.LayoutDataMaker(w, r))
 	}
 
-	session := a.SessionStoreMaker.Make(w, r)
-	if flash, ok := session.Get(FlashSuccessKey); ok {
-		session.Del(FlashSuccessKey)
-		data.MergeKV(FlashSuccessKey, flash)
+	flashSuccess := FlashSuccess(w, r)
+	flashError := FlashError(w, r)
+	if len(flashSuccess) != 0 {
+		data.MergeKV(FlashSuccessKey, flashSuccess)
 	}
-	if flash, ok := session.Get(FlashErrorKey); ok {
-		session.Del(FlashErrorKey)
-		data.MergeKV(FlashErrorKey, flash)
+	if len(flashError) != 0 {
+		data.MergeKV(FlashErrorKey, flashError)
 	}
 
 	rendered, mime, err := a.renderer.Render(r.Context(), templateName, data)
@@ -91,6 +68,29 @@ func (a *Authboss) Email(w http.ResponseWriter, r *http.Request, email Email, ro
 	}
 
 	return a.Mailer.Send(ctx, email)
+}
+
+// RedirectOptions packages up all the pieces a module needs to write out a
+// response.
+type RedirectOptions struct {
+	// Success & Failure are used to set Flash messages / JSON messages
+	// if set. They should be mutually exclusive.
+	Success string
+	Failure string
+
+	// Code is used when it's an API request instead of 200.
+	Code int
+
+	// When a request should redirect a user somewhere on completion, these
+	// should be set. RedirectURL tells it where to go. And optionally set
+	// FollowRedirParam to override the RedirectURL if the form parameter defined
+	// by FormValueRedirect is passed in the request.
+	//
+	// Redirecting works differently whether it's an API request or not.
+	// If it's an API request, then it will leave the URL in a "redirect"
+	// parameter.
+	RedirectPath     string
+	FollowRedirParam bool
 }
 
 // Redirect the client elsewhere. If it's an API request it will simply render
@@ -155,12 +155,10 @@ func (a *Authboss) redirectNonAPI(w http.ResponseWriter, r *http.Request, ro Red
 	}
 
 	if len(ro.Success) != 0 {
-		session := a.SessionStoreMaker.Make(w, r)
-		session.Put(FlashSuccessKey, ro.Success)
+		PutSession(w, FlashSuccessKey, ro.Success)
 	}
 	if len(ro.Failure) != 0 {
-		session := a.SessionStoreMaker.Make(w, r)
-		session.Put(FlashErrorKey, ro.Failure)
+		PutSession(w, FlashErrorKey, ro.Failure)
 	}
 
 	http.Redirect(w, r, path, http.StatusFound)

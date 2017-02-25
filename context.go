@@ -10,6 +10,9 @@ type contextKey string
 const (
 	ctxKeyPID  contextKey = "pid"
 	ctxKeyUser contextKey = "user"
+
+	ctxKeySessionState contextKey = "session"
+	ctxKeyCookieState  contextKey = "cookie"
 )
 
 func (c contextKey) String() string {
@@ -27,8 +30,7 @@ func (a *Authboss) CurrentUserID(w http.ResponseWriter, r *http.Request) (string
 		return "", err
 	}
 
-	session := a.SessionStoreMaker.Make(w, r)
-	pid, _ := session.Get(SessionKey)
+	pid, _ := GetSession(r, SessionKey)
 	return pid, nil
 }
 

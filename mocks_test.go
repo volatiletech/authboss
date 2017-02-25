@@ -1,6 +1,7 @@
 package authboss
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"net/http"
@@ -78,35 +79,59 @@ func (m mockStoredUser) GetPassword(ctx context.Context) (password string, err e
 	return m.Password, nil
 }
 
-type mockClientStoreMaker struct {
-	store mockClientStore
+type mockClientStateReadWriter struct {
+	state mockClientState
 }
-type mockClientStore map[string]string
 
-func newMockClientStoreMaker(store mockClientStore) mockClientStoreMaker {
-	return mockClientStoreMaker{
-		store: store,
+type mockClientState map[string]string
+
+func newMockClientStateRW(keyValue ...string) mockClientStateReadWriter {
+	state := mockClientState{}
+	for i := 0; i < len(keyValue); i += 2 {
+		key, value := keyValue[i], keyValue[i+1]
+		state[key] = value
 	}
-}
-func (m mockClientStoreMaker) Make(w http.ResponseWriter, r *http.Request) ClientStorer {
-	return m.store
+
+	return mockClientStateReadWriter{state}
 }
 
-func (m mockClientStore) Get(key string) (string, bool) {
-	v, ok := m[key]
-	return v, ok
+func (m mockClientStateReadWriter) ReadState(w http.ResponseWriter, r *http.Request) (ClientState, error) {
+	return m.state, nil
 }
-func (m mockClientStore) GetErr(key string) (string, error) {
-	v, ok := m[key]
-	if !ok {
-		return v, ClientDataErr{key}
+
+func (m mockClientStateReadWriter) WriteState(w http.ResponseWriter, cs ClientState, evs []ClientStateEvent) error {
+	var state mockClientState
+
+	if cs != nil {
+		state = cs.(mockClientState)
+	} else {
+		state = mockClientState{}
 	}
-	return v, nil
-}
-func (m mockClientStore) Put(key, val string) { m[key] = val }
-func (m mockClientStore) Del(key string)      { delete(m, key) }
 
-func mockRequest(postKeyValues ...string) *http.Request {
+	for _, ev := range evs {
+		switch ev.Kind {
+		case ClientStateEventPut:
+			state[ev.Key] = ev.Value
+		case ClientStateEventDel:
+			delete(state, ev.Key)
+		}
+	}
+
+	b, err := json.Marshal(state)
+	if err != nil {
+		return err
+	}
+
+	w.Header().Set("test_session", string(b))
+	return nil
+}
+
+func (m mockClientState) Get(key string) (string, bool) {
+	val, ok := m[key]
+	return val, ok
+}
+
+func newMockRequest(postKeyValues ...string) *http.Request {
 	urlValues := make(url.Values)
 	for i := 0; i < len(postKeyValues); i += 2 {
 		urlValues.Set(postKeyValues[i], postKeyValues[i+1])
@@ -117,6 +142,27 @@ func mockRequest(postKeyValues ...string) *http.Request {
 		panic(err.Error())
 	}
 	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+
+	return req
+}
+
+func newMockAPIRequest(postKeyValues ...string) *http.Request {
+	kv := map[string]string{}
+	for i := 0; i < len(postKeyValues); i += 2 {
+		key, value := postKeyValues[i], postKeyValues[i+1]
+		kv[key] = value
+	}
+
+	b, err := json.Marshal(kv)
+	if err != nil {
+		panic(err)
+	}
+
+	req, err := http.NewRequest("POST", "http://localhost", bytes.NewReader(b))
+	if err != nil {
+		panic(err)
+	}
+	req.Header.Set("Content-Type", "application/json")
 
 	return req
 }

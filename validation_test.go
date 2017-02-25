@@ -65,7 +65,7 @@ func TestErrorList_Map(t *testing.T) {
 func TestValidate(t *testing.T) {
 	t.Parallel()
 
-	req := mockRequest(StoreUsername, "john", StoreEmail, "john@john.com")
+	req := newMockRequest(StoreUsername, "john", StoreEmail, "john@john.com")
 
 	errList := Validate(req, []Validator{
 		mockValidator{
@@ -96,19 +96,19 @@ func TestValidate(t *testing.T) {
 func TestValidate_Confirm(t *testing.T) {
 	t.Parallel()
 
-	req := mockRequest(StoreUsername, "john", "confirmUsername", "johnny")
+	req := newMockRequest(StoreUsername, "john", "confirmUsername", "johnny")
 	errs := Validate(req, nil, StoreUsername, "confirmUsername").Map()
 	if errs["confirmUsername"][0] != "Does not match username" {
 		t.Error("Expected a different error for confirmUsername:", errs["confirmUsername"][0])
 	}
 
-	req = mockRequest(StoreUsername, "john", "confirmUsername", "john")
+	req = newMockRequest(StoreUsername, "john", "confirmUsername", "john")
 	errs = Validate(req, nil, StoreUsername, "confirmUsername").Map()
 	if len(errs) != 0 {
 		t.Error("Expected no errors:", errs)
 	}
 
-	req = mockRequest(StoreUsername, "john", "confirmUsername", "john")
+	req = newMockRequest(StoreUsername, "john", "confirmUsername", "john")
 	errs = Validate(req, nil, StoreUsername).Map()
 	if len(errs) != 0 {
 		t.Error("Expected no errors:", errs)

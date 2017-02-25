@@ -9,10 +9,12 @@ var nowTime = time.Now
 
 // TimeToExpiry returns zero if the user session is expired else the time until expiry.
 func (a *Authboss) TimeToExpiry(w http.ResponseWriter, r *http.Request) time.Duration {
-	return a.timeToExpiry(a.SessionStoreMaker.Make(w, r))
+	//TODO(aarondl): Rewrite this so it makes sense with new ClientStorer idioms
+	//return a.timeToExpiry(state.(ClientState))
+	return 0
 }
 
-func (a *Authboss) timeToExpiry(session ClientStorer) time.Duration {
+func (a *Authboss) timeToExpiry(session ClientState) time.Duration {
 	dateStr, ok := session.Get(SessionLastAction)
 	if !ok {
 		return a.ExpireAfter
@@ -33,12 +35,13 @@ func (a *Authboss) timeToExpiry(session ClientStorer) time.Duration {
 
 // RefreshExpiry  updates the last action for the user, so he doesn't become expired.
 func (a *Authboss) RefreshExpiry(w http.ResponseWriter, r *http.Request) {
-	session := a.SessionStoreMaker.Make(w, r)
-	a.refreshExpiry(session)
+	//TODO(aarondl): Fix
+	//a.refreshExpiry(session)
 }
 
-func (a *Authboss) refreshExpiry(session ClientStorer) {
-	session.Put(SessionLastAction, nowTime().UTC().Format(time.RFC3339))
+func (a *Authboss) refreshExpiry(session ClientState) {
+	//TODO(aarondl): Fix
+	PutSession(nil, SessionLastAction, nowTime().UTC().Format(time.RFC3339))
 }
 
 type expireMiddleware struct {
@@ -57,16 +60,17 @@ func (a *Authboss) ExpireMiddleware(next http.Handler) http.Handler {
 
 // ServeHTTP removes the session if it's passed the expire time.
 func (m expireMiddleware) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	session := m.ab.SessionStoreMaker.Make(w, r)
-	if _, ok := session.Get(SessionKey); ok {
-		ttl := m.ab.timeToExpiry(session)
-		if ttl == 0 {
-			session.Del(SessionKey)
-			session.Del(SessionLastAction)
-		} else {
-			m.ab.refreshExpiry(session)
+	//TODO(aarondl): Fix
+	/*
+		if _, ok := GetSession(r, SessionKey); ok {
+			ttl := m.ab.timeToExpiry(session)
+			if ttl == 0 {
+				session.Del(SessionKey)
+				session.Del(SessionLastAction)
+			} else {
+				m.ab.refreshExpiry(session)
+			}
 		}
-	}
 
-	m.next.ServeHTTP(w, r)
+		m.next.ServeHTTP(w, r)*/
 }

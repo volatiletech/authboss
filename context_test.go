@@ -1,16 +1,59 @@
 package authboss
 
-/* TODO(aarondl): Re-enable
+import (
+	"context"
+	"net/http"
+	"net/http/httptest"
+	"testing"
+)
+
+func loadClientStateP(ab *Authboss, w http.ResponseWriter, r *http.Request) *http.Request {
+	r, err := ab.LoadClientState(w, r)
+	if err != nil {
+		panic(err)
+	}
+	return r
+}
+
+func testSetupContext() (*Authboss, *http.Request) {
+	ab := New()
+	ab.SessionStateStorer = newMockClientStateRW(SessionKey, "george-pid")
+	ab.StoreLoader = mockStoreLoader{
+		"george-pid": mockUser{Email: "george-pid", Password: "unreadable"},
+	}
+	r := loadClientStateP(ab, nil, httptest.NewRequest("GET", "/", nil))
+
+	return ab, r
+}
+
+func testSetupContextCached() (*Authboss, mockUser, *http.Request) {
+	ab := New()
+	wantUser := mockUser{Email: "george-pid", Password: "unreadable"}
+	storer := mockStoredUser{
+		mockUser: wantUser,
+	}
+	req := httptest.NewRequest("GET", "/", nil)
+	ctx := context.WithValue(req.Context(), ctxKeyPID, "george-pid")
+	ctx = context.WithValue(ctx, ctxKeyUser, storer)
+	req = req.WithContext(ctx)
+
+	return ab, wantUser, req
+}
+
+func testSetupContextPanic() *Authboss {
+	ab := New()
+	ab.SessionStateStorer = newMockClientStateRW(SessionKey, "george-pid")
+	ab.StoreLoader = mockStoreLoader{}
+
+	return ab
+}
 
 func TestCurrentUserID(t *testing.T) {
 	t.Parallel()
 
-	ab := New()
-	ab.SessionStoreMaker = newMockClientStoreMaker(mockClientStore{
-		SessionKey: "george-pid",
-	})
+	ab, r := testSetupContext()
 
-	id, err := ab.CurrentUserID(nil, httptest.NewRequest("GET", "/", nil))
+	id, err := ab.CurrentUserID(nil, r)
 	if err != nil {
 		t.Error(err)
 	}
@@ -23,10 +66,9 @@ func TestCurrentUserID(t *testing.T) {
 func TestCurrentUserIDContext(t *testing.T) {
 	t.Parallel()
 
-	ab := New()
-	req := httptest.NewRequest("GET", "/", nil)
-	req = req.WithContext(context.WithValue(req.Context(), ctxKeyPID, "george-pid"))
-	id, err := ab.CurrentUserID(nil, req)
+	ab, r := testSetupContext()
+
+	id, err := ab.CurrentUserID(nil, r)
 	if err != nil {
 		t.Error(err)
 	}
@@ -39,8 +81,9 @@ func TestCurrentUserIDContext(t *testing.T) {
 func TestCurrentUserIDP(t *testing.T) {
 	t.Parallel()
 
-	ab := New()
-	ab.SessionStoreMaker = newMockClientStoreMaker(mockClientStore{})
+	ab := testSetupContextPanic()
+	// Overwrite the setup functions state storer
+	ab.SessionStateStorer = newMockClientStateRW()
 
 	defer func() {
 		if recover().(error) != ErrUserNotFound {
@@ -54,15 +97,9 @@ func TestCurrentUserIDP(t *testing.T) {
 func TestCurrentUser(t *testing.T) {
 	t.Parallel()
 
-	ab := New()
-	ab.SessionStoreMaker = newMockClientStoreMaker(mockClientStore{
-		SessionKey: "george-pid",
-	})
-	ab.StoreLoader = mockStoreLoader{
-		"george-pid": mockUser{Email: "george-pid", Password: "unreadable"},
-	}
+	ab, r := testSetupContext()
 
-	user, err := ab.CurrentUser(nil, httptest.NewRequest("GET", "/", nil))
+	user, err := ab.CurrentUser(nil, r)
 	if err != nil {
 		t.Error(err)
 	}
@@ -77,17 +114,9 @@ func TestCurrentUser(t *testing.T) {
 func TestCurrentUserContext(t *testing.T) {
 	t.Parallel()
 
-	ab := New()
-	wantUser := mockStoredUser{
-		mockUser: mockUser{Email: "george-pid", Password: "unreadable"},
-	}
+	ab, _, r := testSetupContextCached()
 
-	req := httptest.NewRequest("GET", "/", nil)
-	ctx := context.WithValue(req.Context(), ctxKeyPID, "george-id")
-	ctx = context.WithValue(ctx, ctxKeyUser, wantUser)
-	req = req.WithContext(ctx)
-
-	user, err := ab.CurrentUser(nil, req)
+	user, err := ab.CurrentUser(nil, r)
 	if err != nil {
 		t.Error(err)
 	}
@@ -102,11 +131,7 @@ func TestCurrentUserContext(t *testing.T) {
 func TestCurrentUserP(t *testing.T) {
 	t.Parallel()
 
-	ab := New()
-	ab.SessionStoreMaker = newMockClientStoreMaker(mockClientStore{
-		SessionKey: "george-pid",
-	})
-	ab.StoreLoader = mockStoreLoader{}
+	ab := testSetupContextPanic()
 
 	defer func() {
 		if recover().(error) != ErrUserNotFound {
@@ -120,14 +145,9 @@ func TestCurrentUserP(t *testing.T) {
 func TestLoadCurrentUserID(t *testing.T) {
 	t.Parallel()
 
-	ab := New()
-	ab.SessionStoreMaker = newMockClientStoreMaker(mockClientStore{
-		SessionKey: "george-pid",
-	})
+	ab, r := testSetupContext()
 
-	req := httptest.NewRequest("GET", "/", nil)
-
-	id, err := ab.LoadCurrentUserID(nil, &req)
+	id, err := ab.LoadCurrentUserID(nil, &r)
 	if err != nil {
 		t.Error(err)
 	}
@@ -136,16 +156,30 @@ func TestLoadCurrentUserID(t *testing.T) {
 		t.Error("got:", id)
 	}
 
-	if req.Context().Value(ctxKeyPID).(string) != "george-pid" {
+	if r.Context().Value(ctxKeyPID).(string) != "george-pid" {
 		t.Error("context was not updated in local request")
+	}
+}
+
+func TestLoadCurrentUserIDContext(t *testing.T) {
+	t.Parallel()
+
+	ab, _, r := testSetupContextCached()
+
+	pid, err := ab.LoadCurrentUserID(nil, &r)
+	if err != nil {
+		t.Error(err)
+	}
+
+	if pid != "george-pid" {
+		t.Error("got:", pid)
 	}
 }
 
 func TestLoadCurrentUserIDP(t *testing.T) {
 	t.Parallel()
 
-	ab := New()
-	ab.SessionStoreMaker = newMockClientStoreMaker(mockClientStore{})
+	ab := testSetupContextPanic()
 
 	defer func() {
 		if recover().(error) != ErrUserNotFound {
@@ -153,23 +187,16 @@ func TestLoadCurrentUserIDP(t *testing.T) {
 		}
 	}()
 
-	req := httptest.NewRequest("GET", "/", nil)
-	_ = ab.LoadCurrentUserIDP(nil, &req)
+	r := httptest.NewRequest("GET", "/", nil)
+	_ = ab.LoadCurrentUserIDP(nil, &r)
 }
 
 func TestLoadCurrentUser(t *testing.T) {
 	t.Parallel()
 
-	ab := New()
-	ab.SessionStoreMaker = newMockClientStoreMaker(mockClientStore{
-		SessionKey: "george-pid",
-	})
-	ab.StoreLoader = mockStoreLoader{
-		"george-pid": mockUser{Email: "george-pid", Password: "unreadable"},
-	}
+	ab, r := testSetupContext()
 
-	req := httptest.NewRequest("GET", "/", nil)
-	user, err := ab.LoadCurrentUser(nil, &req)
+	user, err := ab.LoadCurrentUser(nil, &r)
 	if err != nil {
 		t.Error(err)
 	}
@@ -181,7 +208,7 @@ func TestLoadCurrentUser(t *testing.T) {
 	}
 
 	want := user.(mockStoredUser).mockUser
-	got := req.Context().Value(ctxKeyUser).(mockStoredUser).mockUser
+	got := r.Context().Value(ctxKeyUser).(mockStoredUser).mockUser
 	if got != want {
 		t.Error("users mismatched:\nwant: %#v\ngot: %#v", want, got)
 	}
@@ -190,35 +217,23 @@ func TestLoadCurrentUser(t *testing.T) {
 func TestLoadCurrentUserContext(t *testing.T) {
 	t.Parallel()
 
-	ab := New()
-	wantUser := mockStoredUser{
-		mockUser: mockUser{Email: "george-pid", Password: "unreadable"},
-	}
+	ab, wantUser, r := testSetupContextCached()
 
-	req := httptest.NewRequest("GET", "/", nil)
-	ctx := context.WithValue(req.Context(), ctxKeyPID, "george-id")
-	ctx = context.WithValue(ctx, ctxKeyUser, wantUser)
-	req = req.WithContext(ctx)
-
-	user, err := ab.LoadCurrentUser(nil, &req)
+	user, err := ab.LoadCurrentUser(nil, &r)
 	if err != nil {
 		t.Error(err)
 	}
 
 	got := user.(mockStoredUser).mockUser
-	if got != wantUser.mockUser {
-		t.Error("users mismatched:\nwant: %#v\ngot: %#v", wantUser.mockUser, got)
+	if got != wantUser {
+		t.Error("users mismatched:\nwant: %#v\ngot: %#v", wantUser, got)
 	}
 }
 
 func TestLoadCurrentUserP(t *testing.T) {
 	t.Parallel()
 
-	ab := New()
-	ab.SessionStoreMaker = newMockClientStoreMaker(mockClientStore{
-		SessionKey: "george-pid",
-	})
-	ab.StoreLoader = mockStoreLoader{}
+	ab := testSetupContextPanic()
 
 	defer func() {
 		if recover().(error) != ErrUserNotFound {
@@ -226,7 +241,14 @@ func TestLoadCurrentUserP(t *testing.T) {
 		}
 	}()
 
-	req := httptest.NewRequest("GET", "/", nil)
-	_ = ab.LoadCurrentUserP(nil, &req)
+	r := httptest.NewRequest("GET", "/", nil)
+	_ = ab.LoadCurrentUserP(nil, &r)
 }
-*/
+
+func TestCtxKeyString(t *testing.T) {
+	t.Parallel()
+
+	if got := ctxKeyPID.String(); got != "authboss ctx key pid" {
+		t.Error(got)
+	}
+}

@@ -1,15 +1,30 @@
 package authboss
 
-/* TODO(aarondl): Re-enable
+import (
+	"context"
+	"net/http"
+	"net/http/httptest"
+	"testing"
+	"time"
+)
 
-// These tests use the global variable nowTime so cannot be parallelized
-
-func TestDudeIsExpired(t *testing.T) {
+func TestExpireIsExpired(t *testing.T) {
 	ab := New()
-	session := mockClientStore{SessionKey: "username"}
-	ab.refreshExpiry(session)
+	ab.SessionStateStorer = newMockClientStateRW(
+		SessionKey, "username",
+		SessionLastAction, time.Now().UTC().Format(time.RFC3339),
+	)
 
-	// No t.Parallel()
+	r := httptest.NewRequest("GET", "/", nil)
+	r = r.WithContext(context.WithValue(r.Context(), ctxKeyPID, "primaryid"))
+	r = r.WithContext(context.WithValue(r.Context(), ctxKeyUser, struct{}{}))
+	w := ab.NewResponse(httptest.NewRecorder(), r)
+	r, err := ab.LoadClientState(w, r)
+	if err != nil {
+		t.Error(err)
+	}
+
+	// No t.Parallel() - Also must be after refreshExpiry() call
 	nowTime = func() time.Time {
 		return time.Now().UTC().Add(ab.ExpireAfter * 2)
 	}
@@ -17,62 +32,132 @@ func TestDudeIsExpired(t *testing.T) {
 		nowTime = time.Now
 	}()
 
-	ab.SessionStoreMaker = newMockClientStoreMaker(session)
-
-	r, _ := http.NewRequest("GET", "tra/la/la", nil)
-	w := httptest.NewRecorder()
 	called := false
-
+	hadUser := false
 	m := ab.ExpireMiddleware(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		called = true
+
+		if r.Context().Value(ctxKeyPID) != nil {
+			hadUser = true
+		}
+		if r.Context().Value(ctxKeyUser) != nil {
+			hadUser = true
+		}
 	}))
 
 	m.ServeHTTP(w, r)
 
 	if !called {
-		t.Error("Expected middleware to call handler")
+		t.Error("expected middleware to call handler")
+	}
+	if hadUser {
+		t.Error("expected user not to be present")
 	}
 
-	if key, ok := session.Get(SessionKey); ok {
-		t.Error("Unexpected session key:", key)
-	}
+	csrw := w.(*ClientStateResponseWriter)
 
-	if key, ok := session.Get(SessionLastAction); ok {
-		t.Error("Unexpected last action key:", key)
+	want := ClientStateEvent{
+		Kind: ClientStateEventDel,
+		Key:  SessionKey,
+	}
+	if got := csrw.sessionStateEvents[0]; got != want {
+		t.Error("want:", want, "got:", got)
+	}
+	want = ClientStateEvent{
+		Kind: ClientStateEventDel,
+		Key:  SessionLastAction,
+	}
+	if got := csrw.sessionStateEvents[1]; got != want {
+		t.Error("want:", want, "got:", got)
 	}
 }
 
-func TestDudeIsNotExpired(t *testing.T) {
+func TestExpireNotExpired(t *testing.T) {
 	ab := New()
-	session := mockClientStore{SessionKey: "username"}
-	ab.refreshExpiry(session)
+	ab.SessionStateStorer = newMockClientStateRW(
+		SessionKey, "username",
+		SessionLastAction, time.Now().UTC().Format(time.RFC3339),
+	)
 
-	// No t.Parallel()
+	r := httptest.NewRequest("GET", "/", nil)
+	r = r.WithContext(context.WithValue(r.Context(), ctxKeyPID, "primaryid"))
+	r = r.WithContext(context.WithValue(r.Context(), ctxKeyUser, struct{}{}))
+	w := ab.NewResponse(httptest.NewRecorder(), r)
+	r, err := ab.LoadClientState(w, r)
+	if err != nil {
+		t.Error(err)
+	}
+
+	// No t.Parallel() - Also must be after refreshExpiry() call
+	newTime := time.Now().UTC().Add(ab.ExpireAfter / 2)
 	nowTime = func() time.Time {
-		return time.Now().UTC().Add(ab.ExpireAfter / 2)
+		return newTime
 	}
 	defer func() {
 		nowTime = time.Now
 	}()
 
-	ab.SessionStoreMaker = newMockClientStoreMaker(session)
-
-	r, _ := http.NewRequest("GET", "tra/la/la", nil)
-	w := httptest.NewRecorder()
 	called := false
-
+	hadUser := true
 	m := ab.ExpireMiddleware(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		called = true
+
+		if r.Context().Value(ctxKeyPID) == nil {
+			hadUser = false
+		}
+		if r.Context().Value(ctxKeyUser) == nil {
+			hadUser = false
+		}
 	}))
 
 	m.ServeHTTP(w, r)
 
 	if !called {
-		t.Error("Expected middleware to call handler")
+		t.Error("expected middleware to call handler")
+	}
+	if !hadUser {
+		t.Error("expected user to be present")
 	}
 
-	if key, ok := session.Get(SessionKey); !ok {
-		t.Error("Expected session key:", key)
+	csrw := w.(*ClientStateResponseWriter)
+
+	want := ClientStateEvent{
+		Kind:  ClientStateEventPut,
+		Key:   SessionLastAction,
+		Value: newTime.Format(time.RFC3339),
+	}
+	if got := csrw.sessionStateEvents[0]; got != want {
+		t.Error("want:", want, "got:", got)
 	}
 }
-*/
+
+func TestExpireTimeToExpiry(t *testing.T) {
+	t.Parallel()
+
+	ab := New()
+	r := httptest.NewRequest("GET", "/", nil)
+	w := ab.NewResponse(httptest.NewRecorder(), r)
+
+	want := 5 * time.Second
+	dur := TimeToExpiry(w, r, want)
+	if dur != want {
+		t.Error("duration was wrong:", dur)
+	}
+}
+
+func TestExpireRefreshExpiry(t *testing.T) {
+	t.Parallel()
+
+	ab := New()
+	r := httptest.NewRequest("GET", "/", nil)
+	w := ab.NewResponse(httptest.NewRecorder(), r)
+
+	RefreshExpiry(w, r)
+	csrw := w.(*ClientStateResponseWriter)
+	if got := csrw.sessionStateEvents[0].Kind; got != ClientStateEventPut {
+		t.Error("wrong event:", got)
+	}
+	if got := csrw.sessionStateEvents[0].Key; got != SessionLastAction {
+		t.Error("wrong key:", got)
+	}
+}

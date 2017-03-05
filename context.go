@@ -69,6 +69,8 @@ func (a *Authboss) CurrentUserP(w http.ResponseWriter, r *http.Request) Storer {
 	i, err := a.CurrentUser(w, r)
 	if err != nil {
 		panic(err)
+	} else if i == nil {
+		panic(ErrUserFound)
 	}
 	return i
 }

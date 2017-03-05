@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"net/url"
 	"strings"
@@ -191,13 +192,28 @@ func (m mockRenderLoader) Init(names []string) (Renderer, error) {
 	return mockRenderer{}, nil
 }
 
-type mockRenderer struct{}
+type mockRenderer struct {
+	expectName string
+}
 
 func (m mockRenderer) Render(ctx context.Context, name string, data HTMLData) ([]byte, string, error) {
-	b, err := json.Marshal(data)
-	if err != nil {
-		return nil, "", err
+	if len(m.expectName) != 0 && m.expectName != name {
+		panic(fmt.Sprintf("want template name: %s, but got: %s", m.expectName, name))
 	}
 
-	return b, "application/json", nil
+	b, err := json.Marshal(data)
+	return b, "application/json", err
+}
+
+type mockEmailRenderer struct{}
+
+func (m mockEmailRenderer) Render(ctx context.Context, name string, data HTMLData) ([]byte, string, error) {
+	switch name {
+	case "text":
+		return []byte("a development text e-mail template"), "text/plain", nil
+	case "html":
+		return []byte("a development html e-mail template"), "text/html", nil
+	default:
+		panic("shouldn't get here")
+	}
 }

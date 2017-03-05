@@ -1,7 +1,6 @@
 package authboss
 
 import (
-	"html/template"
 	"net/http"
 
 	"github.com/pkg/errors"
@@ -11,8 +10,8 @@ import (
 // and writes the headers out.
 func (a *Authboss) Respond(w http.ResponseWriter, r *http.Request, code int, templateName string, data HTMLData) error {
 	data.MergeKV(
-		"xsrfName", template.HTML(a.XSRFName),
-		"xsrfToken", template.HTML(a.XSRFMaker(w, r)),
+		"xsrfName", a.XSRFName,
+		"xsrfToken", a.XSRFMaker(w, r),
 	)
 
 	if a.LayoutDataMaker != nil {
@@ -123,7 +122,7 @@ func (a *Authboss) redirectAPI(w http.ResponseWriter, r *http.Request, ro Redire
 	}
 
 	data := HTMLData{
-		"path": path,
+		"location": path,
 	}
 
 	if len(status) != 0 {

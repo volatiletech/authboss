@@ -74,7 +74,7 @@ func LoadTemplates(ab *authboss.Authboss, layout *template.Template, fpath strin
 func (t Templates) Render(ctx *authboss.Context, w http.ResponseWriter, r *http.Request, name string, data authboss.HTMLData) error {
 	tpl, ok := t[name]
 	if !ok {
-		return authboss.RenderErr{TemplateName: tpl.Name(), Data: data, Err: ErrTemplateNotFound}
+		return authboss.RenderErr{TemplateName: name, Data: data, Err: ErrTemplateNotFound}
 	}
 
 	data.MergeKV(

@@ -4,8 +4,8 @@ import (
 	"testing"
 	"time"
 
-	"gopkg.in/authboss.v1"
-	"gopkg.in/authboss.v1/internal/mocks"
+	"github.com/codelittinc/authboss"
+	"github.com/codelittinc/authboss/internal/mocks"
 )
 
 func TestStorage(t *testing.T) {

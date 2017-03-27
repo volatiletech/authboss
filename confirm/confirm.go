@@ -21,9 +21,11 @@ const (
 	StoreConfirmed    = "confirmed"
 
 	FormValueConfirm = "cnf"
+	formValueEmail   = "email"
 
-	tplConfirmHTML = "confirm_email.html.tpl"
-	tplConfirmText = "confirm_email.txt.tpl"
+	tplResendConfirm = "resend_confirm.html.tpl"
+	tplConfirmHTML   = "confirm_email.html.tpl"
+	tplConfirmText   = "confirm_email.txt.tpl"
 )
 
 var (
@@ -47,8 +49,9 @@ func init() {
 // Confirm module
 type Confirm struct {
 	*authboss.Authboss
-	emailHTMLTemplates response.Templates
-	emailTextTemplates response.Templates
+	emailHTMLTemplates     response.Templates
+	emailTextTemplates     response.Templates
+	resendConfirmTemplates response.Templates
 }
 
 // Initialize the module
@@ -70,6 +73,11 @@ func (c *Confirm) Initialize(ab *authboss.Authboss) (err error) {
 		return err
 	}
 
+	c.resendConfirmTemplates, err = response.LoadTemplates(c.Authboss, c.Layout, c.ViewsPath, tplResendConfirm)
+	if err != nil {
+		return err
+	}
+
 	c.Callbacks.After(authboss.EventGetUser, func(ctx *authboss.Context) error {
 		_, err := c.beforeGet(ctx)
 		return err
@@ -83,7 +91,8 @@ func (c *Confirm) Initialize(ab *authboss.Authboss) (err error) {
 // Routes for the module
 func (c *Confirm) Routes() authboss.RouteTable {
 	return authboss.RouteTable{
-		"/confirm": c.confirmHandler,
+		"/confirm":        c.confirmHandler,
+		"/resend_confirm": c.resendConfirmHandler,
 	}
 }
 
@@ -200,5 +209,57 @@ func (c *Confirm) confirmHandler(ctx *authboss.Context, w http.ResponseWriter, r
 	ctx.SessionStorer.Put(authboss.SessionKey, key)
 	response.Redirect(ctx, w, r, c.RegisterOKPath, "You have successfully confirmed your account.", "", true)
 
+	return nil
+}
+
+func (c *Confirm) resendConfirmHandler(ctx *authboss.Context, w http.ResponseWriter, req *http.Request) error {
+	switch req.Method {
+	case "GET":
+		data := authboss.NewHTMLData(
+			"primaryID", c.PrimaryID,
+			"primaryIDValue", "",
+			"confirmPrimaryIDValue", "",
+		)
+		return c.resendConfirmTemplates.Render(ctx, w, req, tplResendConfirm, data)
+	case "POST":
+		return c.resendConfirmPostHandler(ctx, w, req)
+	}
+	return nil
+}
+
+func (c *Confirm) resendConfirmPostHandler(ctx *authboss.Context, w http.ResponseWriter, r *http.Request) error {
+	key := r.FormValue(formValueEmail)
+	user, err := ctx.Storer.Get(key)
+
+	if user != nil && err == nil {
+		authUser := authboss.Unbind(user)
+		confirmed := authUser["confirmed"].(bool)
+		if confirmed {
+			c.renderErrorConfirmPostHandler(key, "This email is already confirmed.", ctx, w, r)
+		} else {
+			c.afterRegister(ctx)
+			response.Redirect(ctx, w, r, c.RegisterOKPath, "A confirmation email was sent to to the registered email.", "", true)
+		}
+	} else {
+		c.renderErrorConfirmPostHandler(key, "There is no user with this email.", ctx, w, r)
+	}
+
+	return nil
+}
+
+func (c *Confirm) renderErrorConfirmPostHandler(key string, errMessage string, ctx *authboss.Context, w http.ResponseWriter, r *http.Request) error {
+	validationErrs := authboss.Validate(r, c.Policies, c.ConfirmFields...)
+	validationErrs = append(validationErrs, authboss.FieldError{Name: c.PrimaryID, Err: errors.New(errMessage)})
+	data := authboss.HTMLData{
+		"primaryID":      c.PrimaryID,
+		"primaryIDValue": key,
+		"errs":           validationErrs.Map(),
+	}
+
+	for _, f := range c.PreserveFields {
+		data[f] = r.FormValue(f)
+	}
+
+	return c.resendConfirmTemplates.Render(ctx, w, r, tplResendConfirm, data)
 	return nil
 }

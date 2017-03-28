@@ -234,6 +234,7 @@ func (c *Confirm) resendConfirmPostHandler(ctx *authboss.Context, w http.Respons
 	if user != nil && err == nil {
 		authUser := authboss.Unbind(user)
 		confirmed := authUser["confirmed"].(bool)
+		ctx.User = authUser
 		if confirmed {
 			c.renderErrorConfirmPostHandler(key, "This email is already confirmed.", ctx, w, r)
 		} else {

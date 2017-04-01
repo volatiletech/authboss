@@ -212,6 +212,7 @@ func TestConfirm_Confirm(t *testing.T) {
 	session := mocks.NewMockClientStorer()
 	ctx.User = user
 	ctx.SessionStorer = session
+	ctx.AllowInsecureLoginAfterConfirm = false
 
 	c.confirmHandler(ctx, w, r)
 	if w.Code != http.StatusFound {
@@ -232,9 +233,10 @@ func TestConfirm_Confirm(t *testing.T) {
 		t.Error("Confirm token should have been wiped out.")
 	}
 
-	if key, ok := ctx.SessionStorer.Get(authboss.SessionKey); !ok || len(key) == 0 {
-		t.Error("Should have logged the user in.")
+	if _, ok := ctx.SessionStorer.Get(authboss.SessionKey); ok {
+		t.Error("Should not have logged the user in since AllowInsecureLoginAfterConfirm is false.")
 	}
+
 	if success, ok := ctx.SessionStorer.Get(authboss.FlashSuccessKey); !ok || len(success) == 0 {
 		t.Error("Should have left a nice message.")
 	}

@@ -251,7 +251,9 @@ See also: [Validation](#validation)
 - Confirmed (bool)
 
 **How it works:** After registration, the user will be informed they have an e-mail waiting for them. They click the link
-provided in the e-mail and their account becomes confirmed, they will automatically be logged in and redirected to RegisterOKPath.
+provided in the e-mail and their account becomes confirmed, they will automatically be redirected to RegisterOKPath
+and logged in if the AllowInsecureLoginAfterConfirm property is set to true.
+.
 
 ## <a name="recover"></a> Password Recovery
 **Requirements:**

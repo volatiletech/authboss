@@ -188,16 +188,16 @@ func (c *Confirm) confirmHandler(ctx *authboss.Context, w http.ResponseWriter, r
 	ctx.User[StoreConfirmToken] = ""
 	ctx.User[StoreConfirmed] = true
 
-	key, err := ctx.User.StringErr(c.PrimaryID)
-	if err != nil {
-		return err
-	}
-
 	if err := ctx.SaveUser(); err != nil {
 		return err
 	}
-
-	ctx.SessionStorer.Put(authboss.SessionKey, key)
+	if c.Authboss.AllowInsecureLoginAfterConfirm {
+		key, err := ctx.User.StringErr(c.PrimaryID)
+		if err != nil {
+			return err
+		}
+		ctx.SessionStorer.Put(authboss.SessionKey, key)
+	}
 	response.Redirect(ctx, w, r, c.RegisterOKPath, "You have successfully confirmed your account.", "", true)
 
 	return nil

@@ -75,6 +75,12 @@ func TestTemplates_Render(t *testing.T) {
 		"hello": testViewTemplate,
 	}
 
+	// Make sure that we will see an error when template does not exists
+	errTemplateNotFound := tpls.Render(ctx, w, r, "helloNotExists", authboss.HTMLData{"external": "there"})
+	if errTemplateNotFound == nil {
+		t.Error("Expected error when template does not exists")
+	}
+
 	err := tpls.Render(ctx, w, r, "hello", authboss.HTMLData{"external": "there"})
 	if err != nil {
 		t.Error(err)

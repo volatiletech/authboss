@@ -26,6 +26,9 @@ type Config struct {
 	// authboss.StoreEmail, authboss.StoreUsername (StoreEmail is default)
 	PrimaryID string
 
+	// Allow the user to be automatically signed in after reset his password
+	AllowLoginAfterResetPassword bool
+
 	// Layout that all authboss views will be inserted into.
 	Layout *template.Template
 	// LayoutHTMLEmail is for emails going out in HTML form, authbosses e-mail templates

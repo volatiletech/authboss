@@ -276,7 +276,9 @@ func (r *Recover) completeHandlerFunc(ctx *authboss.Context, w http.ResponseWrit
 			return err
 		}
 
-		ctx.SessionStorer.Put(authboss.SessionKey, primaryID)
+		if r.Authboss.AllowLoginAfterResetPassword {
+			ctx.SessionStorer.Put(authboss.SessionKey, primaryID)
+		}
 		response.Redirect(ctx, w, req, r.AuthLoginOKPath, "", "", true)
 	default:
 		w.WriteHeader(http.StatusMethodNotAllowed)

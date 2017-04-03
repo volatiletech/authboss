@@ -28,6 +28,8 @@ type Config struct {
 
 	// Allow the user to be automatically signed in after confirm his account
 	AllowInsecureLoginAfterConfirm bool
+	// Allow the user to be automatically signed in after reset his password
+	AllowLoginAfterResetPassword bool
 
 	// Layout that all authboss views will be inserted into.
 	Layout *template.Template

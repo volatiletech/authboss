@@ -430,6 +430,8 @@ func TestRecover_completeHandlerFunc_POST(t *testing.T) {
 		return nil
 	})
 
+	rec.Authboss.AllowLoginAfterResetPassword = false
+
 	ctx, w, r, sessionStorer := testRequest(rec.Authboss, "POST", "token", testURLBase64Token, authboss.StorePassword, "abcd", "confirm_"+authboss.StorePassword, "abcd")
 
 	if err := rec.completeHandlerFunc(ctx, w, r); err != nil {
@@ -455,8 +457,8 @@ func TestRecover_completeHandlerFunc_POST(t *testing.T) {
 		t.Error("Expected EventPasswordReset callback to have been fired")
 	}
 
-	if val, ok := sessionStorer.Get(authboss.SessionKey); !ok || val != "john" {
-		t.Error("Expected SessionKey to be:", "john")
+	if _, ok := sessionStorer.Get(authboss.SessionKey); ok {
+		t.Error("Should not have logged the user in since AllowInsecureLoginAfterConfirm is false.")
 	}
 
 	if w.Code != http.StatusFound {

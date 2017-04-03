@@ -270,7 +270,8 @@ logged in. The default for this property is set to false.
 **How it works:** The user goes to the password recovery page. They then enter their primary ID two times and press recover.
 An e-mail is sent to the user that includes a token that expires after some time. The user clicks the link
 in the e-mail and is prompted to enter a new password. Once the password they enter passes all policies
-their new password is stored, they are logged in and redirected to the RecoverOKPath.
+their new password is stored, they are redirected to the RecoverOkPath. If the AllowLoginAfterResetPassword property is set
+to true, the user will also be automatically logged in. The default for this property is set to false.
 
 ## <a name="remember"></a> Remember Me (persistent login)
 **Requirements:**

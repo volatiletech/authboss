@@ -13,7 +13,7 @@ import (
 	"gopkg.in/authboss.v1/internal/mocks"
 )
 
-var testViewTemplate = template.Must(template.New("").Parse(`{{.external}} {{.fun}} {{.flash_success}} {{.flash_error}} {{.xsrfName}} {{.xsrfToken}}`))
+var testViewTemplate = template.Must(template.New("").Parse(`{{.self}} {{.external}} {{.fun}} {{.flash_success}} {{.flash_error}} {{.xsrfName}} {{.xsrfToken}}`))
 var testEmailHTMLTemplate = template.Must(template.New("").Parse(`<h2>{{.}}</h2>`))
 var testEmailPlainTemplate = template.Must(template.New("").Parse(`i am a {{.}}`))
 
@@ -66,7 +66,7 @@ func TestTemplates_Render(t *testing.T) {
 	cookies.Put(authboss.FlashSuccessKey, "no")
 	cookies.Put(authboss.FlashErrorKey, "spoon")
 
-	r, _ := http.NewRequest("GET", "http://localhost", nil)
+	r, _ := http.NewRequest("GET", "http://localhost?redirect=test", nil)
 	w := httptest.NewRecorder()
 	ctx := ab.NewContext()
 	ctx.SessionStorer = cookies
@@ -86,7 +86,7 @@ func TestTemplates_Render(t *testing.T) {
 		t.Error(err)
 	}
 
-	if w.Body.String() != "there is no spoon do you think that's air you're breathing now?" {
+	if w.Body.String() != "/?redirect=test there is no spoon do you think that's air you're breathing now?" {
 		t.Error("Body was wrong:", w.Body.String())
 	}
 }

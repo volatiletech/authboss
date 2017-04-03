@@ -86,6 +86,8 @@ func (t Templates) Render(ctx *authboss.Context, w http.ResponseWriter, r *http.
 		data.Merge(ctx.LayoutDataMaker(w, r))
 	}
 
+	data.MergeKV("self", r.URL.RequestURI())
+
 	if flash, ok := ctx.SessionStorer.Get(authboss.FlashSuccessKey); ok {
 		ctx.SessionStorer.Del(authboss.FlashSuccessKey)
 		data.MergeKV(authboss.FlashSuccessKey, flash)

@@ -9,7 +9,7 @@ import (
 	"strings"
 	"time"
 
-	"gopkg.in/authboss.v1"
+	"github.com/volatiletech/authboss"
 )
 
 // MockUser represents all possible fields a authboss User may have

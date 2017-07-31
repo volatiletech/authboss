@@ -10,8 +10,8 @@ import (
 	"strings"
 	"testing"
 
-	"gopkg.in/authboss.v1"
-	"gopkg.in/authboss.v1/internal/mocks"
+	"github.com/volatiletech/authboss"
+	"github.com/volatiletech/authboss/internal/mocks"
 )
 
 func testSetup() (a *Auth, s *mocks.MockStorer) {

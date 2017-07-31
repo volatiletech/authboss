@@ -11,8 +11,8 @@ import (
 
 	"github.com/pkg/errors"
 
-	"github.com/go-authboss/authboss"
-	"github.com/go-authboss/authboss/internal/mocks"
+	"github.com/volatiletech/authboss"
+	"github.com/volatiletech/authboss/internal/mocks"
 )
 
 func testSetup() (a *Auth, s *mocks.MockStorer) {

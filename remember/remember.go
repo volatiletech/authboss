@@ -10,7 +10,7 @@ import (
 
 	"github.com/pkg/errors"
 
-	"github.com/go-authboss/authboss"
+	"github.com/volatiletech/authboss"
 )
 
 const (

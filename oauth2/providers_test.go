@@ -8,7 +8,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/go-authboss/authboss"
+	"github.com/volatiletech/authboss"
 	"golang.org/x/oauth2"
 )
 

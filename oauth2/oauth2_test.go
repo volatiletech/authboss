@@ -11,8 +11,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/go-authboss/authboss"
-	"github.com/go-authboss/authboss/internal/mocks"
+	"github.com/volatiletech/authboss"
+	"github.com/volatiletech/authboss/internal/mocks"
 	"golang.org/x/oauth2"
 	"golang.org/x/oauth2/facebook"
 	"golang.org/x/oauth2/google"

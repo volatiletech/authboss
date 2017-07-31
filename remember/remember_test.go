@@ -5,8 +5,8 @@ import (
 	"net/http"
 	"testing"
 
-	"github.com/go-authboss/authboss"
-	"github.com/go-authboss/authboss/internal/mocks"
+	"github.com/volatiletech/authboss"
+	"github.com/volatiletech/authboss/internal/mocks"
 )
 
 func TestInitialize(t *testing.T) {

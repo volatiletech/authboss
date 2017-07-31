@@ -5,7 +5,7 @@ import (
 	"encoding/json"
 	"net/http"
 
-	"github.com/go-authboss/authboss"
+	"github.com/volatiletech/authboss"
 	"golang.org/x/oauth2"
 )
 

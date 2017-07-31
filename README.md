@@ -4,8 +4,8 @@ Authboss
 ========
 
 [![GoDoc](https://godoc.org/github.com/volatiletech/authboss?status.svg)](https://godoc.org/github.com/volatiletech/authboss)
-[![Build Status](https://circleci.com/gh/go-authboss/authboss.svg?style=shield&circle-token=:circle-token)](https://circleci.com/gh/go-authboss/authboss)
-[![Coverage Status](https://coveralls.io/repos/go-authboss/authboss/badge.svg?branch=master)](https://coveralls.io/r/go-authboss/authboss?branch=master)
+[![Build Status](https://circleci.com/gh/volatiletech/authboss.svg?style=shield&circle-token=:circle-token)](https://circleci.com/gh/volatiletech/authboss)
+[![Coverage Status](https://coveralls.io/repos/volatiletech/authboss/badge.svg?branch=master)](https://coveralls.io/r/volatiletech/authboss?branch=master)
 [![Mail](https://img.shields.io/badge/mail%20list-authboss-lightgrey.svg)](https://groups.google.com/a/volatile.tech/forum/#!forum/authboss)
 
 Authboss is a modular authentication system for the web. It tries to remove as much boilerplate and "hard things" as possible so that
@@ -45,13 +45,13 @@ use them in your app.
 
 Name           | Import Path                                                                                         | Description
 ---------------|-----------------------------------------------------------------------------------------------------|------------
-Auth           | [github.com/volatiletech/authboss/auth](https://github.com/go-authboss/authboss/tree/master/auth)           | Provides database password authentication for users.
-Confirm        | [github.com/volatiletech/authboss/confirm](https://github.com/go-authboss/authboss/tree/master/confirm)         | Sends an e-mail verification before allowing users to log in.
-Lock           | [github.com/volatiletech/authboss/lock](https://github.com/go-authboss/authboss/tree/master/lock)               | Locks user accounts after N authentication failures in M time.
-OAuth2         | [github.com/volatiletech/authboss/oauth2](https://github.com/go-authboss/authboss/tree/master/oauth2)           | Provides oauth2 authentication for users.
-Recover        | [github.com/volatiletech/authboss/recover](https://github.com/go-authboss/authboss/tree/master/recover)         | Allows for password resets via e-mail.
-Register       | [github.com/volatiletech/authboss/register](https://github.com/go-authboss/authboss/tree/master/register)       | User-initiated account creation.
-Remember       | [github.com/volatiletech/authboss/remember](https://github.com/go-authboss/authboss/tree/master/remember)       | Persisting login sessions past session cookie expiry.
+Auth           | [github.com/volatiletech/authboss/auth](https://github.com/volatiletech/authboss/tree/master/auth)           | Provides database password authentication for users.
+Confirm        | [github.com/volatiletech/authboss/confirm](https://github.com/volatiletech/authboss/tree/master/confirm)         | Sends an e-mail verification before allowing users to log in.
+Lock           | [github.com/volatiletech/authboss/lock](https://github.com/volatiletech/authboss/tree/master/lock)               | Locks user accounts after N authentication failures in M time.
+OAuth2         | [github.com/volatiletech/authboss/oauth2](https://github.com/volatiletech/authboss/tree/master/oauth2)           | Provides oauth2 authentication for users.
+Recover        | [github.com/volatiletech/authboss/recover](https://github.com/volatiletech/authboss/tree/master/recover)         | Allows for password resets via e-mail.
+Register       | [github.com/volatiletech/authboss/register](https://github.com/volatiletech/authboss/tree/master/register)       | User-initiated account creation.
+Remember       | [github.com/volatiletech/authboss/remember](https://github.com/volatiletech/authboss/tree/master/remember)       | Persisting login sessions past session cookie expiry.
 
 Getting Started
 ===============
@@ -120,7 +120,7 @@ Once you've got this code set up, it's time to implement the use cases you care 
 <a name="how_to"></a>How To
 ============================
 
-There is a full implementation of authboss at: https://github.com/go-authboss/authboss-sample
+There is a full implementation of authboss at: https://github.com/volatiletech/authboss-sample
 This sample implements a blog with all of the modules with exception that it doesn't use the expiry middleware
 since it conflicts with the remember module.
 
@@ -172,7 +172,7 @@ if err != nil {
 
 ## <a name="auth"></a>User Authentication via Password
 **Requirements:**
-- Auth module ([github.com/volatiletech/authboss/auth](https://github.com/go-authboss/authboss/tree/master/auth))
+- Auth module ([github.com/volatiletech/authboss/auth](https://github.com/volatiletech/authboss/tree/master/auth))
 - [Storer](#storers)
 - [Session Storer](#client_storers)
 - [Views](#views)
@@ -189,7 +189,7 @@ Another link is created for a logout. Simply link/redirect the user to this page
 
 ## <a name="oauth2"></a> User Authentication via OAuth2
 **Requirements:**
-- OAuth2 module ([github.com/volatiletech/authboss/oauth2](https://github.com/go-authboss/authboss/tree/master/oauth2))
+- OAuth2 module ([github.com/volatiletech/authboss/oauth2](https://github.com/volatiletech/authboss/tree/master/oauth2))
 - [OAuth2Storer](#storers)
 - OAuth2Providers
 - [Session and Cookie Storers](#client_storers)
@@ -221,12 +221,12 @@ uri := `/authboss_mount_path/oauth2/google?` + params.Encode()
 ```
 
 **Examples:**
-- [OAuth2Providers](https://github.com/go-authboss/authboss-sample/blob/master/blog.go#L57)
-- [Writing a custom OAuth2Provider Callback](https://github.com/go-authboss/authboss/blob/master/oauth2/providers.go#L29)
+- [OAuth2Providers](https://github.com/volatiletech/authboss-sample/blob/master/blog.go#L57)
+- [Writing a custom OAuth2Provider Callback](https://github.com/volatiletech/authboss/blob/master/oauth2/providers.go#L29)
 
 ## <a name="register"></a> User Registration
 **Requirements:**
-- Register module ([github.com/volatiletech/authboss/register](https://github.com/go-authboss/authboss/tree/master/register))
+- Register module ([github.com/volatiletech/authboss/register](https://github.com/volatiletech/authboss/tree/master/register))
 - [RegisterStorer](#storers)
 - [Session Storer](#client_storers)
 - [Views](#views)
@@ -245,8 +245,8 @@ See also: [Validation](#validation)
 
 ## <a name="confirm"></a> Confirming Registrations
 **Requirements:**
-- Register module ([github.com/volatiletech/authboss/register](https://github.com/go-authboss/authboss/tree/master/register))
-- Confirm module ([github.com/volatiletech/authboss/confirm](https://github.com/go-authboss/authboss/tree/master/confirm))
+- Register module ([github.com/volatiletech/authboss/register](https://github.com/volatiletech/authboss/tree/master/register))
+- Confirm module ([github.com/volatiletech/authboss/confirm](https://github.com/volatiletech/authboss/tree/master/confirm))
 - [RegisterStorer](#storers)
 - [Session and Cookie Storers](#client_storers)
 - [Views](#views)
@@ -264,7 +264,7 @@ logged in. The default for this property is set to false.
 
 ## <a name="recover"></a> Password Recovery
 **Requirements:**
-- Recover module ([github.com/volatiletech/authboss/recover](https://github.com/go-authboss/authboss/tree/master/recover))
+- Recover module ([github.com/volatiletech/authboss/recover](https://github.com/volatiletech/authboss/tree/master/recover))
 - [RecoverStorer](#storers)
 - [Session Storer](#client_storers)
 - [Views](#views)
@@ -281,7 +281,7 @@ to true, the user will also be automatically logged in. The default for this pro
 
 ## <a name="remember"></a> Remember Me (persistent login)
 **Requirements:**
-- Remember module ([github.com/volatiletech/authboss/remember](https://github.com/go-authboss/authboss/tree/master/remember))
+- Remember module ([github.com/volatiletech/authboss/remember](https://github.com/volatiletech/authboss/tree/master/remember))
 - [RememberStorer](#storers)
 - [Session and Cookie Storers](#client_storers)
 
@@ -309,7 +309,7 @@ to pages with sensitive information if this value is true in the session, and fo
 
 ## <a name="lock"></a> Locking Accounts for Authentication Failures
 **Requirements:**
-- Lock module ([github.com/volatiletech/authboss/lock](https://github.com/go-authboss/authboss/tree/master/lock))
+- Lock module ([github.com/volatiletech/authboss/lock](https://github.com/volatiletech/authboss/tree/master/lock))
 - [Storer](#storers)
 
 **Storage Requirements:**
@@ -398,7 +398,7 @@ Each of the store interfaces provides some amount of functionality to a module. 
 Most of these interfaces simply do look ups on the user based on different field. Some of them like the RememberStorer are more special in their
 functionality.
 
-You can see an example here: [Blog Storer](https://github.com/go-authboss/authboss-sample/blob/master/storer.go).
+You can see an example here: [Blog Storer](https://github.com/volatiletech/authboss-sample/blob/master/storer.go).
 This storer implements all 6 of the Storer Interfaces. If you don't use as many modules as the blog, you don't need to implement all of these methods.
 
 Most of the methods return an (interface{}, error), the interface{} user struct that is described below. In cases where the queries produce no values (ie no user found),
@@ -430,7 +430,7 @@ extract it's data into authboss.Attributes, which is used for all authboss opera
 
 #### Examples
 
-- [Storer & OAuth2Storer combined](https://github.com/go-authboss/authboss-sample/blob/master/storer.go)
+- [Storer & OAuth2Storer combined](https://github.com/volatiletech/authboss-sample/blob/master/storer.go)
 
 ## <a name="client_storers"></a> Implementing Client Storers
 
@@ -446,8 +446,8 @@ Keep in mind that these need not be only cookie-based, any storage medium that c
 can be used. You could insert a redis backend here if you like that approach better than just cookies.
 
 **Examples:**
-- [Session Storer](https://github.com/go-authboss/authboss-sample/blob/master/session_storer.go)
-- [Cookie Storer](https://github.com/go-authboss/authboss-sample/blob/master/cookie_storer.go)
+- [Session Storer](https://github.com/volatiletech/authboss-sample/blob/master/session_storer.go)
+- [Cookie Storer](https://github.com/volatiletech/authboss-sample/blob/master/cookie_storer.go)
 
 ## <a name="views"></a> Views
 The view system in Authboss uses Go templates with the concepts of layout/views to render HTML to the user. It uses the authboss.HTMLData type
@@ -492,11 +492,11 @@ Confirmation Email (txt)  | confirm_email.txt.tpl
 Recover Email (html)      | recover_email.html.tpl
 Recover Email (txt)       | recover_email.txt.tpl
 
-[Example Layout Configuration](https://github.com/go-authboss/authboss-sample/blob/master/blog.go#L47)
+[Example Layout Configuration](https://github.com/volatiletech/authboss-sample/blob/master/blog.go#L47)
 
 **Example Overriden Templates:**
-- [Layout](https://github.com/go-authboss/authboss-sample/blob/master/views/layout.html.tpl)
-- [Login](https://github.com/go-authboss/authboss-sample/blob/master/ab_views/login.html.tpl)
-- [Recover](https://github.com/go-authboss/authboss-sample/blob/master/ab_views/recover.html.tpl)
-- [Recover New Password](https://github.com/go-authboss/authboss-sample/blob/master/ab_views/recover_complete.html.tpl)
-- [Register](https://github.com/go-authboss/authboss-sample/blob/master/ab_views/register.html.tpl)
+- [Layout](https://github.com/volatiletech/authboss-sample/blob/master/views/layout.html.tpl)
+- [Login](https://github.com/volatiletech/authboss-sample/blob/master/ab_views/login.html.tpl)
+- [Recover](https://github.com/volatiletech/authboss-sample/blob/master/ab_views/recover.html.tpl)
+- [Recover New Password](https://github.com/volatiletech/authboss-sample/blob/master/ab_views/recover_complete.html.tpl)
+- [Register](https://github.com/volatiletech/authboss-sample/blob/master/ab_views/register.html.tpl)

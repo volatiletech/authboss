@@ -3,7 +3,7 @@ machine:
     GOPATH: "${HOME}/.go_project"
 checkout:
   post:
-    - mkdir -p /home/ubuntu/.go_project/src/gopkg.in
+    - mkdir -p /home/ubuntu/.go_project/src/volatiletech
     - ln -s /home/ubuntu/authboss /home/ubuntu/.go_project/src/github.com/volatiletech/authboss
 dependencies:
   override:

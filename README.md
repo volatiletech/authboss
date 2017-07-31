@@ -3,7 +3,10 @@
 Authboss
 ========
 
-[![GoDoc](https://godoc.org/github.com/volatiletech/authboss?status.svg)](https://godoc.org/github.com/volatiletech/authboss) [![Build Status](https://circleci.com/gh/go-authboss/authboss.svg?style=shield&circle-token=:circle-token)](https://circleci.com/gh/go-authboss/authboss) [![Coverage Status](https://coveralls.io/repos/go-authboss/authboss/badge.svg?branch=master)](https://coveralls.io/r/go-authboss/authboss?branch=master) [![Gitter](https://badges.gitter.im/Join%20Chat.svg)](https://gitter.im/go-authboss/authboss?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge)
+[![GoDoc](https://godoc.org/github.com/volatiletech/authboss?status.svg)](https://godoc.org/github.com/volatiletech/authboss)
+[![Build Status](https://circleci.com/gh/go-authboss/authboss.svg?style=shield&circle-token=:circle-token)](https://circleci.com/gh/go-authboss/authboss)
+[![Coverage Status](https://coveralls.io/repos/go-authboss/authboss/badge.svg?branch=master)](https://coveralls.io/r/go-authboss/authboss?branch=master)
+[![Mail](https://img.shields.io/badge/mail%20list-authboss-lightgrey.svg)](https://groups.google.com/a/volatile.tech/forum/#!forum/authboss)
 
 Authboss is a modular authentication system for the web. It tries to remove as much boilerplate and "hard things" as possible so that
 each time you start a new web project in Go, you can plug it in, configure, and start building your app without having to build an
@@ -28,8 +31,11 @@ As far as the project goes this is how it will be managed:
 - The current master HEAD will be available as v1.0.0
 - No new features will be put in v1 branch, only critical bugfixes (life support only)
 - v1 will be removed 6 months after the release of v2
-- v2 will leave gopkg.in for proper Semantic versioning + vendoring
-    - This change means that everyone should start using govendor/glide/godep to manage authboss v2
+
+Currently done:
+
+- Main interfaces have been mostly completed
+- Gopkg.in is abandoned as a versioning mechanism
 
 Modules
 ========

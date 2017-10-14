@@ -94,6 +94,8 @@ type Config struct {
 
 	// EmailFrom is the email address authboss e-mails come from.
 	EmailFrom string
+	// EmailFromName is the name used in the From: header of authboss emails.
+	EmailFromName string
 	// EmailSubjectPrefix is used to add something to the front of the authboss
 	// email subjects.
 	EmailSubjectPrefix string

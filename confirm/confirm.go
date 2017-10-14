@@ -149,9 +149,10 @@ func (c *Confirm) confirmEmail(ctx *authboss.Context, to, token string) {
 	url := fmt.Sprintf("%s%s?%s=%s", c.RootURL, p, url.QueryEscape(FormValueConfirm), url.QueryEscape(token))
 
 	email := authboss.Email{
-		To:      []string{to},
-		From:    c.EmailFrom,
-		Subject: c.EmailSubjectPrefix + "Confirm New Account",
+		To:       []string{to},
+		From:     c.EmailFrom,
+		FromName: c.EmailFromName,
+		Subject:  c.EmailSubjectPrefix + "Confirm New Account",
 	}
 
 	err := response.Email(ctx.Mailer, email, c.emailHTMLTemplates, tplConfirmHTML, c.emailTextTemplates, tplConfirmText, url)

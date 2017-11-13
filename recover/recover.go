@@ -12,9 +12,9 @@ import (
 	"path"
 	"time"
 
-	"golang.org/x/crypto/bcrypt"
 	"github.com/volatiletech/authboss"
 	"github.com/volatiletech/authboss/internal/response"
+	"golang.org/x/crypto/bcrypt"
 )
 
 // Storage constants
@@ -208,9 +208,10 @@ func (r *Recover) sendRecoverEmail(ctx *authboss.Context, to, encodedToken strin
 	url := fmt.Sprintf("%s%s?%s", r.RootURL, p, query.Encode())
 
 	email := authboss.Email{
-		To:      []string{to},
-		From:    r.EmailFrom,
-		Subject: r.EmailSubjectPrefix + "Password Reset",
+		To:       []string{to},
+		From:     r.EmailFrom,
+		FromName: r.EmailFromName,
+		Subject:  r.EmailSubjectPrefix + "Password Reset",
 	}
 
 	if err := response.Email(ctx.Mailer, email, r.emailHTMLTemplates, tplInitHTMLEmail, r.emailTextTemplates, tplInitTextEmail, url); err != nil {

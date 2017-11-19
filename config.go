@@ -188,8 +188,8 @@ func (c *Config) Defaults() {
 		Rules{
 			FieldName:       "password",
 			Required:        true,
-			MinLength:       4,
-			MaxLength:       8,
+			MinLength:       8,
+			MaxLength:       0,
 			AllowWhitespace: false,
 		},
 	}

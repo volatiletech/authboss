@@ -16,7 +16,7 @@ type Config struct {
 	MountPath string
 	// ViewsPath is the path to search for overridden templates.
 	ViewsPath string
-	// RootURL is the scheme+host+port of the web application (eg https://www.happiness.com:8080) for url generation.  No trailing slash.
+	// RootURL is the scheme+host+port of the web application (eg https://www.happiness.com:8080) for url generation. No trailing slash.
 	RootURL string
 	// BCryptCost is the cost of the bcrypt password hashing function.
 	BCryptCost int

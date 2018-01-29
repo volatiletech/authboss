@@ -2,6 +2,7 @@ package authboss
 
 import (
 	"context"
+	"fmt"
 	"net/http"
 )
 
@@ -52,6 +53,16 @@ type ClientStateEvent struct {
 type ClientStateReadWriter interface {
 	ReadState(http.ResponseWriter, *http.Request) (ClientState, error)
 	WriteState(http.ResponseWriter, ClientState, []ClientStateEvent) error
+}
+
+// UnderlyingResponseWriter retrieves the response
+// writer underneath the current one. This allows us
+// to wrap and later discover the particular one that we want.
+// Keep in mind this should not be used to call the normal methods
+// of a responsewriter, just additional ones particular to that type
+// because it's possible to introduce subtle bugs otherwise.
+type UnderlyingResponseWriter interface {
+	UnderlyingResponseWriter() http.ResponseWriter
 }
 
 // ClientState represents the client's current state and can answer queries
@@ -106,6 +117,23 @@ func (a *Authboss) LoadClientState(w http.ResponseWriter, r *http.Request) (*htt
 	return r, nil
 }
 
+// MustClientStateResponseWriter tries to find a csrw inside the response
+// writer by using the UnderlyingResponseWriter interface.
+func MustClientStateResponseWriter(w http.ResponseWriter) *ClientStateResponseWriter {
+	for {
+		if c, ok := w.(*ClientStateResponseWriter); ok {
+			return c
+		}
+
+		if u, ok := w.(UnderlyingResponseWriter); ok {
+			w = u.UnderlyingResponseWriter()
+			continue
+		}
+
+		panic(fmt.Sprintf("failed to find a ClientStateResponseWriter or UnderlyingResponseWriter in: %T", w))
+	}
+}
+
 // WriteHeader writes the header, but in order to handle errors from the
 // underlying ClientStateReadWriter, it has to panic.
 func (c *ClientStateResponseWriter) WriteHeader(code int) {
@@ -130,6 +158,11 @@ func (c *ClientStateResponseWriter) Write(b []byte) (int, error) {
 		}
 	}
 	return c.ResponseWriter.Write(b)
+}
+
+// UnderlyingResponseWriter for this isnstance
+func (c *ClientStateResponseWriter) UnderlyingResponseWriter() http.ResponseWriter {
+	return c.ResponseWriter
 }
 
 func (c *ClientStateResponseWriter) putClientState() error {
@@ -203,7 +236,7 @@ func delState(w http.ResponseWriter, ctxKey contextKey, key string) {
 }
 
 func setState(w http.ResponseWriter, ctxKey contextKey, op ClientStateEventKind, key, val string) {
-	csrw := w.(*ClientStateResponseWriter)
+	csrw := MustClientStateResponseWriter(w)
 	ev := ClientStateEvent{
 		Kind: op,
 		Key:  key,

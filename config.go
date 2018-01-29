@@ -3,11 +3,8 @@ package authboss
 import (
 	"context"
 	"io"
-	"io/ioutil"
 	"net/http"
 	"time"
-
-	"golang.org/x/crypto/bcrypt"
 )
 
 // Config holds all the configuration for both authboss and it's modules.
@@ -118,7 +115,7 @@ type Config struct {
 
 // Defaults sets the configuration's default values.
 func (c *Config) Defaults() {
-	c.MountPath = "/"
+	/*c.MountPath = "/"
 	c.ViewsPath = "./"
 	c.RootURL = "http://localhost:8080"
 	c.BCryptCost = bcrypt.DefaultCost
@@ -162,5 +159,5 @@ func (c *Config) Defaults() {
 	c.Mailer = LogMailer(ioutil.Discard)
 	c.ContextProvider = func(req *http.Request) context.Context {
 		return context.TODO()
-	}
+	}*/
 }

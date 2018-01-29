@@ -1,25 +1,22 @@
-package authboss
+package defaults
 
 import (
 	"bytes"
 	"context"
-	"io/ioutil"
 	"math/rand"
 	"strings"
 	"testing"
+
+	"github.com/volatiletech/authboss"
 )
 
 func TestMailer(t *testing.T) {
 	t.Parallel()
 
-	ab := New()
 	mailServer := &bytes.Buffer{}
+	mailer := NewLogMailer(mailServer)
 
-	ab.Mailer = LogMailer(mailServer)
-	ab.StoreLoader = mockStoreLoader{}
-	ab.LogWriter = ioutil.Discard
-
-	err := ab.SendMail(context.TODO(), Email{
+	err := mailer.Send(context.TODO(), authboss.Email{
 		To:       []string{"some@email.com", "a@a.com"},
 		ToNames:  []string{"Jake", "Noname"},
 		From:     "some@guy.com",
@@ -53,19 +50,23 @@ func TestMailer(t *testing.T) {
 	if !strings.Contains(str, "<html>body</html>") {
 		t.Error("Html body not present.")
 	}
+
+	if t.Failed() {
+		t.Log(str)
+	}
 }
 
 func TestSMTPMailer(t *testing.T) {
 	t.Parallel()
 
-	var _ Mailer = SMTPMailer("server", nil)
+	_ = NewSMTPMailer("server", nil)
 
 	recovered := false
 	defer func() {
 		recovered = recover() != nil
 	}()
 
-	SMTPMailer("", nil)
+	NewSMTPMailer("", nil)
 
 	if !recovered {
 		t.Error("Should have panicd.")
@@ -75,7 +76,7 @@ func TestSMTPMailer(t *testing.T) {
 func TestBoundary(t *testing.T) {
 	t.Parallel()
 
-	mailer := smtpMailer{"server", nil, rand.New(rand.NewSource(3))}
+	mailer := &SMTPMailer{"server", nil, rand.New(rand.NewSource(3))}
 	if got := mailer.boundary(); got != "fe3fhpsm69lx8jvnrnju0wr" {
 		t.Error("boundary was wrong", got)
 	}

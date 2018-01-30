@@ -1,4 +1,4 @@
-package authboss
+package defaults
 
 import (
 	"fmt"
@@ -6,6 +6,7 @@ import (
 	"unicode"
 
 	"github.com/pkg/errors"
+	"github.com/volatiletech/authboss"
 )
 
 var blankRegex = regexp.MustCompile(`^\s*$`)
@@ -33,8 +34,8 @@ func (r Rules) Field() string {
 
 // Errors returns an array of errors for each validation error that
 // is present in the given string. Returns nil if there are no errors.
-func (r Rules) Errors(toValidate string) ErrorList {
-	errs := make(ErrorList, 0)
+func (r Rules) Errors(toValidate string) authboss.ErrorList {
+	errs := make(authboss.ErrorList, 0)
 
 	ln := len(toValidate)
 	if r.Required && (ln == 0 || blankRegex.MatchString(toValidate)) {

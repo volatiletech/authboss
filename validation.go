@@ -2,8 +2,6 @@ package authboss
 
 import (
 	"bytes"
-	"fmt"
-	"net/http"
 )
 
 const (
@@ -11,12 +9,25 @@ const (
 	ConfirmPrefix = "confirm_"
 )
 
-// Validator is anything that can validate a string and provide a list of errors
-// and describe its set of rules.
+// Validator takes a form name and a set of inputs and returns any validation errors
+// for the inputs.
 type Validator interface {
+	// Validate inputs from the named form
+	Validate(name string, fieldValues map[string]string) []error
+}
+
+// FieldValidator is anything that can validate a string and provide a list of errors
+// and describe its set of rules.
+type FieldValidator interface {
 	Field() string
-	Errors(in string) ErrorList
+	Errors(in string) []error
 	Rules() []string
+}
+
+// FieldError describes an error on a field
+type FieldError interface {
+	Name() string
+	Err() error
 }
 
 // ErrorList is simply a slice of errors with helpers.
@@ -46,64 +57,10 @@ func (e ErrorList) Map() map[string][]string {
 		if !ok {
 			m[""] = append(m[""], err.Error())
 		} else {
-			m[fieldErr.Name] = append(m[fieldErr.Name], fieldErr.Err.Error())
+			name, err := fieldErr.Name(), fieldErr.Err()
+			m[name] = append(m[name], err.Error())
 		}
 	}
 
 	return m
-}
-
-// FieldError represents an error that occurs during validation and is always
-// attached to field on a form.
-type FieldError struct {
-	Name string
-	Err  error
-}
-
-func (f FieldError) Error() string {
-	return fmt.Sprintf("%s: %v", f.Name, f.Err)
-}
-
-// Validate validates a request using the given ruleset.
-func Validate(r *http.Request, ruleset []Validator, confirmFields ...string) ErrorList {
-	errList := make(ErrorList, 0)
-
-	for _, validator := range ruleset {
-		field := validator.Field()
-
-		val := r.FormValue(field)
-		if errs := validator.Errors(val); len(errs) > 0 {
-			errList = append(errList, errs...)
-		}
-	}
-
-	for i := 0; i < len(confirmFields)-1; i += 2 {
-		main := r.FormValue(confirmFields[i])
-		if len(main) == 0 {
-			continue
-		}
-
-		confirm := r.FormValue(confirmFields[i+1])
-		if len(confirm) == 0 || main != confirm {
-			errList = append(errList, FieldError{confirmFields[i+1], fmt.Errorf("Does not match %s", confirmFields[i])})
-		}
-	}
-
-	return errList
-}
-
-// FilterValidators returns a subset of registered validators
-func FilterValidators(validators []Validator, fields ...string) []Validator {
-	var arr []Validator
-
-	for _, validator := range validators {
-		fieldName := validator.Field()
-		for _, field := range fields {
-			if fieldName == field {
-				arr = append(arr, validator)
-			}
-		}
-	}
-
-	return arr
 }

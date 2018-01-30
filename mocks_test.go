@@ -168,24 +168,6 @@ func newMockAPIRequest(postKeyValues ...string) *http.Request {
 	return req
 }
 
-type mockValidator struct {
-	FieldName string
-	Errs      ErrorList
-	Ruleset   []string
-}
-
-func (m mockValidator) Field() string {
-	return m.FieldName
-}
-
-func (m mockValidator) Errors(in string) ErrorList {
-	return m.Errs
-}
-
-func (m mockValidator) Rules() []string {
-	return m.Ruleset
-}
-
 type mockRenderLoader struct{}
 
 func (m mockRenderLoader) Init(names []string) (Renderer, error) {

@@ -11,6 +11,7 @@ import (
 type DefaultLogger log.Logger
 
 // LogWriteMaker is used to create a logger from an http request.
+// TODO(aarondl): decide what to do with this, should we keep it?
 type LogWriteMaker func(http.ResponseWriter, *http.Request) io.Writer
 
 // NewDefaultLogger creates a logger to stdout.

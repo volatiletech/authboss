@@ -17,66 +17,51 @@ type mockUser struct {
 	Password string
 }
 
-type mockStoredUser struct {
-	mockUser
-	mockStoreLoader
-}
+type mockServerStorer map[string]mockUser
 
-type mockStoreLoader map[string]mockUser
-
-func (m mockStoreLoader) Load(ctx context.Context, key string) (Storer, error) {
+func (m mockServerStorer) Load(ctx context.Context, key string) (User, error) {
 	u, ok := m[key]
 	if !ok {
 		return nil, ErrUserNotFound
 	}
 
-	return mockStoredUser{
-		mockUser:        u,
-		mockStoreLoader: m,
-	}, nil
+	return u, nil
 }
 
-func (m mockStoredUser) Load(ctx context.Context) error {
-	u, ok := m.mockStoreLoader[m.Email]
-	if !ok {
-		return ErrUserNotFound
+func (m mockServerStorer) Save(ctx context.Context, user User) error {
+	e, err := user.GetEmail(ctx)
+	if err != nil {
+		panic(err)
 	}
 
-	m.Email = u.Email
-	m.Password = u.Password
+	m[e] = user.(mockUser)
 
 	return nil
 }
 
-func (m mockStoredUser) Save(ctx context.Context) error {
-	m.mockStoreLoader[m.Email] = m.mockUser
-
-	return nil
-}
-
-func (m mockStoredUser) PutEmail(ctx context.Context, email string) error {
+func (m mockUser) PutEmail(ctx context.Context, email string) error {
 	m.Email = email
 	return nil
 }
 
-func (m mockStoredUser) PutUsername(ctx context.Context, username string) error {
+func (m mockUser) PutUsername(ctx context.Context, username string) error {
 	return errors.New("not impl")
 }
 
-func (m mockStoredUser) PutPassword(ctx context.Context, password string) error {
+func (m mockUser) PutPassword(ctx context.Context, password string) error {
 	m.Password = password
 	return nil
 }
 
-func (m mockStoredUser) GetEmail(ctx context.Context) (email string, err error) {
+func (m mockUser) GetEmail(ctx context.Context) (email string, err error) {
 	return m.Email, nil
 }
 
-func (m mockStoredUser) GetUsername(ctx context.Context) (username string, err error) {
+func (m mockUser) GetUsername(ctx context.Context) (username string, err error) {
 	return "", errors.New("not impl")
 }
 
-func (m mockStoredUser) GetPassword(ctx context.Context) (password string, err error) {
+func (m mockUser) GetPassword(ctx context.Context) (password string, err error) {
 	return m.Password, nil
 }
 

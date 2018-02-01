@@ -40,7 +40,6 @@ func TestStateResponseWriterDoubleWritePanic(t *testing.T) {
 
 	r := httptest.NewRequest("GET", "/", nil)
 	w := ab.NewResponse(httptest.NewRecorder(), r)
-	csrw := w.(*ClientStateResponseWriter)
 
 	w.WriteHeader(200)
 	// Check this doesn't panic
@@ -52,7 +51,7 @@ func TestStateResponseWriterDoubleWritePanic(t *testing.T) {
 		}
 	}()
 
-	csrw.putClientState()
+	w.putClientState()
 }
 
 func TestStateResponseWriterLastSecondWriteWithPrevious(t *testing.T) {
@@ -126,30 +125,28 @@ func TestStateResponseWriterEvents(t *testing.T) {
 	r := httptest.NewRequest("GET", "/", nil)
 	w := ab.NewResponse(httptest.NewRecorder(), r)
 
-	csrw := w.(*ClientStateResponseWriter)
-
 	PutSession(w, "one", "two")
 	DelSession(w, "one")
 	DelCookie(w, "one")
 	PutCookie(w, "two", "one")
 
 	want := ClientStateEvent{Kind: ClientStateEventPut, Key: "one", Value: "two"}
-	if got := csrw.sessionStateEvents[0]; got != want {
+	if got := w.sessionStateEvents[0]; got != want {
 		t.Error("event was wrong", got)
 	}
 
 	want = ClientStateEvent{Kind: ClientStateEventDel, Key: "one"}
-	if got := csrw.sessionStateEvents[1]; got != want {
+	if got := w.sessionStateEvents[1]; got != want {
 		t.Error("event was wrong", got)
 	}
 
 	want = ClientStateEvent{Kind: ClientStateEventDel, Key: "one"}
-	if got := csrw.cookieStateEvents[0]; got != want {
+	if got := w.cookieStateEvents[0]; got != want {
 		t.Error("event was wrong", got)
 	}
 
 	want = ClientStateEvent{Kind: ClientStateEventPut, Key: "two", Value: "one"}
-	if got := csrw.cookieStateEvents[1]; got != want {
+	if got := w.cookieStateEvents[1]; got != want {
 		t.Error("event was wrong", got)
 	}
 }
@@ -162,7 +159,6 @@ func TestFlashClearer(t *testing.T) {
 
 	r := httptest.NewRequest("GET", "/", nil)
 	w := ab.NewResponse(httptest.NewRecorder(), r)
-	csrw := w.(*ClientStateResponseWriter)
 
 	if msg := FlashSuccess(w, r); msg != "" {
 		t.Error("Unexpected flash success:", msg)
@@ -187,11 +183,11 @@ func TestFlashClearer(t *testing.T) {
 	}
 
 	want := ClientStateEvent{Kind: ClientStateEventDel, Key: FlashSuccessKey}
-	if got := csrw.sessionStateEvents[0]; got != want {
+	if got := w.sessionStateEvents[0]; got != want {
 		t.Error("event was wrong", got)
 	}
 	want = ClientStateEvent{Kind: ClientStateEventDel, Key: FlashErrorKey}
-	if got := csrw.sessionStateEvents[1]; got != want {
+	if got := w.sessionStateEvents[1]; got != want {
 		t.Error("event was wrong", got)
 	}
 }

@@ -18,7 +18,7 @@ func loadClientStateP(ab *Authboss, w http.ResponseWriter, r *http.Request) *htt
 func testSetupContext() (*Authboss, *http.Request) {
 	ab := New()
 	ab.SessionStateStorer = newMockClientStateRW(SessionKey, "george-pid")
-	ab.StoreLoader = mockStoreLoader{
+	ab.Storer = mockServerStorer{
 		"george-pid": mockUser{Email: "george-pid", Password: "unreadable"},
 	}
 	r := loadClientStateP(ab, nil, httptest.NewRequest("GET", "/", nil))
@@ -29,12 +29,9 @@ func testSetupContext() (*Authboss, *http.Request) {
 func testSetupContextCached() (*Authboss, mockUser, *http.Request) {
 	ab := New()
 	wantUser := mockUser{Email: "george-pid", Password: "unreadable"}
-	storer := mockStoredUser{
-		mockUser: wantUser,
-	}
 	req := httptest.NewRequest("GET", "/", nil)
 	ctx := context.WithValue(req.Context(), ctxKeyPID, "george-pid")
-	ctx = context.WithValue(ctx, ctxKeyUser, storer)
+	ctx = context.WithValue(ctx, ctxKeyUser, wantUser)
 	req = req.WithContext(ctx)
 
 	return ab, wantUser, req
@@ -43,7 +40,7 @@ func testSetupContextCached() (*Authboss, mockUser, *http.Request) {
 func testSetupContextPanic() *Authboss {
 	ab := New()
 	ab.SessionStateStorer = newMockClientStateRW(SessionKey, "george-pid")
-	ab.StoreLoader = mockStoreLoader{}
+	ab.Storer = mockServerStorer{}
 
 	return ab
 }
@@ -207,10 +204,10 @@ func TestLoadCurrentUser(t *testing.T) {
 		t.Error("got:", got)
 	}
 
-	want := user.(mockStoredUser).mockUser
-	got := r.Context().Value(ctxKeyUser).(mockStoredUser).mockUser
+	want := user.(mockUser)
+	got := r.Context().Value(ctxKeyUser).(mockUser)
 	if got != want {
-		t.Error("users mismatched:\nwant: %#v\ngot: %#v", want, got)
+		t.Errorf("users mismatched:\nwant: %#v\ngot: %#v", want, got)
 	}
 }
 
@@ -224,9 +221,9 @@ func TestLoadCurrentUserContext(t *testing.T) {
 		t.Error(err)
 	}
 
-	got := user.(mockStoredUser).mockUser
+	got := user.(mockUser)
 	if got != wantUser {
-		t.Error("users mismatched:\nwant: %#v\ngot: %#v", wantUser, got)
+		t.Errorf("users mismatched:\nwant: %#v\ngot: %#v", wantUser, got)
 	}
 }
 

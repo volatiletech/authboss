@@ -51,7 +51,7 @@ func TestErrorList_Map(t *testing.T) {
 		t.Error("Wrong number of fields:", len(m))
 	}
 
-	usernameErrs := m["email"]
+	usernameErrs := m["username"]
 	if len(usernameErrs) != 2 {
 		t.Error("Wrong number of username errors:", len(usernameErrs))
 	}

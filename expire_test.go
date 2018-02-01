@@ -54,36 +54,37 @@ func TestExpireIsExpired(t *testing.T) {
 		t.Error("expected user not to be present")
 	}
 
-	csrw := w.(*ClientStateResponseWriter)
-
 	want := ClientStateEvent{
 		Kind: ClientStateEventDel,
 		Key:  SessionKey,
 	}
-	if got := csrw.sessionStateEvents[0]; got != want {
+	if got := w.sessionStateEvents[0]; got != want {
 		t.Error("want:", want, "got:", got)
 	}
 	want = ClientStateEvent{
 		Kind: ClientStateEventDel,
 		Key:  SessionLastAction,
 	}
-	if got := csrw.sessionStateEvents[1]; got != want {
+	if got := w.sessionStateEvents[1]; got != want {
 		t.Error("want:", want, "got:", got)
 	}
 }
 
 func TestExpireNotExpired(t *testing.T) {
 	ab := New()
+	ab.Config.ExpireAfter = time.Hour
 	ab.SessionStateStorer = newMockClientStateRW(
 		SessionKey, "username",
 		SessionLastAction, time.Now().UTC().Format(time.RFC3339),
 	)
 
+	var err error
+
 	r := httptest.NewRequest("GET", "/", nil)
 	r = r.WithContext(context.WithValue(r.Context(), ctxKeyPID, "primaryid"))
 	r = r.WithContext(context.WithValue(r.Context(), ctxKeyUser, struct{}{}))
 	w := ab.NewResponse(httptest.NewRecorder(), r)
-	r, err := ab.LoadClientState(w, r)
+	r, err = ab.LoadClientState(w, r)
 	if err != nil {
 		t.Error(err)
 	}
@@ -119,14 +120,13 @@ func TestExpireNotExpired(t *testing.T) {
 		t.Error("expected user to be present")
 	}
 
-	csrw := w.(*ClientStateResponseWriter)
-
 	want := ClientStateEvent{
 		Kind:  ClientStateEventPut,
 		Key:   SessionLastAction,
 		Value: newTime.Format(time.RFC3339),
 	}
-	if got := csrw.sessionStateEvents[0]; got != want {
+
+	if got := w.sessionStateEvents[0]; got != want {
 		t.Error("want:", want, "got:", got)
 	}
 }
@@ -134,12 +134,10 @@ func TestExpireNotExpired(t *testing.T) {
 func TestExpireTimeToExpiry(t *testing.T) {
 	t.Parallel()
 
-	ab := New()
 	r := httptest.NewRequest("GET", "/", nil)
-	w := ab.NewResponse(httptest.NewRecorder(), r)
 
 	want := 5 * time.Second
-	dur := TimeToExpiry(w, r, want)
+	dur := TimeToExpiry(r, want)
 	if dur != want {
 		t.Error("duration was wrong:", dur)
 	}
@@ -153,11 +151,10 @@ func TestExpireRefreshExpiry(t *testing.T) {
 	w := ab.NewResponse(httptest.NewRecorder(), r)
 
 	RefreshExpiry(w, r)
-	csrw := w.(*ClientStateResponseWriter)
-	if got := csrw.sessionStateEvents[0].Kind; got != ClientStateEventPut {
+	if got := w.sessionStateEvents[0].Kind; got != ClientStateEventPut {
 		t.Error("wrong event:", got)
 	}
-	if got := csrw.sessionStateEvents[0].Key; got != SessionLastAction {
+	if got := w.sessionStateEvents[0].Key; got != SessionLastAction {
 		t.Error("wrong key:", got)
 	}
 }

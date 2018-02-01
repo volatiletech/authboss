@@ -4,11 +4,6 @@ import (
 	"context"
 )
 
-// SendMail uses the currently configured mailer to deliver e-mails.
-func (a *Authboss) SendMail(ctx context.Context, data Email) error {
-	return a.Mailer.Send(ctx, data)
-}
-
 // Mailer is a type that is capable of sending an e-mail.
 type Mailer interface {
 	Send(context.Context, Email) error

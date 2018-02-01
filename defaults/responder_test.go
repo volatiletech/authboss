@@ -76,6 +76,7 @@ func TestResponder(t *testing.T) {
 		t.Errorf("data mismatched:\nwant: %#v\ngot:  %#v", expectData, gotData)
 	}
 }
+
 func TestRedirector(t *testing.T) {
 	t.Parallel()
 

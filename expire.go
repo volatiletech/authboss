@@ -10,7 +10,7 @@ var nowTime = time.Now
 
 // TimeToExpiry returns zero if the user session is expired else the time
 // until expiry. Takes in the allowed idle duration.
-func TimeToExpiry(w http.ResponseWriter, r *http.Request, expireAfter time.Duration) time.Duration {
+func TimeToExpiry(r *http.Request, expireAfter time.Duration) time.Duration {
 	return timeToExpiry(r, expireAfter)
 }
 

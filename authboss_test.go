@@ -11,6 +11,7 @@ func TestAuthBossInit(t *testing.T) {
 	ab := New()
 	ab.LogWriter = ioutil.Discard
 	ab.ViewLoader = mockRenderLoader{}
+	ab.MailViewLoader = mockRenderLoader{}
 	err := ab.Init()
 	if err != nil {
 		t.Error("Unexpected error:", err)

@@ -4,6 +4,7 @@ import (
 	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 )
 
@@ -39,12 +40,29 @@ func TestRouter(t *testing.T) {
 		delete = string(b)
 	}))
 
+	wr := httptest.NewRecorder()
+	req := httptest.NewRequest("GET", "/test", strings.NewReader("testget"))
+	r.ServeHTTP(wr, req)
 	if get != wantGet {
 		t.Error("want:", wantGet, "got:", get)
 	}
+	if len(post) != 0 || len(delete) != 0 {
+		t.Error("should be empty:", post, delete)
+	}
+
+	wr = httptest.NewRecorder()
+	req = httptest.NewRequest("POST", "/test", strings.NewReader("testpost"))
+	r.ServeHTTP(wr, req)
 	if post != wantPost {
 		t.Error("want:", wantPost, "got:", post)
 	}
+	if len(delete) != 0 {
+		t.Error("should be empty:", delete)
+	}
+
+	wr = httptest.NewRecorder()
+	req = httptest.NewRequest("DELETE", "/test", strings.NewReader("testdelete"))
+	r.ServeHTTP(wr, req)
 	if delete != wantDelete {
 		t.Error("want:", wantDelete, "got:", delete)
 	}

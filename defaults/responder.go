@@ -8,40 +8,16 @@ import (
 
 // Responder helps respond to http requests
 type Responder struct {
-	// CRSFHandler creates csrf tokens for inclusion on rendered forms
-	CSRFMaker CSRFMaker
-	// CRSFName is the name of the field that will include the token
-	CSRFName string
-
 	Renderer authboss.Renderer
 }
 
-// CSRFMaker returns an opaque string when handed a request and response
-// to be included in the data as a
-type CSRFMaker func(w http.ResponseWriter, r *http.Request) string
-
-// Respond to an HTTP request. Renders templates, flash messages, does CSRF
-// and writes the headers out.
+// Respond to an HTTP request. It's main job is to merge data that comes in from
+// various middlewares via the context with the data sent by the controller and render that.
 func (r *Responder) Respond(w http.ResponseWriter, req *http.Request, code int, templateName string, data authboss.HTMLData) error {
-	data.MergeKV(
-		r.CSRFName, r.CSRFMaker(w, req),
-	)
-
-	/*
-		TODO(aarondl): Add middlewares for accumulating eventual view data using contexts
-		if a.LayoutDataMaker != nil {
-			data.Merge(a.LayoutDataMaker(w, req))
-		}
-
-		flashSuccess := authboss.FlashSuccess(w, req)
-		flashError := authboss.FlashError(w, req)
-		if len(flashSuccess) != 0 {
-			data.MergeKV(authboss.FlashSuccessKey, flashSuccess)
-		}
-		if len(flashError) != 0 {
-			data.MergeKV(authboss.FlashErrorKey, flashError)
-		}
-	*/
+	ctxData := req.Context().Value(authboss.CTXKeyData)
+	if ctxData != nil {
+		data.Merge(ctxData.(authboss.HTMLData))
+	}
 
 	rendered, mime, err := r.Renderer.Render(req.Context(), templateName, data)
 	if err != nil {

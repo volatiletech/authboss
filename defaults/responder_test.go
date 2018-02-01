@@ -20,23 +20,33 @@ func (t testRenderer) Render(ctx context.Context, name string, data authboss.HTM
 	return t.Callback(ctx, name, data)
 }
 
+func testJSONRender(ctx context.Context, name string, data authboss.HTMLData) ([]byte, string, error) {
+	b, err := json.Marshal(data)
+	if err != nil {
+		panic(err)
+	}
+
+	return b, "application/json", nil
+}
+
 func TestResponder(t *testing.T) {
 	t.Parallel()
 
 	renderer := testRenderer{
-		Callback: func(ctx context.Context, name string, data authboss.HTMLData) ([]byte, string, error) {
-			return nil, "", nil
-		},
+		Callback: testJSONRender,
 	}
 
 	responder := Responder{
-		Renderer:  renderer,
-		CSRFName:  "csrf",
-		CSRFMaker: func(w http.ResponseWriter, r *http.Request) string { return "csrftoken" },
+		Renderer: renderer,
 	}
 
 	r := httptest.NewRequest("GET", "/", nil)
 	w := httptest.NewRecorder()
+
+	r = r.WithContext(context.WithValue(context.Background(), authboss.CTXKeyData, authboss.HTMLData{
+		"csrfname":  "csrf",
+		"csrftoken": "12345",
+	}))
 
 	err := responder.Respond(w, r, http.StatusCreated, "some_template.tpl", authboss.HTMLData{"auth_happy": true})
 	if err != nil {
@@ -52,9 +62,8 @@ func TestResponder(t *testing.T) {
 	}
 
 	expectData := authboss.HTMLData{
-		"csrfName":   "xsrf",
-		"csrfToken":  "xsrftoken",
-		"hello":      "world",
+		"csrfname":   "csrf",
+		"csrftoken":  "12345",
 		"auth_happy": true,
 	}
 
@@ -71,9 +80,7 @@ func TestRedirector(t *testing.T) {
 	t.Parallel()
 
 	renderer := testRenderer{
-		Callback: func(ctx context.Context, name string, data authboss.HTMLData) ([]byte, string, error) {
-			return nil, "", nil
-		},
+		Callback: testJSONRender,
 	}
 
 	redir := Redirector{
@@ -102,7 +109,7 @@ func TestRedirector(t *testing.T) {
 
 	var gotData map[string]string
 	if err := json.Unmarshal(w.Body.Bytes(), &gotData); err != nil {
-		t.Error(err)
+		t.Fatal(err)
 	}
 
 	if got := gotData["status"]; got != "success" {
@@ -120,9 +127,7 @@ func TestResponseRedirectAPIFollowRedir(t *testing.T) {
 	t.Parallel()
 
 	renderer := testRenderer{
-		Callback: func(ctx context.Context, name string, data authboss.HTMLData) ([]byte, string, error) {
-			return nil, "", nil
-		},
+		Callback: testJSONRender,
 	}
 
 	redir := Redirector{
@@ -151,7 +156,7 @@ func TestResponseRedirectAPIFollowRedir(t *testing.T) {
 
 	var gotData map[string]string
 	if err := json.Unmarshal(w.Body.Bytes(), &gotData); err != nil {
-		t.Error(err)
+		t.Fatal(err)
 	}
 
 	if got := gotData["status"]; got != "failure" {

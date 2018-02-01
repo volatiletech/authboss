@@ -27,7 +27,6 @@ func (h HTTPFormValidator) Validate(r *http.Request) authboss.ErrorList {
 	}
 
 	for i := 0; i < len(h.ConfirmFields)-1; i += 2 {
-		fmt.Println(h.ConfirmFields)
 		main := r.FormValue(h.ConfirmFields[i])
 		if len(main) == 0 {
 			continue

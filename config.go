@@ -1,9 +1,7 @@
 package authboss
 
 import (
-	"context"
 	"io"
-	"net/http"
 	"time"
 )
 
@@ -27,21 +25,10 @@ type Config struct {
 	// MailViewLoader loads the templates for mail. If this is nil, it will
 	// fall back to using the Renderer created from the ViewLoader instead.
 	MailViewLoader RenderLoader
-	// LayoutDataMaker is a function that can provide authboss with the layout's
-	// template data. It will be merged with the data being provided for the current
-	// view in order to render the templates.
-	LayoutDataMaker ViewDataMaker
 
 	// OAuth2Providers lists all providers that can be used. See
 	// OAuthProvider documentation for more details.
 	OAuth2Providers map[string]OAuth2Provider
-
-	// ErrorHandler handles would be 500 errors.
-	ErrorHandler http.Handler
-	// BadRequestHandler handles would be 400 errors.
-	BadRequestHandler http.Handler
-	// NotFoundHandler handles would be 404 errors.
-	NotFoundHandler http.Handler
 
 	// AuthLoginOKPath is the redirect path after a successful authentication.
 	AuthLoginOKPath string
@@ -86,13 +73,9 @@ type Config struct {
 	// email subjects.
 	EmailSubjectPrefix string
 
-	// XSRFName is the name of the xsrf token to put in the hidden form fields.
-	XSRFName string
-	// XSRFMaker is a function that returns an xsrf token for the current non-POST request.
-	XSRFMaker XSRF
-
-	// Storer is the interface through which Authboss accesses the web apps database.
-	StoreLoader StoreLoader
+	// Storer is the interface through which Authboss accesses the web apps database
+	// for user operations.
+	Storer ServerStorer
 
 	// CookieStateStorer must be defined to provide an interface capapable of
 	// storing cookies for the given response, and reading them from the request.
@@ -108,9 +91,6 @@ type Config struct {
 	// Mailer is the mailer being used to send e-mails out. Authboss defines two loggers for use
 	// LogMailer and SMTPMailer, the default is a LogMailer to io.Discard.
 	Mailer Mailer
-
-	// ContextProvider provides a context for a given request
-	ContextProvider func(*http.Request) context.Context
 }
 
 // Defaults sets the configuration's default values.

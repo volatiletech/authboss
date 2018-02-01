@@ -13,6 +13,11 @@ const (
 
 	ctxKeySessionState contextKey = "session"
 	ctxKeyCookieState  contextKey = "cookie"
+
+	// CTXKeyData is a context key for the accumulating
+	// map[string]interface{} (authboss.HTMLData) to pass to the
+	// renderer
+	CTXKeyData contextKey = "data"
 )
 
 func (c contextKey) String() string {
@@ -23,11 +28,6 @@ func (c contextKey) String() string {
 func (a *Authboss) CurrentUserID(w http.ResponseWriter, r *http.Request) (string, error) {
 	if pid := r.Context().Value(ctxKeyPID); pid != nil {
 		return pid.(string), nil
-	}
-
-	_, err := a.Callbacks.FireBefore(EventGetUserSession, r.Context())
-	if err != nil {
-		return "", err
 	}
 
 	pid, _ := GetSession(r, SessionKey)
@@ -48,9 +48,9 @@ func (a *Authboss) CurrentUserIDP(w http.ResponseWriter, r *http.Request) string
 }
 
 // CurrentUser retrieves the current user from the session and the database.
-func (a *Authboss) CurrentUser(w http.ResponseWriter, r *http.Request) (Storer, error) {
+func (a *Authboss) CurrentUser(w http.ResponseWriter, r *http.Request) (User, error) {
 	if user := r.Context().Value(ctxKeyUser); user != nil {
-		return user.(Storer), nil
+		return user.(User), nil
 	}
 
 	pid, err := a.CurrentUserID(w, r)
@@ -65,7 +65,7 @@ func (a *Authboss) CurrentUser(w http.ResponseWriter, r *http.Request) (Storer, 
 
 // CurrentUserP retrieves the current user but panics if it's not available for
 // any reason.
-func (a *Authboss) CurrentUserP(w http.ResponseWriter, r *http.Request) Storer {
+func (a *Authboss) CurrentUserP(w http.ResponseWriter, r *http.Request) User {
 	i, err := a.CurrentUser(w, r)
 	if err != nil {
 		panic(err)
@@ -75,19 +75,8 @@ func (a *Authboss) CurrentUserP(w http.ResponseWriter, r *http.Request) Storer {
 	return i
 }
 
-func (a *Authboss) currentUser(ctx context.Context, pid string) (Storer, error) {
-	_, err := a.Callbacks.FireBefore(EventGetUser, ctx)
-	if err != nil {
-		return nil, err
-	}
-
-	user, err := a.StoreLoader.Load(ctx, pid)
-	if err != nil {
-		return nil, err
-	}
-
-	ctx = context.WithValue(ctx, ctxKeyUser, user)
-	err = a.Callbacks.FireAfter(EventGetUser, ctx)
+func (a *Authboss) currentUser(ctx context.Context, pid string) (User, error) {
+	user, err := a.Storer.Load(ctx, pid)
 	if err != nil {
 		return nil, err
 	}
@@ -95,7 +84,7 @@ func (a *Authboss) currentUser(ctx context.Context, pid string) (Storer, error) 
 	return user, nil
 }
 
-// LoadCurrentUser takes a pointer to a pointer to the request in order to
+// LoadCurrentUserID takes a pointer to a pointer to the request in order to
 // change the current method's request pointer itself to the new request that
 // contains the new context that has the pid in it.
 func (a *Authboss) LoadCurrentUserID(w http.ResponseWriter, r **http.Request) (string, error) {
@@ -118,6 +107,7 @@ func (a *Authboss) LoadCurrentUserID(w http.ResponseWriter, r **http.Request) (s
 	return pid, nil
 }
 
+// LoadCurrentUserIDP loads the current user id and panics if it's not found
 func (a *Authboss) LoadCurrentUserIDP(w http.ResponseWriter, r **http.Request) string {
 	pid, err := a.LoadCurrentUserID(w, r)
 	if err != nil {
@@ -133,9 +123,9 @@ func (a *Authboss) LoadCurrentUserIDP(w http.ResponseWriter, r **http.Request) s
 // change the current method's request pointer itself to the new request that
 // contains the new context that has the user in it. Calls LoadCurrentUserID
 // so the primary id is also put in the context.
-func (a *Authboss) LoadCurrentUser(w http.ResponseWriter, r **http.Request) (Storer, error) {
+func (a *Authboss) LoadCurrentUser(w http.ResponseWriter, r **http.Request) (User, error) {
 	if user := (*r).Context().Value(ctxKeyUser); user != nil {
-		return user.(Storer), nil
+		return user.(User), nil
 	}
 
 	pid, err := a.LoadCurrentUserID(w, r)
@@ -158,7 +148,9 @@ func (a *Authboss) LoadCurrentUser(w http.ResponseWriter, r **http.Request) (Sto
 	return user, nil
 }
 
-func (a *Authboss) LoadCurrentUserP(w http.ResponseWriter, r **http.Request) Storer {
+// LoadCurrentUserP does the same as LoadCurrentUser but panics if
+// the current user is not found.
+func (a *Authboss) LoadCurrentUserP(w http.ResponseWriter, r **http.Request) User {
 	user, err := a.LoadCurrentUser(w, r)
 	if err != nil {
 		panic(err)

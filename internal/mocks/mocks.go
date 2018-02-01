@@ -103,15 +103,15 @@ func (m *User) SetOAuthExpiry(ctx context.Context, oAuthExpiry time.Time) error 
 	return nil
 }
 
-// StoreLoader should be valid for any module storer defined in authboss.
-type StoreLoader struct {
+// ServerStorer should be valid for any module storer defined in authboss.
+type ServerStorer struct {
 	Users    map[string]*User
 	RMTokens map[string][]string
 }
 
-// NewStoreLoader constructor
-func NewStoreLoader() *StoreLoader {
-	return &StoreLoader{
+// NewServerStorer constructor
+func NewServerStorer() *ServerStorer {
+	return &ServerStorer{
 		Users:    make(map[string]*User),
 		RMTokens: make(map[string][]string),
 	}
@@ -220,15 +220,15 @@ func (FailStorer) Load(context.Context) error {
 	return errors.New("fail storer: get")
 }
 
-// ClientStorer is used for testing the client stores on context
-type ClientStorer struct {
+// ClientRW is used for testing the client stores on context
+type ClientState struct {
 	Values        map[string]string
 	GetShouldFail bool
 }
 
-// NewClientStorer constructs a ClientStorer
-func NewClientStorer(data ...string) *ClientStorer {
-	if len(data)%2 != 0 {
+// NewClientState constructs a ClientStorer
+func NewClientState(data ...string) *ClientState {
+	if len(data) != 0 && len(data)%2 != 0 {
 		panic("It should be a key value list of arguments.")
 	}
 
@@ -238,11 +238,11 @@ func NewClientStorer(data ...string) *ClientStorer {
 		values[data[i]] = data[i+1]
 	}
 
-	return &ClientStorer{Values: values}
+	return &ClientState{Values: values}
 }
 
 // Get a key's value
-func (m *ClientStorer) Get(key string) (string, bool) {
+func (m *ClientState) Get(key string) (string, bool) {
 	if m.GetShouldFail {
 		return "", false
 	}
@@ -251,24 +251,35 @@ func (m *ClientStorer) Get(key string) (string, bool) {
 	return v, ok
 }
 
-// GetErr gets a key's value or err if not exist
-func (m *ClientStorer) GetErr(key string) (string, error) {
-	if m.GetShouldFail {
-		return "", authboss.ClientDataErr{Name: key}
-	}
-
-	v, ok := m.Values[key]
-	if !ok {
-		return v, authboss.ClientDataErr{Name: key}
-	}
-	return v, nil
-}
-
 // Put a value
-func (m *ClientStorer) Put(key, val string) { m.Values[key] = val }
+func (m *ClientState) Put(key, val string) { m.Values[key] = val }
 
 // Del a key/value pair
-func (m *ClientStorer) Del(key string) { delete(m.Values, key) }
+func (m *ClientState) Del(key string) { delete(m.Values, key) }
+
+// ClientStateRW stores things that would originally
+// go in a session, or a map, in memory!
+type ClientStateRW struct {
+	ClientValues map[string]string
+}
+
+// NewClientRW takes the data from a client state
+// and returns.
+func NewClientRW() *ClientStateRW {
+	return &ClientStateRW{
+		ClientValues: make(map[string]string),
+	}
+}
+
+// ReadState from memory
+func (c *ClientStateRW) ReadState(http.ResponseWriter, *http.Request) (authboss.ClientState, error) {
+	return &ClientState{Values: c.ClientValues}, nil
+}
+
+// WriteState to memory
+func (c *ClientStateRW) WriteState(w http.ResponseWriter, cstate authboss.ClientState, cse []authboss.ClientStateEvent) error {
+	return nil
+}
 
 // Request returns a new  request with optional key-value body (form-post)
 func Request(method string, postKeyValues ...string) *http.Request {

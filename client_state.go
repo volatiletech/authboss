@@ -32,6 +32,7 @@ const (
 // ClientStateEventKind is an enum.
 type ClientStateEventKind int
 
+// ClientStateEvent kinds
 const (
 	ClientStateEventPut ClientStateEventKind = iota
 	ClientStateEventDel
@@ -71,7 +72,7 @@ type ClientState interface {
 	Get(key string) (string, bool)
 }
 
-// clientStateResponseWriter is used to write out the client state at the last
+// ClientStateResponseWriter is used to write out the client state at the last
 // moment before the response code is written.
 type ClientStateResponseWriter struct {
 	ab *Authboss
@@ -83,7 +84,8 @@ type ClientStateResponseWriter struct {
 	cookieStateEvents  []ClientStateEvent
 }
 
-func (a *Authboss) NewResponse(w http.ResponseWriter, r *http.Request) http.ResponseWriter {
+// NewResponse wraps the ResponseWriter with a ClientStateResponseWriter
+func (a *Authboss) NewResponse(w http.ResponseWriter, r *http.Request) *ClientStateResponseWriter {
 	return &ClientStateResponseWriter{
 		ab:             a,
 		ResponseWriter: w,
@@ -91,6 +93,7 @@ func (a *Authboss) NewResponse(w http.ResponseWriter, r *http.Request) http.Resp
 	}
 }
 
+// LoadClientState loads the state from sessions and cookies into the request context
 func (a *Authboss) LoadClientState(w http.ResponseWriter, r *http.Request) (*http.Request, error) {
 	if a.SessionStateStorer != nil {
 		state, err := a.SessionStateStorer.ReadState(w, r)

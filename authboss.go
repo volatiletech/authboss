@@ -6,60 +6,47 @@ races without having to think about how to store passwords or remember tokens.
 */
 package authboss
 
-import (
-	"fmt"
-	"net/http"
-
-	"github.com/pkg/errors"
-)
+import "github.com/pkg/errors"
 
 // Authboss contains a configuration and other details for running.
 type Authboss struct {
 	Config
-	Callbacks *Callbacks
+	loadedModules map[string]bool
 
-	loadedModules map[string]Modularizer
-	mux           *http.ServeMux
-
-	templateNames []string
-	renderer      Renderer
+	viewRenderer Renderer
+	mailRenderer Renderer
 }
 
 // New makes a new instance of authboss with a default
 // configuration.
 func New() *Authboss {
-	ab := &Authboss{
-		Callbacks:     NewCallbacks(),
-		loadedModules: make(map[string]Modularizer),
-	}
+	ab := &Authboss{}
 	ab.Config.Defaults()
 	return ab
 }
 
-// Init authboss and the requested modules. modulesToLoad is left empty
-// all registered modules will be loaded.
-func (a *Authboss) Init(modulesToLoad ...string) error {
-	if len(modulesToLoad) == 0 {
-		modulesToLoad = RegisteredModules()
-	}
+// Init authboss, modules, renderers
+func (a *Authboss) Init() error {
+	//TODO(aarondl): Figure the template names out along with new "module" loading.
+	views := []string{"all"}
 
-	for _, name := range modulesToLoad {
-		fmt.Fprintf(a.LogWriter, "%-10s loading\n", "["+name+"]")
-		if err := a.loadModule(name); err != nil {
-			return errors.Wrapf(err, "[%s] error initializing", name)
-		}
-	}
-
-	renderer, err := a.ViewLoader.Init(a.templateNames)
+	var err error
+	a.viewRenderer, err = a.Config.ViewLoader.Init(views)
 	if err != nil {
-		return errors.Wrap(err, "failed to init view loader")
+		return errors.Wrap(err, "failed to load the view renderer")
 	}
-	a.renderer = renderer
+
+	a.mailRenderer, err = a.Config.MailViewLoader.Init(views)
+	if err != nil {
+		return errors.Wrap(err, "failed to load the mail view renderer")
+	}
 
 	return nil
 }
 
 /*
+TODO(aarondl): Fixup
+
 UpdatePassword should be called to recalculate hashes and do any cleanup
 that should occur on password resets. Updater should return an error if the
 update to the user failed (for reasons say like validation, duplicate
@@ -78,7 +65,6 @@ will be returned.
 
 The error returned is returned either from the updater if that produced an error
 or from the cleanup routines.
-*/
 func (a *Authboss) UpdatePassword(w http.ResponseWriter, r *http.Request,
 	ptPassword string, user Storer, updater func() error) error {
 
@@ -101,7 +87,9 @@ func (a *Authboss) UpdatePassword(w http.ResponseWriter, r *http.Request,
 		return nil
 	}
 
-	return a.Callbacks.FireAfter(EventPasswordReset, r.Context())*/
+	return a.Callbacks.FireAfter(EventPasswordReset, r.Context())
 	// TODO(aarondl): Fix
 	return errors.New("not implemented")
 }
+
+*/

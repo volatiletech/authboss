@@ -1,7 +1,6 @@
 package authboss
 
 import (
-	"bytes"
 	"context"
 	"time"
 
@@ -29,22 +28,24 @@ var (
 	ErrUserNotFound = errors.New("user not found")
 	// ErrTokenNotFound should be returned from UseToken when the record is not found.
 	ErrTokenNotFound = errors.New("token not found")
-	// ErrUserFound should be returned from Create when the primaryID of the record is found.
+	// ErrUserFound should be returned from Create (see ConfirmUser) when the primaryID
+	// of the record is found.
 	ErrUserFound = errors.New("user found")
 )
 
-// StoreLoader represents the data store that's capable of loading users
+// ServerStorer represents the data store that's capable of loading users
 // and giving them a context with which to store themselves.
-type StoreLoader interface {
-	// Load will be passed the PrimaryID and return pre-loaded storer (meaning
-	// Storer.Load will not be called)
-	Load(ctx context.Context, key string) (Storer, error)
+type ServerStorer interface {
+	// Load will look up the user based on the passed the PrimaryID
+	Load(ctx context.Context, key string) (User, error)
+
+	// Save persists the user in the database
+	Save(ctx context.Context, user User) error
 }
 
-// Storer represents a user that also knows how to put himself into the db.
-// It has functions for each piece of data it requires.
-// Note that you should only persist data once Save() has been called.
-type Storer interface {
+// User has functions for each piece of data it requires.
+// Data should not be persisted on each function call.
+type User interface {
 	PutEmail(ctx context.Context, email string) error
 	PutUsername(ctx context.Context, username string) error
 	PutPassword(ctx context.Context, password string) error
@@ -52,21 +53,13 @@ type Storer interface {
 	GetEmail(ctx context.Context) (email string, err error)
 	GetUsername(ctx context.Context) (username string, err error)
 	GetPassword(ctx context.Context) (password string, err error)
-
-	// Save the state.
-	Save(ctx context.Context) error
-
-	// Load the state based on the properties that have been given (typically
-	// an e-mail/username).
-	Load(ctx context.Context) error
 }
 
-// TODO(aarondl): Document & move to Register module
-// ArbitraryStorer allows arbitrary data from the web form through. You should
+// ArbitraryUser allows arbitrary data from the web form through. You should
 // definitely only pull the keys you want from the map, since this is unfiltered
 // input from a web request and is an attack vector.
-type ArbitraryStorer interface {
-	Storer
+type ArbitraryUser interface {
+	User
 
 	// PutArbitrary allows arbitrary fields defined by the authboss library
 	// consumer to add fields to the user registration piece.
@@ -76,10 +69,12 @@ type ArbitraryStorer interface {
 	GetArbitrary(ctx context.Context) (arbitrary map[string]string, err error)
 }
 
-// OAuth2Storer allows reading and writing values relating to OAuth2
-type OAuth2Storer interface {
-	Storer
+// OAuth2User allows reading and writing values relating to OAuth2
+type OAuth2User interface {
+	User
 
+	// IsOAuth2User checks to see if a user was registered in the site as an
+	// oauth2 user.
 	IsOAuth2User(ctx context.Context) (bool, error)
 
 	PutUID(ctx context.Context, uid string) error
@@ -93,37 +88,4 @@ type OAuth2Storer interface {
 	GetToken(ctx context.Context) (token string, err error)
 	GetRefreshToken(ctx context.Context) (refreshToken string, err error)
 	GetExpiry(ctx context.Context) (expiry time.Duration, err error)
-}
-
-func camelToUnder(in string) string {
-	out := bytes.Buffer{}
-	for i := 0; i < len(in); i++ {
-		chr := in[i]
-		if chr >= 'A' && chr <= 'Z' {
-			if i > 0 {
-				out.WriteByte('_')
-			}
-			out.WriteByte(chr + 'a' - 'A')
-		} else {
-			out.WriteByte(chr)
-		}
-	}
-	return out.String()
-}
-
-func underToCamel(in string) string {
-	out := bytes.Buffer{}
-	for i := 0; i < len(in); i++ {
-		chr := in[i]
-
-		if first := i == 0; first || chr == '_' {
-			if !first {
-				i++
-			}
-			out.WriteByte(in[i] - 'a' + 'A')
-		} else {
-			out.WriteByte(chr)
-		}
-	}
-	return out.String()
 }

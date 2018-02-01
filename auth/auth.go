@@ -13,9 +13,6 @@ import (
 )
 
 const (
-	methodGET  = "GET"
-	methodPOST = "POST"
-
 	tplLogin = "login.html.tpl"
 )
 
@@ -26,7 +23,6 @@ func init() {
 // Auth module
 type Auth struct {
 	*authboss.Authboss
-	templates response.Templates
 }
 
 // Initialize module

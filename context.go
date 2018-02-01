@@ -76,7 +76,7 @@ func (a *Authboss) CurrentUserP(w http.ResponseWriter, r *http.Request) User {
 }
 
 func (a *Authboss) currentUser(ctx context.Context, pid string) (User, error) {
-	user, err := a.Storer.Load(ctx, pid)
+	user, err := a.Storage.Server.Load(ctx, pid)
 	if err != nil {
 		return nil, err
 	}

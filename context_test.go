@@ -17,8 +17,8 @@ func loadClientStateP(ab *Authboss, w http.ResponseWriter, r *http.Request) *htt
 
 func testSetupContext() (*Authboss, *http.Request) {
 	ab := New()
-	ab.SessionStateStorer = newMockClientStateRW(SessionKey, "george-pid")
-	ab.Storer = mockServerStorer{
+	ab.Storage.SessionState = newMockClientStateRW(SessionKey, "george-pid")
+	ab.Storage.Server = mockServerStorer{
 		"george-pid": mockUser{Email: "george-pid", Password: "unreadable"},
 	}
 	r := loadClientStateP(ab, nil, httptest.NewRequest("GET", "/", nil))
@@ -39,8 +39,8 @@ func testSetupContextCached() (*Authboss, mockUser, *http.Request) {
 
 func testSetupContextPanic() *Authboss {
 	ab := New()
-	ab.SessionStateStorer = newMockClientStateRW(SessionKey, "george-pid")
-	ab.Storer = mockServerStorer{}
+	ab.Storage.SessionState = newMockClientStateRW(SessionKey, "george-pid")
+	ab.Storage.Server = mockServerStorer{}
 
 	return ab
 }
@@ -80,7 +80,7 @@ func TestCurrentUserIDP(t *testing.T) {
 
 	ab := testSetupContextPanic()
 	// Overwrite the setup functions state storer
-	ab.SessionStateStorer = newMockClientStateRW()
+	ab.Storage.SessionState = newMockClientStateRW()
 
 	defer func() {
 		if recover().(error) != ErrUserNotFound {
@@ -101,7 +101,7 @@ func TestCurrentUser(t *testing.T) {
 		t.Error(err)
 	}
 
-	if got, err := user.GetEmail(context.TODO()); err != nil {
+	if got, err := user.GetPID(context.TODO()); err != nil {
 		t.Error(err)
 	} else if got != "george-pid" {
 		t.Error("got:", got)
@@ -118,7 +118,7 @@ func TestCurrentUserContext(t *testing.T) {
 		t.Error(err)
 	}
 
-	if got, err := user.GetEmail(context.TODO()); err != nil {
+	if got, err := user.GetPID(context.TODO()); err != nil {
 		t.Error(err)
 	} else if got != "george-pid" {
 		t.Error("got:", got)
@@ -198,7 +198,7 @@ func TestLoadCurrentUser(t *testing.T) {
 		t.Error(err)
 	}
 
-	if got, err := user.GetEmail(context.TODO()); err != nil {
+	if got, err := user.GetPID(context.TODO()); err != nil {
 		t.Error(err)
 	} else if got != "george-pid" {
 		t.Error("got:", got)

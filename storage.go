@@ -45,13 +45,14 @@ type ServerStorer interface {
 
 // User has functions for each piece of data it requires.
 // Data should not be persisted on each function call.
+// User has a PID (primary ID) that is used on the site as
+// a single unique identifier to any given user (very typically e-mail
+// or username).
 type User interface {
-	PutEmail(ctx context.Context, email string) error
-	PutUsername(ctx context.Context, username string) error
+	PutPID(ctx context.Context, pid string) error
 	PutPassword(ctx context.Context, password string) error
 
-	GetEmail(ctx context.Context) (email string, err error)
-	GetUsername(ctx context.Context) (username string, err error)
+	GetPID(ctx context.Context) (pid string, err error)
 	GetPassword(ctx context.Context) (password string, err error)
 }
 

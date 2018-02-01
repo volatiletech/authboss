@@ -10,7 +10,7 @@ import (
 
 func TestExpireIsExpired(t *testing.T) {
 	ab := New()
-	ab.SessionStateStorer = newMockClientStateRW(
+	ab.Storage.SessionState = newMockClientStateRW(
 		SessionKey, "username",
 		SessionLastAction, time.Now().UTC().Format(time.RFC3339),
 	)
@@ -26,7 +26,7 @@ func TestExpireIsExpired(t *testing.T) {
 
 	// No t.Parallel() - Also must be after refreshExpiry() call
 	nowTime = func() time.Time {
-		return time.Now().UTC().Add(ab.ExpireAfter * 2)
+		return time.Now().UTC().Add(ab.Modules.ExpireAfter * 2)
 	}
 	defer func() {
 		nowTime = time.Now
@@ -72,8 +72,8 @@ func TestExpireIsExpired(t *testing.T) {
 
 func TestExpireNotExpired(t *testing.T) {
 	ab := New()
-	ab.Config.ExpireAfter = time.Hour
-	ab.SessionStateStorer = newMockClientStateRW(
+	ab.Config.Modules.ExpireAfter = time.Hour
+	ab.Storage.SessionState = newMockClientStateRW(
 		SessionKey, "username",
 		SessionLastAction, time.Now().UTC().Format(time.RFC3339),
 	)
@@ -90,7 +90,7 @@ func TestExpireNotExpired(t *testing.T) {
 	}
 
 	// No t.Parallel() - Also must be after refreshExpiry() call
-	newTime := time.Now().UTC().Add(ab.ExpireAfter / 2)
+	newTime := time.Now().UTC().Add(ab.Modules.ExpireAfter / 2)
 	nowTime = func() time.Time {
 		return newTime
 	}

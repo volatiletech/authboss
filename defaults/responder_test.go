@@ -16,6 +16,10 @@ type testRenderer struct {
 	Callback func(context.Context, string, authboss.HTMLData) ([]byte, string, error)
 }
 
+func (t testRenderer) Load(names ...string) error {
+	return nil
+}
+
 func (t testRenderer) Render(ctx context.Context, name string, data authboss.HTMLData) ([]byte, string, error) {
 	return t.Callback(ctx, name, data)
 }
@@ -189,8 +193,8 @@ func TestResponseRedirectNonAPI(t *testing.T) {
 	w := httptest.NewRecorder()
 
 	ab := authboss.New()
-	ab.Config.SessionStateStorer = mocks.NewClientRW()
-	ab.Config.CookieStateStorer = mocks.NewClientRW()
+	ab.Config.Storage.SessionState = mocks.NewClientRW()
+	ab.Config.Storage.CookieState = mocks.NewClientRW()
 	aw := ab.NewResponse(w, r)
 
 	ro := authboss.RedirectOptions{
@@ -228,8 +232,8 @@ func TestResponseRedirectNonAPIFollowRedir(t *testing.T) {
 	w := httptest.NewRecorder()
 
 	ab := authboss.New()
-	ab.Config.SessionStateStorer = mocks.NewClientRW()
-	ab.Config.CookieStateStorer = mocks.NewClientRW()
+	ab.Config.Storage.SessionState = mocks.NewClientRW()
+	ab.Config.Storage.CookieState = mocks.NewClientRW()
 	aw := ab.NewResponse(w, r)
 
 	ro := authboss.RedirectOptions{

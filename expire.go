@@ -61,7 +61,7 @@ func (a *Authboss) ExpireMiddleware(next http.Handler) http.Handler {
 // below it.
 func (m expireMiddleware) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	if _, ok := GetSession(r, SessionKey); ok {
-		ttl := timeToExpiry(r, m.ab.ExpireAfter)
+		ttl := timeToExpiry(r, m.ab.Modules.ExpireAfter)
 		if ttl == 0 {
 			DelSession(w, SessionKey)
 			DelSession(w, SessionLastAction)

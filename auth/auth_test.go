@@ -21,7 +21,7 @@ func testSetup() (a *Auth, s *mocks.MockStorer) {
 	ab := authboss.New()
 	ab.LogWriter = ioutil.Discard
 	ab.Layout = template.Must(template.New("").Parse(`{{template "authboss" .}}`))
-	ab.Storer = s
+	ab.Storage.Server = s
 	ab.XSRFName = "xsrf"
 	ab.XSRFMaker = func(_ http.ResponseWriter, _ *http.Request) string {
 		return "xsrfvalue"
@@ -293,7 +293,7 @@ func TestAuth_validateCredentials(t *testing.T) {
 
 	ab := authboss.New()
 	storer := mocks.NewMockStorer()
-	ab.Storer = storer
+	ab.Storage.Server = storer
 
 	ctx := ab.NewContext()
 	storer.Users["john"] = authboss.Attributes{"password": "$2a$10$pgFsuQwdhwOdZp/v52dvHeEi53ZaI7dGmtwK4bAzGGN5A4nT6doqm"}

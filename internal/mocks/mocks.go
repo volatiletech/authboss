@@ -31,7 +31,7 @@ type User struct {
 }
 
 func (m User) GetUsername(context.Context) (string, error)     { return m.Username, nil }
-func (m User) GetEmail(context.Context) (string, error)        { return m.Email, nil }
+func (m User) GetPID(context.Context) (string, error)          { return m.Email, nil }
 func (m User) GetPassword(context.Context) (string, error)     { return m.Password, nil }
 func (m User) GetRecoverToken(context.Context) (string, error) { return m.RecoverToken, nil }
 func (m User) GetRecoverTokenExpiry(context.Context) (time.Time, error) {

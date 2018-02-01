@@ -58,7 +58,7 @@ func TestAfterAuth(t *testing.T) {
 	}
 
 	storer := mocks.NewMockStorer()
-	ab.Storer = storer
+	ab.Storage.Server = storer
 	ctx.User = authboss.Attributes{ab.PrimaryID: "john@john.com"}
 
 	if err := lock.afterAuth(ctx); err != nil {
@@ -81,7 +81,7 @@ func TestAfterAuthFail_Lock(t *testing.T) {
 
 	ctx := ab.NewContext()
 	storer := mocks.NewMockStorer()
-	ab.Storer = storer
+	ab.Storage.Server = storer
 	lock := Lock{ab}
 	ab.LockWindow = 30 * time.Minute
 	ab.LockDuration = 30 * time.Minute
@@ -133,7 +133,7 @@ func TestAfterAuthFail_Reset(t *testing.T) {
 	storer := mocks.NewMockStorer()
 	lock := Lock{ab}
 	ab.LockWindow = 30 * time.Minute
-	ab.Storer = storer
+	ab.Storage.Server = storer
 
 	old = time.Now().UTC().Add(-time.Hour)
 
@@ -175,7 +175,7 @@ func TestLock(t *testing.T) {
 
 	ab := authboss.New()
 	storer := mocks.NewMockStorer()
-	ab.Storer = storer
+	ab.Storage.Server = storer
 	lock := Lock{ab}
 
 	email := "john@john.com"
@@ -199,7 +199,7 @@ func TestUnlock(t *testing.T) {
 
 	ab := authboss.New()
 	storer := mocks.NewMockStorer()
-	ab.Storer = storer
+	ab.Storage.Server = storer
 	lock := Lock{ab}
 	ab.LockWindow = 1 * time.Hour
 

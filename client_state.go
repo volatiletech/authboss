@@ -95,8 +95,8 @@ func (a *Authboss) NewResponse(w http.ResponseWriter, r *http.Request) *ClientSt
 
 // LoadClientState loads the state from sessions and cookies into the request context
 func (a *Authboss) LoadClientState(w http.ResponseWriter, r *http.Request) (*http.Request, error) {
-	if a.SessionStateStorer != nil {
-		state, err := a.SessionStateStorer.ReadState(w, r)
+	if a.Storage.SessionState != nil {
+		state, err := a.Storage.SessionState.ReadState(w, r)
 		if err != nil {
 			return nil, err
 		} else if state == nil {
@@ -106,8 +106,8 @@ func (a *Authboss) LoadClientState(w http.ResponseWriter, r *http.Request) (*htt
 		ctx := context.WithValue(r.Context(), ctxKeySessionState, state)
 		r = r.WithContext(ctx)
 	}
-	if a.CookieStateStorer != nil {
-		state, err := a.CookieStateStorer.ReadState(w, r)
+	if a.Storage.CookieState != nil {
+		state, err := a.Storage.CookieState.ReadState(w, r)
 		if err != nil {
 			return nil, err
 		} else if state == nil {
@@ -184,14 +184,14 @@ func (c *ClientStateResponseWriter) putClientState() error {
 		cookie = cookieStateIntf.(ClientState)
 	}
 
-	if c.ab.SessionStateStorer != nil {
-		err := c.ab.SessionStateStorer.WriteState(c, session, c.sessionStateEvents)
+	if c.ab.Storage.SessionState != nil {
+		err := c.ab.Storage.SessionState.WriteState(c, session, c.sessionStateEvents)
 		if err != nil {
 			return err
 		}
 	}
-	if c.ab.CookieStateStorer != nil {
-		err := c.ab.CookieStateStorer.WriteState(c, cookie, c.cookieStateEvents)
+	if c.ab.Storage.CookieState != nil {
+		err := c.ab.Storage.CookieState.WriteState(c, cookie, c.cookieStateEvents)
 		if err != nil {
 			return err
 		}

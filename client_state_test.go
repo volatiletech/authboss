@@ -12,8 +12,8 @@ func TestStateGet(t *testing.T) {
 	t.Parallel()
 
 	ab := New()
-	ab.SessionStateStorer = newMockClientStateRW("one", "two")
-	ab.CookieStateStorer = newMockClientStateRW("three", "four")
+	ab.Storage.SessionState = newMockClientStateRW("one", "two")
+	ab.Storage.CookieState = newMockClientStateRW("three", "four")
 
 	r := httptest.NewRequest("GET", "/", nil)
 	w := ab.NewResponse(httptest.NewRecorder(), r)
@@ -36,7 +36,7 @@ func TestStateResponseWriterDoubleWritePanic(t *testing.T) {
 	t.Parallel()
 
 	ab := New()
-	ab.SessionStateStorer = newMockClientStateRW("one", "two")
+	ab.Storage.SessionState = newMockClientStateRW("one", "two")
 
 	r := httptest.NewRequest("GET", "/", nil)
 	w := ab.NewResponse(httptest.NewRecorder(), r)
@@ -58,8 +58,8 @@ func TestStateResponseWriterLastSecondWriteWithPrevious(t *testing.T) {
 	t.Parallel()
 
 	ab := New()
-	ab.SessionStateStorer = newMockClientStateRW("one", "two")
-	ab.CookieStateStorer = newMockClientStateRW("three", "four")
+	ab.Storage.SessionState = newMockClientStateRW("one", "two")
+	ab.Storage.CookieState = newMockClientStateRW("three", "four")
 
 	r := httptest.NewRequest("GET", "/", nil)
 	var w http.ResponseWriter = httptest.NewRecorder()
@@ -85,7 +85,7 @@ func TestStateResponseWriterLastSecondWriteHeader(t *testing.T) {
 	t.Parallel()
 
 	ab := New()
-	ab.SessionStateStorer = newMockClientStateRW()
+	ab.Storage.SessionState = newMockClientStateRW()
 
 	r := httptest.NewRequest("GET", "/", nil)
 	w := ab.NewResponse(httptest.NewRecorder(), r)
@@ -103,7 +103,7 @@ func TestStateResponseWriterLastSecondWriteWrite(t *testing.T) {
 	t.Parallel()
 
 	ab := New()
-	ab.SessionStateStorer = newMockClientStateRW()
+	ab.Storage.SessionState = newMockClientStateRW()
 
 	r := httptest.NewRequest("GET", "/", nil)
 	w := ab.NewResponse(httptest.NewRecorder(), r)
@@ -155,7 +155,7 @@ func TestFlashClearer(t *testing.T) {
 	t.Parallel()
 
 	ab := New()
-	ab.SessionStateStorer = newMockClientStateRW(FlashSuccessKey, "a", FlashErrorKey, "b")
+	ab.Storage.SessionState = newMockClientStateRW(FlashSuccessKey, "a", FlashErrorKey, "b")
 
 	r := httptest.NewRequest("GET", "/", nil)
 	w := ab.NewResponse(httptest.NewRecorder(), r)

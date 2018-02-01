@@ -29,7 +29,7 @@ func (m mockServerStorer) Load(ctx context.Context, key string) (User, error) {
 }
 
 func (m mockServerStorer) Save(ctx context.Context, user User) error {
-	e, err := user.GetEmail(ctx)
+	e, err := user.GetPID(ctx)
 	if err != nil {
 		panic(err)
 	}
@@ -39,7 +39,7 @@ func (m mockServerStorer) Save(ctx context.Context, user User) error {
 	return nil
 }
 
-func (m mockUser) PutEmail(ctx context.Context, email string) error {
+func (m mockUser) PutPID(ctx context.Context, email string) error {
 	m.Email = email
 	return nil
 }
@@ -53,7 +53,7 @@ func (m mockUser) PutPassword(ctx context.Context, password string) error {
 	return nil
 }
 
-func (m mockUser) GetEmail(ctx context.Context) (email string, err error) {
+func (m mockUser) GetPID(ctx context.Context) (email string, err error) {
 	return m.Email, nil
 }
 
@@ -153,14 +153,12 @@ func newMockAPIRequest(postKeyValues ...string) *http.Request {
 	return req
 }
 
-type mockRenderLoader struct{}
-
-func (m mockRenderLoader) Init(names []string) (Renderer, error) {
-	return mockRenderer{}, nil
-}
-
 type mockRenderer struct {
 	expectName string
+}
+
+func (m mockRenderer) Load(names ...string) error {
+	return nil
 }
 
 func (m mockRenderer) Render(ctx context.Context, name string, data HTMLData) ([]byte, string, error) {

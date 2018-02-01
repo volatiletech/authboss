@@ -11,34 +11,37 @@ import "github.com/pkg/errors"
 // Authboss contains a configuration and other details for running.
 type Authboss struct {
 	Config
-	loadedModules map[string]bool
-
-	viewRenderer Renderer
-	mailRenderer Renderer
+	loadedModules map[string]Moduler
 }
 
 // New makes a new instance of authboss with a default
 // configuration.
 func New() *Authboss {
 	ab := &Authboss{}
+	ab.loadedModules = make(map[string]Moduler)
+
 	ab.Config.Defaults()
 	return ab
 }
 
 // Init authboss, modules, renderers
-func (a *Authboss) Init() error {
-	//TODO(aarondl): Figure the template names out along with new "module" loading.
-	views := []string{"all"}
-
-	var err error
-	a.viewRenderer, err = a.Config.ViewLoader.Init(views)
-	if err != nil {
-		return errors.Wrap(err, "failed to load the view renderer")
+func (a *Authboss) Init(modulesToLoad ...string) error {
+	if len(modulesToLoad) == 0 {
+		modulesToLoad = RegisteredModules()
 	}
 
-	a.mailRenderer, err = a.Config.MailViewLoader.Init(views)
-	if err != nil {
-		return errors.Wrap(err, "failed to load the mail view renderer")
+	for _, name := range modulesToLoad {
+		mod, ok := registeredModules[name]
+		if !ok {
+			return errors.Errorf("module %s was supposed to be loaded but is not registered", name)
+		}
+
+		a.loadedModules[name] = mod
+
+		// Initialize the module
+		if err := mod.Init(a); err != nil {
+			return errors.Wrapf(err, "failed to init module: %s", name)
+		}
 	}
 
 	return nil

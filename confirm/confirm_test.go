@@ -19,7 +19,7 @@ import (
 
 func setup() *Confirm {
 	ab := authboss.New()
-	ab.Storer = mocks.NewMockStorer()
+	ab.Storage.Server = mocks.NewMockStorer()
 	ab.LayoutHTMLEmail = template.Must(template.New("").Parse(`email ^_^`))
 	ab.LayoutTextEmail = template.Must(template.New("").Parse(`email`))
 

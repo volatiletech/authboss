@@ -7,90 +7,107 @@ import (
 
 // Config holds all the configuration for both authboss and it's modules.
 type Config struct {
-	// MountPath is the path to mount authboss's routes at (eg /auth).
-	MountPath string
-	// ViewsPath is the path to search for overridden templates.
-	ViewsPath string
-	// RootURL is the scheme+host+port of the web application (eg https://www.happiness.com:8080) for url generation. No trailing slash.
-	RootURL string
-	// BCryptCost is the cost of the bcrypt password hashing function.
-	BCryptCost int
+	Paths struct {
+		// Mount is the path to mount authboss's routes at (eg /auth).
+		Mount string
 
-	// PrimaryID is the primary identifier of the user. Set to one of:
-	// authboss.StoreEmail, authboss.StoreUsername (StoreEmail is default)
-	PrimaryID string
+		// AuthLoginOK is the redirect path after a successful authentication.
+		AuthLoginOK string
+		// AuthLoginFail is the redirect path after a failed authentication.
+		AuthLoginFail string
+		// AuthLogoutOK is the redirect path after a log out.
+		AuthLogoutOK string
 
-	// ViewLoader loads the templates for the application.
-	ViewLoader RenderLoader
-	// MailViewLoader loads the templates for mail. If this is nil, it will
-	// fall back to using the Renderer created from the ViewLoader instead.
-	MailViewLoader RenderLoader
+		// RecoverOK is the redirect path after a successful recovery of a password.
+		RecoverOK string
 
-	// OAuth2Providers lists all providers that can be used. See
-	// OAuthProvider documentation for more details.
-	OAuth2Providers map[string]OAuth2Provider
+		// RegisterOK is the redirect path after a successful registration.
+		RegisterOK string
 
-	// AuthLoginOKPath is the redirect path after a successful authentication.
-	AuthLoginOKPath string
-	// AuthLoginFailPath is the redirect path after a failed authentication.
-	AuthLoginFailPath string
-	// AuthLogoutOKPath is the redirect path after a log out.
-	AuthLogoutOKPath string
+		// RootURL is the scheme+host+port of the web application (eg https://www.happiness.com:8080) for url generation. No trailing slash.
+		RootURL string
+	}
 
-	// RecoverOKPath is the redirect path after a successful recovery of a password.
-	RecoverOKPath string
-	// RecoverTokenDuration controls how long a token sent via email for password
-	// recovery is valid for.
-	RecoverTokenDuration time.Duration
+	Modules struct {
+		// BCryptCost is the cost of the bcrypt password hashing function.
+		BCryptCost int
 
-	// RegisterOKPath is the redirect path after a successful registration.
-	RegisterOKPath string
+		// OAuth2Providers lists all providers that can be used. See
+		// OAuthProvider documentation for more details.
+		OAuth2Providers map[string]OAuth2Provider
 
-	// Policies control validation of form fields and are automatically run
-	// against form posts that include the fields.
-	Policies []Validator
-	// ConfirmFields are fields that are supposed to be submitted with confirmation
-	// fields alongside them, passwords, emails etc.
-	ConfirmFields []string
-	// PreserveFields are fields used with registration that are to be rendered when
-	// post fails.
-	PreserveFields []string
+		// PreserveFields are fields used with registration that are to be rendered when
+		// post fails.
+		PreserveFields []string
 
-	// ExpireAfter controls the time an account is idle before being logged out
-	// by the ExpireMiddleware.
-	ExpireAfter time.Duration
+		// ExpireAfter controls the time an account is idle before being logged out
+		// by the ExpireMiddleware.
+		ExpireAfter time.Duration
 
-	// LockAfter this many tries.
-	LockAfter int
-	// LockWindow is the waiting time before the number of attemps are reset.
-	LockWindow time.Duration
-	// LockDuration is how long an account is locked for.
-	LockDuration time.Duration
+		// RecoverTokenDuration controls how long a token sent via email for password
+		// recovery is valid for.
+		RecoverTokenDuration time.Duration
 
-	// EmailFrom is the email address authboss e-mails come from.
-	EmailFrom string
-	// EmailSubjectPrefix is used to add something to the front of the authboss
-	// email subjects.
-	EmailSubjectPrefix string
+		// LockAfter this many tries.
+		LockAfter int
+		// LockWindow is the waiting time before the number of attemps are reset.
+		LockWindow time.Duration
+		// LockDuration is how long an account is locked for.
+		LockDuration time.Duration
+	}
 
-	// Storer is the interface through which Authboss accesses the web apps database
-	// for user operations.
-	Storer ServerStorer
+	Mail struct {
+		// From is the email address authboss e-mails come from.
+		From string
+		// SubjectPrefix is used to add something to the front of the authboss
+		// email subjects.
+		SubjectPrefix string
+	}
 
-	// CookieStateStorer must be defined to provide an interface capapable of
-	// storing cookies for the given response, and reading them from the request.
-	CookieStateStorer ClientStateReadWriter
-	// SessionStateStorer must be defined to provide an interface capable of
-	// storing session-only values for the given response, and reading them
-	// from the request.
-	SessionStateStorer ClientStateReadWriter
-	// LogWriter is written to when errors occur, as well as on startup to show
-	// which modules are loaded and which routes they registered. By default
-	// writes to io.Discard.
-	LogWriter io.Writer
-	// Mailer is the mailer being used to send e-mails out. Authboss defines two loggers for use
-	// LogMailer and SMTPMailer, the default is a LogMailer to io.Discard.
-	Mailer Mailer
+	Storage struct {
+		// Storer is the interface through which Authboss accesses the web apps database
+		// for user operations.
+		Server ServerStorer
+
+		// CookieState must be defined to provide an interface capapable of
+		// storing cookies for the given response, and reading them from the request.
+		CookieState ClientStateReadWriter
+		// SessionState must be defined to provide an interface capable of
+		// storing session-only values for the given response, and reading them
+		// from the request.
+		SessionState ClientStateReadWriter
+	}
+
+	Core struct {
+		// Router is the entity that controls all routing to authboss routes
+		// modules will register their routes with it.
+		Router Router
+
+		// Responder takes a generic response from a controller and prepares
+		// the response, uses a renderer to create the body, and replies to the
+		// http request.
+		Responder HTTPResponder
+
+		// Redirector can redirect a response, similar to Responder but responsible
+		// only for redirection.
+		Redirector HTTPRedirector
+
+		// Validator helps validate an http request, it's given a name that describes
+		// the form it's validating so that conditional logic may be applied.
+		Validator Validator
+
+		// ViewRenderer loads the templates for the application.
+		ViewRenderer Renderer
+		// MailRenderer loads the templates for mail. If this is nil, it will
+		// fall back to using the Renderer created from the ViewLoader instead.
+		MailRenderer Renderer
+
+		// Mailer is the mailer being used to send e-mails out via smtp
+		Mailer Mailer
+
+		// LogWriter is written to when errors occur
+		LogWriter io.Writer
+	}
 }
 
 // Defaults sets the configuration's default values.

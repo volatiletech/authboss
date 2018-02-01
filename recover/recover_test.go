@@ -29,7 +29,7 @@ func testSetup() (r *Recover, s *mocks.MockStorer, l *bytes.Buffer) {
 	ab.Layout = template.Must(template.New("").Parse(`{{template "authboss" .}}`))
 	ab.LayoutHTMLEmail = template.Must(template.New("").Parse(`<strong>{{template "authboss" .}}</strong>`))
 	ab.LayoutTextEmail = template.Must(template.New("").Parse(`{{template "authboss" .}}`))
-	ab.Storer = s
+	ab.Storage.Server = s
 	ab.XSRFName = "xsrf"
 	ab.XSRFMaker = func(_ http.ResponseWriter, _ *http.Request) string {
 		return "xsrfvalue"

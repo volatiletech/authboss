@@ -22,7 +22,7 @@ func setup() *Register {
 		return "xsrfvalue"
 	}
 	ab.ConfirmFields = []string{"password", "confirm_password"}
-	ab.Storer = mocks.NewMockStorer()
+	ab.Storage.Server = mocks.NewMockStorer()
 
 	reg := Register{}
 	if err := reg.Initialize(ab); err != nil {
@@ -34,7 +34,7 @@ func setup() *Register {
 
 func TestRegister(t *testing.T) {
 	ab := authboss.New()
-	ab.Storer = mocks.NewMockStorer()
+	ab.Storage.Server = mocks.NewMockStorer()
 	r := Register{}
 	if err := r.Initialize(ab); err != nil {
 		t.Error(err)

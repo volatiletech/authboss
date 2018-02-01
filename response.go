@@ -48,10 +48,10 @@ type HTTPResponder interface {
 	Respond(w http.ResponseWriter, r *http.Request, code int, templateName string, data HTMLData) error
 }
 
-// Redirector redirects http requests to a different url (must handle both json and html)
+// HTTPRedirector redirects http requests to a different url (must handle both json and html)
 // When an authboss controller wants to redirect a user to a different path, it will use
 // this interface.
-type Redirector interface {
+type HTTPRedirector interface {
 	Redirect(w http.ResponseWriter, r *http.Request, ro RedirectOptions) error
 }
 
@@ -60,7 +60,7 @@ func (a *Authboss) Email(w http.ResponseWriter, r *http.Request, email Email, ro
 	ctx := r.Context()
 
 	if len(ro.HTMLTemplate) != 0 {
-		htmlBody, _, err := a.mailRenderer.Render(ctx, ro.HTMLTemplate, ro.Data)
+		htmlBody, _, err := a.Core.MailRenderer.Render(ctx, ro.HTMLTemplate, ro.Data)
 		if err != nil {
 			return errors.Wrap(err, "failed to render e-mail html body")
 		}
@@ -68,12 +68,12 @@ func (a *Authboss) Email(w http.ResponseWriter, r *http.Request, email Email, ro
 	}
 
 	if len(ro.TextTemplate) != 0 {
-		textBody, _, err := a.mailRenderer.Render(ctx, ro.TextTemplate, ro.Data)
+		textBody, _, err := a.Core.MailRenderer.Render(ctx, ro.TextTemplate, ro.Data)
 		if err != nil {
 			return errors.Wrap(err, "failed to render e-mail text body")
 		}
 		email.TextBody = string(textBody)
 	}
 
-	return a.Mailer.Send(ctx, email)
+	return a.Core.Mailer.Send(ctx, email)
 }

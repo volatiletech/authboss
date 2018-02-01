@@ -19,13 +19,13 @@ func TestInitialize(t *testing.T) {
 		t.Error("Expected error about token storers.")
 	}
 
-	ab.Storer = mocks.MockFailStorer{}
+	ab.Storage.Server = mocks.MockFailStorer{}
 	err = r.Initialize(ab)
 	if err == nil {
 		t.Error("Expected error about token storers.")
 	}
 
-	ab.Storer = mocks.NewMockStorer()
+	ab.Storage.Server = mocks.NewMockStorer()
 	err = r.Initialize(ab)
 	if err != nil {
 		t.Error("Unexpected error:", err)

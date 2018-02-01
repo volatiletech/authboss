@@ -1,7 +1,6 @@
 package authboss
 
 import (
-	"io/ioutil"
 	"testing"
 )
 
@@ -9,9 +8,6 @@ func TestAuthBossInit(t *testing.T) {
 	t.Parallel()
 
 	ab := New()
-	ab.LogWriter = ioutil.Discard
-	ab.ViewLoader = mockRenderLoader{}
-	ab.MailViewLoader = mockRenderLoader{}
 	err := ab.Init()
 	if err != nil {
 		t.Error("Unexpected error:", err)

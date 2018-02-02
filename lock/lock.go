@@ -37,13 +37,13 @@ func (l *Lock) Initialize(ab *authboss.Authboss) error {
 	}
 
 	// Events
-	l.Callbacks.After(authboss.EventGetUser, func(ctx *authboss.Context) error {
+	l.Events.After(authboss.EventGetUser, func(ctx *authboss.Context) error {
 		_, err := l.beforeAuth(ctx)
 		return err
 	})
-	l.Callbacks.Before(authboss.EventAuth, l.beforeAuth)
-	l.Callbacks.After(authboss.EventAuth, l.afterAuth)
-	l.Callbacks.After(authboss.EventAuthFail, l.afterAuthFail)
+	l.Events.Before(authboss.EventAuth, l.beforeAuth)
+	l.Events.After(authboss.EventAuth, l.afterAuth)
+	l.Events.After(authboss.EventAuthFail, l.afterAuthFail)
 
 	return nil
 }

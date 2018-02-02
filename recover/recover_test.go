@@ -424,8 +424,8 @@ func TestRecover_completeHandlerFunc_POST(t *testing.T) {
 
 	cbCalled := false
 
-	rec.Callbacks = authboss.NewCallbacks()
-	rec.Callbacks.After(authboss.EventPasswordReset, func(_ *authboss.Context) error {
+	rec.Events = authboss.NewCallbacks()
+	rec.Events.After(authboss.EventPasswordReset, func(_ *authboss.Context) error {
 		cbCalled = true
 		return nil
 	})

@@ -26,7 +26,7 @@ func TestAuthbossUpdatePassword(t *testing.T) {
 		ab.CookieStoreMaker = newMockClientStoreMaker(cookies)
 
 		called := false
-		ab.Callbacks.After(EventPasswordReset, func(ctx context.Context) error {
+		ab.Events.After(EventPasswordReset, func(ctx context.Context) error {
 			called = true
 			return nil
 		})
@@ -50,7 +50,7 @@ func TestAuthbossUpdatePassword(t *testing.T) {
 			t.Error("Password not updated")
 		}
 		if !called {
-			t.Error("Callbacks should have been called.")
+			t.Error("Events should have been called.")
 		}
 
 		called = false
@@ -63,7 +63,7 @@ func TestAuthbossUpdatePassword(t *testing.T) {
 			t.Error("Password not updated")
 		}
 		if !called {
-			t.Error("Callbacks should have been called.")
+			t.Error("Events should have been called.")
 		}
 
 		called = false
@@ -77,7 +77,7 @@ func TestAuthbossUpdatePassword(t *testing.T) {
 			t.Error("Password not updated")
 		}
 		if called {
-			t.Error("Callbacks should not have been called")
+			t.Error("Events should not have been called")
 		}
 	*/
 }

@@ -99,8 +99,8 @@ func TestAuth_loginHandlerFunc_POST_ReturnsErrorOnCallbackFailure(t *testing.T) 
 	a, storer := testSetup()
 	storer.Users["john"] = authboss.Attributes{"password": "$2a$10$B7aydtqVF9V8RSNx3lCKB.l09jqLV/aMiVqQHajtL7sWGhCS9jlOu"}
 
-	a.Callbacks = authboss.NewCallbacks()
-	a.Callbacks.Before(authboss.EventAuth, func(_ *authboss.Context) (authboss.Interrupt, error) {
+	a.Events = authboss.NewCallbacks()
+	a.Events.Before(authboss.EventAuth, func(_ *authboss.Context) (authboss.Interrupt, error) {
 		return authboss.InterruptNone, errors.New("explode")
 	})
 
@@ -117,8 +117,8 @@ func TestAuth_loginHandlerFunc_POST_RedirectsWhenInterrupted(t *testing.T) {
 	a, storer := testSetup()
 	storer.Users["john"] = authboss.Attributes{"password": "$2a$10$B7aydtqVF9V8RSNx3lCKB.l09jqLV/aMiVqQHajtL7sWGhCS9jlOu"}
 
-	a.Callbacks = authboss.NewCallbacks()
-	a.Callbacks.Before(authboss.EventAuth, func(_ *authboss.Context) (authboss.Interrupt, error) {
+	a.Events = authboss.NewCallbacks()
+	a.Events.Before(authboss.EventAuth, func(_ *authboss.Context) (authboss.Interrupt, error) {
 		return authboss.InterruptAccountLocked, nil
 	})
 
@@ -142,8 +142,8 @@ func TestAuth_loginHandlerFunc_POST_RedirectsWhenInterrupted(t *testing.T) {
 		t.Error("Expected error flash message:", expectedMsg)
 	}
 
-	a.Callbacks = authboss.NewCallbacks()
-	a.Callbacks.Before(authboss.EventAuth, func(_ *authboss.Context) (authboss.Interrupt, error) {
+	a.Events = authboss.NewCallbacks()
+	a.Events.Before(authboss.EventAuth, func(_ *authboss.Context) (authboss.Interrupt, error) {
 		return authboss.InterruptAccountNotConfirmed, nil
 	})
 
@@ -229,8 +229,8 @@ func TestAuth_loginHandlerFunc_POST(t *testing.T) {
 	ctx, w, r, _ := testRequest(a.Authboss, "POST", "username", "john", "password", "1234")
 	cb := mocks.NewMockAfterCallback()
 
-	a.Callbacks = authboss.NewCallbacks()
-	a.Callbacks.After(authboss.EventAuth, cb.Fn)
+	a.Events = authboss.NewCallbacks()
+	a.Events.After(authboss.EventAuth, cb.Fn)
 	a.AuthLoginOKPath = "/dashboard"
 
 	sessions := mocks.NewMockClientStorer()

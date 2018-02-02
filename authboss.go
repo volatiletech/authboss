@@ -11,6 +11,8 @@ import "github.com/pkg/errors"
 // Authboss contains a configuration and other details for running.
 type Authboss struct {
 	Config
+	Events *Events
+
 	loadedModules map[string]Moduler
 }
 
@@ -18,7 +20,9 @@ type Authboss struct {
 // configuration.
 func New() *Authboss {
 	ab := &Authboss{}
+
 	ab.loadedModules = make(map[string]Moduler)
+	ab.Events = NewEvents()
 
 	ab.Config.Defaults()
 	return ab
@@ -90,7 +94,7 @@ func (a *Authboss) UpdatePassword(w http.ResponseWriter, r *http.Request,
 		return nil
 	}
 
-	return a.Callbacks.FireAfter(EventPasswordReset, r.Context())
+	return a.Events.FireAfter(EventPasswordReset, r.Context())
 	// TODO(aarondl): Fix
 	return errors.New("not implemented")
 }

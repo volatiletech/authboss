@@ -273,7 +273,7 @@ func (r *Recover) completeHandlerFunc(ctx *authboss.Context, w http.ResponseWrit
 			return err
 		}
 
-		if err := r.Callbacks.FireAfter(authboss.EventPasswordReset, ctx); err != nil {
+		if err := r.Events.FireAfter(authboss.EventPasswordReset, ctx); err != nil {
 			return err
 		}
 

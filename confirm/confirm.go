@@ -66,12 +66,12 @@ type Confirm struct {
 func (c *Confirm) Initialize(ab *authboss.Authboss) (err error) {
 	c.Authboss = ab
 
-	c.Callbacks.After(authboss.EventGetUser, func(ctx context.Context) error {
+	c.Events.After(authboss.EventGetUser, func(ctx context.Context) error {
 		_, err := c.beforeGet(ctx)
 		return err
 	})
-	c.Callbacks.Before(authboss.EventAuth, c.beforeGet)
-	c.Callbacks.After(authboss.EventRegister, c.afterRegister)
+	c.Events.Before(authboss.EventAuth, c.beforeGet)
+	c.Events.After(authboss.EventRegister, c.afterRegister)
 
 	return nil
 }

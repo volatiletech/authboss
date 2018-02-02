@@ -141,7 +141,7 @@ func (reg *Register) registerPostHandler(ctx *authboss.Context, w http.ResponseW
 		return err
 	}
 
-	if err := reg.Callbacks.FireAfter(authboss.EventRegister, ctx); err != nil {
+	if err := reg.Events.FireAfter(authboss.EventRegister, ctx); err != nil {
 		return err
 	}
 

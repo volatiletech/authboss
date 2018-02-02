@@ -40,7 +40,7 @@ const (
 	InterruptSessionExpired
 )
 
-// Before callbacks can interrupt the flow by returning an interrupt value.
+// Before Events can interrupt the flow by returning an interrupt value.
 // This is used to stop the callback chain and the original handler from
 // continuing execution. The execution should also stopped if there is an error.
 type Before func(context.Context) (Interrupt, error)
@@ -48,45 +48,45 @@ type Before func(context.Context) (Interrupt, error)
 // After is a request callback that happens after the event.
 type After func(context.Context) error
 
-// Callbacks is a collection of callbacks that fire before and after certain
+// Events is a collection of Events that fire before and after certain
 // methods.
-type Callbacks struct {
+type Events struct {
 	before map[Event][]Before
 	after  map[Event][]After
 }
 
-// NewCallbacks creates a new set of before and after callbacks.
+// NewEvents creates a new set of before and after Events.
 // Called only by authboss internals and for testing.
-func NewCallbacks() *Callbacks {
-	return &Callbacks{
+func NewEvents() *Events {
+	return &Events{
 		before: make(map[Event][]Before),
 		after:  make(map[Event][]After),
 	}
 }
 
 // Before event, call f.
-func (c *Callbacks) Before(e Event, f Before) {
-	callbacks := c.before[e]
-	callbacks = append(callbacks, f)
-	c.before[e] = callbacks
+func (c *Events) Before(e Event, f Before) {
+	Events := c.before[e]
+	Events = append(Events, f)
+	c.before[e] = Events
 }
 
 // After event, call f.
-func (c *Callbacks) After(e Event, f After) {
-	callbacks := c.after[e]
-	callbacks = append(callbacks, f)
-	c.after[e] = callbacks
+func (c *Events) After(e Event, f After) {
+	Events := c.after[e]
+	Events = append(Events, f)
+	c.after[e] = Events
 }
 
-// FireBefore event to all the callbacks with a context. The error
+// FireBefore event to all the Events with a context. The error
 // should be passed up despite being logged once here already so it
 // can write an error out to the HTTP Client. If err is nil then
 // check the value of interrupted. If error is nil then the interrupt
 // value should be checked. If it is not InterruptNone then there is a reason
 // the current process should stop it's course of action.
-func (c *Callbacks) FireBefore(e Event, ctx context.Context) (interrupt Interrupt, err error) {
-	callbacks := c.before[e]
-	for _, fn := range callbacks {
+func (c *Events) FireBefore(ctx context.Context, e Event) (interrupt Interrupt, err error) {
+	Events := c.before[e]
+	for _, fn := range Events {
 		interrupt, err = fn(ctx)
 		if err != nil {
 			return InterruptNone, err
@@ -99,11 +99,11 @@ func (c *Callbacks) FireBefore(e Event, ctx context.Context) (interrupt Interrup
 	return InterruptNone, nil
 }
 
-// FireAfter event to all the callbacks with a context. The error can safely be
+// FireAfter event to all the Events with a context. The error can safely be
 // ignored as it is logged.
-func (c *Callbacks) FireAfter(e Event, ctx context.Context) (err error) {
-	callbacks := c.after[e]
-	for _, fn := range callbacks {
+func (c *Events) FireAfter(ctx context.Context, e Event) (err error) {
+	Events := c.after[e]
+	for _, fn := range Events {
 		if err = fn(ctx); err != nil {
 			return err
 		}

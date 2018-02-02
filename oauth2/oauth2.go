@@ -134,7 +134,7 @@ func (o *OAuth2) oauthCallback(ctx *authboss.Context, w http.ResponseWriter, r *
 	}
 
 	sessValues, ok := ctx.SessionStorer.Get(authboss.SessionOAuth2Params)
-	// Don't delete this value from session immediately, callbacks use this too
+	// Don't delete this value from session immediately, Events use this too
 	var values map[string]string
 	if ok {
 		if err := json.Unmarshal([]byte(sessValues), &values); err != nil {
@@ -144,7 +144,7 @@ func (o *OAuth2) oauthCallback(ctx *authboss.Context, w http.ResponseWriter, r *
 
 	hasErr := r.FormValue("error")
 	if len(hasErr) > 0 {
-		if err := o.Callbacks.FireAfter(authboss.EventOAuthFail, ctx); err != nil {
+		if err := o.Events.FireAfter(authboss.EventOAuthFail, ctx); err != nil {
 			return err
 		}
 
@@ -201,7 +201,7 @@ func (o *OAuth2) oauthCallback(ctx *authboss.Context, w http.ResponseWriter, r *
 	ctx.SessionStorer.Put(authboss.SessionKey, fmt.Sprintf("%s;%s", uid, provider))
 	ctx.SessionStorer.Del(authboss.SessionHalfAuthKey)
 
-	if err = o.Callbacks.FireAfter(authboss.EventOAuth, ctx); err != nil {
+	if err = o.Events.FireAfter(authboss.EventOAuth, ctx); err != nil {
 		return nil
 	}
 

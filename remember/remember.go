@@ -61,10 +61,10 @@ func (r *Remember) Initialize(ab *authboss.Authboss) error {
 		return errors.New("need a rememberStorer")
 	}
 
-	r.Callbacks.Before(authboss.EventGetUserSession, r.auth)
-	r.Callbacks.After(authboss.EventAuth, r.afterAuth)
-	r.Callbacks.After(authboss.EventOAuth, r.afterOAuth)
-	r.Callbacks.After(authboss.EventPasswordReset, r.afterPassword)
+	r.Events.Before(authboss.EventGetUserSession, r.auth)
+	r.Events.After(authboss.EventAuth, r.afterAuth)
+	r.Events.After(authboss.EventOAuth, r.afterOAuth)
+	r.Events.After(authboss.EventPasswordReset, r.afterPassword)
 
 	return nil
 }

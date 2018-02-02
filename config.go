@@ -1,7 +1,6 @@
 package authboss
 
 import (
-	"io"
 	"time"
 )
 
@@ -108,8 +107,10 @@ type Config struct {
 		// Mailer is the mailer being used to send e-mails out via smtp
 		Mailer Mailer
 
-		// LogWriter is written to when errors occur
-		LogWriter io.Writer
+		// Logger implies just a few log levels for use, can optionally
+		// also implement the ContextLogger to be able to upgrade to a
+		// request specific logger.
+		Logger Logger
 	}
 }
 

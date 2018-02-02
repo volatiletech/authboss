@@ -1,29 +1,35 @@
 package authboss
 
 import (
-	"bytes"
-	"io"
-	"log"
-	"strings"
+	"context"
 	"testing"
 )
 
-func TestDefaultLogger(t *testing.T) {
+type (
+	testLogger    struct{}
+	testCtxLogger struct{}
+)
+
+func (t testLogger) Info(string)  {}
+func (t testLogger) Error(string) {}
+
+func (t testLogger) FromContext(ctx context.Context) Logger { return testCtxLogger{} }
+
+func (t testCtxLogger) Info(string)  {}
+func (t testCtxLogger) Error(string) {}
+
+func TestLogger(t *testing.T) {
 	t.Parallel()
 
-	logger := NewDefaultLogger()
-	if logger == nil {
-		t.Error("Logger was not created.")
+	ab := New()
+	logger := testLogger{}
+	ab.Config.Core.Logger = logger
+
+	if logger != ab.Logger(nil).(testLogger) {
+		t.Error("wanted our logger back")
 	}
-}
 
-func TestDefaultLoggerOutput(t *testing.T) {
-	t.Parallel()
-
-	buffer := &bytes.Buffer{}
-	logger := (*DefaultLogger)(log.New(buffer, "", log.LstdFlags))
-	io.WriteString(logger, "hello world")
-	if s := buffer.String(); !strings.HasSuffix(s, "hello world\n") {
-		t.Error("Output was wrong:", s)
+	if _, ok := ab.Logger(context.Background()).(testCtxLogger); !ok {
+		t.Error("wanted ctx logger back")
 	}
 }

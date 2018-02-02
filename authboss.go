@@ -35,16 +35,8 @@ func (a *Authboss) Init(modulesToLoad ...string) error {
 	}
 
 	for _, name := range modulesToLoad {
-		mod, ok := registeredModules[name]
-		if !ok {
-			return errors.Errorf("module %s was supposed to be loaded but is not registered", name)
-		}
-
-		a.loadedModules[name] = mod
-
-		// Initialize the module
-		if err := mod.Init(a); err != nil {
-			return errors.Wrapf(err, "failed to init module: %s", name)
+		if err := a.loadModule(name); err != nil {
+			return errors.Errorf("module %s failed to load", name)
 		}
 	}
 

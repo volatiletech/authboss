@@ -49,11 +49,27 @@ type ServerStorer interface {
 // a single unique identifier to any given user (very typically e-mail
 // or username).
 type User interface {
-	PutPID(ctx context.Context, pid string) error
-	PutPassword(ctx context.Context, password string) error
-
 	GetPID(ctx context.Context) (pid string, err error)
+	PutPID(ctx context.Context, pid string) error
+}
+
+// AuthableUser is identified by a password
+type AuthableUser interface {
+	User
+
 	GetPassword(ctx context.Context) (password string, err error)
+	PutPassword(ctx context.Context, password string) error
+}
+
+// ConfirmableUser can be in a state of confirmed or not
+type ConfirmableUser interface {
+	User
+
+	GetConfirmed(ctx context.Context) (confirmed bool, err error)
+	GetConfirmToken(ctx context.Context) (token string, err error)
+
+	PutConfirmed(ctx context.Context, confirmed bool) error
+	PutConfirmToken(ctx context.Context, token string) error
 }
 
 // ArbitraryUser allows arbitrary data from the web form through. You should
@@ -62,12 +78,12 @@ type User interface {
 type ArbitraryUser interface {
 	User
 
-	// PutArbitrary allows arbitrary fields defined by the authboss library
-	// consumer to add fields to the user registration piece.
-	PutArbitrary(ctx context.Context, arbitrary map[string]string) error
 	// GetArbitrary is used only to display the arbitrary data back to the user
 	// when the form is reset.
 	GetArbitrary(ctx context.Context) (arbitrary map[string]string, err error)
+	// PutArbitrary allows arbitrary fields defined by the authboss library
+	// consumer to add fields to the user registration piece.
+	PutArbitrary(ctx context.Context, arbitrary map[string]string) error
 }
 
 // OAuth2User allows reading and writing values relating to OAuth2
@@ -78,15 +94,15 @@ type OAuth2User interface {
 	// oauth2 user.
 	IsOAuth2User(ctx context.Context) (bool, error)
 
-	PutUID(ctx context.Context, uid string) error
-	PutProvider(ctx context.Context, provider string) error
-	PutToken(ctx context.Context, token string) error
-	PutRefreshToken(ctx context.Context, refreshToken string) error
-	PutExpiry(ctx context.Context, expiry time.Duration) error
-
 	GetUID(ctx context.Context) (uid string, err error)
 	GetProvider(ctx context.Context) (provider string, err error)
 	GetToken(ctx context.Context) (token string, err error)
 	GetRefreshToken(ctx context.Context) (refreshToken string, err error)
 	GetExpiry(ctx context.Context) (expiry time.Duration, err error)
+
+	PutUID(ctx context.Context, uid string) error
+	PutProvider(ctx context.Context, provider string) error
+	PutToken(ctx context.Context, token string) error
+	PutRefreshToken(ctx context.Context, refreshToken string) error
+	PutExpiry(ctx context.Context, expiry time.Duration) error
 }

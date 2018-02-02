@@ -6,7 +6,6 @@ import (
 	"net/http"
 
 	"github.com/pkg/errors"
-
 	"github.com/volatiletech/authboss"
 	"github.com/volatiletech/authboss/internal/response"
 	"golang.org/x/crypto/bcrypt"
@@ -25,57 +24,47 @@ type Auth struct {
 	*authboss.Authboss
 }
 
-// Initialize module
-func (a *Auth) Initialize(ab *authboss.Authboss) (err error) {
+// Init module
+func (a *Auth) Init(ab *authboss.Authboss) (err error) {
 	a.Authboss = ab
 
-	if a.Storer == nil && a.StoreMaker == nil {
-		return errors.New("need a storer")
-	}
-
-	if len(a.XSRFName) == 0 {
-		return errors.New("xsrfName must be set")
-	}
-
-	if a.XSRFMaker == nil {
-		return errors.New("xsrfMaker must be defined")
-	}
-
-	a.templates, err = response.LoadTemplates(a.Authboss, a.Layout, a.ViewsPath, tplLogin)
-	if err != nil {
+	if err := a.Authboss.Config.Core.ViewRenderer.Load(tplLogin); err != nil {
 		return err
 	}
+
+	var logoutRouteMethod func(string, http.Handler)
+	switch a.Authboss.Config.Modules.LogoutMethod {
+	case "GET":
+		logoutRouteMethod = a.Authboss.Config.Core.Router.Get
+	case "POST":
+		logoutRouteMethod = a.Authboss.Config.Core.Router.Post
+	case "DELETE":
+		logoutRouteMethod = a.Authboss.Config.Core.Router.Delete
+	default:
+		return errors.Errorf("auth wants to register a logout route but is given an invalid method: %s", a.Authboss.Config.Modules.LogoutMethod)
+	}
+
+	a.Authboss.Config.Core.Router.Get("/login", http.HandlerFunc(loginGet))
+	a.Authboss.Config.Core.Router.Post("/login", http.HandlerFunc(loginPost))
+	logoutRouteMethod("/logout", http.HandlerFunc(logout))
 
 	return nil
 }
 
-// Routes for the module
-func (a *Auth) Routes() authboss.RouteTable {
-	return authboss.RouteTable{
-		"/login":  a.loginHandlerFunc,
-		"/logout": a.logoutHandlerFunc,
-	}
+func (a *Auth) loginGet(w http.ResponseWriter, r *http.Request) error {
+	data := authboss.NewHTMLData(
+		"showRemember", a.IsLoaded("remember"),
+		"showRecover", a.IsLoaded("recover"),
+		"showRegister", a.IsLoaded("register"),
+		"primaryID", a.PrimaryID,
+		"primaryIDValue", "",
+	)
+	return a.templates.Render(ctx, w, r, tplLogin, data)
 }
 
-// Storage requirements
-func (a *Auth) Storage() authboss.StorageOptions {
-	return authboss.StorageOptions{
-		a.PrimaryID:            authboss.String,
-		authboss.StorePassword: authboss.String,
-	}
-}
-
-func (a *Auth) loginHandlerFunc(ctx *authboss.Context, w http.ResponseWriter, r *http.Request) error {
+func (a *Auth) loginPost(w http.ResponseWriter, r *http.Request) error {
 	switch r.Method {
 	case methodGET:
-		data := authboss.NewHTMLData(
-			"showRemember", a.IsLoaded("remember"),
-			"showRecover", a.IsLoaded("recover"),
-			"showRegister", a.IsLoaded("register"),
-			"primaryID", a.PrimaryID,
-			"primaryIDValue", "",
-		)
-		return a.templates.Render(ctx, w, r, tplLogin, data)
 	case methodPOST:
 		key := r.FormValue(a.PrimaryID)
 		password := r.FormValue("password")
@@ -130,7 +119,7 @@ func (a *Auth) loginHandlerFunc(ctx *authboss.Context, w http.ResponseWriter, r 
 	return nil
 }
 
-func validateCredentials(ctx *authboss.Context, key, password string) (bool, error) {
+func validateCredentials(key, password string) (bool, error) {
 	if err := ctx.LoadUser(key); err == authboss.ErrUserNotFound {
 		return false, nil
 	} else if err != nil {
@@ -149,17 +138,12 @@ func validateCredentials(ctx *authboss.Context, key, password string) (bool, err
 	return true, nil
 }
 
-func (a *Auth) logoutHandlerFunc(ctx *authboss.Context, w http.ResponseWriter, r *http.Request) error {
-	switch r.Method {
-	case methodGET:
-		ctx.SessionStorer.Del(authboss.SessionKey)
-		ctx.CookieStorer.Del(authboss.CookieRemember)
-		ctx.SessionStorer.Del(authboss.SessionLastAction)
+func (a *Auth) logout(w http.ResponseWriter, r *http.Request) error {
+	ctx.SessionStorer.Del(authboss.SessionKey)
+	ctx.CookieStorer.Del(authboss.CookieRemember)
+	ctx.SessionStorer.Del(authboss.SessionLastAction)
 
-		response.Redirect(ctx, w, r, a.AuthLogoutOKPath, "You have logged out", "", true)
-	default:
-		w.WriteHeader(http.StatusMethodNotAllowed)
-	}
+	response.Redirect(ctx, w, r, a.AuthLogoutOKPath, "You have logged out", "", true)
 
 	return nil
 }

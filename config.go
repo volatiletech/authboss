@@ -30,7 +30,10 @@ type Config struct {
 
 	Modules struct {
 		// BCryptCost is the cost of the bcrypt password hashing function.
-		BCryptCost int
+		AuthBCryptCost int
+
+		// LogoutMethod is the method the logout route should use (default should be DELETE)
+		LogoutMethod string
 
 		// OAuth2Providers lists all providers that can be used. See
 		// OAuthProvider documentation for more details.

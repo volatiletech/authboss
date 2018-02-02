@@ -2,6 +2,7 @@ package authboss
 
 import (
 	"context"
+	"net/http"
 )
 
 // Logger is the basic logging structure that's required
@@ -12,7 +13,24 @@ type Logger interface {
 
 // ContextLogger creates a logger from a request context
 type ContextLogger interface {
-	FromContext(ctx context.Context) Logger
+	FromContext(context.Context) Logger
+}
+
+// RequestLogger creates a logger from a request
+type RequestLogger interface {
+	FromRequest(*http.Request) Logger
+}
+
+// RequestLogger returns a request logger if possible, if not
+// it calls Logger which tries to do a ContextLogger, and if
+// that fails it will finally get a normal logger.
+func (a *Authboss) RequestLogger(r *http.Request) Logger {
+	logger := a.Config.Core.Logger
+	if reqLogger, ok := logger.(RequestLogger); ok {
+		return reqLogger.FromRequest(r)
+	}
+
+	return a.Logger(r.Context())
 }
 
 // Logger returns an appopriate logger for the context:

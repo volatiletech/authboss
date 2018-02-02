@@ -85,6 +85,9 @@ type Config struct {
 		// modules will register their routes with it.
 		Router Router
 
+		// ErrorHandler wraps http requests with centralized error handling.
+		ErrorHandler ErrorHandler
+
 		// Responder takes a generic response from a controller and prepares
 		// the response, uses a renderer to create the body, and replies to the
 		// http request.

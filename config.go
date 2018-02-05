@@ -2,6 +2,8 @@ package authboss
 
 import (
 	"time"
+
+	"golang.org/x/crypto/bcrypt"
 )
 
 // Config holds all the configuration for both authboss and it's modules.
@@ -29,24 +31,12 @@ type Config struct {
 		// BCryptCost is the cost of the bcrypt password hashing function.
 		AuthBCryptCost int
 
-		// LogoutMethod is the method the logout route should use (default should be DELETE)
-		LogoutMethod string
-
-		// OAuth2Providers lists all providers that can be used. See
-		// OAuthProvider documentation for more details.
-		OAuth2Providers map[string]OAuth2Provider
-
-		// PreserveFields are fields used with registration that are to be rendered when
-		// post fails.
-		PreserveFields []string
+		// AuthLogoutMethod is the method the logout route should use (default should be DELETE)
+		AuthLogoutMethod string
 
 		// ExpireAfter controls the time an account is idle before being logged out
 		// by the ExpireMiddleware.
 		ExpireAfter time.Duration
-
-		// RecoverTokenDuration controls how long a token sent via email for password
-		// recovery is valid for.
-		RecoverTokenDuration time.Duration
 
 		// LockAfter this many tries.
 		LockAfter int
@@ -54,6 +44,18 @@ type Config struct {
 		LockWindow time.Duration
 		// LockDuration is how long an account is locked for.
 		LockDuration time.Duration
+
+		// RegisterPreserveFields are fields used with registration that are to be rendered when
+		// post fails.
+		RegisterPreserveFields []string
+
+		// RecoverTokenDuration controls how long a token sent via email for password
+		// recovery is valid for.
+		RecoverTokenDuration time.Duration
+
+		// OAuth2Providers lists all providers that can be used. See
+		// OAuthProvider documentation for more details.
+		OAuth2Providers map[string]OAuth2Provider
 	}
 
 	Mail struct {
@@ -117,49 +119,18 @@ type Config struct {
 
 // Defaults sets the configuration's default values.
 func (c *Config) Defaults() {
-	/*c.MountPath = "/"
-	c.ViewsPath = "./"
-	c.RootURL = "http://localhost:8080"
-	c.BCryptCost = bcrypt.DefaultCost
+	c.Paths.Mount = "/"
+	c.Paths.RootURL = "http://localhost:8080"
+	c.Paths.AuthLoginOK = "/"
+	c.Paths.AuthLogoutOK = "/"
+	c.Paths.RecoverOK = "/"
+	c.Paths.RegisterOK = "/"
 
-	c.PrimaryID = StoreEmail
-
-	c.AuthLoginOKPath = "/"
-	c.AuthLoginFailPath = "/"
-	c.AuthLogoutOKPath = "/"
-
-	c.RecoverOKPath = "/"
-	c.RecoverTokenDuration = time.Duration(24) * time.Hour
-
-	c.RegisterOKPath = "/"
-
-	c.Policies = []Validator{
-		Rules{
-			FieldName:       "email",
-			Required:        true,
-			AllowWhitespace: false,
-		},
-		Rules{
-			FieldName:       "password",
-			Required:        true,
-			MinLength:       4,
-			MaxLength:       8,
-			AllowWhitespace: false,
-		},
-	}
-	c.ConfirmFields = []string{
-		StorePassword, ConfirmPrefix + StorePassword,
-	}
-
-	c.ExpireAfter = 60 * time.Minute
-
-	c.LockAfter = 3
-	c.LockWindow = 5 * time.Minute
-	c.LockDuration = 5 * time.Hour
-
-	c.LogWriter = NewDefaultLogger()
-	c.Mailer = LogMailer(ioutil.Discard)
-	c.ContextProvider = func(req *http.Request) context.Context {
-		return context.TODO()
-	}*/
+	c.Modules.AuthBCryptCost = bcrypt.DefaultCost
+	c.Modules.AuthLogoutMethod = "DELETE"
+	c.Modules.ExpireAfter = 60 * time.Minute
+	c.Modules.LockAfter = 3
+	c.Modules.LockWindow = 5 * time.Minute
+	c.Modules.LockDuration = 5 * time.Hour
+	c.Modules.RecoverTokenDuration = time.Duration(24) * time.Hour
 }

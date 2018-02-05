@@ -33,7 +33,7 @@ func (a *Auth) Init(ab *authboss.Authboss) (err error) {
 	}
 
 	var logoutRouteMethod func(string, http.Handler)
-	switch a.Authboss.Config.Modules.LogoutMethod {
+	switch a.Authboss.Config.Modules.AuthLogoutMethod {
 	case "GET":
 		logoutRouteMethod = a.Authboss.Config.Core.Router.Get
 	case "POST":
@@ -41,7 +41,7 @@ func (a *Auth) Init(ab *authboss.Authboss) (err error) {
 	case "DELETE":
 		logoutRouteMethod = a.Authboss.Config.Core.Router.Delete
 	default:
-		return errors.Errorf("auth wants to register a logout route but is given an invalid method: %s", a.Authboss.Config.Modules.LogoutMethod)
+		return errors.Errorf("auth wants to register a logout route but is given an invalid method: %s", a.Authboss.Config.Modules.AuthLogoutMethod)
 	}
 
 	a.Authboss.Config.Core.Router.Get("/login", a.Authboss.Core.ErrorHandler.Wrap(a.LoginGet))

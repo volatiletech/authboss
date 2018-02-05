@@ -3,39 +3,36 @@ package defaults
 import (
 	"testing"
 
-	"github.com/pkg/errors"
 	"github.com/volatiletech/authboss"
-	"github.com/volatiletech/authboss/internal/mocks"
 )
 
 func TestValidate(t *testing.T) {
 	t.Parallel()
 
-	req := mocks.Request("POST", "username", "john", "email", "john@john.com")
-
 	validator := HTTPFormValidator{
-		Ruleset: []authboss.FieldValidator{
-			mocks.FieldValidator{
+		Values: map[string]string{
+			"username": "john",
+			"email":    "john@john.com",
+		},
+		Ruleset: []Rules{
+			Rules{
 				FieldName: "username",
-				Errs:      authboss.ErrorList{FieldError{"username", errors.New("must be longer than 4")}},
+				MinLength: 5,
 			},
-			mocks.FieldValidator{
+			Rules{
 				FieldName: "missing_field",
-				Errs:      authboss.ErrorList{FieldError{"missing_field", errors.New("Expected field to exist")}},
-			},
-			mocks.FieldValidator{
-				FieldName: "email", Errs: nil,
+				Required:  true,
 			},
 		},
 	}
 
-	errList := validator.Validate(req)
+	errList := authboss.ErrorList(validator.Validate())
 
 	errs := errList.Map()
-	if errs["username"][0] != "must be longer than 4" {
+	if errs["username"][0] != "Must be at least 5 characters" {
 		t.Error("Expected a different error for username:", errs["username"][0])
 	}
-	if errs["missing_field"][0] != "Expected field to exist" {
+	if errs["missing_field"][0] != "Cannot be blank" {
 		t.Error("Expected a different error for missing_field:", errs["missing_field"][0])
 	}
 	if _, ok := errs["email"]; ok {
@@ -47,17 +44,23 @@ func TestValidate_Confirm(t *testing.T) {
 	t.Parallel()
 
 	validator := HTTPFormValidator{
-		ConfirmFields: []string{"username", "confirmUsername"},
+		Values: map[string]string{
+			"username":         "john",
+			"confirm_username": "johnny",
+		},
+		ConfirmFields: []string{"username", "confirm_username"},
 	}
 
-	req := mocks.Request("POST", "username", "john", "confirmUsername", "johnny")
-	errs := validator.Validate(req).Map()
-	if errs["confirmUsername"][0] != "Does not match username" {
-		t.Error("Expected a different error for confirmUsername:", errs["confirmUsername"][0])
+	mapped := authboss.ErrorList(validator.Validate()).Map()
+	if mapped["confirm_username"][0] != "Does not match username" {
+		t.Error("Expected a different error for confirmUsername:", mapped["confirmUsername"][0])
 	}
 
-	req = mocks.Request("POST", "username", "john", "confirmUsername", "john")
-	errs = validator.Validate(req).Map()
+	validator.Values = map[string]string{
+		"username":         "john",
+		"confirm_username": "john",
+	}
+	errs := authboss.ErrorList(validator.Validate())
 	if len(errs) != 0 {
 		t.Error("Expected no errors:", errs)
 	}
@@ -66,9 +69,19 @@ func TestValidate_Confirm(t *testing.T) {
 		ConfirmFields: []string{"username"},
 	}
 
-	req = mocks.Request("POST", "username", "john", "confirmUsername", "john")
-	errs = validator.Validate(req).Map()
+	paniced := false
+	defer func() {
+		if r := recover(); r != nil {
+			paniced = true
+		}
+	}()
+
+	errs = authboss.ErrorList(validator.Validate())
 	if len(errs) != 0 {
 		t.Error("Expected no errors:", errs)
+	}
+
+	if !paniced {
+		t.Error("Want a panic due to bad confirm fields slice")
 	}
 }

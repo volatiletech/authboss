@@ -12,20 +12,14 @@ const (
 // Validator takes a form name and a set of inputs and returns any validation errors
 // for the inputs.
 type Validator interface {
-	// Validate inputs from the named form
-	Validate(name string, fieldValues map[string]string) []error
-}
-
-// FieldValidator is anything that can validate a string and provide a list of errors
-// and describe its set of rules.
-type FieldValidator interface {
-	Field() string
-	Errors(in string) []error
-	Rules() []string
+	// Validate makes the type validate itself and return
+	// a list of validation errors.
+	Validate() []error
 }
 
 // FieldError describes an error on a field
 type FieldError interface {
+	error
 	Name() string
 	Err() error
 }

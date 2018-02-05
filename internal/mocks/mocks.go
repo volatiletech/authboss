@@ -349,25 +349,3 @@ func NewAfterCallback() *AfterCallback {
 
 	return &m
 }
-
-// FieldValidator mock
-type FieldValidator struct {
-	FieldName string
-	Errs      []error
-	Ruleset   []string
-}
-
-// Field being validated
-func (f FieldValidator) Field() string {
-	return f.FieldName
-}
-
-// Errors list
-func (f FieldValidator) Errors(in string) []error {
-	return f.Errs
-}
-
-// Rules present
-func (f FieldValidator) Rules() []string {
-	return f.Ruleset
-}

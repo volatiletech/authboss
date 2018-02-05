@@ -2,37 +2,42 @@ package defaults
 
 import (
 	"fmt"
-	"net/http"
 
 	"github.com/volatiletech/authboss"
 )
 
 // HTTPFormValidator validates HTTP post type inputs
 type HTTPFormValidator struct {
-	Ruleset       []authboss.FieldValidator
+	Values map[string]string
+
+	Ruleset       []Rules
 	ConfirmFields []string
 }
 
 // Validate validates a request using the given ruleset.
-func (h HTTPFormValidator) Validate(r *http.Request) authboss.ErrorList {
+func (h HTTPFormValidator) Validate() []error {
 	var errList authboss.ErrorList
 
-	for _, fieldValidator := range h.Ruleset {
-		field := fieldValidator.Field()
+	for _, rule := range h.Ruleset {
+		field := rule.FieldName
 
-		val := r.FormValue(field)
-		if errs := fieldValidator.Errors(val); len(errs) > 0 {
+		val := h.Values[field]
+		if errs := rule.Errors(val); len(errs) > 0 {
 			errList = append(errList, errs...)
 		}
 	}
 
+	if l := len(h.ConfirmFields); l != 0 && l%2 != 0 {
+		panic("HTTPFormValidator given an odd number of confirm fields")
+	}
+
 	for i := 0; i < len(h.ConfirmFields)-1; i += 2 {
-		main := r.FormValue(h.ConfirmFields[i])
+		main := h.Values[h.ConfirmFields[i]]
 		if len(main) == 0 {
 			continue
 		}
 
-		confirm := r.FormValue(h.ConfirmFields[i+1])
+		confirm := h.Values[h.ConfirmFields[i+1]]
 		if len(confirm) == 0 || main != confirm {
 			errList = append(errList, FieldError{h.ConfirmFields[i+1], fmt.Errorf("Does not match %s", h.ConfirmFields[i])})
 		}

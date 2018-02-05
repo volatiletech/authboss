@@ -15,6 +15,7 @@ var blankRegex = regexp.MustCompile(`^\s*$`)
 type Rules struct {
 	// FieldName is the name of the field this is intended to validate.
 	FieldName string
+
 	// MatchError describes the MustMatch regexp to a user.
 	Required             bool
 	MatchError           string
@@ -25,11 +26,6 @@ type Rules struct {
 	MinNumeric           int
 	MinSymbols           int
 	AllowWhitespace      bool
-}
-
-// Field names the field this ruleset applies to.
-func (r Rules) Field() string {
-	return r.FieldName
 }
 
 // Errors returns an array of errors for each validation error that

@@ -12,8 +12,6 @@ type Config struct {
 
 		// AuthLoginOK is the redirect path after a successful authentication.
 		AuthLoginOK string
-		// AuthLoginFail is the redirect path after a failed authentication.
-		AuthLoginFail string
 		// AuthLogoutOK is the redirect path after a log out.
 		AuthLogoutOK string
 
@@ -97,9 +95,9 @@ type Config struct {
 		// only for redirection.
 		Redirector HTTPRedirector
 
-		// Validator helps validate an http request, it's given a name that describes
-		// the form it's validating so that conditional logic may be applied.
-		Validator Validator
+		// BodyReader reads validatable data from the body of a request to be able
+		// to get data from the user's client.
+		BodyReader BodyReader
 
 		// ViewRenderer loads the templates for the application.
 		ViewRenderer Renderer

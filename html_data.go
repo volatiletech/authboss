@@ -1,5 +1,14 @@
 package authboss
 
+// Keys for use in HTMLData that are meaningful
+const (
+	// DataErr is for one off errors that don't really belong to
+	// a particular field
+	DataErr = "error"
+	// DataValidation is for validation errors
+	DataValidation = "errors"
+)
+
 // HTMLData is used to render templates with.
 type HTMLData map[string]interface{}
 

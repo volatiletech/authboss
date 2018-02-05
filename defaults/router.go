@@ -56,8 +56,8 @@ func (r *Router) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 	case "DELETE":
 		router = r.deletes
 	default:
-		w.WriteHeader(http.StatusBadRequest)
-		io.WriteString(w, "bad request, this method not allowed")
+		w.WriteHeader(http.StatusMethodNotAllowed)
+		io.WriteString(w, "method not allowed")
 		return
 	}
 

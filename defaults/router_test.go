@@ -77,7 +77,7 @@ func TestRouterBadMethod(t *testing.T) {
 
 	r.ServeHTTP(wr, req)
 
-	if wr.Code != http.StatusBadRequest {
-		t.Error("want bad request code, got:", wr.Code)
+	if wr.Code != http.StatusMethodNotAllowed {
+		t.Error("want method not allowed code, got:", wr.Code)
 	}
 }

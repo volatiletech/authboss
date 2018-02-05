@@ -101,7 +101,7 @@ func (h HTTPFormReader) Read(page string, r *http.Request) (authboss.Validator, 
 		validator := HTTPFormValidator{
 			Values:        values,
 			Ruleset:       rules,
-			ConfirmFields: []string{FormValuePassword, "confirm_" + FormValuePassword},
+			ConfirmFields: []string{FormValuePassword, authboss.ConfirmPrefix + FormValuePassword},
 		}
 		password := values[FormValuePassword]
 

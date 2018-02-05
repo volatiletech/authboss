@@ -106,3 +106,12 @@ type OAuth2User interface {
 	PutRefreshToken(ctx context.Context, refreshToken string) error
 	PutExpiry(ctx context.Context, expiry time.Duration) error
 }
+
+// MustBeAuthable forces an upgrade conversion to Authable
+// or will panic.
+func MustBeAuthable(u User) AuthableUser {
+	if au, ok := u.(AuthableUser); ok {
+		return au
+	}
+	panic("could not upgrade user to an authable user, check your user struct")
+}

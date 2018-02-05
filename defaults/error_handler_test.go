@@ -15,7 +15,7 @@ func TestErrorHandler(t *testing.T) {
 
 	b := &bytes.Buffer{}
 
-	eh := ErrorHandler{LogWriter: b}
+	eh := ErrorHandler{LogWriter: NewLogger(b)}
 
 	handler := eh.Wrap(func(w http.ResponseWriter, r *http.Request) error {
 		return errors.New("error occurred")

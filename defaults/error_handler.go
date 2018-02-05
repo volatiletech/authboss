@@ -2,8 +2,9 @@ package defaults
 
 import (
 	"fmt"
-	"io"
 	"net/http"
+
+	"github.com/volatiletech/authboss"
 )
 
 // ErrorHandler wraps http handlers with errors with itself
@@ -12,7 +13,7 @@ import (
 // The pieces provided to this struct must be thread-safe
 // since they will be handed to many pointers to themselves.
 type ErrorHandler struct {
-	LogWriter io.Writer
+	LogWriter authboss.Logger
 }
 
 // Wrap an http handler with an error
@@ -25,7 +26,7 @@ func (e ErrorHandler) Wrap(handler func(w http.ResponseWriter, r *http.Request) 
 
 type errorHandler struct {
 	Handler   func(w http.ResponseWriter, r *http.Request) error
-	LogWriter io.Writer
+	LogWriter authboss.Logger
 }
 
 // ServeHTTP handles errors
@@ -35,5 +36,5 @@ func (e errorHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	fmt.Fprintf(e.LogWriter, "error at %s: %+v", r.URL.String(), err)
+	e.LogWriter.Error(fmt.Sprintf("error at %s: %+v", r.URL.String(), err))
 }

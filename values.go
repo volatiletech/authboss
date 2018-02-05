@@ -1,6 +1,9 @@
 package authboss
 
-import "net/http"
+import (
+	"fmt"
+	"net/http"
+)
 
 // BodyReader reads data from the request
 // and returns it in an abstract form.
@@ -26,4 +29,14 @@ type UserValuer interface {
 
 	GetPID() string
 	GetPassword() string
+}
+
+// MustHaveUserValues upgrades a validatable set of values
+// to ones specific to the user.
+func MustHaveUserValues(v Validator) UserValuer {
+	if u, ok := v.(UserValuer); ok {
+		return u
+	}
+
+	panic(fmt.Sprintf("bodyreader returned a type that could not be upgraded to UserValuer: %T", v))
 }

@@ -2,17 +2,17 @@
 package auth
 
 import (
-	"fmt"
 	"net/http"
+
+	"golang.org/x/crypto/bcrypt"
 
 	"github.com/pkg/errors"
 	"github.com/volatiletech/authboss"
-	"github.com/volatiletech/authboss/internal/response"
-	"golang.org/x/crypto/bcrypt"
 )
 
 const (
-	tplLogin = "login.html.tpl"
+	// PageLogin is for identifying the login page for parsing & validation
+	PageLogin = "login"
 )
 
 func init() {
@@ -28,7 +28,7 @@ type Auth struct {
 func (a *Auth) Init(ab *authboss.Authboss) (err error) {
 	a.Authboss = ab
 
-	if err := a.Authboss.Config.Core.ViewRenderer.Load(tplLogin); err != nil {
+	if err = a.Authboss.Config.Core.ViewRenderer.Load(PageLogin); err != nil {
 		return err
 	}
 
@@ -44,106 +44,93 @@ func (a *Auth) Init(ab *authboss.Authboss) (err error) {
 		return errors.Errorf("auth wants to register a logout route but is given an invalid method: %s", a.Authboss.Config.Modules.LogoutMethod)
 	}
 
-	a.Authboss.Config.Core.Router.Get("/login", http.HandlerFunc(loginGet))
-	a.Authboss.Config.Core.Router.Post("/login", http.HandlerFunc(loginPost))
-	logoutRouteMethod("/logout", http.HandlerFunc(logout))
+	a.Authboss.Config.Core.Router.Get("/login", a.Authboss.Core.ErrorHandler.Wrap(a.LoginGet))
+	a.Authboss.Config.Core.Router.Post("/login", a.Authboss.Core.ErrorHandler.Wrap(a.LoginPost))
+	logoutRouteMethod("/logout", a.Authboss.Core.ErrorHandler.Wrap(a.Logout))
 
 	return nil
 }
 
-func (a *Auth) loginGet(w http.ResponseWriter, r *http.Request) error {
-	data := authboss.NewHTMLData(
-		"showRemember", a.IsLoaded("remember"),
-		"showRecover", a.IsLoaded("recover"),
-		"showRegister", a.IsLoaded("register"),
-		"primaryID", a.PrimaryID,
-		"primaryIDValue", "",
-	)
-	return a.templates.Render(ctx, w, r, tplLogin, data)
+// LoginGet simply displays the login form
+func (a *Auth) LoginGet(w http.ResponseWriter, r *http.Request) error {
+	return a.Core.Responder.Respond(w, r, http.StatusOK, PageLogin, nil)
 }
 
-func (a *Auth) loginPost(w http.ResponseWriter, r *http.Request) error {
-	switch r.Method {
-	case methodGET:
-	case methodPOST:
-		key := r.FormValue(a.PrimaryID)
-		password := r.FormValue("password")
+// LoginPost attempts to validate the credentials passed in
+// to log in a user.
+func (a *Auth) LoginPost(w http.ResponseWriter, r *http.Request) error {
+	validatable, err := a.Authboss.Core.BodyReader.Read(PageLogin, r)
+	if err != nil {
+		return err
+	}
 
-		errData := authboss.NewHTMLData(
-			"error", fmt.Sprintf("invalid %s and/or password", a.PrimaryID),
-			"primaryID", a.PrimaryID,
-			"primaryIDValue", key,
-			"showRemember", a.IsLoaded("remember"),
-			"showRecover", a.IsLoaded("recover"),
-			"showRegister", a.IsLoaded("register"),
-		)
+	// Skip validation since all the validation happens during the database lookup and
+	// password check.
+	creds := authboss.MustHaveUserValues(validatable)
 
-		if valid, err := validateCredentials(ctx, key, password); err != nil {
-			errData["error"] = "Internal server error"
-			fmt.Fprintf(ctx.LogWriter, "auth: validate credentials failed: %v\n", err)
-			return a.templates.Render(ctx, w, r, tplLogin, errData)
-		} else if !valid {
-			if err := a.Events.FireAfter(authboss.EventAuthFail, ctx); err != nil {
-				fmt.Fprintf(ctx.LogWriter, "EventAuthFail callback error'd out: %v\n", err)
-			}
-			return a.templates.Render(ctx, w, r, tplLogin, errData)
-		}
+	pid := creds.GetPID()
+	pidUser, err := a.Authboss.Storage.Server.Load(r.Context(), pid)
+	if err == authboss.ErrUserNotFound {
+		data := authboss.HTMLData{authboss.DataErr: "Invalid Credentials"}
+		return a.Authboss.Core.Responder.Respond(w, r, http.StatusOK, PageLogin, data)
+	} else if err != nil {
+		return err
+	}
 
-		interrupted, err := a.Events.FireBefore(authboss.EventAuth, ctx)
+	authUser := authboss.MustBeAuthable(pidUser)
+	password, err := authUser.GetPassword(r.Context())
+	if err != nil {
+		return err
+	}
+
+	err = bcrypt.CompareHashAndPassword([]byte(password), []byte(creds.GetPassword()))
+	if err != nil {
+		err = a.Authboss.Events.FireAfter(r.Context(), authboss.EventAuthFail)
 		if err != nil {
 			return err
-		} else if interrupted != authboss.InterruptNone {
-			var reason string
-			switch interrupted {
-			case authboss.InterruptAccountLocked:
-				reason = "Your account has been locked."
-			case authboss.InterruptAccountNotConfirmed:
-				reason = "Your account has not been confirmed."
-			}
-			response.Redirect(ctx, w, r, a.AuthLoginFailPath, "", reason, false)
-			return nil
 		}
 
-		ctx.SessionStorer.Put(authboss.SessionKey, key)
-		ctx.SessionStorer.Del(authboss.SessionHalfAuthKey)
-		ctx.Values = map[string]string{authboss.CookieRemember: r.FormValue(authboss.CookieRemember)}
-
-		if err := a.Events.FireAfter(authboss.EventAuth, ctx); err != nil {
-			return err
-		}
-		response.Redirect(ctx, w, r, a.AuthLoginOKPath, "", "", true)
-	default:
-		w.WriteHeader(http.StatusMethodNotAllowed)
+		data := authboss.HTMLData{authboss.DataErr: "Invalid Credentials"}
+		return a.Authboss.Core.Responder.Respond(w, r, http.StatusOK, PageLogin, data)
 	}
 
-	return nil
-}
-
-func validateCredentials(key, password string) (bool, error) {
-	if err := ctx.LoadUser(key); err == authboss.ErrUserNotFound {
-		return false, nil
-	} else if err != nil {
-		return false, err
-	}
-
-	actualPassword, err := ctx.User.StringErr(authboss.StorePassword)
+	interrupted, err := a.Events.FireBefore(r.Context(), authboss.EventAuth)
 	if err != nil {
-		return false, err
+		return err
+	} else if interrupted != authboss.InterruptNone {
+		var reason string
+		switch interrupted {
+		case authboss.InterruptAccountLocked:
+			reason = "Your account is locked"
+		case authboss.InterruptAccountNotConfirmed:
+			reason = "Your account is not confirmed"
+		}
+		data := authboss.HTMLData{authboss.DataErr: reason}
+		return a.Authboss.Core.Responder.Respond(w, r, http.StatusOK, PageLogin, data)
 	}
 
-	if err := bcrypt.CompareHashAndPassword([]byte(actualPassword), []byte(password)); err != nil {
-		return false, nil
+	authboss.PutSession(w, authboss.SessionKey, pid)
+	authboss.DelSession(w, authboss.SessionHalfAuthKey)
+
+	if err := a.Authboss.Events.FireAfter(r.Context(), authboss.EventAuth); err != nil {
+		return err
 	}
 
-	return true, nil
+	ro := authboss.RedirectOptions{
+		RedirectPath: a.Authboss.Paths.AuthLogoutOK,
+	}
+	return a.Authboss.Core.Redirector.Redirect(w, r, ro)
 }
 
-func (a *Auth) logout(w http.ResponseWriter, r *http.Request) error {
-	ctx.SessionStorer.Del(authboss.SessionKey)
-	ctx.CookieStorer.Del(authboss.CookieRemember)
-	ctx.SessionStorer.Del(authboss.SessionLastAction)
+// Logout a user
+func (a *Auth) Logout(w http.ResponseWriter, r *http.Request) error {
+	authboss.DelSession(w, authboss.SessionKey)
+	authboss.DelSession(w, authboss.SessionLastAction)
+	authboss.DelCookie(w, authboss.CookieRemember)
 
-	response.Redirect(ctx, w, r, a.AuthLogoutOKPath, "You have logged out", "", true)
-
-	return nil
+	ro := authboss.RedirectOptions{
+		RedirectPath: a.Authboss.Paths.AuthLogoutOK,
+		Success:      "You have been logged out",
+	}
+	return a.Authboss.Core.Redirector.Redirect(w, r, ro)
 }

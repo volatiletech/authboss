@@ -30,8 +30,8 @@ func testSetupContextCached() (*Authboss, mockUser, *http.Request) {
 	ab := New()
 	wantUser := mockUser{Email: "george-pid", Password: "unreadable"}
 	req := httptest.NewRequest("GET", "/", nil)
-	ctx := context.WithValue(req.Context(), ctxKeyPID, "george-pid")
-	ctx = context.WithValue(ctx, ctxKeyUser, wantUser)
+	ctx := context.WithValue(req.Context(), CTXKeyPID, "george-pid")
+	ctx = context.WithValue(ctx, CTXKeyUser, wantUser)
 	req = req.WithContext(ctx)
 
 	return ab, wantUser, req
@@ -101,9 +101,7 @@ func TestCurrentUser(t *testing.T) {
 		t.Error(err)
 	}
 
-	if got, err := user.GetPID(context.TODO()); err != nil {
-		t.Error(err)
-	} else if got != "george-pid" {
+	if got := user.GetPID(context.TODO()); got != "george-pid" {
 		t.Error("got:", got)
 	}
 }
@@ -118,9 +116,7 @@ func TestCurrentUserContext(t *testing.T) {
 		t.Error(err)
 	}
 
-	if got, err := user.GetPID(context.TODO()); err != nil {
-		t.Error(err)
-	} else if got != "george-pid" {
+	if got := user.GetPID(context.TODO()); got != "george-pid" {
 		t.Error("got:", got)
 	}
 }
@@ -153,7 +149,7 @@ func TestLoadCurrentUserID(t *testing.T) {
 		t.Error("got:", id)
 	}
 
-	if r.Context().Value(ctxKeyPID).(string) != "george-pid" {
+	if r.Context().Value(CTXKeyPID).(string) != "george-pid" {
 		t.Error("context was not updated in local request")
 	}
 }
@@ -198,14 +194,12 @@ func TestLoadCurrentUser(t *testing.T) {
 		t.Error(err)
 	}
 
-	if got, err := user.GetPID(context.TODO()); err != nil {
-		t.Error(err)
-	} else if got != "george-pid" {
+	if got := user.GetPID(context.TODO()); got != "george-pid" {
 		t.Error("got:", got)
 	}
 
 	want := user.(mockUser)
-	got := r.Context().Value(ctxKeyUser).(mockUser)
+	got := r.Context().Value(CTXKeyUser).(mockUser)
 	if got != want {
 		t.Errorf("users mismatched:\nwant: %#v\ngot: %#v", want, got)
 	}
@@ -242,10 +236,10 @@ func TestLoadCurrentUserP(t *testing.T) {
 	_ = ab.LoadCurrentUserP(nil, &r)
 }
 
-func TestCtxKeyString(t *testing.T) {
+func TestCTXKeyString(t *testing.T) {
 	t.Parallel()
 
-	if got := ctxKeyPID.String(); got != "authboss ctx key pid" {
+	if got := CTXKeyPID.String(); got != "authboss ctx key pid" {
 		t.Error(got)
 	}
 }

@@ -8,8 +8,6 @@ import (
 	"net/http"
 	"net/url"
 	"strings"
-
-	"github.com/pkg/errors"
 )
 
 type mockUser struct {
@@ -29,40 +27,26 @@ func (m mockServerStorer) Load(ctx context.Context, key string) (User, error) {
 }
 
 func (m mockServerStorer) Save(ctx context.Context, user User) error {
-	e, err := user.GetPID(ctx)
-	if err != nil {
-		panic(err)
-	}
-
-	m[e] = user.(mockUser)
+	pid := user.GetPID(ctx)
+	m[pid] = user.(mockUser)
 
 	return nil
 }
 
-func (m mockUser) PutPID(ctx context.Context, email string) error {
+func (m mockUser) PutPID(ctx context.Context, email string) {
 	m.Email = email
-	return nil
 }
 
-func (m mockUser) PutUsername(ctx context.Context, username string) error {
-	return errors.New("not impl")
-}
-
-func (m mockUser) PutPassword(ctx context.Context, password string) error {
+func (m mockUser) PutPassword(ctx context.Context, password string) {
 	m.Password = password
-	return nil
 }
 
-func (m mockUser) GetPID(ctx context.Context) (email string, err error) {
-	return m.Email, nil
+func (m mockUser) GetPID(ctx context.Context) (email string) {
+	return m.Email
 }
 
-func (m mockUser) GetUsername(ctx context.Context) (username string, err error) {
-	return "", errors.New("not impl")
-}
-
-func (m mockUser) GetPassword(ctx context.Context) (password string, err error) {
-	return m.Password, nil
+func (m mockUser) GetPassword(ctx context.Context) (password string) {
+	return m.Password
 }
 
 type mockClientStateReadWriter struct {

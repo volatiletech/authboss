@@ -90,8 +90,9 @@ type ClientStateResponseWriter struct {
 	cookieStateEvents  []ClientStateEvent
 }
 
-// ClientStateMiddleware wraps all requests with the ClientStateResponseWriter
-func (a *Authboss) ClientStateMiddleware(h http.Handler) http.Handler {
+// LoadClientStateMiddleware wraps all requests with the ClientStateResponseWriter
+// as well as loading the current client state into the context for use.
+func (a *Authboss) LoadClientStateMiddleware(h http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		request, err := a.LoadClientState(w, r)
 		if err != nil {
@@ -174,7 +175,8 @@ func (c ClientStateResponseWriter) Header() http.Header {
 	return c.ResponseWriter.Header()
 }
 
-// Write ensures that the
+// Write ensures that the client state is written before any writes
+// to the body occur (before header flush to http client)
 func (c *ClientStateResponseWriter) Write(b []byte) (int, error) {
 	if !c.hasWritten {
 		if err := c.putClientState(); err != nil {
@@ -184,7 +186,7 @@ func (c *ClientStateResponseWriter) Write(b []byte) (int, error) {
 	return c.ResponseWriter.Write(b)
 }
 
-// UnderlyingResponseWriter for this isnstance
+// UnderlyingResponseWriter for this instance
 func (c *ClientStateResponseWriter) UnderlyingResponseWriter() http.ResponseWriter {
 	return c.ResponseWriter
 }

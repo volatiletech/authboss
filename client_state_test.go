@@ -2,7 +2,6 @@ package authboss
 
 import (
 	"io"
-	"net/http"
 	"net/http/httptest"
 	"strings"
 	"testing"
@@ -52,33 +51,6 @@ func TestStateResponseWriterDoubleWritePanic(t *testing.T) {
 	}()
 
 	w.putClientState()
-}
-
-func TestStateResponseWriterLastSecondWriteWithPrevious(t *testing.T) {
-	t.Parallel()
-
-	ab := New()
-	ab.Storage.SessionState = newMockClientStateRW("one", "two")
-	ab.Storage.CookieState = newMockClientStateRW("three", "four")
-
-	r := httptest.NewRequest("GET", "/", nil)
-	var w http.ResponseWriter = httptest.NewRecorder()
-
-	var err error
-	r, err = ab.LoadClientState(w, r)
-	if err != nil {
-		t.Error(err)
-	}
-	w = ab.NewResponse(w, r)
-
-	w.WriteHeader(200)
-
-	// This is an odd test, since the mock will always overwrite the previous
-	// write with the cookie values. Keeping it anyway for code coverage
-	got := strings.TrimSpace(w.Header().Get("test_session"))
-	if got != `{"three":"four"}` {
-		t.Error("got:", got)
-	}
 }
 
 func TestStateResponseWriterLastSecondWriteHeader(t *testing.T) {

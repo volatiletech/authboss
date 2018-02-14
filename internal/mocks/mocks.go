@@ -278,6 +278,15 @@ func (c *ClientStateRW) ReadState(http.ResponseWriter, *http.Request) (authboss.
 
 // WriteState to memory
 func (c *ClientStateRW) WriteState(w http.ResponseWriter, cstate authboss.ClientState, cse []authboss.ClientStateEvent) error {
+	for _, e := range cse {
+		switch e.Kind {
+		case authboss.ClientStateEventPut:
+			c.ClientValues[e.Key] = e.Value
+		case authboss.ClientStateEventDel:
+			delete(c.ClientValues, e.Key)
+		}
+	}
+
 	return nil
 }
 

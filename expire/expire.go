@@ -1,9 +1,12 @@
-package authboss
+// Package expire helps expire user's logged in sessions
+package expire
 
 import (
 	"context"
 	"net/http"
 	"time"
+
+	"github.com/volatiletech/authboss"
 )
 
 var nowTime = time.Now
@@ -15,7 +18,7 @@ func TimeToExpiry(r *http.Request, expireAfter time.Duration) time.Duration {
 }
 
 func timeToExpiry(r *http.Request, expireAfter time.Duration) time.Duration {
-	dateStr, ok := GetSession(r, SessionLastAction)
+	dateStr, ok := authboss.GetSession(r, authboss.SessionLastAction)
 	if !ok {
 		return expireAfter
 	}
@@ -40,33 +43,33 @@ func RefreshExpiry(w http.ResponseWriter, r *http.Request) {
 }
 
 func refreshExpiry(w http.ResponseWriter) {
-	PutSession(w, SessionLastAction, nowTime().UTC().Format(time.RFC3339))
+	authboss.PutSession(w, authboss.SessionLastAction, nowTime().UTC().Format(time.RFC3339))
 }
 
 type expireMiddleware struct {
-	ab   *Authboss
-	next http.Handler
+	expireAfter time.Duration
+	next        http.Handler
 }
 
-// ExpireMiddleware ensures that the user's expiry information is kept up-to-date
+// Middleware ensures that the user's expiry information is kept up-to-date
 // on each request. Deletes the SessionKey from the session if the user is
 // expired (a.ExpireAfter duration since SessionLastAction).
 // This middleware conflicts with use of the Remember module, don't enable both
 // at the same time.
-func (a *Authboss) ExpireMiddleware(next http.Handler) http.Handler {
-	return expireMiddleware{a, next}
+func Middleware(ab *authboss.Authboss, next http.Handler) http.Handler {
+	return expireMiddleware{ab.Config.Modules.ExpireAfter, next}
 }
 
 // ServeHTTP removes the session and hides the loaded user from the handlers
 // below it.
 func (m expireMiddleware) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	if _, ok := GetSession(r, SessionKey); ok {
-		ttl := timeToExpiry(r, m.ab.Modules.ExpireAfter)
+	if _, ok := authboss.GetSession(r, authboss.SessionKey); ok {
+		ttl := timeToExpiry(r, m.expireAfter)
 		if ttl == 0 {
-			DelSession(w, SessionKey)
-			DelSession(w, SessionLastAction)
-			ctx := context.WithValue(r.Context(), ctxKeyPID, nil)
-			ctx = context.WithValue(ctx, ctxKeyUser, nil)
+			authboss.DelSession(w, authboss.SessionKey)
+			authboss.DelSession(w, authboss.SessionLastAction)
+			ctx := context.WithValue(r.Context(), authboss.CTXKeyPID, nil)
+			ctx = context.WithValue(ctx, authboss.CTXKeyUser, nil)
 			r = r.WithContext(ctx)
 		} else {
 			refreshExpiry(w)

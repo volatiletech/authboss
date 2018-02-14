@@ -124,7 +124,7 @@ func (a *Authboss) LoadClientState(w http.ResponseWriter, r *http.Request) (*htt
 			return r, nil
 		}
 
-		ctx := context.WithValue(r.Context(), ctxKeySessionState, state)
+		ctx := context.WithValue(r.Context(), CTXKeySessionState, state)
 		r = r.WithContext(ctx)
 	}
 	if a.Storage.CookieState != nil {
@@ -134,7 +134,7 @@ func (a *Authboss) LoadClientState(w http.ResponseWriter, r *http.Request) (*htt
 		} else if state == nil {
 			return r, nil
 		}
-		ctx := context.WithValue(r.Context(), ctxKeyCookieState, state)
+		ctx := context.WithValue(r.Context(), CTXKeyCookieState, state)
 		r = r.WithContext(ctx)
 	}
 
@@ -200,7 +200,7 @@ func (c *ClientStateResponseWriter) putClientState() error {
 	}
 
 	if c.sessionState != nil && len(c.sessionStateEvents) > 0 {
-		sessionStateIntf := c.ctx.Value(ctxKeySessionState)
+		sessionStateIntf := c.ctx.Value(CTXKeySessionState)
 
 		var session ClientState
 		if sessionStateIntf != nil {
@@ -213,7 +213,7 @@ func (c *ClientStateResponseWriter) putClientState() error {
 		}
 	}
 	if c.cookieState != nil && len(c.cookieStateEvents) > 0 {
-		cookieStateIntf := c.ctx.Value(ctxKeyCookieState)
+		cookieStateIntf := c.ctx.Value(CTXKeyCookieState)
 
 		var cookie ClientState
 		if cookieStateIntf != nil {
@@ -231,43 +231,43 @@ func (c *ClientStateResponseWriter) putClientState() error {
 
 // PutSession puts a value into the session
 func PutSession(w http.ResponseWriter, key, val string) {
-	putState(w, ctxKeySessionState, key, val)
+	putState(w, CTXKeySessionState, key, val)
 }
 
 // DelSession deletes a key-value from the session.
 func DelSession(w http.ResponseWriter, key string) {
-	delState(w, ctxKeySessionState, key)
+	delState(w, CTXKeySessionState, key)
 }
 
 // GetSession fetches a value from the session
 func GetSession(r *http.Request, key string) (string, bool) {
-	return getState(r, ctxKeySessionState, key)
+	return getState(r, CTXKeySessionState, key)
 }
 
 // PutCookie puts a value into the session
 func PutCookie(w http.ResponseWriter, key, val string) {
-	putState(w, ctxKeyCookieState, key, val)
+	putState(w, CTXKeyCookieState, key, val)
 }
 
 // DelCookie deletes a key-value from the session.
 func DelCookie(w http.ResponseWriter, key string) {
-	delState(w, ctxKeyCookieState, key)
+	delState(w, CTXKeyCookieState, key)
 }
 
 // GetCookie fetches a value from the session
 func GetCookie(r *http.Request, key string) (string, bool) {
-	return getState(r, ctxKeyCookieState, key)
+	return getState(r, CTXKeyCookieState, key)
 }
 
-func putState(w http.ResponseWriter, ctxKey contextKey, key, val string) {
-	setState(w, ctxKey, ClientStateEventPut, key, val)
+func putState(w http.ResponseWriter, CTXKey contextKey, key, val string) {
+	setState(w, CTXKey, ClientStateEventPut, key, val)
 }
 
-func delState(w http.ResponseWriter, ctxKey contextKey, key string) {
-	setState(w, ctxKey, ClientStateEventDel, key, "")
+func delState(w http.ResponseWriter, CTXKey contextKey, key string) {
+	setState(w, CTXKey, ClientStateEventDel, key, "")
 }
 
-func setState(w http.ResponseWriter, ctxKey contextKey, op ClientStateEventKind, key, val string) {
+func setState(w http.ResponseWriter, CTXKey contextKey, op ClientStateEventKind, key, val string) {
 	csrw := MustClientStateResponseWriter(w)
 	ev := ClientStateEvent{
 		Kind: op,
@@ -278,16 +278,16 @@ func setState(w http.ResponseWriter, ctxKey contextKey, op ClientStateEventKind,
 		ev.Value = val
 	}
 
-	switch ctxKey {
-	case ctxKeySessionState:
+	switch CTXKey {
+	case CTXKeySessionState:
 		csrw.sessionStateEvents = append(csrw.sessionStateEvents, ev)
-	case ctxKeyCookieState:
+	case CTXKeyCookieState:
 		csrw.cookieStateEvents = append(csrw.cookieStateEvents, ev)
 	}
 }
 
-func getState(r *http.Request, ctxKey contextKey, key string) (string, bool) {
-	val := r.Context().Value(ctxKey)
+func getState(r *http.Request, CTXKey contextKey, key string) (string, bool) {
+	val := r.Context().Value(CTXKey)
 	if val == nil {
 		return "", false
 	}

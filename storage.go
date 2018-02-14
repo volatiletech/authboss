@@ -48,28 +48,32 @@ type ServerStorer interface {
 // User has a PID (primary ID) that is used on the site as
 // a single unique identifier to any given user (very typically e-mail
 // or username).
+//
+// User interfaces return no errors or bools to signal that a value was
+// not present. Instead 0-value = null = not present, this puts the onus
+// on Authboss code to check for this.
 type User interface {
-	GetPID(ctx context.Context) (pid string, err error)
-	PutPID(ctx context.Context, pid string) error
+	GetPID(ctx context.Context) (pid string)
+	PutPID(ctx context.Context, pid string)
 }
 
 // AuthableUser is identified by a password
 type AuthableUser interface {
 	User
 
-	GetPassword(ctx context.Context) (password string, err error)
-	PutPassword(ctx context.Context, password string) error
+	GetPassword(ctx context.Context) (password string)
+	PutPassword(ctx context.Context, password string)
 }
 
 // ConfirmableUser can be in a state of confirmed or not
 type ConfirmableUser interface {
 	User
 
-	GetConfirmed(ctx context.Context) (confirmed bool, err error)
-	GetConfirmToken(ctx context.Context) (token string, err error)
+	GetConfirmed(ctx context.Context) (confirmed bool)
+	GetConfirmToken(ctx context.Context) (token string)
 
-	PutConfirmed(ctx context.Context, confirmed bool) error
-	PutConfirmToken(ctx context.Context, token string) error
+	PutConfirmed(ctx context.Context, confirmed bool)
+	PutConfirmToken(ctx context.Context, token string)
 }
 
 // ArbitraryUser allows arbitrary data from the web form through. You should
@@ -80,10 +84,10 @@ type ArbitraryUser interface {
 
 	// GetArbitrary is used only to display the arbitrary data back to the user
 	// when the form is reset.
-	GetArbitrary(ctx context.Context) (arbitrary map[string]string, err error)
+	GetArbitrary(ctx context.Context) (arbitrary map[string]string)
 	// PutArbitrary allows arbitrary fields defined by the authboss library
 	// consumer to add fields to the user registration piece.
-	PutArbitrary(ctx context.Context, arbitrary map[string]string) error
+	PutArbitrary(ctx context.Context, arbitrary map[string]string)
 }
 
 // OAuth2User allows reading and writing values relating to OAuth2
@@ -92,19 +96,19 @@ type OAuth2User interface {
 
 	// IsOAuth2User checks to see if a user was registered in the site as an
 	// oauth2 user.
-	IsOAuth2User(ctx context.Context) (bool, error)
+	IsOAuth2User(ctx context.Context) bool
 
-	GetUID(ctx context.Context) (uid string, err error)
-	GetProvider(ctx context.Context) (provider string, err error)
-	GetToken(ctx context.Context) (token string, err error)
-	GetRefreshToken(ctx context.Context) (refreshToken string, err error)
-	GetExpiry(ctx context.Context) (expiry time.Duration, err error)
+	GetUID(ctx context.Context) (uid string)
+	GetProvider(ctx context.Context) (provider string)
+	GetToken(ctx context.Context) (token string)
+	GetRefreshToken(ctx context.Context) (refreshToken string)
+	GetExpiry(ctx context.Context) (expiry time.Duration)
 
-	PutUID(ctx context.Context, uid string) error
-	PutProvider(ctx context.Context, provider string) error
-	PutToken(ctx context.Context, token string) error
-	PutRefreshToken(ctx context.Context, refreshToken string) error
-	PutExpiry(ctx context.Context, expiry time.Duration) error
+	PutUID(ctx context.Context, uid string)
+	PutProvider(ctx context.Context, provider string)
+	PutToken(ctx context.Context, token string)
+	PutRefreshToken(ctx context.Context, refreshToken string)
+	PutExpiry(ctx context.Context, expiry time.Duration)
 }
 
 // MustBeAuthable forces an upgrade conversion to Authable

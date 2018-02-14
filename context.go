@@ -7,12 +7,13 @@ import (
 
 type contextKey string
 
+// CTX Keys for authboss
 const (
-	ctxKeyPID  contextKey = "pid"
-	ctxKeyUser contextKey = "user"
+	CTXKeyPID  contextKey = "pid"
+	CTXKeyUser contextKey = "user"
 
-	ctxKeySessionState contextKey = "session"
-	ctxKeyCookieState  contextKey = "cookie"
+	CTXKeySessionState contextKey = "session"
+	CTXKeyCookieState  contextKey = "cookie"
 
 	// CTXKeyData is a context key for the accumulating
 	// map[string]interface{} (authboss.HTMLData) to pass to the
@@ -26,7 +27,7 @@ func (c contextKey) String() string {
 
 // CurrentUserID retrieves the current user from the session.
 func (a *Authboss) CurrentUserID(w http.ResponseWriter, r *http.Request) (string, error) {
-	if pid := r.Context().Value(ctxKeyPID); pid != nil {
+	if pid := r.Context().Value(CTXKeyPID); pid != nil {
 		return pid.(string), nil
 	}
 
@@ -49,7 +50,7 @@ func (a *Authboss) CurrentUserIDP(w http.ResponseWriter, r *http.Request) string
 
 // CurrentUser retrieves the current user from the session and the database.
 func (a *Authboss) CurrentUser(w http.ResponseWriter, r *http.Request) (User, error) {
-	if user := r.Context().Value(ctxKeyUser); user != nil {
+	if user := r.Context().Value(CTXKeyUser); user != nil {
 		return user.(User), nil
 	}
 
@@ -88,7 +89,7 @@ func (a *Authboss) currentUser(ctx context.Context, pid string) (User, error) {
 // change the current method's request pointer itself to the new request that
 // contains the new context that has the pid in it.
 func (a *Authboss) LoadCurrentUserID(w http.ResponseWriter, r **http.Request) (string, error) {
-	if pid := (*r).Context().Value(ctxKeyPID); pid != nil {
+	if pid := (*r).Context().Value(CTXKeyPID); pid != nil {
 		return pid.(string), nil
 	}
 
@@ -101,7 +102,7 @@ func (a *Authboss) LoadCurrentUserID(w http.ResponseWriter, r **http.Request) (s
 		return "", nil
 	}
 
-	ctx := context.WithValue((**r).Context(), ctxKeyPID, pid)
+	ctx := context.WithValue((**r).Context(), CTXKeyPID, pid)
 	*r = (**r).WithContext(ctx)
 
 	return pid, nil
@@ -124,7 +125,7 @@ func (a *Authboss) LoadCurrentUserIDP(w http.ResponseWriter, r **http.Request) s
 // contains the new context that has the user in it. Calls LoadCurrentUserID
 // so the primary id is also put in the context.
 func (a *Authboss) LoadCurrentUser(w http.ResponseWriter, r **http.Request) (User, error) {
-	if user := (*r).Context().Value(ctxKeyUser); user != nil {
+	if user := (*r).Context().Value(CTXKeyUser); user != nil {
 		return user.(User), nil
 	}
 
@@ -143,7 +144,7 @@ func (a *Authboss) LoadCurrentUser(w http.ResponseWriter, r **http.Request) (Use
 		return nil, err
 	}
 
-	ctx = context.WithValue(ctx, ctxKeyUser, user)
+	ctx = context.WithValue(ctx, CTXKeyUser, user)
 	*r = (**r).WithContext(ctx)
 	return user, nil
 }

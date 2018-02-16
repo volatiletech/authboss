@@ -2,6 +2,7 @@ package authboss
 
 import (
 	"context"
+	"fmt"
 	"net/http"
 )
 
@@ -24,13 +25,13 @@ type RequestLogger interface {
 // RequestLogger returns a request logger if possible, if not
 // it calls Logger which tries to do a ContextLogger, and if
 // that fails it will finally get a normal logger.
-func (a *Authboss) RequestLogger(r *http.Request) Logger {
+func (a *Authboss) RequestLogger(r *http.Request) FmtLogger {
 	logger := a.Config.Core.Logger
 	if reqLogger, ok := logger.(RequestLogger); ok {
-		return reqLogger.FromRequest(r)
+		return FmtLogger{reqLogger.FromRequest(r)}
 	}
 
-	return a.Logger(r.Context())
+	return FmtLogger{a.Logger(r.Context())}
 }
 
 // Logger returns an appopriate logger for the context:
@@ -39,16 +40,32 @@ func (a *Authboss) RequestLogger(r *http.Request) Logger {
 // If context is not nil, then it will attempt to upgrade
 // the configured logger to a ContextLogger, and create
 // a context-specific logger for use.
-func (a *Authboss) Logger(ctx context.Context) Logger {
+func (a *Authboss) Logger(ctx context.Context) FmtLogger {
 	logger := a.Config.Core.Logger
 	if ctx == nil {
-		return logger
+		return FmtLogger{logger}
 	}
 
 	ctxLogger, ok := logger.(ContextLogger)
 	if !ok {
-		return logger
+		return FmtLogger{logger}
 	}
 
-	return ctxLogger.FromContext(ctx)
+	return FmtLogger{ctxLogger.FromContext(ctx)}
+}
+
+// FmtLogger adds convenience functions on top of the logging
+// methods for formatting.
+type FmtLogger struct {
+	Logger
+}
+
+// Errorf prints to Error() with fmt.Printf semantics
+func (f FmtLogger) Errorf(format string, values ...interface{}) {
+	f.Logger.Error(fmt.Sprintf(format, values...))
+}
+
+// Infof prints to Info() with fmt.Printf semantics
+func (f FmtLogger) Infof(format string, values ...interface{}) {
+	f.Logger.Info(fmt.Sprintf(format, values...))
 }

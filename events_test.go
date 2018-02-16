@@ -1,9 +1,10 @@
 package authboss
 
 import (
-	"context"
-	"errors"
+	"net/http"
 	"testing"
+
+	"github.com/pkg/errors"
 )
 
 func TestEvents(t *testing.T) {
@@ -13,25 +14,25 @@ func TestEvents(t *testing.T) {
 	afterCalled := false
 	beforeCalled := false
 
-	ab.Events.Before(EventRegister, func(ctx context.Context) (Interrupt, error) {
+	ab.Events.Before(EventRegister, func(http.ResponseWriter, *http.Request, bool) (bool, error) {
 		beforeCalled = true
-		return InterruptNone, nil
+		return false, nil
 	})
-	ab.Events.After(EventRegister, func(ctx context.Context) error {
+	ab.Events.After(EventRegister, func(http.ResponseWriter, *http.Request, bool) (bool, error) {
 		afterCalled = true
-		return nil
+		return false, nil
 	})
 
 	if beforeCalled || afterCalled {
 		t.Error("Neither should be called.")
 	}
 
-	interrupt, err := ab.Events.FireBefore(context.Background(), EventRegister)
+	handled, err := ab.Events.FireBefore(EventRegister, nil, nil)
 	if err != nil {
 		t.Error("Unexpected error:", err)
 	}
-	if interrupt != InterruptNone {
-		t.Error("It should not have been stopped.")
+	if handled {
+		t.Error("It should not have been handled.")
 	}
 
 	if !beforeCalled {
@@ -41,106 +42,84 @@ func TestEvents(t *testing.T) {
 		t.Error("Expected after not to be called.")
 	}
 
-	ab.Events.FireAfter(context.Background(), EventRegister)
+	ab.Events.FireAfter(EventRegister, nil, nil)
 	if !afterCalled {
 		t.Error("Expected after to be called.")
 	}
 }
 
-func TestCallbacksInterrupt(t *testing.T) {
+func TestEventsHandled(t *testing.T) {
 	t.Parallel()
 
-	ev := NewEvents()
-	before1 := false
-	before2 := false
+	ab := New()
+	firstCalled := false
+	secondCalled := false
 
-	ev.Before(EventRegister, func(ctx context.Context) (Interrupt, error) {
-		before1 = true
-		return InterruptAccountLocked, nil
+	firstHandled := false
+	secondHandled := false
+
+	ab.Events.Before(EventRegister, func(w http.ResponseWriter, r *http.Request, handled bool) (bool, error) {
+		firstCalled = true
+		firstHandled = handled
+		return true, nil
 	})
-	ev.Before(EventRegister, func(ctx context.Context) (Interrupt, error) {
-		before2 = true
-		return InterruptNone, nil
+	ab.Events.Before(EventRegister, func(w http.ResponseWriter, r *http.Request, handled bool) (bool, error) {
+		secondCalled = true
+		secondHandled = handled
+		return false, nil
 	})
 
-	interrupt, err := ev.FireBefore(context.Background(), EventRegister)
+	handled, err := ab.Events.FireBefore(EventRegister, nil, nil)
 	if err != nil {
-		t.Error(err)
+		t.Error("Unexpected error:", err)
 	}
-	if interrupt != InterruptAccountLocked {
-		t.Error("The interrupt signal was not account locked:", interrupt)
-	}
-
-	if !before1 {
-		t.Error("Before1 should have been called.")
-	}
-	if before2 {
-		t.Error("Before2 should not have been called.")
-	}
-}
-
-func TestCallbacksBeforeErrors(t *testing.T) {
-	t.Parallel()
-
-	ev := NewEvents()
-	before1 := false
-	before2 := false
-
-	errValue := errors.New("Problem occured")
-
-	ev.Before(EventRegister, func(ctx context.Context) (Interrupt, error) {
-		before1 = true
-		return InterruptNone, errValue
-	})
-	ev.Before(EventRegister, func(ctx context.Context) (Interrupt, error) {
-		before2 = true
-		return InterruptNone, nil
-	})
-
-	interrupt, err := ev.FireBefore(context.Background(), EventRegister)
-	if err != errValue {
-		t.Error("Expected an error to come back.")
-	}
-	if interrupt != InterruptNone {
-		t.Error("It should not have been stopped.")
+	if !handled {
+		t.Error("it should have been handled")
 	}
 
-	if !before1 {
-		t.Error("Before1 should have been called.")
+	if !firstCalled {
+		t.Error("expected first to have been called")
 	}
-	if before2 {
-		t.Error("Before2 should not have been called.")
+	if !secondCalled {
+		t.Error("expected second to have been called")
+	}
+
+	if firstHandled {
+		t.Error("first should not see the event as being handled")
+	}
+	if !secondHandled {
+		t.Error("second should see the event as being handled")
 	}
 }
 
-func TestCallbacksAfterErrors(t *testing.T) {
+func TestEventsErrors(t *testing.T) {
 	t.Parallel()
 
-	ev := NewEvents()
-	after1 := false
-	after2 := false
+	ab := New()
+	firstCalled := false
+	secondCalled := false
 
-	errValue := errors.New("Problem occured")
+	expect := errors.New("error")
 
-	ev.After(EventRegister, func(ctx context.Context) error {
-		after1 = true
-		return errValue
+	ab.Events.Before(EventRegister, func(http.ResponseWriter, *http.Request, bool) (bool, error) {
+		firstCalled = true
+		return false, expect
 	})
-	ev.After(EventRegister, func(ctx context.Context) error {
-		after2 = true
-		return nil
+	ab.Events.Before(EventRegister, func(http.ResponseWriter, *http.Request, bool) (bool, error) {
+		secondCalled = true
+		return false, nil
 	})
 
-	err := ev.FireAfter(context.Background(), EventRegister)
-	if err != errValue {
-		t.Error("Expected an error to come back.")
+	_, err := ab.Events.FireBefore(EventRegister, nil, nil)
+	if err != expect {
+		t.Error("got the wrong error back:", err)
 	}
 
-	if !after1 {
-		t.Error("After1 should have been called.")
+	if !firstCalled {
+		t.Error("expected first to have been called")
 	}
-	if after2 {
-		t.Error("After2 should not have been called.")
+	if secondCalled {
+		t.Error("expected second to not have been called")
 	}
 }
 
@@ -166,26 +145,6 @@ func TestEventString(t *testing.T) {
 	for i, test := range tests {
 		if got := test.ev.String(); got != test.str {
 			t.Errorf("%d) Wrong string for Event(%d) expected: %v got: %s", i, test.ev, test.str, got)
-		}
-	}
-}
-
-func TestInterruptString(t *testing.T) {
-	t.Parallel()
-
-	tests := []struct {
-		in  Interrupt
-		str string
-	}{
-		{InterruptNone, "InterruptNone"},
-		{InterruptAccountLocked, "InterruptAccountLocked"},
-		{InterruptAccountNotConfirmed, "InterruptAccountNotConfirmed"},
-		{InterruptSessionExpired, "InterruptSessionExpired"},
-	}
-
-	for i, test := range tests {
-		if got := test.in.String(); got != test.str {
-			t.Errorf("%d) Wrong string for Event(%d) expected: %v got: %s", i, test.in, test.str, got)
 		}
 	}
 }

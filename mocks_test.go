@@ -27,25 +27,25 @@ func (m mockServerStorer) Load(ctx context.Context, key string) (User, error) {
 }
 
 func (m mockServerStorer) Save(ctx context.Context, user User) error {
-	pid := user.GetPID(ctx)
+	pid := user.GetPID()
 	m[pid] = user.(mockUser)
 
 	return nil
 }
 
-func (m mockUser) PutPID(ctx context.Context, email string) {
+func (m mockUser) PutPID(email string) {
 	m.Email = email
 }
 
-func (m mockUser) PutPassword(ctx context.Context, password string) {
+func (m mockUser) PutPassword(password string) {
 	m.Password = password
 }
 
-func (m mockUser) GetPID(ctx context.Context) (email string) {
+func (m mockUser) GetPID() (email string) {
 	return m.Email
 }
 
-func (m mockUser) GetPassword(ctx context.Context) (password string) {
+func (m mockUser) GetPassword() (password string) {
 	return m.Password
 }
 

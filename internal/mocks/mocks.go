@@ -30,78 +30,35 @@ type User struct {
 	OAuthExpiry        time.Time
 }
 
-func (m User) GetUsername(context.Context) (string, error)     { return m.Username, nil }
-func (m User) GetPID(context.Context) (string, error)          { return m.Email, nil }
-func (m User) GetPassword(context.Context) (string, error)     { return m.Password, nil }
-func (m User) GetRecoverToken(context.Context) (string, error) { return m.RecoverToken, nil }
-func (m User) GetRecoverTokenExpiry(context.Context) (time.Time, error) {
-	return m.RecoverTokenExpiry, nil
-}
-func (m User) GetConfirmToken(context.Context) (string, error) { return m.ConfirmToken, nil }
-func (m User) GetConfirmed(context.Context) (bool, error)      { return m.Confirmed, nil }
-func (m User) GetLocked(context.Context) (bool, error)         { return m.Locked, nil }
-func (m User) GetAttemptNumber(context.Context) (int, error)   { return m.AttemptNumber, nil }
-func (m User) GetAttemptTime(context.Context) (time.Time, error) {
-	return m.AttemptTime, nil
-}
-func (m User) GetOAuthToken(context.Context) (string, error)   { return m.OAuthToken, nil }
-func (m User) GetOAuthRefresh(context.Context) (string, error) { return m.OAuthRefresh, nil }
-func (m User) GetOAuthExpiry(context.Context) (time.Time, error) {
-	return m.OAuthExpiry, nil
-}
+func (m User) GetUsername() string              { return m.Username }
+func (m User) GetPID() string                   { return m.Email }
+func (m User) GetPassword() string              { return m.Password }
+func (m User) GetRecoverToken() string          { return m.RecoverToken }
+func (m User) GetRecoverTokenExpiry() time.Time { return m.RecoverTokenExpiry }
+func (m User) GetConfirmToken() string          { return m.ConfirmToken }
+func (m User) GetConfirmed() bool               { return m.Confirmed }
+func (m User) GetLocked() bool                  { return m.Locked }
+func (m User) GetAttemptNumber() int            { return m.AttemptNumber }
+func (m User) GetAttemptTime() time.Time        { return m.AttemptTime }
+func (m User) GetOAuthToken() string            { return m.OAuthToken }
+func (m User) GetOAuthRefresh() string          { return m.OAuthRefresh }
+func (m User) GetOAuthExpiry() time.Time        { return m.OAuthExpiry }
 
-func (m *User) SetUsername(ctx context.Context, username string) error {
-	m.Username = username
-	return nil
-}
-func (m *User) SetEmail(ctx context.Context, email string) error {
-	m.Email = email
-	return nil
-}
-func (m *User) SetPassword(ctx context.Context, password string) error {
-	m.Password = password
-	return nil
-}
-func (m *User) SetRecoverToken(ctx context.Context, recoverToken string) error {
-	m.RecoverToken = recoverToken
-	return nil
-}
-func (m *User) SetRecoverTokenExpiry(ctx context.Context, recoverTokenExpiry time.Time) error {
+func (m *User) SetUsername(username string)         { m.Username = username }
+func (m *User) SetEmail(email string)               { m.Email = email }
+func (m *User) SetPassword(password string)         { m.Password = password }
+func (m *User) SetRecoverToken(recoverToken string) { m.RecoverToken = recoverToken }
+func (m *User) SetRecoverTokenExpiry(recoverTokenExpiry time.Time) {
 	m.RecoverTokenExpiry = recoverTokenExpiry
-	return nil
 }
-func (m *User) SetConfirmToken(ctx context.Context, confirmToken string) error {
-	m.ConfirmToken = confirmToken
-	return nil
-}
-func (m *User) SetConfirmed(ctx context.Context, confirmed bool) error {
-	m.Confirmed = confirmed
-	return nil
-}
-func (m *User) SetLocked(ctx context.Context, locked bool) error {
-	m.Locked = locked
-	return nil
-}
-func (m *User) SetAttemptNumber(ctx context.Context, attemptNumber int) error {
-	m.AttemptNumber = attemptNumber
-	return nil
-}
-func (m *User) SetAttemptTime(ctx context.Context, attemptTime time.Time) error {
-	m.AttemptTime = attemptTime
-	return nil
-}
-func (m *User) SetOAuthToken(ctx context.Context, oAuthToken string) error {
-	m.OAuthToken = oAuthToken
-	return nil
-}
-func (m *User) SetOAuthRefresh(ctx context.Context, oAuthRefresh string) error {
-	m.OAuthRefresh = oAuthRefresh
-	return nil
-}
-func (m *User) SetOAuthExpiry(ctx context.Context, oAuthExpiry time.Time) error {
-	m.OAuthExpiry = oAuthExpiry
-	return nil
-}
+func (m *User) SetConfirmToken(confirmToken string)  { m.ConfirmToken = confirmToken }
+func (m *User) SetConfirmed(confirmed bool)          { m.Confirmed = confirmed }
+func (m *User) SetLocked(locked bool)                { m.Locked = locked }
+func (m *User) SetAttemptNumber(attemptNumber int)   { m.AttemptNumber = attemptNumber }
+func (m *User) SetAttemptTime(attemptTime time.Time) { m.AttemptTime = attemptTime }
+func (m *User) SetOAuthToken(oAuthToken string)      { m.OAuthToken = oAuthToken }
+func (m *User) SetOAuthRefresh(oAuthRefresh string)  { m.OAuthRefresh = oAuthRefresh }
+func (m *User) SetOAuthExpiry(oAuthExpiry time.Time) { m.OAuthExpiry = oAuthExpiry }
 
 // ServerStorer should be valid for any module storer defined in authboss.
 type ServerStorer struct {
@@ -220,7 +177,7 @@ func (FailStorer) Load(context.Context) error {
 	return errors.New("fail storer: get")
 }
 
-// ClientRW is used for testing the client stores on context
+// ClientState is used for testing the client stores on context
 type ClientState struct {
 	Values        map[string]string
 	GetShouldFail bool
@@ -344,16 +301,16 @@ func (m *Mailer) Send(ctx context.Context, email authboss.Email) error {
 // AfterCallback is a callback that knows if it was called
 type AfterCallback struct {
 	HasBeenCalled bool
-	Fn            authboss.After
+	Fn            authboss.EventHandler
 }
 
 // NewAfterCallback constructs a new aftercallback.
 func NewAfterCallback() *AfterCallback {
 	m := AfterCallback{}
 
-	m.Fn = func(context.Context) error {
+	m.Fn = func(http.ResponseWriter, *http.Request, bool) (bool, error) {
 		m.HasBeenCalled = true
-		return nil
+		return false, nil
 	}
 
 	return &m

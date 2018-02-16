@@ -53,27 +53,27 @@ type ServerStorer interface {
 // not present. Instead 0-value = null = not present, this puts the onus
 // on Authboss code to check for this.
 type User interface {
-	GetPID(ctx context.Context) (pid string)
-	PutPID(ctx context.Context, pid string)
+	GetPID() (pid string)
+	PutPID(pid string)
 }
 
 // AuthableUser is identified by a password
 type AuthableUser interface {
 	User
 
-	GetPassword(ctx context.Context) (password string)
-	PutPassword(ctx context.Context, password string)
+	GetPassword() (password string)
+	PutPassword(password string)
 }
 
 // ConfirmableUser can be in a state of confirmed or not
 type ConfirmableUser interface {
 	User
 
-	GetConfirmed(ctx context.Context) (confirmed bool)
-	GetConfirmToken(ctx context.Context) (token string)
+	GetConfirmed() (confirmed bool)
+	GetConfirmToken() (token string)
 
-	PutConfirmed(ctx context.Context, confirmed bool)
-	PutConfirmToken(ctx context.Context, token string)
+	PutConfirmed(confirmed bool)
+	PutConfirmToken(token string)
 }
 
 // ArbitraryUser allows arbitrary data from the web form through. You should
@@ -84,10 +84,10 @@ type ArbitraryUser interface {
 
 	// GetArbitrary is used only to display the arbitrary data back to the user
 	// when the form is reset.
-	GetArbitrary(ctx context.Context) (arbitrary map[string]string)
+	GetArbitrary() (arbitrary map[string]string)
 	// PutArbitrary allows arbitrary fields defined by the authboss library
 	// consumer to add fields to the user registration piece.
-	PutArbitrary(ctx context.Context, arbitrary map[string]string)
+	PutArbitrary(arbitrary map[string]string)
 }
 
 // OAuth2User allows reading and writing values relating to OAuth2
@@ -96,19 +96,19 @@ type OAuth2User interface {
 
 	// IsOAuth2User checks to see if a user was registered in the site as an
 	// oauth2 user.
-	IsOAuth2User(ctx context.Context) bool
+	IsOAuth2User() bool
 
-	GetUID(ctx context.Context) (uid string)
-	GetProvider(ctx context.Context) (provider string)
-	GetToken(ctx context.Context) (token string)
-	GetRefreshToken(ctx context.Context) (refreshToken string)
-	GetExpiry(ctx context.Context) (expiry time.Duration)
+	GetUID() (uid string)
+	GetProvider() (provider string)
+	GetToken() (token string)
+	GetRefreshToken() (refreshToken string)
+	GetExpiry() (expiry time.Duration)
 
-	PutUID(ctx context.Context, uid string)
-	PutProvider(ctx context.Context, provider string)
-	PutToken(ctx context.Context, token string)
-	PutRefreshToken(ctx context.Context, refreshToken string)
-	PutExpiry(ctx context.Context, expiry time.Duration)
+	PutUID(uid string)
+	PutProvider(provider string)
+	PutToken(token string)
+	PutRefreshToken(refreshToken string)
+	PutExpiry(expiry time.Duration)
 }
 
 // MustBeAuthable forces an upgrade conversion to Authable

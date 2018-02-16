@@ -101,7 +101,7 @@ func TestCurrentUser(t *testing.T) {
 		t.Error(err)
 	}
 
-	if got := user.GetPID(context.TODO()); got != "george-pid" {
+	if got := user.GetPID(); got != "george-pid" {
 		t.Error("got:", got)
 	}
 }
@@ -116,7 +116,7 @@ func TestCurrentUserContext(t *testing.T) {
 		t.Error(err)
 	}
 
-	if got := user.GetPID(context.TODO()); got != "george-pid" {
+	if got := user.GetPID(); got != "george-pid" {
 		t.Error("got:", got)
 	}
 }
@@ -194,7 +194,7 @@ func TestLoadCurrentUser(t *testing.T) {
 		t.Error(err)
 	}
 
-	if got := user.GetPID(context.TODO()); got != "george-pid" {
+	if got := user.GetPID(); got != "george-pid" {
 		t.Error("got:", got)
 	}
 

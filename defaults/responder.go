@@ -6,9 +6,20 @@ import (
 	"github.com/volatiletech/authboss"
 )
 
+const (
+	// RedirectFormValueName is the name of the form field
+	// in the http request that will be used when redirecting
+	RedirectFormValueName = "redir"
+)
+
 // Responder helps respond to http requests
 type Responder struct {
 	Renderer authboss.Renderer
+}
+
+// NewResponder constructor
+func NewResponder(renderer authboss.Renderer) *Responder {
+	return &Responder{Renderer: renderer}
 }
 
 // Respond to an HTTP request. It's main job is to merge data that comes in from
@@ -37,10 +48,15 @@ func isAPIRequest(r *http.Request) bool {
 
 // Redirector for http requests
 type Redirector struct {
+	Renderer authboss.Renderer
+
 	// FormValueName for the redirection
 	FormValueName string
+}
 
-	Renderer authboss.Renderer
+// NewRedirector constructor
+func NewRedirector(renderer authboss.Renderer, formValueName string) *Redirector {
+	return &Redirector{FormValueName: formValueName, Renderer: renderer}
 }
 
 // Redirect the client elsewhere. If it's an API request it will simply render

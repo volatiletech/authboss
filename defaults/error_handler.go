@@ -16,6 +16,11 @@ type ErrorHandler struct {
 	LogWriter authboss.Logger
 }
 
+// NewErrorHandler constructor
+func NewErrorHandler(logger authboss.Logger) ErrorHandler {
+	return ErrorHandler{LogWriter: logger}
+}
+
 // Wrap an http handler with an error
 func (e ErrorHandler) Wrap(handler func(w http.ResponseWriter, r *http.Request) error) http.Handler {
 	return errorHandler{

@@ -24,13 +24,13 @@ func NewResponder(renderer authboss.Renderer) *Responder {
 
 // Respond to an HTTP request. It's main job is to merge data that comes in from
 // various middlewares via the context with the data sent by the controller and render that.
-func (r *Responder) Respond(w http.ResponseWriter, req *http.Request, code int, templateName string, data authboss.HTMLData) error {
+func (r *Responder) Respond(w http.ResponseWriter, req *http.Request, code int, page string, data authboss.HTMLData) error {
 	ctxData := req.Context().Value(authboss.CTXKeyData)
 	if ctxData != nil {
 		data.Merge(ctxData.(authboss.HTMLData))
 	}
 
-	rendered, mime, err := r.Renderer.Render(req.Context(), templateName, data)
+	rendered, mime, err := r.Renderer.Render(req.Context(), page, data)
 	if err != nil {
 		return err
 	}

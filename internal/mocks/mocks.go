@@ -30,8 +30,8 @@ type User struct {
 	OAuthExpiry        time.Time
 }
 
-func (m User) GetUsername() string              { return m.Username }
 func (m User) GetPID() string                   { return m.Email }
+func (m User) GetUsername() string              { return m.Username }
 func (m User) GetPassword() string              { return m.Password }
 func (m User) GetRecoverToken() string          { return m.RecoverToken }
 func (m User) GetRecoverTokenExpiry() time.Time { return m.RecoverTokenExpiry }
@@ -44,21 +44,22 @@ func (m User) GetOAuthToken() string            { return m.OAuthToken }
 func (m User) GetOAuthRefresh() string          { return m.OAuthRefresh }
 func (m User) GetOAuthExpiry() time.Time        { return m.OAuthExpiry }
 
-func (m *User) SetUsername(username string)         { m.Username = username }
-func (m *User) SetEmail(email string)               { m.Email = email }
-func (m *User) SetPassword(password string)         { m.Password = password }
-func (m *User) SetRecoverToken(recoverToken string) { m.RecoverToken = recoverToken }
-func (m *User) SetRecoverTokenExpiry(recoverTokenExpiry time.Time) {
+func (m *User) PutPID(email string)                 { m.Email = email }
+func (m *User) PutUsername(username string)         { m.Username = username }
+func (m *User) PutEmail(email string)               { m.Email = email }
+func (m *User) PutPassword(password string)         { m.Password = password }
+func (m *User) PutRecoverToken(recoverToken string) { m.RecoverToken = recoverToken }
+func (m *User) PutRecoverTokenExpiry(recoverTokenExpiry time.Time) {
 	m.RecoverTokenExpiry = recoverTokenExpiry
 }
-func (m *User) SetConfirmToken(confirmToken string)  { m.ConfirmToken = confirmToken }
-func (m *User) SetConfirmed(confirmed bool)          { m.Confirmed = confirmed }
-func (m *User) SetLocked(locked bool)                { m.Locked = locked }
-func (m *User) SetAttemptNumber(attemptNumber int)   { m.AttemptNumber = attemptNumber }
-func (m *User) SetAttemptTime(attemptTime time.Time) { m.AttemptTime = attemptTime }
-func (m *User) SetOAuthToken(oAuthToken string)      { m.OAuthToken = oAuthToken }
-func (m *User) SetOAuthRefresh(oAuthRefresh string)  { m.OAuthRefresh = oAuthRefresh }
-func (m *User) SetOAuthExpiry(oAuthExpiry time.Time) { m.OAuthExpiry = oAuthExpiry }
+func (m *User) PutConfirmToken(confirmToken string)  { m.ConfirmToken = confirmToken }
+func (m *User) PutConfirmed(confirmed bool)          { m.Confirmed = confirmed }
+func (m *User) PutLocked(locked bool)                { m.Locked = locked }
+func (m *User) PutAttemptNumber(attemptNumber int)   { m.AttemptNumber = attemptNumber }
+func (m *User) PutAttemptTime(attemptTime time.Time) { m.AttemptTime = attemptTime }
+func (m *User) PutOAuthToken(oAuthToken string)      { m.OAuthToken = oAuthToken }
+func (m *User) PutOAuthRefresh(oAuthRefresh string)  { m.OAuthRefresh = oAuthRefresh }
+func (m *User) PutOAuthExpiry(oAuthExpiry time.Time) { m.OAuthExpiry = oAuthExpiry }
 
 // ServerStorer should be valid for any module storer defined in authboss.
 type ServerStorer struct {
@@ -72,6 +73,23 @@ func NewServerStorer() *ServerStorer {
 		Users:    make(map[string]*User),
 		RMTokens: make(map[string][]string),
 	}
+}
+
+// Load a user
+func (s *ServerStorer) Load(ctx context.Context, key string) (authboss.User, error) {
+	user, ok := s.Users[key]
+	if ok {
+		return user, nil
+	}
+
+	return nil, authboss.ErrUserNotFound
+}
+
+// Save a user
+func (s *ServerStorer) Save(ctx context.Context, user authboss.User) error {
+	u := user.(*User)
+	s.Users[u.Email] = u
+	return nil
 }
 
 /*
@@ -314,4 +332,184 @@ func NewAfterCallback() *AfterCallback {
 	}
 
 	return &m
+}
+
+// Renderer mock
+type Renderer struct {
+	Pages []string
+
+	// Render call variables
+	Context context.Context
+	Page    string
+	Data    authboss.HTMLData
+}
+
+// HasLoadedViews ensures the views were loaded
+func (r *Renderer) HasLoadedViews(pages ...string) error {
+	if len(r.Pages) != len(pages) {
+		return errors.Errorf("want: %d loaded views, got: %d", len(pages), len(r.Pages))
+	}
+
+	for i, want := range pages {
+		got := r.Pages[i]
+		if want != got {
+			return errors.Errorf("want: %s [%d], got: %s", want, i, got)
+		}
+	}
+
+	return nil
+}
+
+// Load nothing but store the pages that were loaded
+func (r *Renderer) Load(pages ...string) error {
+	r.Pages = append(r.Pages, pages...)
+	return nil
+}
+
+// Render nothing, but record the arguments into the renderer
+func (r *Renderer) Render(ctx context.Context, page string, data authboss.HTMLData) ([]byte, string, error) {
+	r.Context = ctx
+	r.Page = page
+	r.Data = data
+	return nil, "text/html", nil
+}
+
+// Responder records how a request was responded to
+type Responder struct {
+	Status int
+	Page   string
+	Data   authboss.HTMLData
+}
+
+// Respond stores the arguments in the struct
+func (r *Responder) Respond(w http.ResponseWriter, req *http.Request, code int, page string, data authboss.HTMLData) error {
+	r.Status = code
+	r.Page = page
+	r.Data = data
+
+	return nil
+}
+
+// Redirector stores the redirect options passed to it and writes the Code
+// to the ResponseWriter.
+type Redirector struct {
+	Options authboss.RedirectOptions
+}
+
+// Redirect a request
+func (r *Redirector) Redirect(w http.ResponseWriter, req *http.Request, ro authboss.RedirectOptions) error {
+	r.Options = ro
+	http.Redirect(w, req, ro.RedirectPath, ro.Code)
+	return nil
+}
+
+// BodyReader reads the body of a request and returns some values
+type BodyReader struct {
+	Return Values
+}
+
+// Read the return values
+func (b BodyReader) Read(page string, r *http.Request) (authboss.Validator, error) {
+	return b.Return, nil
+}
+
+// Values is returned from the BodyReader
+type Values struct {
+	PID      string
+	Password string
+}
+
+// GetPID from values
+func (v Values) GetPID() string {
+	return v.PID
+}
+
+// GetPassword from values
+func (v Values) GetPassword() string {
+	return v.Password
+}
+
+// Validate the values
+func (v Values) Validate() []error {
+	return nil
+}
+
+// Logger logs to the void
+type Logger struct {
+}
+
+// Info logging
+func (l Logger) Info(string) {}
+
+// Error logging
+func (l Logger) Error(string) {}
+
+// Router records the routes that were registered
+type Router struct {
+	Gets    []string
+	Posts   []string
+	Deletes []string
+}
+
+// ServeHTTP does nothing
+func (Router) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+}
+
+// Get records the path in the router
+func (r *Router) Get(path string, _ http.Handler) {
+	r.Gets = append(r.Gets, path)
+}
+
+// Post records the path in the router
+func (r *Router) Post(path string, _ http.Handler) {
+	r.Posts = append(r.Posts, path)
+}
+
+// Delete records the path in the router
+func (r *Router) Delete(path string, _ http.Handler) {
+	r.Deletes = append(r.Deletes, path)
+}
+
+// HasGets ensures all gets routes are present
+func (r *Router) HasGets(gets ...string) error {
+	return r.hasRoutes(gets, r.Gets)
+}
+
+// HasPosts ensures all gets routes are present
+func (r *Router) HasPosts(posts ...string) error {
+	return r.hasRoutes(posts, r.Posts)
+}
+
+// HasDeletes ensures all gets routes are present
+func (r *Router) HasDeletes(deletes ...string) error {
+	return r.hasRoutes(deletes, r.Deletes)
+}
+
+func (r *Router) hasRoutes(want []string, got []string) error {
+	if len(got) != len(want) {
+		return errors.Errorf("want: %d get routes, got: %d", len(want), len(got))
+	}
+
+	for i, w := range want {
+		g := got[i]
+		if w != g {
+			return errors.Errorf("wanted route: %s [%d], but got: %s", w, i, g)
+		}
+	}
+
+	return nil
+}
+
+// ErrorHandler just holds the last error
+type ErrorHandler struct {
+	Error error
+}
+
+// Wrap an http method
+func (e *ErrorHandler) Wrap(handler func(w http.ResponseWriter, r *http.Request) error) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if err := handler(w, r); err != nil {
+			e.Error = err
+		}
+	})
 }

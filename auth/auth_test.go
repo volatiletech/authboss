@@ -22,7 +22,9 @@ func TestAuthInit(t *testing.T) {
 	ab.Config.Core.ErrorHandler = errHandler
 
 	a := &Auth{}
-	a.Init(ab)
+	if err := a.Init(ab); err != nil {
+		t.Fatal(err)
+	}
 
 	if err := renderer.HasLoadedViews(PageLogin); err != nil {
 		t.Error(err)
@@ -79,6 +81,9 @@ func testSetup() *testHarness {
 	harness.session = mocks.NewClientRW()
 	harness.storer = mocks.NewServerStorer()
 
+	harness.ab.Paths.AuthLoginOK = "/login/ok"
+	harness.ab.Paths.AuthLogoutOK = "/logout/ok"
+
 	harness.ab.Config.Core.BodyReader = harness.bodyReader
 	harness.ab.Config.Core.Logger = mocks.Logger{}
 	harness.ab.Config.Core.Responder = harness.responder
@@ -132,6 +137,9 @@ func TestAuthPostSuccess(t *testing.T) {
 
 		if resp.Code != http.StatusTemporaryRedirect {
 			t.Error("code was wrong:", resp.Code)
+		}
+		if h.redirector.Options.RedirectPath != "/login/ok" {
+			t.Error("redirect path was wrong:", h.redirector.Options.RedirectPath)
 		}
 
 		if _, ok := h.session.ClientValues[authboss.SessionHalfAuthKey]; ok {
@@ -235,6 +243,7 @@ func TestAuthPostBadPassword(t *testing.T) {
 	}
 
 	t.Run("normal", func(t *testing.T) {
+		t.Parallel()
 		h := setupMore(testSetup())
 
 		r := mocks.Request("POST")
@@ -269,6 +278,7 @@ func TestAuthPostBadPassword(t *testing.T) {
 	})
 
 	t.Run("handledAfter", func(t *testing.T) {
+		t.Parallel()
 		h := setupMore(testSetup())
 
 		r := mocks.Request("POST")
@@ -371,6 +381,13 @@ func TestAuthLogout(t *testing.T) {
 
 	if err := h.auth.Logout(w, r); err != nil {
 		t.Error(err)
+	}
+
+	if resp.Code != http.StatusTemporaryRedirect {
+		t.Error("response code wrong:", resp.Code)
+	}
+	if h.redirector.Options.RedirectPath != "/logout/ok" {
+		t.Error("redirect path was wrong:", h.redirector.Options.RedirectPath)
 	}
 
 	if _, ok := h.session.ClientValues[authboss.SessionKey]; ok {

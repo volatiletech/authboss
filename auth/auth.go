@@ -2,6 +2,7 @@
 package auth
 
 import (
+	"context"
 	"net/http"
 
 	"golang.org/x/crypto/bcrypt"
@@ -83,6 +84,8 @@ func (a *Auth) LoginPost(w http.ResponseWriter, r *http.Request) error {
 	authUser := authboss.MustBeAuthable(pidUser)
 	password := authUser.GetPassword()
 
+	r = r.WithContext(context.WithValue(r.Context(), authboss.CTXKeyUser, pidUser))
+
 	var handled bool
 	err = bcrypt.CompareHashAndPassword([]byte(password), []byte(creds.GetPassword()))
 	if err != nil {
@@ -118,7 +121,7 @@ func (a *Auth) LoginPost(w http.ResponseWriter, r *http.Request) error {
 
 	ro := authboss.RedirectOptions{
 		Code:         http.StatusTemporaryRedirect,
-		RedirectPath: a.Authboss.Paths.AuthLogoutOK,
+		RedirectPath: a.Authboss.Paths.AuthLoginOK,
 	}
 	return a.Authboss.Core.Redirector.Redirect(w, r, ro)
 }

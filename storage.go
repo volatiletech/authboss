@@ -1,5 +1,12 @@
 package authboss
 
+// A concious decision was made to put all storer
+// and user types into this file despite them truly
+// belonging to outside modules. The reason for this
+// is because documentation-wise, it was previously
+// difficult to find what you had to implement or even
+// what you could implement.
+
 import (
 	"context"
 	"time"
@@ -39,8 +46,31 @@ type ServerStorer interface {
 	// Load will look up the user based on the passed the PrimaryID
 	Load(ctx context.Context, key string) (User, error)
 
-	// Save persists the user in the database
+	// Save persists the user in the database, this should never
+	// create a user and instead return ErrUserNotFound if the user
+	// does not exist.
 	Save(ctx context.Context, user User) error
+}
+
+// CreatingServerStorer is used for creating new users
+// like when Registration is being done.
+type CreatingServerStorer interface {
+	// New creates a blank user, it is not yet persisted in the database
+	// but is just for storing data
+	New(ctx context.Context) User
+	// Create the user in storage, it should not overwrite a user
+	// and should return ErrUserFound if it currently exists.
+	Create(ctx context.Context, user User) error
+}
+
+// EnsureCanCreate makes sure the server storer supports create operations
+func EnsureCanCreate(storer ServerStorer) CreatingServerStorer {
+	s, ok := storer.(CreatingServerStorer)
+	if !ok {
+		panic("could not upgrade serverstorer to creatingserverstorer, check your struct")
+	}
+
+	return s
 }
 
 // User has functions for each piece of data it requires.

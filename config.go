@@ -28,9 +28,6 @@ type Config struct {
 	}
 
 	Modules struct {
-		// BCryptCost is the cost of the bcrypt password hashing function.
-		AuthBCryptCost int
-
 		// AuthLogoutMethod is the method the logout route should use (default should be DELETE)
 		AuthLogoutMethod string
 
@@ -45,8 +42,17 @@ type Config struct {
 		// LockDuration is how long an account is locked for.
 		LockDuration time.Duration
 
+		// RegBCryptCost is the cost of the bcrypt password hashing function.
+		RegisterBCryptCost int
 		// RegisterPreserveFields are fields used with registration that are to be rendered when
-		// post fails.
+		// post fails in a normal way (for example validation errors), they will be passed
+		// back in the data of the response under the key DataPreserve which will be a map[string]string.
+		//
+		// All fields that are to be preserved must be able to be returned by the ArbitraryValuer.GetValues()
+		//
+		// This means in order to have a field named "address" you would need to have that returned by
+		// the ArbitraryValuer.GetValues() method and then it would be available to be whitelisted by this
+		// configuration variable.
 		RegisterPreserveFields []string
 
 		// RecoverTokenDuration controls how long a token sent via email for password
@@ -126,11 +132,11 @@ func (c *Config) Defaults() {
 	c.Paths.RecoverOK = "/"
 	c.Paths.RegisterOK = "/"
 
-	c.Modules.AuthBCryptCost = bcrypt.DefaultCost
 	c.Modules.AuthLogoutMethod = "DELETE"
 	c.Modules.ExpireAfter = 60 * time.Minute
 	c.Modules.LockAfter = 3
 	c.Modules.LockWindow = 5 * time.Minute
 	c.Modules.LockDuration = 5 * time.Hour
 	c.Modules.RecoverTokenDuration = time.Duration(24) * time.Hour
+	c.Modules.RegisterBCryptCost = bcrypt.DefaultCost
 }

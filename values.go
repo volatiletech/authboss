@@ -40,3 +40,21 @@ func MustHaveUserValues(v Validator) UserValuer {
 
 	panic(fmt.Sprintf("bodyreader returned a type that could not be upgraded to UserValuer: %T", v))
 }
+
+// ArbitraryValuer provides the "rest" of the fields
+// that aren't strictly needed for anything in particular,
+// address, secondary e-mail, etc.
+//
+// There are two important notes about this interface:
+//
+// 1. That this is composed with Validator, as these fields
+// should both be validated and culled of invalid pieces
+// as they will be passed into ArbitraryUser.PutArbitrary()
+//
+// 2. These values will also be culled according to the RegisterPreserveFields
+// whitelist and sent back in the data under the key DataPreserve.
+type ArbitraryValuer interface {
+	Validator
+
+	GetValues() map[string]string
+}

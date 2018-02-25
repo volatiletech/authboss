@@ -28,6 +28,8 @@ type User struct {
 	OAuthToken         string
 	OAuthRefresh       string
 	OAuthExpiry        time.Time
+
+	Arbitrary map[string]string
 }
 
 func (m User) GetPID() string                   { return m.Email }
@@ -43,6 +45,7 @@ func (m User) GetAttemptTime() time.Time        { return m.AttemptTime }
 func (m User) GetOAuthToken() string            { return m.OAuthToken }
 func (m User) GetOAuthRefresh() string          { return m.OAuthRefresh }
 func (m User) GetOAuthExpiry() time.Time        { return m.OAuthExpiry }
+func (m User) GetArbitrary() map[string]string  { return m.Arbitrary }
 
 func (m *User) PutPID(email string)                 { m.Email = email }
 func (m *User) PutUsername(username string)         { m.Username = username }
@@ -60,6 +63,7 @@ func (m *User) PutAttemptTime(attemptTime time.Time) { m.AttemptTime = attemptTi
 func (m *User) PutOAuthToken(oAuthToken string)      { m.OAuthToken = oAuthToken }
 func (m *User) PutOAuthRefresh(oAuthRefresh string)  { m.OAuthRefresh = oAuthRefresh }
 func (m *User) PutOAuthExpiry(oAuthExpiry time.Time) { m.OAuthExpiry = oAuthExpiry }
+func (m *User) PutArbitrary(arb map[string]string)   { m.Arbitrary = arb }
 
 // ServerStorer should be valid for any module storer defined in authboss.
 type ServerStorer struct {
@@ -75,6 +79,21 @@ func NewServerStorer() *ServerStorer {
 	}
 }
 
+// New constructs a blank user to later be created
+func (s *ServerStorer) New(context.Context) authboss.User {
+	return &User{}
+}
+
+// Create a user
+func (s *ServerStorer) Create(ctx context.Context, user authboss.User) error {
+	u := user.(*User)
+	if _, ok := s.Users[u.Email]; ok {
+		return authboss.ErrUserFound
+	}
+	s.Users[u.Email] = u
+	return nil
+}
+
 // Load a user
 func (s *ServerStorer) Load(ctx context.Context, key string) (authboss.User, error) {
 	user, ok := s.Users[key]
@@ -88,6 +107,9 @@ func (s *ServerStorer) Load(ctx context.Context, key string) (authboss.User, err
 // Save a user
 func (s *ServerStorer) Save(ctx context.Context, user authboss.User) error {
 	u := user.(*User)
+	if _, ok := s.Users[u.Email]; !ok {
+		return authboss.ErrUserNotFound
+	}
 	s.Users[u.Email] = u
 	return nil
 }
@@ -265,7 +287,7 @@ func (c *ClientStateRW) WriteState(w http.ResponseWriter, cstate authboss.Client
 	return nil
 }
 
-// Request returns a new  request with optional key-value body (form-post)
+// Request returns a new request with optional key-value body (form-post)
 func Request(method string, postKeyValues ...string) *http.Request {
 	var body io.Reader
 	location := "http://localhost"
@@ -399,13 +421,16 @@ type Redirector struct {
 // Redirect a request
 func (r *Redirector) Redirect(w http.ResponseWriter, req *http.Request, ro authboss.RedirectOptions) error {
 	r.Options = ro
+	if len(ro.RedirectPath) == 0 {
+		panic("no redirect path on redirect call")
+	}
 	http.Redirect(w, req, ro.RedirectPath, ro.Code)
 	return nil
 }
 
 // BodyReader reads the body of a request and returns some values
 type BodyReader struct {
-	Return Values
+	Return authboss.Validator
 }
 
 // Read the return values
@@ -417,6 +442,8 @@ func (b BodyReader) Read(page string, r *http.Request) (authboss.Validator, erro
 type Values struct {
 	PID      string
 	Password string
+
+	Errors []error
 }
 
 // GetPID from values
@@ -431,7 +458,33 @@ func (v Values) GetPassword() string {
 
 // Validate the values
 func (v Values) Validate() []error {
-	return nil
+	return v.Errors
+}
+
+// ArbValues is arbitrary value storage
+type ArbValues struct {
+	Values map[string]string
+	Errors []error
+}
+
+// GetPID gets the pid
+func (a ArbValues) GetPID() string {
+	return a.Values["email"]
+}
+
+// GetPassword gets the password
+func (a ArbValues) GetPassword() string {
+	return a.Values["password"]
+}
+
+// GetValues returns all values
+func (a ArbValues) GetValues() map[string]string {
+	return a.Values
+}
+
+// Validate nothing
+func (a ArbValues) Validate() []error {
+	return a.Errors
 }
 
 // Logger logs to the void

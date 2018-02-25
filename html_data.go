@@ -7,6 +7,8 @@ const (
 	DataErr = "error"
 	// DataValidation is for validation errors
 	DataValidation = "errors"
+	// DataPreserve preserves fields
+	DataPreserve = "preserve"
 )
 
 // HTMLData is used to render templates with.
@@ -16,7 +18,7 @@ type HTMLData map[string]interface{}
 // slice, where odd elements are keys, and the following even element is their value.
 func NewHTMLData(data ...interface{}) HTMLData {
 	if len(data)%2 != 0 {
-		panic("It should be a key value list of arguments.")
+		panic("it should be a key value list of arguments.")
 	}
 
 	h := make(HTMLData)

@@ -64,7 +64,7 @@ type CreatingServerStorer interface {
 
 // ConfirmingServerStorer can find a user by a confirm token
 type ConfirmingServerStorer interface {
-	Load(ctx context.Context, token string) (User, error)
+	LoadByToken(ctx context.Context, token string) (ConfirmableUser, error)
 }
 
 // EnsureCanCreate makes sure the server storer supports create operations

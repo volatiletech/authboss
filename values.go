@@ -31,16 +31,6 @@ type UserValuer interface {
 	GetPassword() string
 }
 
-// MustHaveUserValues upgrades a validatable set of values
-// to ones specific to the user.
-func MustHaveUserValues(v Validator) UserValuer {
-	if u, ok := v.(UserValuer); ok {
-		return u
-	}
-
-	panic(fmt.Sprintf("bodyreader returned a type that could not be upgraded to UserValuer: %T", v))
-}
-
 // ArbitraryValuer provides the "rest" of the fields
 // that aren't strictly needed for anything in particular,
 // address, secondary e-mail, etc.
@@ -57,4 +47,31 @@ type ArbitraryValuer interface {
 	Validator
 
 	GetValues() map[string]string
+}
+
+// ConfirmValuer allows us to pull out the token from the request
+type ConfirmValuer interface {
+	Validator
+
+	GetToken() string
+}
+
+// MustHaveUserValues upgrades a validatable set of values
+// to ones specific to an authenticating user.
+func MustHaveUserValues(v Validator) UserValuer {
+	if u, ok := v.(UserValuer); ok {
+		return u
+	}
+
+	panic(fmt.Sprintf("bodyreader returned a type that could not be upgraded to UserValuer: %T", v))
+}
+
+// MustHaveConfirmValues upgrades a validatable set of values
+// to ones specific to a user that needs to be confirmed.
+func MustHaveConfirmValues(v Validator) ConfirmValuer {
+	if u, ok := v.(ConfirmValuer); ok {
+		return u
+	}
+
+	panic(fmt.Sprintf("bodyreader returned a type that could not be upgraded to ConfirmValuer: %T", v))
 }

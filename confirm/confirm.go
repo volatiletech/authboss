@@ -3,8 +3,8 @@ package confirm
 
 import (
 	"context"
-	"crypto/md5"
 	"crypto/rand"
+	"crypto/sha512"
 	"encoding/base64"
 	"fmt"
 	"net/http"
@@ -14,44 +14,24 @@ import (
 	"github.com/pkg/errors"
 
 	"github.com/volatiletech/authboss"
-	"github.com/volatiletech/authboss/internal/response"
 )
 
-// Storer and FormValue constants
 const (
-	StoreConfirmToken = "confirm_token"
-	StoreConfirmed    = "confirmed"
+	// PageConfirm is only really used for the BodyReader
+	PageConfirm = "confirm"
 
+	// EmailConfirmHTML is the name of the html template for e-mails
+	EmailConfirmHTML = "confirm_html"
+	// EmailConfirmTxt is the name of the text template for e-mails
+	EmailConfirmTxt = "confirm_txt"
+
+	// FormValueConfirm is the name of the form value for
 	FormValueConfirm = "cnf"
 
-	tplConfirmHTML = "confirm_email.html.tpl"
-	tplConfirmText = "confirm_email.txt.tpl"
+	// DataConfirmURL is the name of the e-mail template variable
+	// that gives the url to send to the user for confirmation.
+	DataConfirmURL = "url"
 )
-
-var (
-	errUserMissing = errors.New("after registration user must be loaded")
-)
-
-// ConfirmStoreLoader allows lookup of users by different parameters.
-type ConfirmStoreLoader interface {
-	authboss.StoreLoader
-
-	// ConfirmUser looks up a user by a confirm token. See confirm module for
-	// attribute names. If the token is not found in the data store,
-	// simply return nil, ErrUserNotFound.
-	LoadByConfirmToken(confirmToken string) (ConfirmStorer, error)
-}
-
-// ConfirmStorer defines attributes for the confirm module.
-type ConfirmStorer interface {
-	authboss.Storer
-
-	PutConfirmed(ctx context.Context, confirmed bool) error
-	PutConfirmToken(ctx context.Context, token string) error
-
-	GetConfirmed(ctx context.Context) (confirmed bool, err error)
-	GetConfirmToken(ctx context.Context) (token string, err error)
-}
 
 func init() {
 	authboss.RegisterModule("confirm", &Confirm{})
@@ -62,134 +42,215 @@ type Confirm struct {
 	*authboss.Authboss
 }
 
-// Initialize the module
-func (c *Confirm) Initialize(ab *authboss.Authboss) (err error) {
+// Init module
+func (c *Confirm) Init(ab *authboss.Authboss) (err error) {
 	c.Authboss = ab
 
-	c.Events.After(authboss.EventGetUser, func(ctx context.Context) error {
-		_, err := c.beforeGet(ctx)
+	if err = c.Authboss.Config.Core.MailRenderer.Load(EmailConfirmHTML, EmailConfirmTxt); err != nil {
 		return err
-	})
-	c.Events.Before(authboss.EventAuth, c.beforeGet)
-	c.Events.After(authboss.EventRegister, c.afterRegister)
+	}
+
+	c.Authboss.Config.Core.Router.Get("/confirm", c.Authboss.Config.Core.ErrorHandler.Wrap(c.Get))
+
+	c.Events.Before(authboss.EventAuth, c.PreventAuth)
+	c.Events.After(authboss.EventRegister, c.StartConfirmationWeb)
 
 	return nil
 }
 
-// Routes for the module
-func (c *Confirm) Routes() authboss.RouteTable {
-	return authboss.RouteTable{
-		"/confirm": c.confirmHandler,
+// PreventAuth stops the EventAuth from succeeding when a user is not confirmed
+// This relies on the fact that the context holds the user at this point in time
+// loaded by the auth module (or something else).
+func (c *Confirm) PreventAuth(w http.ResponseWriter, r *http.Request, handled bool) (bool, error) {
+	logger := c.Authboss.RequestLogger(r)
+
+	user, err := c.Authboss.CurrentUser(w, r)
+	if err != nil {
+		return false, err
 	}
+
+	cuser := authboss.MustBeConfirmable(user)
+	if cuser.GetConfirmed() {
+		logger.Infof("user %s was confirmed, allowing auth", user.GetPID())
+		return false, nil
+	}
+
+	logger.Infof("user %s was not confirmed, preventing auth", user.GetPID())
+	ro := authboss.RedirectOptions{
+		Code:         http.StatusTemporaryRedirect,
+		RedirectPath: c.Authboss.Config.Paths.ConfirmNotOK,
+		Failure:      "Your account has not been confirmed, please check your e-mail.",
+	}
+	return true, c.Authboss.Config.Core.Redirector.Redirect(w, r, ro)
 }
 
-// Templates returns the list of templates required by this module
-func (c *Confirm) Templates() []string {
-	return []string{tplConfirmHTML, tplConfirmText}
+// StartConfirmationWeb hijacks a request and forces a user to be confirmed first
+// it's assumed that the current user is loaded into the request context.
+func (c *Confirm) StartConfirmationWeb(w http.ResponseWriter, r *http.Request, handled bool) (bool, error) {
+	user, err := c.Authboss.CurrentUser(w, r)
+	if err != nil {
+		return false, err
+	}
+
+	cuser := authboss.MustBeConfirmable(user)
+	if err = c.StartConfirmation(r.Context(), cuser, true); err != nil {
+		return false, err
+	}
+
+	ro := authboss.RedirectOptions{
+		Code:         http.StatusTemporaryRedirect,
+		RedirectPath: c.Authboss.Config.Paths.ConfirmNotOK,
+		Success:      "Please verify your account, an e-mail has been sent to you.",
+	}
+	return true, c.Authboss.Config.Core.Redirector.Redirect(w, r, ro)
 }
 
-func (c *Confirm) beforeGet(ctx context.Context) (authboss.Interrupt, error) {
-	if confirmed, err := ctx.User.BoolErr(StoreConfirmed); err != nil {
-		return authboss.InterruptNone, err
-	} else if !confirmed {
-		return authboss.InterruptAccountNotConfirmed, nil
-	}
+// StartConfirmation begins confirmation on a user by setting them to require confirmation
+// via a created token, and optionally sending them an e-mail.
+func (c *Confirm) StartConfirmation(ctx context.Context, user authboss.ConfirmableUser, sendEmail bool) error {
+	logger := c.Authboss.Logger(ctx)
 
-	return authboss.InterruptNone, nil
-}
-
-// AfterRegister ensures the account is not activated.
-func (c *Confirm) afterRegister(ctx context.Context) error {
-	if ctx.User == nil {
-		return errUserMissing
-	}
-
-	token := make([]byte, 32)
-	if _, err := rand.Read(token); err != nil {
-		return err
-	}
-	sum := md5.Sum(token)
-
-	ctx.User[StoreConfirmToken] = base64.StdEncoding.EncodeToString(sum[:])
-
-	if err := ctx.SaveUser(); err != nil {
-		return err
-	}
-
-	email, err := ctx.User.StringErr(authboss.StoreEmail)
+	hash, token, err := GenerateToken()
 	if err != nil {
 		return err
 	}
 
-	goConfirmEmail(c, ctx, email, base64.URLEncoding.EncodeToString(token))
+	user.PutConfirmed(false)
+	user.PutConfirmToken(hash)
+
+	logger.Infof("generated new confirm token for user: %s", user.GetPID())
+	if err := c.Authboss.Config.Storage.Server.Save(ctx, user); err != nil {
+		return errors.Wrap(err, "failed to save user during StartConfirmation, user data may be in weird state")
+	}
+
+	goConfirmEmail(c, ctx, user.GetEmail(), token)
 
 	return nil
 }
 
+// This is here so it can be mocked out by a test
 var goConfirmEmail = func(c *Confirm, ctx context.Context, to, token string) {
-	if ctx.MailMaker != nil {
-		c.confirmEmail(ctx, to, token)
-	} else {
-		go c.confirmEmail(ctx, to, token)
-	}
+	go c.SendConfirmEmail(ctx, to, token)
 }
 
-// confirmEmail sends a confirmation e-mail.
-func (c *Confirm) confirmEmail(ctx context.Context, to, token string) {
-	p := path.Join(c.MountPath, "confirm")
-	url := fmt.Sprintf("%s%s?%s=%s", c.RootURL, p, url.QueryEscape(FormValueConfirm), url.QueryEscape(token))
+// SendConfirmEmail sends a confirmation e-mail to a user
+func (c *Confirm) SendConfirmEmail(ctx context.Context, to, token string) {
+	logger := c.Authboss.Logger(ctx)
+
+	p := path.Join(c.Config.Paths.Mount, "confirm")
+	url := fmt.Sprintf("%s%s?%s=%s", c.Paths.RootURL, p, url.QueryEscape(FormValueConfirm), url.QueryEscape(token))
 
 	email := authboss.Email{
 		To:      []string{to},
-		From:    c.EmailFrom,
-		Subject: c.EmailSubjectPrefix + "Confirm New Account",
+		From:    c.Config.Mail.From,
+		Subject: c.Config.Mail.SubjectPrefix + "Confirm New Account",
 	}
 
-	err := response.Email(ctx.Mailer, email, c.emailHTMLTemplates, tplConfirmHTML, c.emailTextTemplates, tplConfirmText, url)
-	if err != nil {
-		fmt.Fprintf(ctx.LogWriter, "confirm: Failed to send e-mail: %v", err)
+	logger.Infof("sending confirm e-mail to: %s", to)
+
+	ro := authboss.EmailResponseOptions{
+		Data:         authboss.NewHTMLData(DataConfirmURL, url),
+		HTMLTemplate: EmailConfirmHTML,
+		TextTemplate: EmailConfirmTxt,
+	}
+	if err := c.Authboss.Email(ctx, email, ro); err != nil {
+		logger.Errorf("failed to send confirm e-mail to %s: %+v", to, err)
 	}
 }
 
-func (c *Confirm) confirmHandler(w http.ResponseWriter, r *http.Request) error {
-	token := r.FormValue(FormValueConfirm)
-	if len(token) == 0 {
-		return authboss.ClientDataErr{Name: FormValueConfirm}
-	}
+// Get is a request that confirms a user with a valid token
+func (c *Confirm) Get(w http.ResponseWriter, r *http.Request) error {
+	logger := c.RequestLogger(r)
 
-	toHash, err := base64.URLEncoding.DecodeString(token)
+	validator, err := c.Authboss.Config.Core.BodyReader.Read(PageConfirm, r)
 	if err != nil {
-		return authboss.ErrAndRedirect{
-			Location: "/", Err: errors.Wrapf(err, "token failed to decode %q", token),
-		}
+		return err
 	}
 
-	sum := md5.Sum(toHash)
+	if errs := validator.Validate(); errs != nil {
+		logger.Infof("validation failed in Confirm.Get, this typically means a bad token: %+v", errs)
+		ro := authboss.RedirectOptions{
+			Code:         http.StatusTemporaryRedirect,
+			Failure:      "Invalid confirm token.",
+			RedirectPath: c.Authboss.Config.Paths.ConfirmNotOK,
+		}
+		return c.Authboss.Config.Core.Redirector.Redirect(w, r, ro)
+	}
 
-	dbTok := base64.StdEncoding.EncodeToString(sum[:])
-	user, err := ctx.Storer.(ConfirmStorer).ConfirmUser(dbTok)
+	values := authboss.MustHaveConfirmValues(validator)
+
+	toHash, err := base64.URLEncoding.DecodeString(values.GetToken())
+	if err != nil {
+		logger.Infof("error decoding token in Confirm.Get, this typically means a bad token: %s %+v", values.GetToken(), err)
+		ro := authboss.RedirectOptions{
+			Code:         http.StatusTemporaryRedirect,
+			Failure:      "Invalid confirm token.",
+			RedirectPath: c.Authboss.Config.Paths.ConfirmNotOK,
+		}
+		return c.Authboss.Config.Core.Redirector.Redirect(w, r, ro)
+	}
+
+	sum := sha512.Sum512(toHash)
+	token := base64.StdEncoding.EncodeToString(sum[:])
+
+	storer := authboss.EnsureCanConfirm(c.Authboss.Config.Storage.Server)
+	user, err := storer.LoadByToken(r.Context(), token)
 	if err == authboss.ErrUserNotFound {
-		return authboss.ErrAndRedirect{Location: "/", Err: errors.New("token not found")}
+		logger.Infof("confirm token was not found in database: %s", token)
+		ro := authboss.RedirectOptions{
+			Code:         http.StatusTemporaryRedirect,
+			Failure:      "Invalid confirm token.",
+			RedirectPath: c.Authboss.Config.Paths.ConfirmNotOK,
+		}
+		return c.Authboss.Config.Core.Redirector.Redirect(w, r, ro)
 	} else if err != nil {
 		return err
 	}
 
-	ctx.User = authboss.Unbind(user)
+	user.PutConfirmToken("")
+	user.PutConfirmed(true)
 
-	ctx.User[StoreConfirmToken] = ""
-	ctx.User[StoreConfirmed] = true
-
-	key, err := ctx.User.StringErr(c.PrimaryID)
-	if err != nil {
+	logger.Infof("user %s confirmed their account", user.GetPID())
+	if err = c.Authboss.Config.Storage.Server.Save(r.Context(), user); err != nil {
 		return err
 	}
 
-	if err := ctx.SaveUser(); err != nil {
-		return err
+	ro := authboss.RedirectOptions{
+		Code:         http.StatusTemporaryRedirect,
+		Success:      "You have successfully confirmed your account.",
+		RedirectPath: c.Authboss.Config.Paths.ConfirmOK,
 	}
+	return c.Authboss.Config.Core.Redirector.Redirect(w, r, ro)
+}
 
-	ctx.SessionStorer.Put(authboss.SessionKey, key)
-	response.Redirect(ctx, w, r, c.RegisterOKPath, "You have successfully confirmed your account.", "", true)
+// Middleware ensures that a user is confirmed, or else it will intercept the request
+// and send them to the confirm page, this will load the user if he's not been loaded
+// yet from the session.
+//
+// Panics if the user was not able to be loaded in order to allow a panic handler to show
+// a nice error page, also panics if it failed to redirect for whatever reason.
+// TODO(aarondl): Document this middleware better
+func Middleware(ab *authboss.Authboss, next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		user := ab.LoadCurrentUserP(w, &r)
 
-	return nil
+		cu := authboss.MustBeConfirmable(user)
+		if cu.GetConfirmed() {
+			next.ServeHTTP(w, r)
+			return
+		}
+
+		logger := ab.RequestLogger(r)
+		logger.Infof("user %s prevented from accessing %s: not confirmed", user.GetPID(), r.URL.Path)
+	})
+}
+
+// GenerateToken creates a random token that will be used to confirm the user.
+func GenerateToken() (hash string, token string, err error) {
+	tok := make([]byte, 32)
+	if _, err := rand.Read(tok); err != nil {
+		return "", "", err
+	}
+	sum := sha512.Sum512(tok)
+	return base64.StdEncoding.EncodeToString(sum[:]), base64.URLEncoding.EncodeToString(tok[:]), nil
 }

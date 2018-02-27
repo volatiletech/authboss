@@ -41,5 +41,5 @@ func (e errorHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	e.LogWriter.Error(fmt.Sprintf("error at %s: %+v", r.URL.String(), err))
+	e.LogWriter.Error(fmt.Sprintf("request error from (%s) %s: %+v", r.RemoteAddr, r.URL.String(), err))
 }

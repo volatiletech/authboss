@@ -49,6 +49,8 @@ func (a *Authboss) CurrentUserIDP(w http.ResponseWriter, r *http.Request) string
 }
 
 // CurrentUser retrieves the current user from the session and the database.
+// Before the user is loaded from the database the context key is checked.
+// If the session doesn't have the user ID ErrUserNotFound will be returned.
 func (a *Authboss) CurrentUser(w http.ResponseWriter, r *http.Request) (User, error) {
 	if user := r.Context().Value(CTXKeyUser); user != nil {
 		return user.(User), nil
@@ -58,7 +60,7 @@ func (a *Authboss) CurrentUser(w http.ResponseWriter, r *http.Request) (User, er
 	if err != nil {
 		return nil, err
 	} else if len(pid) == 0 {
-		return nil, nil
+		return nil, ErrUserNotFound
 	}
 
 	return a.currentUser(r.Context(), pid)

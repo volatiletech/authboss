@@ -17,6 +17,12 @@ type Config struct {
 		// AuthLogoutOK is the redirect path after a log out.
 		AuthLogoutOK string
 
+		// ConfirmOK once a user has confirmed their account, where should they go
+		ConfirmOK string
+		// ConfirmNotOK is used by the middleware, when a user is still supposed to
+		// confirm their account, this is where they should be redirected to.
+		ConfirmNotOK string
+
 		// RecoverOK is the redirect path after a successful recovery of a password.
 		RecoverOK string
 

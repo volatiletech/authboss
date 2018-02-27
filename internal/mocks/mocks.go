@@ -33,6 +33,7 @@ type User struct {
 }
 
 func (m User) GetPID() string                   { return m.Email }
+func (m User) GetEmail() string                 { return m.Email }
 func (m User) GetUsername() string              { return m.Username }
 func (m User) GetPassword() string              { return m.Password }
 func (m User) GetRecoverToken() string          { return m.RecoverToken }
@@ -112,6 +113,17 @@ func (s *ServerStorer) Save(ctx context.Context, user authboss.User) error {
 	}
 	s.Users[u.Email] = u
 	return nil
+}
+
+// LoadByToken finds a user by his token
+func (s *ServerStorer) LoadByToken(ctx context.Context, token string) (authboss.ConfirmableUser, error) {
+	for _, v := range s.Users {
+		if v.ConfirmToken == token {
+			return v, nil
+		}
+	}
+
+	return nil, authboss.ErrUserNotFound
 }
 
 /*
@@ -428,6 +440,17 @@ func (r *Redirector) Redirect(w http.ResponseWriter, req *http.Request, ro authb
 	return nil
 }
 
+// Emailer that holds the options it was given
+type Emailer struct {
+	Email authboss.Email
+}
+
+// Send an e-mail
+func (e *Emailer) Send(ctx context.Context, email authboss.Email) error {
+	e.Email = email
+	return nil
+}
+
 // BodyReader reads the body of a request and returns some values
 type BodyReader struct {
 	Return authboss.Validator
@@ -442,6 +465,7 @@ func (b BodyReader) Read(page string, r *http.Request) (authboss.Validator, erro
 type Values struct {
 	PID      string
 	Password string
+	Token    string
 
 	Errors []error
 }
@@ -454,6 +478,11 @@ func (v Values) GetPID() string {
 // GetPassword from values
 func (v Values) GetPassword() string {
 	return v.Password
+}
+
+// GetToken from values
+func (v Values) GetToken() string {
+	return v.Token
 }
 
 // Validate the values

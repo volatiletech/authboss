@@ -30,9 +30,11 @@ type ConfirmableUser interface {
 
 	GetConfirmed() (confirmed bool)
 	GetConfirmToken() (token string)
+	GetEmail() (email string)
 
 	PutConfirmed(confirmed bool)
 	PutConfirmToken(token string)
+	PutEmail(email string)
 }
 
 // ArbitraryUser allows arbitrary data from the web form through. You should

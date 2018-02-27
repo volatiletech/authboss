@@ -56,23 +56,6 @@ func TestMailer(t *testing.T) {
 	}
 }
 
-func TestSMTPMailer(t *testing.T) {
-	t.Parallel()
-
-	_ = NewSMTPMailer("server", nil)
-
-	recovered := false
-	defer func() {
-		recovered = recover() != nil
-	}()
-
-	NewSMTPMailer("", nil)
-
-	if !recovered {
-		t.Error("Should have panicd.")
-	}
-}
-
 func TestBoundary(t *testing.T) {
 	t.Parallel()
 

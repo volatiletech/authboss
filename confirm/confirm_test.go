@@ -331,7 +331,11 @@ func TestMiddlewareDisallow(t *testing.T) {
 	t.Parallel()
 
 	ab := authboss.New()
+	redirector := &mocks.Redirector{}
+	ab.Config.Paths.ConfirmNotOK = "/confirm/not/ok"
 	ab.Config.Core.Logger = mocks.Logger{}
+	ab.Config.Core.Redirector = redirector
+
 	called := false
 	server := Middleware(ab, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		called = true
@@ -349,6 +353,12 @@ func TestMiddlewareDisallow(t *testing.T) {
 
 	if called {
 		t.Error("The user should not have been allowed through")
+	}
+	if redirector.Options.Code != http.StatusTemporaryRedirect {
+		t.Error("expected a redirect, but got:", redirector.Options.Code)
+	}
+	if p := redirector.Options.RedirectPath; p != "/confirm/not/ok" {
+		t.Error("redirect path wrong:", p)
 	}
 }
 

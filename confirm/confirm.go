@@ -242,6 +242,12 @@ func Middleware(ab *authboss.Authboss, next http.Handler) http.Handler {
 
 		logger := ab.RequestLogger(r)
 		logger.Infof("user %s prevented from accessing %s: not confirmed", user.GetPID(), r.URL.Path)
+		ro := authboss.RedirectOptions{
+			Code:         http.StatusTemporaryRedirect,
+			Failure:      "Your account has not been confirmed, please check your e-mail.",
+			RedirectPath: ab.Config.Paths.ConfirmNotOK,
+		}
+		ab.Config.Core.Redirector.Redirect(w, r, ro)
 	})
 }
 

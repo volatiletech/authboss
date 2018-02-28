@@ -1,6 +1,9 @@
 package lock
 
 import (
+	"context"
+	"net/http"
+	"net/http/httptest"
 	"testing"
 	"time"
 
@@ -8,221 +11,323 @@ import (
 	"github.com/volatiletech/authboss/internal/mocks"
 )
 
-func TestStorage(t *testing.T) {
+func TestInit(t *testing.T) {
 	t.Parallel()
 
-	l := &Lock{authboss.New()}
-	storage := l.Storage()
-	if _, ok := storage[StoreAttemptNumber]; !ok {
-		t.Error("Expected attempt number storage option.")
-	}
-	if _, ok := storage[StoreAttemptTime]; !ok {
-		t.Error("Expected attempt number time option.")
-	}
-	if _, ok := storage[StoreLocked]; !ok {
-		t.Error("Expected locked storage option.")
-	}
-}
-
-func TestBeforeAuth(t *testing.T) {
-	t.Parallel()
+	ab := authboss.New()
 
 	l := &Lock{}
-	ab := authboss.New()
-	ctx := ab.NewContext()
+	if err := l.Init(ab); err != nil {
+		t.Fatal(err)
+	}
+}
 
-	if interrupt, err := l.beforeAuth(ctx); err != errUserMissing {
-		t.Error("Expected an error because of missing user:", err)
-	} else if interrupt != authboss.InterruptNone {
-		t.Error("Interrupt should not be set:", interrupt)
+type testHarness struct {
+	lock *Lock
+	ab   *authboss.Authboss
+
+	bodyReader *mocks.BodyReader
+	mailer     *mocks.Emailer
+	redirector *mocks.Redirector
+	renderer   *mocks.Renderer
+	responder  *mocks.Responder
+	session    *mocks.ClientStateRW
+	storer     *mocks.ServerStorer
+}
+
+func testSetup() *testHarness {
+	harness := &testHarness{}
+
+	harness.ab = authboss.New()
+	harness.bodyReader = &mocks.BodyReader{}
+	harness.mailer = &mocks.Emailer{}
+	harness.redirector = &mocks.Redirector{}
+	harness.renderer = &mocks.Renderer{}
+	harness.responder = &mocks.Responder{}
+	harness.session = mocks.NewClientRW()
+	harness.storer = mocks.NewServerStorer()
+
+	harness.ab.Paths.LockNotOK = "/lock/not/ok"
+	harness.ab.Modules.LockAfter = 3
+	harness.ab.Modules.LockDuration = time.Hour
+	harness.ab.Modules.LockWindow = time.Minute
+
+	harness.ab.Config.Core.BodyReader = harness.bodyReader
+	harness.ab.Config.Core.Logger = mocks.Logger{}
+	harness.ab.Config.Core.Mailer = harness.mailer
+	harness.ab.Config.Core.Redirector = harness.redirector
+	harness.ab.Config.Core.MailRenderer = harness.renderer
+	harness.ab.Config.Core.Responder = harness.responder
+	harness.ab.Config.Storage.SessionState = harness.session
+	harness.ab.Config.Storage.Server = harness.storer
+
+	harness.lock = &Lock{harness.ab}
+
+	return harness
+}
+
+func TestBeforeAuthAllow(t *testing.T) {
+	t.Parallel()
+
+	harness := testSetup()
+
+	user := &mocks.User{
+		Locked: time.Time{},
 	}
 
-	ctx.User = authboss.Attributes{"locked": time.Now().Add(1 * time.Hour)}
+	r := mocks.Request("GET")
+	r = r.WithContext(context.WithValue(r.Context(), authboss.CTXKeyUser, user))
+	w := httptest.NewRecorder()
 
-	if interrupt, err := l.beforeAuth(ctx); err != nil {
+	handled, err := harness.lock.BeforeAuth(w, r, false)
+	if err != nil {
 		t.Error(err)
-	} else if interrupt != authboss.InterruptAccountLocked {
-		t.Error("Expected a locked interrupt:", interrupt)
+	}
+	if handled {
+		t.Error("it shouldn't have been handled")
 	}
 }
 
-func TestAfterAuth(t *testing.T) {
+func TestBeforeAuthDisallow(t *testing.T) {
 	t.Parallel()
 
-	ab := authboss.New()
-	lock := Lock{}
-	ctx := ab.NewContext()
+	harness := testSetup()
 
-	if err := lock.afterAuth(ctx); err != errUserMissing {
-		t.Error("Expected an error because of missing user:", err)
+	user := &mocks.User{
+		Locked: time.Now().UTC().Add(time.Hour),
 	}
 
-	storer := mocks.NewMockStorer()
-	ab.Storage.Server = storer
-	ctx.User = authboss.Attributes{ab.PrimaryID: "john@john.com"}
+	r := mocks.Request("GET")
+	r = r.WithContext(context.WithValue(r.Context(), authboss.CTXKeyUser, user))
+	w := httptest.NewRecorder()
 
-	if err := lock.afterAuth(ctx); err != nil {
+	handled, err := harness.lock.BeforeAuth(w, r, false)
+	if err != nil {
 		t.Error(err)
 	}
-	if storer.Users["john@john.com"][StoreAttemptNumber].(int64) != int64(0) {
-		t.Error("StoreAttemptNumber set incorrectly.")
-	}
-	if _, ok := storer.Users["john@john.com"][StoreAttemptTime].(time.Time); !ok {
-		t.Error("StoreAttemptTime not set.")
-	}
-}
-
-func TestAfterAuthFail_Lock(t *testing.T) {
-	t.Parallel()
-
-	ab := authboss.New()
-	var old, current time.Time
-	var ok bool
-
-	ctx := ab.NewContext()
-	storer := mocks.NewMockStorer()
-	ab.Storage.Server = storer
-	lock := Lock{ab}
-	ab.LockWindow = 30 * time.Minute
-	ab.LockDuration = 30 * time.Minute
-	ab.LockAfter = 3
-
-	email := "john@john.com"
-
-	ctx.User = map[string]interface{}{ab.PrimaryID: email}
-
-	old = time.Now().UTC().Add(-1 * time.Hour)
-
-	for i := 0; i < 3; i++ {
-		if lockedIntf, ok := storer.Users["john@john.com"][StoreLocked]; ok && lockedIntf.(bool) {
-			t.Errorf("%d: User should not be locked.", i)
-		}
-
-		if err := lock.afterAuthFail(ctx); err != nil {
-			t.Error(err)
-		}
-		if val := storer.Users[email][StoreAttemptNumber].(int64); val != int64(i+1) {
-			t.Errorf("%d: StoreAttemptNumber set incorrectly: %v", i, val)
-		}
-		if current, ok = storer.Users[email][StoreAttemptTime].(time.Time); !ok || old.After(current) {
-			t.Errorf("%d: StoreAttemptTime not set correctly: %v", i, current)
-		}
-
-		current = old
+	if !handled {
+		t.Error("it should have been handled")
 	}
 
-	if locked := storer.Users[email][StoreLocked].(time.Time); !locked.After(time.Now()) {
-		t.Error("User should be locked for some duration:", locked)
+	if w.Code != http.StatusTemporaryRedirect {
+		t.Error("code was wrong:", w.Code)
 	}
-	if val := storer.Users[email][StoreAttemptNumber].(int64); val != int64(3) {
-		t.Error("StoreAttemptNumber set incorrectly:", val)
+
+	opts := harness.redirector.Options
+	if opts.RedirectPath != harness.ab.Paths.LockNotOK {
+		t.Error("redir path was wrong:", opts.RedirectPath)
 	}
-	if _, ok = storer.Users[email][StoreAttemptTime].(time.Time); !ok {
-		t.Error("StoreAttemptTime not set correctly.")
+
+	if len(opts.Failure) == 0 {
+		t.Error("expected a failure message")
 	}
 }
 
-func TestAfterAuthFail_Reset(t *testing.T) {
+func TestAfterAuthSuccess(t *testing.T) {
 	t.Parallel()
 
-	ab := authboss.New()
-	var old, current time.Time
-	var ok bool
+	harness := testSetup()
 
-	ctx := ab.NewContext()
-	storer := mocks.NewMockStorer()
-	lock := Lock{ab}
-	ab.LockWindow = 30 * time.Minute
-	ab.Storage.Server = storer
-
-	old = time.Now().UTC().Add(-time.Hour)
-
-	email := "john@john.com"
-	ctx.User = map[string]interface{}{
-		ab.PrimaryID:       email,
-		StoreAttemptNumber: int64(2),
-		StoreAttemptTime:   old,
-		StoreLocked:        old,
+	last := time.Now().UTC().Add(-time.Hour)
+	user := &mocks.User{
+		Email:        "test@test.com",
+		AttemptCount: 45,
+		LastAttempt:  last,
 	}
 
-	lock.afterAuthFail(ctx)
-	if val := storer.Users[email][StoreAttemptNumber].(int64); val != int64(1) {
-		t.Error("StoreAttemptNumber set incorrectly:", val)
+	harness.storer.Users["test@test.com"] = user
+
+	r := mocks.Request("GET")
+	r = r.WithContext(context.WithValue(r.Context(), authboss.CTXKeyUser, user))
+	w := httptest.NewRecorder()
+
+	handled, err := harness.lock.AfterAuthSuccess(w, r, false)
+	if err != nil {
+		t.Error(err)
 	}
-	if current, ok = storer.Users[email][StoreAttemptTime].(time.Time); !ok || current.Before(old) {
-		t.Error("StoreAttemptTime not set correctly.")
+	if handled {
+		t.Error("it should never be handled")
 	}
-	if locked := storer.Users[email][StoreLocked].(time.Time); locked.After(time.Now()) {
-		t.Error("StoreLocked not set correctly:", locked)
+
+	user = harness.storer.Users["test@test.com"]
+	if 0 != user.GetAttemptCount() {
+		t.Error("attempt count wrong:", user.GetAttemptCount())
+	}
+	if !last.Before(user.GetLastAttempt()) {
+		t.Errorf("last attempt should be more recent, old: %v new: %v", last, user.GetLastAttempt())
 	}
 }
 
-func TestAfterAuthFail_Errors(t *testing.T) {
+func TestAfterAuthFailure(t *testing.T) {
 	t.Parallel()
 
-	ab := authboss.New()
-	lock := Lock{ab}
-	ctx := ab.NewContext()
+	harness := testSetup()
 
-	lock.afterAuthFail(ctx)
-	if _, ok := ctx.User[StoreAttemptNumber]; ok {
-		t.Error("Expected nothing to be set, missing user.")
+	user := &mocks.User{
+		Email: "test@test.com",
+	}
+	harness.storer.Users["test@test.com"] = user
+
+	if IsLocked(harness.storer.Users["test@test.com"]) {
+		t.Error("should not be locked")
+	}
+
+	r := mocks.Request("GET")
+	w := httptest.NewRecorder()
+
+	var handled bool
+	var err error
+
+	for i := 1; i <= 3; i++ {
+		if IsLocked(harness.storer.Users["test@test.com"]) {
+			t.Error("should not be locked")
+		}
+
+		r := r.WithContext(context.WithValue(r.Context(), authboss.CTXKeyUser, user))
+		handled, err = harness.lock.AfterAuthFail(w, r, false)
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		if i < 3 {
+			if handled {
+				t.Errorf("%d) should not be handled until lock occurs", i)
+			}
+
+			user := harness.storer.Users["test@test.com"]
+			if user.GetAttemptCount() != i {
+				t.Errorf("attempt count wrong, want: %d, got: %d", i, user.GetAttemptCount())
+			}
+			if IsLocked(user) {
+				t.Error("should not be locked")
+			}
+		}
+	}
+
+	if !handled {
+		t.Error("should have been handled at the end")
+	}
+
+	if !IsLocked(harness.storer.Users["test@test.com"]) {
+		t.Error("should be locked at the end")
+	}
+
+	if w.Code != http.StatusTemporaryRedirect {
+		t.Error("code was wrong:", w.Code)
+	}
+
+	opts := harness.redirector.Options
+	if opts.RedirectPath != harness.ab.Paths.LockNotOK {
+		t.Error("redir path was wrong:", opts.RedirectPath)
+	}
+
+	if len(opts.Failure) == 0 {
+		t.Error("expected a failure message")
 	}
 }
 
 func TestLock(t *testing.T) {
 	t.Parallel()
 
-	ab := authboss.New()
-	storer := mocks.NewMockStorer()
-	ab.Storage.Server = storer
-	lock := Lock{ab}
+	harness := testSetup()
 
-	email := "john@john.com"
-	storer.Users[email] = map[string]interface{}{
-		ab.PrimaryID: email,
-		"password":   "password",
+	user := &mocks.User{
+		Email: "test@test.com",
+	}
+	harness.storer.Users["test@test.com"] = user
+
+	if IsLocked(harness.storer.Users["test@test.com"]) {
+		t.Error("should not be locked")
 	}
 
-	err := lock.Lock(email)
-	if err != nil {
+	if err := harness.lock.Lock(context.Background(), "test@test.com"); err != nil {
 		t.Error(err)
 	}
 
-	if locked := storer.Users[email][StoreLocked].(time.Time); !locked.After(time.Now()) {
-		t.Error("User should be locked.")
+	if !IsLocked(harness.storer.Users["test@test.com"]) {
+		t.Error("should be locked")
 	}
 }
 
 func TestUnlock(t *testing.T) {
 	t.Parallel()
 
-	ab := authboss.New()
-	storer := mocks.NewMockStorer()
-	ab.Storage.Server = storer
-	lock := Lock{ab}
-	ab.LockWindow = 1 * time.Hour
+	harness := testSetup()
 
-	email := "john@john.com"
-	storer.Users[email] = map[string]interface{}{
-		ab.PrimaryID: email,
-		"password":   "password",
-		"locked":     true,
+	user := &mocks.User{
+		Email:  "test@test.com",
+		Locked: time.Now().UTC().Add(time.Hour),
+	}
+	harness.storer.Users["test@test.com"] = user
+
+	if !IsLocked(harness.storer.Users["test@test.com"]) {
+		t.Error("should be locked")
 	}
 
-	err := lock.Unlock(email)
-	if err != nil {
+	if err := harness.lock.Unlock(context.Background(), "test@test.com"); err != nil {
 		t.Error(err)
 	}
 
-	attemptTime := storer.Users[email][StoreAttemptTime].(time.Time)
-	if attemptTime.After(time.Now().UTC().Add(-ab.LockWindow)) {
-		t.Error("StoreLocked not set correctly:", attemptTime)
+	if IsLocked(harness.storer.Users["test@test.com"]) {
+		t.Error("should no longer be locked")
 	}
-	if number := storer.Users[email][StoreAttemptNumber].(int64); number != int64(0) {
-		t.Error("StoreLocked not set correctly:", number)
+}
+
+func TestMiddlewareAllow(t *testing.T) {
+	t.Parallel()
+
+	ab := authboss.New()
+	called := false
+	server := Middleware(ab, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		called = true
+	}))
+
+	user := &mocks.User{
+		Locked: time.Now().UTC().Add(time.Hour),
 	}
-	if locked := storer.Users[email][StoreLocked].(time.Time); locked.After(time.Now()) {
-		t.Error("User should not be locked.")
+
+	r := mocks.Request("GET")
+	r = r.WithContext(context.WithValue(r.Context(), authboss.CTXKeyUser, user))
+	w := httptest.NewRecorder()
+
+	server.ServeHTTP(w, r)
+
+	if !called {
+		t.Error("The user should have been allowed through")
+	}
+}
+
+func TestMiddlewareDisallow(t *testing.T) {
+	t.Parallel()
+
+	ab := authboss.New()
+	redirector := &mocks.Redirector{}
+	ab.Config.Paths.LockNotOK = "/lock/not/ok"
+	ab.Config.Core.Logger = mocks.Logger{}
+	ab.Config.Core.Redirector = redirector
+
+	called := false
+	server := Middleware(ab, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		called = true
+	}))
+
+	user := &mocks.User{
+		Locked: time.Now().UTC().Add(-time.Hour),
+	}
+
+	r := mocks.Request("GET")
+	r = r.WithContext(context.WithValue(r.Context(), authboss.CTXKeyUser, user))
+	w := httptest.NewRecorder()
+
+	server.ServeHTTP(w, r)
+
+	if called {
+		t.Error("The user should not have been allowed through")
+	}
+	if redirector.Options.Code != http.StatusTemporaryRedirect {
+		t.Error("expected a redirect, but got:", redirector.Options.Code)
+	}
+	if p := redirector.Options.RedirectPath; p != "/lock/not/ok" {
+		t.Error("redirect path wrong:", p)
 	}
 }

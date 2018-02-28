@@ -37,6 +37,19 @@ type ConfirmableUser interface {
 	PutEmail(email string)
 }
 
+// LockableUser is a user that can be locked
+type LockableUser interface {
+	User
+
+	GetAttemptCount() (attempts int)
+	GetLastAttempt() (last time.Time)
+	GetLocked() (locked time.Time)
+
+	PutAttemptCount(attempts int)
+	PutLastAttempt(last time.Time)
+	PutLocked(locked time.Time)
+}
+
 // ArbitraryUser allows arbitrary data from the web form through. You should
 // definitely only pull the keys you want from the map, since this is unfiltered
 // input from a web request and is an attack vector.
@@ -86,4 +99,12 @@ func MustBeConfirmable(u User) ConfirmableUser {
 		return cu
 	}
 	panic("could not upgrade user to a confirmable user, check your user struct")
+}
+
+// MustBeLockable forces an upgrade to a Lockable user or panic.
+func MustBeLockable(u User) LockableUser {
+	if lu, ok := u.(LockableUser); ok {
+		return lu
+	}
+	panic("could not upgrade user to a lockable user, check your user struct")
 }

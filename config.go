@@ -23,6 +23,9 @@ type Config struct {
 		// confirm their account, this is where they should be redirected to.
 		ConfirmNotOK string
 
+		// LockNotOK is a path to go to when the user fails
+		LockNotOK string
+
 		// RecoverOK is the redirect path after a successful recovery of a password.
 		RecoverOK string
 

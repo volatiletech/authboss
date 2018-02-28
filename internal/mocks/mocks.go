@@ -22,9 +22,9 @@ type User struct {
 	RecoverTokenExpiry time.Time
 	ConfirmToken       string
 	Confirmed          bool
-	Locked             bool
-	AttemptNumber      int
-	AttemptTime        time.Time
+	AttemptCount       int
+	LastAttempt        time.Time
+	Locked             time.Time
 	OAuthToken         string
 	OAuthRefresh       string
 	OAuthExpiry        time.Time
@@ -40,9 +40,9 @@ func (m User) GetRecoverToken() string          { return m.RecoverToken }
 func (m User) GetRecoverTokenExpiry() time.Time { return m.RecoverTokenExpiry }
 func (m User) GetConfirmToken() string          { return m.ConfirmToken }
 func (m User) GetConfirmed() bool               { return m.Confirmed }
-func (m User) GetLocked() bool                  { return m.Locked }
-func (m User) GetAttemptNumber() int            { return m.AttemptNumber }
-func (m User) GetAttemptTime() time.Time        { return m.AttemptTime }
+func (m User) GetAttemptCount() int             { return m.AttemptCount }
+func (m User) GetLastAttempt() time.Time        { return m.LastAttempt }
+func (m User) GetLocked() time.Time             { return m.Locked }
 func (m User) GetOAuthToken() string            { return m.OAuthToken }
 func (m User) GetOAuthRefresh() string          { return m.OAuthRefresh }
 func (m User) GetOAuthExpiry() time.Time        { return m.OAuthExpiry }
@@ -58,9 +58,9 @@ func (m *User) PutRecoverTokenExpiry(recoverTokenExpiry time.Time) {
 }
 func (m *User) PutConfirmToken(confirmToken string)  { m.ConfirmToken = confirmToken }
 func (m *User) PutConfirmed(confirmed bool)          { m.Confirmed = confirmed }
-func (m *User) PutLocked(locked bool)                { m.Locked = locked }
-func (m *User) PutAttemptNumber(attemptNumber int)   { m.AttemptNumber = attemptNumber }
-func (m *User) PutAttemptTime(attemptTime time.Time) { m.AttemptTime = attemptTime }
+func (m *User) PutAttemptCount(attemptCount int)     { m.AttemptCount = attemptCount }
+func (m *User) PutLastAttempt(attemptTime time.Time) { m.LastAttempt = attemptTime }
+func (m *User) PutLocked(locked time.Time)           { m.Locked = locked }
 func (m *User) PutOAuthToken(oAuthToken string)      { m.OAuthToken = oAuthToken }
 func (m *User) PutOAuthRefresh(oAuthRefresh string)  { m.OAuthRefresh = oAuthRefresh }
 func (m *User) PutOAuthExpiry(oAuthExpiry time.Time) { m.OAuthExpiry = oAuthExpiry }

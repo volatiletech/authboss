@@ -54,6 +54,8 @@ type ServerStorer interface {
 // CreatingServerStorer is used for creating new users
 // like when Registration is being done.
 type CreatingServerStorer interface {
+	ServerStorer
+
 	// New creates a blank user, it is not yet persisted in the database
 	// but is just for storing data
 	New(ctx context.Context) User
@@ -64,7 +66,20 @@ type CreatingServerStorer interface {
 
 // ConfirmingServerStorer can find a user by a confirm token
 type ConfirmingServerStorer interface {
-	LoadByToken(ctx context.Context, token string) (ConfirmableUser, error)
+	ServerStorer
+
+	// LoadByConfirmToken finds a user by his confirm token field
+	// and should return ErrUserNotFound if that user cannot be found.
+	LoadByConfirmToken(ctx context.Context, token string) (ConfirmableUser, error)
+}
+
+// RecoveringServerStorer allows users to be recovered by a token
+type RecoveringServerStorer interface {
+	ServerStorer
+
+	// LoadByRecoverToken finds a user by his recover token field
+	// and should return ErrUserNotFound if that user cannot be found.
+	LoadByRecoverToken(ctx context.Context, token string) (RecoverableUser, error)
 }
 
 // EnsureCanCreate makes sure the server storer supports create operations
@@ -82,6 +97,16 @@ func EnsureCanConfirm(storer ServerStorer) ConfirmingServerStorer {
 	s, ok := storer.(ConfirmingServerStorer)
 	if !ok {
 		panic("could not upgrade serverstorer to confirmingserverstorer, check your struct")
+	}
+
+	return s
+}
+
+// EnsureCanRecover makes sure the server storer supports confirm-lookup operations
+func EnsureCanRecover(storer ServerStorer) RecoveringServerStorer {
+	s, ok := storer.(RecoveringServerStorer)
+	if !ok {
+		panic("could not upgrade serverstorer to recoveringserverstorer, check your struct")
 	}
 
 	return s

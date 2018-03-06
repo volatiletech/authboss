@@ -139,13 +139,13 @@ func TestPreventDisallow(t *testing.T) {
 func TestStartConfirmationWeb(t *testing.T) {
 	// no t.Parallel(), global var mangling
 
-	oldConfirm := goConfirmEmail
+	oldConfirmEmail := goConfirmEmail
 	goConfirmEmail = func(c *Confirm, ctx context.Context, to, token string) {
 		c.SendConfirmEmail(ctx, to, token)
 	}
 
 	defer func() {
-		goConfirmEmail = oldConfirm
+		goConfirmEmail = oldConfirmEmail
 	}()
 
 	harness := testSetup()

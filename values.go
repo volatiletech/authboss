@@ -31,6 +31,40 @@ type UserValuer interface {
 	GetPassword() string
 }
 
+// ConfirmValuer allows us to pull out the token from the request
+type ConfirmValuer interface {
+	Validator
+
+	GetToken() string
+}
+
+// RecoverStartValuer provides the PID entered by the user.
+type RecoverStartValuer interface {
+	Validator
+
+	GetPID() string
+}
+
+// RecoverMiddleValuer provides the token that the user submitted
+// via their link.
+type RecoverMiddleValuer interface {
+	Validator
+
+	GetToken() string
+}
+
+// RecoverEndValuer is used to get data back from the final
+// page of password recovery, the user will provide a password
+// and it must be accompanied by the token to authorize the changing
+// of that password. Contrary to the RecoverValuer, this should
+// have validation errors for bad tokens.
+type RecoverEndValuer interface {
+	Validator
+
+	GetPassword() string
+	GetToken() string
+}
+
 // ArbitraryValuer provides the "rest" of the fields
 // that aren't strictly needed for anything in particular,
 // address, secondary e-mail, etc.
@@ -47,13 +81,6 @@ type ArbitraryValuer interface {
 	Validator
 
 	GetValues() map[string]string
-}
-
-// ConfirmValuer allows us to pull out the token from the request
-type ConfirmValuer interface {
-	Validator
-
-	GetToken() string
 }
 
 // MustHaveUserValues upgrades a validatable set of values
@@ -74,4 +101,34 @@ func MustHaveConfirmValues(v Validator) ConfirmValuer {
 	}
 
 	panic(fmt.Sprintf("bodyreader returned a type that could not be upgraded to ConfirmValuer: %T", v))
+}
+
+// MustHaveRecoverStartValues upgrades a validatable set of values
+// to ones specific to a user that needs to be recovered.
+func MustHaveRecoverStartValues(v Validator) RecoverStartValuer {
+	if u, ok := v.(RecoverStartValuer); ok {
+		return u
+	}
+
+	panic(fmt.Sprintf("bodyreader returned a type that could not be upgraded to RecoverStartValuer: %T", v))
+}
+
+// MustHaveRecoverMiddleValues upgrades a validatable set of values
+// to ones specific to a user that's attempting to recover.
+func MustHaveRecoverMiddleValues(v Validator) RecoverMiddleValuer {
+	if u, ok := v.(RecoverMiddleValuer); ok {
+		return u
+	}
+
+	panic(fmt.Sprintf("bodyreader returned a type that could not be upgraded to RecoverMiddleValuer: %T", v))
+}
+
+// MustHaveRecoverEndValues upgrades a validatable set of values
+// to ones specific to a user that needs to be recovered.
+func MustHaveRecoverEndValues(v Validator) RecoverEndValuer {
+	if u, ok := v.(RecoverEndValuer); ok {
+		return u
+	}
+
+	panic(fmt.Sprintf("bodyreader returned a type that could not be upgraded to RecoverEndValuer: %T", v))
 }

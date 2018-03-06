@@ -56,7 +56,7 @@ type EmailResponseOptions struct {
 	TextTemplate string
 }
 
-// Email renders the e-mail templates and sends it using the mailer.
+// Email renders the e-mail templates for the given email and sends it using the mailer.
 func (a *Authboss) Email(ctx context.Context, email Email, ro EmailResponseOptions) error {
 	if len(ro.HTMLTemplate) != 0 {
 		htmlBody, _, err := a.Core.MailRenderer.Render(ctx, ro.HTMLTemplate, ro.Data)

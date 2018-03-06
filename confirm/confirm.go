@@ -194,7 +194,7 @@ func (c *Confirm) Get(w http.ResponseWriter, r *http.Request) error {
 	token := base64.StdEncoding.EncodeToString(sum[:])
 
 	storer := authboss.EnsureCanConfirm(c.Authboss.Config.Storage.Server)
-	user, err := storer.LoadByToken(r.Context(), token)
+	user, err := storer.LoadByConfirmToken(r.Context(), token)
 	if err == authboss.ErrUserNotFound {
 		logger.Infof("confirm token was not found in database: %s", token)
 		ro := authboss.RedirectOptions{

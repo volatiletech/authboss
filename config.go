@@ -37,6 +37,9 @@ type Config struct {
 	}
 
 	Modules struct {
+		// BCryptCost is the cost of the bcrypt password hashing function.
+		BCryptCost int
+
 		// AuthLogoutMethod is the method the logout route should use (default should be DELETE)
 		AuthLogoutMethod string
 
@@ -51,8 +54,6 @@ type Config struct {
 		// LockDuration is how long an account is locked for.
 		LockDuration time.Duration
 
-		// RegBCryptCost is the cost of the bcrypt password hashing function.
-		RegisterBCryptCost int
 		// RegisterPreserveFields are fields used with registration that are to be rendered when
 		// post fails in a normal way (for example validation errors), they will be passed
 		// back in the data of the response under the key DataPreserve which will be a map[string]string.
@@ -67,6 +68,10 @@ type Config struct {
 		// RecoverTokenDuration controls how long a token sent via email for password
 		// recovery is valid for.
 		RecoverTokenDuration time.Duration
+		// RecoverLoginAfterRecovery says for the recovery module after a user has successfully
+		// recovered the password, are they simply logged in, or are they redirected to
+		// the login page with an "updated password" message.
+		RecoverLoginAfterRecovery bool
 
 		// OAuth2Providers lists all providers that can be used. See
 		// OAuthProvider documentation for more details.
@@ -134,18 +139,20 @@ type Config struct {
 
 // Defaults sets the configuration's default values.
 func (c *Config) Defaults() {
-	c.Paths.Mount = "/"
+	c.Paths.Mount = "/auth"
 	c.Paths.RootURL = "http://localhost:8080"
 	c.Paths.AuthLoginOK = "/"
 	c.Paths.AuthLogoutOK = "/"
+	c.Paths.ConfirmOK = "/"
+	c.Paths.ConfirmNotOK = "/"
 	c.Paths.RecoverOK = "/"
 	c.Paths.RegisterOK = "/"
 
+	c.Modules.BCryptCost = bcrypt.DefaultCost
 	c.Modules.AuthLogoutMethod = "DELETE"
 	c.Modules.ExpireAfter = 60 * time.Minute
 	c.Modules.LockAfter = 3
 	c.Modules.LockWindow = 5 * time.Minute
 	c.Modules.LockDuration = 5 * time.Hour
 	c.Modules.RecoverTokenDuration = time.Duration(24) * time.Hour
-	c.Modules.RegisterBCryptCost = bcrypt.DefaultCost
 }

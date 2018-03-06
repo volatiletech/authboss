@@ -32,28 +32,28 @@ type User struct {
 	Arbitrary map[string]string
 }
 
-func (m User) GetPID() string                   { return m.Email }
-func (m User) GetEmail() string                 { return m.Email }
-func (m User) GetUsername() string              { return m.Username }
-func (m User) GetPassword() string              { return m.Password }
-func (m User) GetRecoverToken() string          { return m.RecoverToken }
-func (m User) GetRecoverTokenExpiry() time.Time { return m.RecoverTokenExpiry }
-func (m User) GetConfirmToken() string          { return m.ConfirmToken }
-func (m User) GetConfirmed() bool               { return m.Confirmed }
-func (m User) GetAttemptCount() int             { return m.AttemptCount }
-func (m User) GetLastAttempt() time.Time        { return m.LastAttempt }
-func (m User) GetLocked() time.Time             { return m.Locked }
-func (m User) GetOAuthToken() string            { return m.OAuthToken }
-func (m User) GetOAuthRefresh() string          { return m.OAuthRefresh }
-func (m User) GetOAuthExpiry() time.Time        { return m.OAuthExpiry }
-func (m User) GetArbitrary() map[string]string  { return m.Arbitrary }
+func (m User) GetPID() string                  { return m.Email }
+func (m User) GetEmail() string                { return m.Email }
+func (m User) GetUsername() string             { return m.Username }
+func (m User) GetPassword() string             { return m.Password }
+func (m User) GetRecoverToken() string         { return m.RecoverToken }
+func (m User) GetRecoverExpiry() time.Time     { return m.RecoverTokenExpiry }
+func (m User) GetConfirmToken() string         { return m.ConfirmToken }
+func (m User) GetConfirmed() bool              { return m.Confirmed }
+func (m User) GetAttemptCount() int            { return m.AttemptCount }
+func (m User) GetLastAttempt() time.Time       { return m.LastAttempt }
+func (m User) GetLocked() time.Time            { return m.Locked }
+func (m User) GetOAuthToken() string           { return m.OAuthToken }
+func (m User) GetOAuthRefresh() string         { return m.OAuthRefresh }
+func (m User) GetOAuthExpiry() time.Time       { return m.OAuthExpiry }
+func (m User) GetArbitrary() map[string]string { return m.Arbitrary }
 
 func (m *User) PutPID(email string)                 { m.Email = email }
 func (m *User) PutUsername(username string)         { m.Username = username }
 func (m *User) PutEmail(email string)               { m.Email = email }
 func (m *User) PutPassword(password string)         { m.Password = password }
 func (m *User) PutRecoverToken(recoverToken string) { m.RecoverToken = recoverToken }
-func (m *User) PutRecoverTokenExpiry(recoverTokenExpiry time.Time) {
+func (m *User) PutRecoverExpiry(recoverTokenExpiry time.Time) {
 	m.RecoverTokenExpiry = recoverTokenExpiry
 }
 func (m *User) PutConfirmToken(confirmToken string)  { m.ConfirmToken = confirmToken }
@@ -115,10 +115,21 @@ func (s *ServerStorer) Save(ctx context.Context, user authboss.User) error {
 	return nil
 }
 
-// LoadByToken finds a user by his token
-func (s *ServerStorer) LoadByToken(ctx context.Context, token string) (authboss.ConfirmableUser, error) {
+// LoadByConfirmToken finds a user by his confirm token
+func (s *ServerStorer) LoadByConfirmToken(ctx context.Context, token string) (authboss.ConfirmableUser, error) {
 	for _, v := range s.Users {
 		if v.ConfirmToken == token {
+			return v, nil
+		}
+	}
+
+	return nil, authboss.ErrUserNotFound
+}
+
+// LoadByRecoverToken finds a user by his recover token
+func (s *ServerStorer) LoadByRecoverToken(ctx context.Context, token string) (authboss.RecoverableUser, error) {
+	for _, v := range s.Users {
+		if v.RecoverToken == token {
 			return v, nil
 		}
 	}

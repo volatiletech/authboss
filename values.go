@@ -65,6 +65,17 @@ type RecoverEndValuer interface {
 	GetToken() string
 }
 
+// RememberValuer allows auth/oauth2 to pass along the remember
+// bool from the user to the remember module unobtrusively.
+type RememberValuer interface {
+	// Intentionally omitting validator
+
+	// GetShouldRemember is the checkbox or what have you that
+	// tells the remember module if it should remember that user's
+	// authentication or not.
+	GetShouldRemember() bool
+}
+
 // ArbitraryValuer provides the "rest" of the fields
 // that aren't strictly needed for anything in particular,
 // address, secondary e-mail, etc.

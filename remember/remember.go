@@ -44,10 +44,10 @@ func (r *Remember) Init(ab *authboss.Authboss) error {
 
 // RememberAfterAuth creates a remember token and saves it in the user's cookies.
 func (r *Remember) RememberAfterAuth(w http.ResponseWriter, req *http.Request, handled bool) (bool, error) {
-	rmIntf := req.Context().Value(authboss.CTXKeyRM)
+	rmIntf := req.Context().Value(authboss.CTXKeyValues)
 	if rmIntf == nil {
 		return false, nil
-	} else if rm, ok := rmIntf.(bool); ok && !rm {
+	} else if rm, ok := rmIntf.(authboss.RememberValuer); ok && !rm.GetShouldRemember() {
 		return false, nil
 	}
 

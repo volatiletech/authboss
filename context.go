@@ -20,10 +20,11 @@ const (
 	// renderer
 	CTXKeyData contextKey = "data"
 
-	// CTXKeyRM is used to flag the remember me module to actually do the
-	// remembering, since this is a per-user operation, authentication modules
-	// need to supply this key if they wish to allow users to be remembered.
-	CTXKeyRM contextKey = "rm"
+	// CTXKeyValues is to pass the data submitted from API request or form
+	// along in the context in case modules need it. The only module that needs
+	// user information currently is remember so only auth/oauth2 are currently
+	// going to use this.
+	CTXKeyValues contextKey = "values"
 )
 
 func (c contextKey) String() string {

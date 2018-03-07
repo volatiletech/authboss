@@ -114,12 +114,15 @@ func TestAuthPostSuccess(t *testing.T) {
 		h := setupMore(testSetup())
 
 		var beforeCalled, afterCalled bool
+		var beforeHasValues, afterHasValues bool
 		h.ab.Events.Before(authboss.EventAuth, func(w http.ResponseWriter, r *http.Request, handled bool) (bool, error) {
 			beforeCalled = true
+			beforeHasValues = r.Context().Value(authboss.CTXKeyValues) != nil
 			return false, nil
 		})
 		h.ab.Events.After(authboss.EventAuth, func(w http.ResponseWriter, r *http.Request, handled bool) (bool, error) {
 			afterCalled = true
+			afterHasValues = r.Context().Value(authboss.CTXKeyValues) != nil
 			return false, nil
 		})
 
@@ -150,6 +153,12 @@ func TestAuthPostSuccess(t *testing.T) {
 		}
 		if !afterCalled {
 			t.Error("after should have been called")
+		}
+		if !beforeHasValues {
+			t.Error("before callback should have access to values")
+		}
+		if !afterHasValues {
+			t.Error("after callback should have access to values")
 		}
 	})
 

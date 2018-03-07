@@ -421,6 +421,7 @@ type Values struct {
 	PID      string
 	Password string
 	Token    string
+	Remember bool
 
 	Errors []error
 }
@@ -438,6 +439,12 @@ func (v Values) GetPassword() string {
 // GetToken from values
 func (v Values) GetToken() string {
 	return v.Token
+}
+
+// GetShouldRemember gets the value that tells
+// the remember module if it should remember the user
+func (v Values) GetShouldRemember() bool {
+	return v.Remember
 }
 
 // Validate the values

@@ -59,7 +59,7 @@ func TestRememberAfterAuth(t *testing.T) {
 	user := &mocks.User{Email: "test@test.com"}
 
 	r := mocks.Request("POST")
-	r = r.WithContext(context.WithValue(r.Context(), authboss.CTXKeyRM, true))
+	r = r.WithContext(context.WithValue(r.Context(), authboss.CTXKeyValues, mocks.Values{Remember: true}))
 	r = r.WithContext(context.WithValue(r.Context(), authboss.CTXKeyUser, user))
 	rec := httptest.NewRecorder()
 	w := h.ab.NewResponse(rec, r)
@@ -101,7 +101,7 @@ func TestRememberAfterAuthSkip(t *testing.T) {
 		t.Error("expected no tokens to be created")
 	}
 
-	r = r.WithContext(context.WithValue(r.Context(), authboss.CTXKeyRM, false))
+	r = r.WithContext(context.WithValue(r.Context(), authboss.CTXKeyValues, mocks.Values{Remember: false}))
 
 	if handled, err := h.remember.RememberAfterAuth(w, r, false); err != nil {
 		t.Fatal(err)

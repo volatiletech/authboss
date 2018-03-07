@@ -87,6 +87,8 @@ func (a *Auth) LoginPost(w http.ResponseWriter, r *http.Request) error {
 		return a.Authboss.Core.Responder.Respond(w, r, http.StatusOK, PageLogin, data)
 	}
 
+	r = r.WithContext(context.WithValue(r.Context(), authboss.CTXKeyValues, validatable))
+
 	handled, err = a.Events.FireBefore(authboss.EventAuth, w, r)
 	if err != nil {
 		return err

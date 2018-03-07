@@ -30,13 +30,13 @@ const (
 )
 
 var (
+	// ErrUserFound should be returned from Create (see ConfirmUser) when the primaryID
+	// of the record is found.
+	ErrUserFound = errors.New("user found")
 	// ErrUserNotFound should be returned from Get when the record is not found.
 	ErrUserNotFound = errors.New("user not found")
 	// ErrTokenNotFound should be returned from UseToken when the record is not found.
 	ErrTokenNotFound = errors.New("token not found")
-	// ErrUserFound should be returned from Create (see ConfirmUser) when the primaryID
-	// of the record is found.
-	ErrUserFound = errors.New("user found")
 )
 
 // ServerStorer represents the data store that's capable of loading users
@@ -82,11 +82,22 @@ type RecoveringServerStorer interface {
 	LoadByRecoverToken(ctx context.Context, token string) (RecoverableUser, error)
 }
 
+// RememberingServerStorer allows users to be remembered across sessions
+type RememberingServerStorer interface {
+	// AddRememberToken to a user
+	AddRememberToken(pid, token string) error
+	// DelRememberTokens removes all tokens for the given pid
+	DelRememberTokens(pid string) error
+	// UseRememberToken finds the pid-token pair and deletes it.
+	// If the token could not be found return ErrTokenNotFound
+	UseRememberToken(pid, token string) error
+}
+
 // EnsureCanCreate makes sure the server storer supports create operations
 func EnsureCanCreate(storer ServerStorer) CreatingServerStorer {
 	s, ok := storer.(CreatingServerStorer)
 	if !ok {
-		panic("could not upgrade serverstorer to creatingserverstorer, check your struct")
+		panic("could not upgrade ServerStorer to CreatingServerStorer, check your struct")
 	}
 
 	return s
@@ -96,7 +107,7 @@ func EnsureCanCreate(storer ServerStorer) CreatingServerStorer {
 func EnsureCanConfirm(storer ServerStorer) ConfirmingServerStorer {
 	s, ok := storer.(ConfirmingServerStorer)
 	if !ok {
-		panic("could not upgrade serverstorer to confirmingserverstorer, check your struct")
+		panic("could not upgrade ServerStorer to ConfirmingServerStorer, check your struct")
 	}
 
 	return s
@@ -106,7 +117,17 @@ func EnsureCanConfirm(storer ServerStorer) ConfirmingServerStorer {
 func EnsureCanRecover(storer ServerStorer) RecoveringServerStorer {
 	s, ok := storer.(RecoveringServerStorer)
 	if !ok {
-		panic("could not upgrade serverstorer to recoveringserverstorer, check your struct")
+		panic("could not upgrade ServerStorer to RecoveringServerStorer, check your struct")
+	}
+
+	return s
+}
+
+// EnsureCanRemember makes sure the server storer supports remember operations
+func EnsureCanRemember(storer ServerStorer) RememberingServerStorer {
+	s, ok := storer.(RememberingServerStorer)
+	if !ok {
+		panic("could not upgrade ServerStorer to RememberingServerStorer, check your struct")
 	}
 
 	return s

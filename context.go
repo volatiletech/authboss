@@ -19,6 +19,11 @@ const (
 	// map[string]interface{} (authboss.HTMLData) to pass to the
 	// renderer
 	CTXKeyData contextKey = "data"
+
+	// CTXKeyRM is used to flag the remember me module to actually do the
+	// remembering, since this is a per-user operation, authentication modules
+	// need to supply this key if they wish to allow users to be remembered.
+	CTXKeyRM contextKey = "rm"
 )
 
 func (c contextKey) String() string {
@@ -79,12 +84,7 @@ func (a *Authboss) CurrentUserP(w http.ResponseWriter, r *http.Request) User {
 }
 
 func (a *Authboss) currentUser(ctx context.Context, pid string) (User, error) {
-	user, err := a.Storage.Server.Load(ctx, pid)
-	if err != nil {
-		return nil, err
-	}
-
-	return user, nil
+	return a.Storage.Server.Load(ctx, pid)
 }
 
 // LoadCurrentUserID takes a pointer to a pointer to the request in order to

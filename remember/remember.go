@@ -1,12 +1,12 @@
-// Package remember implements persistent logins through the cookie storer.
+// Package remember implements persistent logins using cookies
 package remember
 
 import (
 	"bytes"
-	"crypto/md5"
 	"crypto/rand"
+	"crypto/sha512"
 	"encoding/base64"
-	"encoding/json"
+	"net/http"
 
 	"github.com/pkg/errors"
 
@@ -14,29 +14,12 @@ import (
 )
 
 const (
-	nRandBytes = 32
+	nNonceSize = 32
 )
 
 var (
 	errUserMissing = errors.New("user not loaded in callback")
 )
-
-// RememberStorer must be implemented in order to satisfy the remember module's
-// storage requirements. If the implementer is a typical database then
-// the tokens should be stored in a separate table since they require a 1-n
-// with the user for each device the user wishes to remain logged in on.
-//
-// Remember storer will look at both authboss's configured Storer and OAuth2Storer
-// for compatibility.
-type RememberStorer interface {
-	// AddToken saves a new token for the key.
-	AddToken(key, token string) error
-	// DelTokens removes all tokens for a given key.
-	DelTokens(key string) error
-	// UseToken finds the key-token pair, removes the entry in the store
-	// and returns nil. If the token could not be found return ErrTokenNotFound.
-	UseToken(givenKey, token string) (err error)
-}
 
 func init() {
 	authboss.RegisterModule("remember", &Remember{})
@@ -47,62 +30,45 @@ type Remember struct {
 	*authboss.Authboss
 }
 
-// Initialize module
-func (r *Remember) Initialize(ab *authboss.Authboss) error {
+// Init module
+func (r *Remember) Init(ab *authboss.Authboss) error {
 	r.Authboss = ab
 
-	if r.Storer != nil || r.OAuth2Storer != nil {
-		if _, ok := r.Storer.(RememberStorer); !ok {
-			if _, ok := r.OAuth2Storer.(RememberStorer); !ok {
-				return errors.New("rememberStorer required for remember functionality")
-			}
-		}
-	} else if r.StoreMaker == nil && r.OAuth2StoreMaker == nil {
-		return errors.New("need a rememberStorer")
-	}
-
-	r.Events.Before(authboss.EventGetUserSession, r.auth)
-	r.Events.After(authboss.EventAuth, r.afterAuth)
-	r.Events.After(authboss.EventOAuth, r.afterOAuth)
-	r.Events.After(authboss.EventPasswordReset, r.afterPassword)
+	r.Events.After(authboss.EventAuth, r.RememberAfterAuth)
+	//TODO(aarondl): Rectify this once oauth2 is done
+	// r.Events.After(authboss.EventOAuth, r.RememberAfterAuth)
+	r.Events.After(authboss.EventPasswordReset, r.AfterPasswordReset)
 
 	return nil
 }
 
-// Routes for module
-func (r *Remember) Routes() authboss.RouteTable {
-	return nil
-}
-
-// Storage requirements
-func (r *Remember) Storage() authboss.StorageOptions {
-	return authboss.StorageOptions{
-		r.PrimaryID: authboss.String,
-	}
-}
-
-// afterAuth is called after authentication is successful.
-func (r *Remember) afterAuth(ctx *authboss.Context) error {
-	if val := ctx.Values[authboss.CookieRemember]; val != "true" {
-		return nil
+// RememberAfterAuth creates a remember token and saves it in the user's cookies.
+func (r *Remember) RememberAfterAuth(w http.ResponseWriter, req *http.Request, handled bool) (bool, error) {
+	rmIntf := req.Context().Value(authboss.CTXKeyRM)
+	if rmIntf == nil {
+		return false, nil
+	} else if rm, ok := rmIntf.(bool); ok && !rm {
+		return false, nil
 	}
 
-	if ctx.User == nil {
-		return errUserMissing
-	}
-
-	key, err := ctx.User.StringErr(r.PrimaryID)
+	user := r.Authboss.CurrentUserP(w, req)
+	hash, token, err := GenerateToken(user.GetPID())
 	if err != nil {
-		return err
+		return false, err
 	}
 
-	if _, err := r.new(ctx.CookieStorer, key); err != nil {
-		return errors.Wrapf(err, "failed to create remember token")
+	storer := authboss.EnsureCanRemember(r.Authboss.Config.Storage.Server)
+	if err = storer.AddRememberToken(user.GetPID(), hash); err != nil {
+		return false, err
 	}
 
-	return nil
+	authboss.PutCookie(w, authboss.CookieRemember, token)
+
+	return false, nil
 }
 
+/*
+// TODO(aarondl): Either discard or make this useful later after oauth2
 // afterOAuth is called after oauth authentication is successful.
 // Has to pander to horrible state variable packing to figure out if we want
 // to be remembered.
@@ -143,113 +109,113 @@ func (r *Remember) afterOAuth(ctx *authboss.Context) error {
 
 	return nil
 }
+*/
 
-// afterPassword is called after the password has been reset.
-func (r *Remember) afterPassword(ctx *authboss.Context) error {
-	if ctx.User == nil {
-		return nil
+// Middleware automatically authenticates users if they have remember me tokens
+// If the user has been loaded already, it returns early
+func Middleware(ab *authboss.Authboss) func(http.Handler) http.Handler {
+	return func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			if r.Context().Value(authboss.CTXKeyPID) == nil && r.Context().Value(authboss.CTXKeyUser) == nil {
+				if err := Authenticate(ab, w, r); err != nil {
+					logger := ab.RequestLogger(r)
+					logger.Errorf("failed to authenticate user via remember me: %+v", err)
+				}
+			}
+
+			next.ServeHTTP(w, r)
+		})
 	}
+}
 
-	id, ok := ctx.User.String(r.PrimaryID)
+// Authenticate the user using their remember cookie.
+// If the cookie proves unusable it will be deleted. A cookie
+// may be unusable for the following reasons:
+// - Can't decode the base64
+// - Invalid token format
+// - Can't find token in DB
+func Authenticate(ab *authboss.Authboss, w http.ResponseWriter, req *http.Request) error {
+	logger := ab.RequestLogger(req)
+	cookie, ok := authboss.GetCookie(req, authboss.CookieRemember)
 	if !ok {
 		return nil
 	}
 
-	ctx.CookieStorer.Del(authboss.CookieRemember)
-
-	var storer RememberStorer
-	if storer, ok = ctx.Storer.(RememberStorer); !ok {
-		if storer, ok = ctx.OAuth2Storer.(RememberStorer); !ok {
-			return nil
-		}
-	}
-
-	return storer.DelTokens(id)
-}
-
-// new generates a new remember token and stores it in the configured RememberStorer.
-// The return value is a token that should only be given to a user if the delivery
-// method is secure which means at least signed if not encrypted.
-func (r *Remember) new(cstorer authboss.ClientStorer, storageKey string) (string, error) {
-	token := make([]byte, nRandBytes+len(storageKey)+1)
-	copy(token, []byte(storageKey))
-	token[len(storageKey)] = ';'
-
-	if _, err := rand.Read(token[len(storageKey)+1:]); err != nil {
-		return "", err
-	}
-
-	sum := md5.Sum(token)
-	finalToken := base64.URLEncoding.EncodeToString(token)
-	storageToken := base64.StdEncoding.EncodeToString(sum[:])
-
-	var storer RememberStorer
-	var ok bool
-	if storer, ok = r.Storer.(RememberStorer); !ok {
-		storer, ok = r.OAuth2Storer.(RememberStorer)
-	}
-
-	// Save the token in the DB
-	if err := storer.AddToken(storageKey, storageToken); err != nil {
-		return "", err
-	}
-
-	// Write the finalToken to the cookie
-	cstorer.Put(authboss.CookieRemember, finalToken)
-
-	return finalToken, nil
-}
-
-// auth takes a token that was given to a user and checks to see if something
-// is matching in the database. If something is found the old token is deleted
-// and a new one should be generated.
-func (r *Remember) auth(ctx *authboss.Context) (authboss.Interrupt, error) {
-	if val, ok := ctx.SessionStorer.Get(authboss.SessionKey); ok || len(val) > 0 {
-		return authboss.InterruptNone, nil
-	}
-
-	finalToken, ok := ctx.CookieStorer.Get(authboss.CookieRemember)
-	if !ok {
-		return authboss.InterruptNone, nil
-	}
-
-	token, err := base64.URLEncoding.DecodeString(finalToken)
+	rawToken, err := base64.URLEncoding.DecodeString(cookie)
 	if err != nil {
-		return authboss.InterruptNone, err
+		authboss.DelCookie(w, authboss.CookieRemember)
+		logger.Infof("failed to decode remember me cookie, deleting cookie")
+		return nil
 	}
 
-	index := bytes.IndexByte(token, ';')
+	index := bytes.IndexByte(rawToken, ';')
 	if index < 0 {
-		return authboss.InterruptNone, errors.New("invalid remember token")
+		authboss.DelCookie(w, authboss.CookieRemember)
+		logger.Infof("failed to decode remember me token, deleting cookie")
+		return nil
 	}
 
-	// Get the key.
-	givenKey := string(token[:index])
+	pid := string(rawToken[:index])
+	sum := sha512.Sum512(rawToken)
+	hash := base64.StdEncoding.EncodeToString(sum[:])
 
-	// Verify the tokens match.
-	sum := md5.Sum(token)
-
-	var storer RememberStorer
-	if storer, ok = ctx.Storer.(RememberStorer); !ok {
-		storer, ok = ctx.OAuth2Storer.(RememberStorer)
+	storer := authboss.EnsureCanRemember(ab.Config.Storage.Server)
+	err = storer.UseRememberToken(pid, hash)
+	switch {
+	case err == authboss.ErrTokenNotFound:
+		logger.Infof("remember me cookie had a token that was not in storage, deleting cookie")
+		authboss.DelCookie(w, authboss.CookieRemember)
+		return nil
+	case err != nil:
+		return err
 	}
 
-	err = storer.UseToken(givenKey, base64.StdEncoding.EncodeToString(sum[:]))
-	if err == authboss.ErrTokenNotFound {
-		return authboss.InterruptNone, nil
-	} else if err != nil {
-		return authboss.InterruptNone, err
-	}
-
-	_, err = r.new(ctx.CookieStorer, givenKey)
+	hash, token, err := GenerateToken(pid)
 	if err != nil {
-		return authboss.InterruptNone, err
+		return err
 	}
 
-	// Ensure a half-auth.
-	ctx.SessionStorer.Put(authboss.SessionHalfAuthKey, "true")
-	// Log the user in.
-	ctx.SessionStorer.Put(authboss.SessionKey, givenKey)
+	if err = storer.AddRememberToken(pid, hash); err != nil {
+		return errors.Wrap(err, "failed to save me token")
+	}
 
-	return authboss.InterruptNone, nil
+	authboss.PutSession(w, authboss.SessionKey, pid)
+	authboss.PutSession(w, authboss.SessionHalfAuthKey, "true")
+	authboss.DelCookie(w, authboss.CookieRemember)
+	authboss.PutCookie(w, authboss.CookieRemember, token)
+
+	return nil
+}
+
+// AfterPasswordReset is called after the password has been reset, since
+// it should invalidate all tokens associated to that user.
+func (r *Remember) AfterPasswordReset(w http.ResponseWriter, req *http.Request, handled bool) (bool, error) {
+	user, err := r.Authboss.CurrentUser(w, req)
+	if err != nil {
+		return false, err
+	}
+
+	logger := r.Authboss.RequestLogger(req)
+	storer := authboss.EnsureCanRemember(r.Authboss.Config.Storage.Server)
+
+	pid := user.GetPID()
+	authboss.DelCookie(w, authboss.CookieRemember)
+
+	logger.Infof("deleting tokens and rm cookies for user %s due to password reset", pid)
+
+	return false, storer.DelRememberTokens(pid)
+}
+
+// GenerateToken creates a remember me token
+func GenerateToken(pid string) (hash string, token string, err error) {
+	rawToken := make([]byte, nNonceSize+len(pid)+1)
+	copy(rawToken, []byte(pid))
+	rawToken[len(pid)] = ';'
+
+	if _, err := rand.Read(rawToken[len(pid)+1:]); err != nil {
+		return "", "", errors.Wrap(err, "failed to create remember me nonce")
+	}
+
+	sum := sha512.Sum512(rawToken)
+	return base64.StdEncoding.EncodeToString(sum[:]), base64.URLEncoding.EncodeToString(rawToken), nil
 }

@@ -137,38 +137,25 @@ func (s *ServerStorer) LoadByRecoverToken(ctx context.Context, token string) (au
 	return nil, authboss.ErrUserNotFound
 }
 
-/*
-// TODO(aarondl): What is this?
-// AddToken for remember me
-func (m *Storer) AddToken(key, token string) error {
-	if len(m.AddTokenErr) > 0 {
-		return errors.New(m.AddTokenErr)
-	}
-
-	arr := m.Tokens[key]
-	m.Tokens[key] = append(arr, token)
+// AddRememberToken for remember me
+func (s *ServerStorer) AddRememberToken(key, token string) error {
+	arr := s.RMTokens[key]
+	s.RMTokens[key] = append(arr, token)
 	return nil
 }
 
-// DelTokens for a user
-func (m *Storer) DelTokens(key string) error {
-	if len(m.DelTokensErr) > 0 {
-		return errors.New(m.DelTokensErr)
-	}
-
-	delete(m.Tokens, key)
+// DelRememberTokens for a user
+func (s *ServerStorer) DelRememberTokens(key string) error {
+	delete(s.RMTokens, key)
 	return nil
 }
 
-// UseToken if it exists, deleting it in the process
-func (m *Storer) UseToken(givenKey, token string) (err error) {
-	if len(m.UseTokenErr) > 0 {
-		return errors.New(m.UseTokenErr)
-	}
-
-	if arr, ok := m.Tokens[givenKey]; ok {
+// UseRememberToken if it exists, deleting it in the process
+func (s *ServerStorer) UseRememberToken(givenKey, token string) (err error) {
+	if arr, ok := s.RMTokens[givenKey]; ok {
 		for _, tok := range arr {
 			if tok == token {
+				delete(s.RMTokens, givenKey)
 				return nil
 			}
 		}
@@ -176,49 +163,6 @@ func (m *Storer) UseToken(givenKey, token string) (err error) {
 
 	return authboss.ErrTokenNotFound
 }
-
-// RecoverUser by the token.
-func (m *Storer) RecoverUser(token string) (result interface{}, err error) {
-	if len(m.RecoverUserErr) > 0 {
-		return nil, errors.New(m.RecoverUserErr)
-	}
-
-	for _, user := range m.Users {
-		if user["recover_token"] == token {
-
-			u := &User{}
-			if err = user.Bind(u, false); err != nil {
-				panic(err)
-			}
-
-			return u, nil
-		}
-	}
-
-	return nil, authboss.ErrUserNotFound
-}
-
-// ConfirmUser via their token
-func (m *Storer) ConfirmUser(confirmToken string) (result interface{}, err error) {
-	if len(m.ConfirmUserErr) > 0 {
-		return nil, errors.New(m.ConfirmUserErr)
-	}
-
-	for _, user := range m.Users {
-		if user["confirm_token"] == confirmToken {
-
-			u := &User{}
-			if err = user.Bind(u, false); err != nil {
-				panic(err)
-			}
-
-			return u, nil
-		}
-	}
-
-	return nil, authboss.ErrUserNotFound
-}
-*/
 
 // FailStorer is used for testing module initialize functions that recover more than the base storer
 type FailStorer struct {

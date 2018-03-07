@@ -38,7 +38,7 @@ func TestExpireIsExpired(t *testing.T) {
 
 	called := false
 	hadUser := false
-	m := Middleware(ab, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	m := Middleware(ab)(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		called = true
 
 		if r.Context().Value(authboss.CTXKeyPID) != nil {
@@ -96,7 +96,7 @@ func TestExpireNotExpired(t *testing.T) {
 
 	called := false
 	hadUser := true
-	m := Middleware(ab, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	m := Middleware(ab)(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		called = true
 
 		if r.Context().Value(authboss.CTXKeyPID) == nil {

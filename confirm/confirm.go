@@ -230,25 +230,27 @@ func (c *Confirm) Get(w http.ResponseWriter, r *http.Request) error {
 // Panics if the user was not able to be loaded in order to allow a panic handler to show
 // a nice error page, also panics if it failed to redirect for whatever reason.
 // TODO(aarondl): Document this middleware better
-func Middleware(ab *authboss.Authboss, next http.Handler) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		user := ab.LoadCurrentUserP(w, &r)
+func Middleware(ab *authboss.Authboss) func(http.Handler) http.Handler {
+	return func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			user := ab.LoadCurrentUserP(w, &r)
 
-		cu := authboss.MustBeConfirmable(user)
-		if cu.GetConfirmed() {
-			next.ServeHTTP(w, r)
-			return
-		}
+			cu := authboss.MustBeConfirmable(user)
+			if cu.GetConfirmed() {
+				next.ServeHTTP(w, r)
+				return
+			}
 
-		logger := ab.RequestLogger(r)
-		logger.Infof("user %s prevented from accessing %s: not confirmed", user.GetPID(), r.URL.Path)
-		ro := authboss.RedirectOptions{
-			Code:         http.StatusTemporaryRedirect,
-			Failure:      "Your account has not been confirmed, please check your e-mail.",
-			RedirectPath: ab.Config.Paths.ConfirmNotOK,
-		}
-		ab.Config.Core.Redirector.Redirect(w, r, ro)
-	})
+			logger := ab.RequestLogger(r)
+			logger.Infof("user %s prevented from accessing %s: not confirmed", user.GetPID(), r.URL.Path)
+			ro := authboss.RedirectOptions{
+				Code:         http.StatusTemporaryRedirect,
+				Failure:      "Your account has not been confirmed, please check your e-mail.",
+				RedirectPath: ab.Config.Paths.ConfirmNotOK,
+			}
+			ab.Config.Core.Redirector.Redirect(w, r, ro)
+		})
+	}
 }
 
 // GenerateToken creates a random token that will be used to confirm the user.

@@ -161,25 +161,27 @@ func (l *Lock) Unlock(ctx context.Context, key string) error {
 // Panics if the user was not able to be loaded in order to allow a panic handler to show
 // a nice error page, also panics if it failed to redirect for whatever reason.
 // TODO(aarondl): Document this middleware better
-func Middleware(ab *authboss.Authboss, next http.Handler) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		user := ab.LoadCurrentUserP(w, &r)
+func Middleware(ab *authboss.Authboss) func(http.Handler) http.Handler {
+	return func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			user := ab.LoadCurrentUserP(w, &r)
 
-		lu := authboss.MustBeLockable(user)
-		if IsLocked(lu) {
-			next.ServeHTTP(w, r)
-			return
-		}
+			lu := authboss.MustBeLockable(user)
+			if IsLocked(lu) {
+				next.ServeHTTP(w, r)
+				return
+			}
 
-		logger := ab.RequestLogger(r)
-		logger.Infof("user %s prevented from accessing %s: locked", user.GetPID(), r.URL.Path)
-		ro := authboss.RedirectOptions{
-			Code:         http.StatusTemporaryRedirect,
-			Failure:      "Your account has been locked, please contact the administrator.",
-			RedirectPath: ab.Config.Paths.LockNotOK,
-		}
-		ab.Config.Core.Redirector.Redirect(w, r, ro)
-	})
+			logger := ab.RequestLogger(r)
+			logger.Infof("user %s prevented from accessing %s: locked", user.GetPID(), r.URL.Path)
+			ro := authboss.RedirectOptions{
+				Code:         http.StatusTemporaryRedirect,
+				Failure:      "Your account has been locked, please contact the administrator.",
+				RedirectPath: ab.Config.Paths.LockNotOK,
+			}
+			ab.Config.Core.Redirector.Redirect(w, r, ro)
+		})
+	}
 }
 
 // IsLocked checks if a user is locked

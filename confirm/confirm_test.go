@@ -308,7 +308,7 @@ func TestMiddlewareAllow(t *testing.T) {
 
 	ab := authboss.New()
 	called := false
-	server := Middleware(ab, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	server := Middleware(ab)(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		called = true
 	}))
 
@@ -337,7 +337,7 @@ func TestMiddlewareDisallow(t *testing.T) {
 	ab.Config.Core.Redirector = redirector
 
 	called := false
-	server := Middleware(ab, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	server := Middleware(ab)(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		called = true
 	}))
 

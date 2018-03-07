@@ -56,8 +56,10 @@ type expireMiddleware struct {
 // expired (a.ExpireAfter duration since SessionLastAction).
 // This middleware conflicts with use of the Remember module, don't enable both
 // at the same time.
-func Middleware(ab *authboss.Authboss, next http.Handler) http.Handler {
-	return expireMiddleware{ab.Config.Modules.ExpireAfter, next}
+func Middleware(ab *authboss.Authboss) func(http.Handler) http.Handler {
+	return func(next http.Handler) http.Handler {
+		return expireMiddleware{ab.Config.Modules.ExpireAfter, next}
+	}
 }
 
 // ServeHTTP removes the session and hides the loaded user from the handlers

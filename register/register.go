@@ -92,7 +92,7 @@ func (r *Register) Post(w http.ResponseWriter, req *http.Request) error {
 	storer := authboss.EnsureCanCreate(r.Config.Storage.Server)
 	user := authboss.MustBeAuthable(storer.New(req.Context()))
 
-	pass, err := bcrypt.GenerateFromPassword([]byte(password), r.Config.Modules.RegisterBCryptCost)
+	pass, err := bcrypt.GenerateFromPassword([]byte(password), r.Config.Modules.BCryptCost)
 	if err != nil {
 		return err
 	}

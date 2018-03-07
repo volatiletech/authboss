@@ -14,8 +14,6 @@ type Config struct {
 
 		// AuthLoginOK is the redirect path after a successful authentication.
 		AuthLoginOK string
-		// AuthLogoutOK is the redirect path after a log out.
-		AuthLogoutOK string
 
 		// ConfirmOK once a user has confirmed their account, where should they go
 		ConfirmOK string
@@ -25,6 +23,9 @@ type Config struct {
 
 		// LockNotOK is a path to go to when the user fails
 		LockNotOK string
+
+		// LogoutOK is the redirect path after a log out.
+		LogoutOK string
 
 		// RecoverOK is the redirect path after a successful recovery of a password.
 		RecoverOK string
@@ -40,9 +41,6 @@ type Config struct {
 		// BCryptCost is the cost of the bcrypt password hashing function.
 		BCryptCost int
 
-		// AuthLogoutMethod is the method the logout route should use (default should be DELETE)
-		AuthLogoutMethod string
-
 		// ExpireAfter controls the time an account is idle before being logged out
 		// by the ExpireMiddleware.
 		ExpireAfter time.Duration
@@ -53,6 +51,9 @@ type Config struct {
 		LockWindow time.Duration
 		// LockDuration is how long an account is locked for.
 		LockDuration time.Duration
+
+		// LogoutMethod is the method the logout route should use (default should be DELETE)
+		LogoutMethod string
 
 		// RegisterPreserveFields are fields used with registration that are to be rendered when
 		// post fails in a normal way (for example validation errors), they will be passed
@@ -142,17 +143,17 @@ func (c *Config) Defaults() {
 	c.Paths.Mount = "/auth"
 	c.Paths.RootURL = "http://localhost:8080"
 	c.Paths.AuthLoginOK = "/"
-	c.Paths.AuthLogoutOK = "/"
 	c.Paths.ConfirmOK = "/"
 	c.Paths.ConfirmNotOK = "/"
+	c.Paths.LogoutOK = "/"
 	c.Paths.RecoverOK = "/"
 	c.Paths.RegisterOK = "/"
 
 	c.Modules.BCryptCost = bcrypt.DefaultCost
-	c.Modules.AuthLogoutMethod = "DELETE"
 	c.Modules.ExpireAfter = 60 * time.Minute
 	c.Modules.LockAfter = 3
 	c.Modules.LockWindow = 5 * time.Minute
 	c.Modules.LockDuration = 5 * time.Hour
+	c.Modules.LogoutMethod = "DELETE"
 	c.Modules.RecoverTokenDuration = time.Duration(24) * time.Hour
 }

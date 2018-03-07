@@ -36,9 +36,6 @@ func TestAuthInit(t *testing.T) {
 	if err := router.HasPosts("/login"); err != nil {
 		t.Error(err)
 	}
-	if err := router.HasDeletes("/logout"); err != nil {
-		t.Error(err)
-	}
 }
 
 func TestAuthGet(t *testing.T) {
@@ -82,7 +79,6 @@ func testSetup() *testHarness {
 	harness.storer = mocks.NewServerStorer()
 
 	harness.ab.Paths.AuthLoginOK = "/login/ok"
-	harness.ab.Paths.AuthLogoutOK = "/logout/ok"
 
 	harness.ab.Config.Core.BodyReader = harness.bodyReader
 	harness.ab.Config.Core.Logger = mocks.Logger{}
@@ -350,56 +346,5 @@ func TestAuthPostUserNotFound(t *testing.T) {
 
 	if afterCalled {
 		t.Error("after should not have been called")
-	}
-}
-
-func TestAuthLogout(t *testing.T) {
-	t.Parallel()
-
-	h := testSetup()
-	h.storer.Users["test@test.com"] = &mocks.User{
-		Email:    "test@test.com",
-		Password: "$2a$10$IlfnqVyDZ6c1L.kaA/q3bu1nkAC6KukNUsizvlzay1pZPXnX2C9Ji", // hello world
-	}
-
-	h.session.ClientValues[authboss.SessionKey] = "test@test.com"
-	h.session.ClientValues[authboss.SessionHalfAuthKey] = "true"
-
-	cookies := mocks.NewClientRW()
-	cookies.ClientValues[authboss.CookieRemember] = "token"
-	h.ab.Config.Storage.CookieState = cookies
-
-	r := mocks.Request("POST")
-	resp := httptest.NewRecorder()
-	w := h.ab.NewResponse(resp, r)
-
-	var err error
-	r, err = h.ab.LoadClientState(w, r)
-	if err != nil {
-		t.Error(err)
-	}
-
-	if err := h.auth.Logout(w, r); err != nil {
-		t.Error(err)
-	}
-
-	if resp.Code != http.StatusTemporaryRedirect {
-		t.Error("response code wrong:", resp.Code)
-	}
-	if h.redirector.Options.RedirectPath != "/logout/ok" {
-		t.Error("redirect path was wrong:", h.redirector.Options.RedirectPath)
-	}
-
-	if _, ok := h.session.ClientValues[authboss.SessionKey]; ok {
-		t.Error("want session key gone")
-	}
-	if _, ok := h.session.ClientValues[authboss.SessionHalfAuthKey]; ok {
-		t.Error("want session half auth key gone")
-	}
-	if _, ok := h.session.ClientValues[authboss.SessionLastAction]; ok {
-		t.Error("want session last action")
-	}
-	if _, ok := cookies.ClientValues[authboss.CookieRemember]; ok {
-		t.Error("want remember me cookies gone")
 	}
 }

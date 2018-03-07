@@ -7,7 +7,6 @@ import (
 
 	"golang.org/x/crypto/bcrypt"
 
-	"github.com/pkg/errors"
 	"github.com/volatiletech/authboss"
 )
 
@@ -33,21 +32,8 @@ func (a *Auth) Init(ab *authboss.Authboss) (err error) {
 		return err
 	}
 
-	var logoutRouteMethod func(string, http.Handler)
-	switch a.Authboss.Config.Modules.AuthLogoutMethod {
-	case "GET":
-		logoutRouteMethod = a.Authboss.Config.Core.Router.Get
-	case "POST":
-		logoutRouteMethod = a.Authboss.Config.Core.Router.Post
-	case "DELETE":
-		logoutRouteMethod = a.Authboss.Config.Core.Router.Delete
-	default:
-		return errors.Errorf("auth wants to register a logout route but was given an invalid method: %s", a.Authboss.Config.Modules.AuthLogoutMethod)
-	}
-
 	a.Authboss.Config.Core.Router.Get("/login", a.Authboss.Core.ErrorHandler.Wrap(a.LoginGet))
 	a.Authboss.Config.Core.Router.Post("/login", a.Authboss.Core.ErrorHandler.Wrap(a.LoginPost))
-	logoutRouteMethod("/logout", a.Authboss.Core.ErrorHandler.Wrap(a.Logout))
 
 	return nil
 }
@@ -122,29 +108,6 @@ func (a *Auth) LoginPost(w http.ResponseWriter, r *http.Request) error {
 	ro := authboss.RedirectOptions{
 		Code:         http.StatusTemporaryRedirect,
 		RedirectPath: a.Authboss.Paths.AuthLoginOK,
-	}
-	return a.Authboss.Core.Redirector.Redirect(w, r, ro)
-}
-
-// Logout a user
-func (a *Auth) Logout(w http.ResponseWriter, r *http.Request) error {
-	logger := a.RequestLogger(r)
-	user, err := a.CurrentUser(w, r)
-	if err != nil {
-		return err
-	}
-
-	logger.Infof("user %s logged out", user.GetPID())
-
-	authboss.DelSession(w, authboss.SessionKey)
-	authboss.DelSession(w, authboss.SessionLastAction)
-	authboss.DelSession(w, authboss.SessionHalfAuthKey)
-	authboss.DelCookie(w, authboss.CookieRemember)
-
-	ro := authboss.RedirectOptions{
-		Code:         http.StatusTemporaryRedirect,
-		RedirectPath: a.Authboss.Paths.AuthLogoutOK,
-		Success:      "You have been logged out",
 	}
 	return a.Authboss.Core.Redirector.Redirect(w, r, ro)
 }

@@ -12,6 +12,7 @@ func loadClientStateP(ab *Authboss, w http.ResponseWriter, r *http.Request) *htt
 	if err != nil {
 		panic(err)
 	}
+
 	return r
 }
 
@@ -21,7 +22,9 @@ func testSetupContext() (*Authboss, *http.Request) {
 	ab.Storage.Server = mockServerStorer{
 		"george-pid": mockUser{Email: "george-pid", Password: "unreadable"},
 	}
-	r := loadClientStateP(ab, nil, httptest.NewRequest("GET", "/", nil))
+	r := httptest.NewRequest("GET", "/", nil)
+	w := ab.NewResponse(httptest.NewRecorder())
+	r = loadClientStateP(ab, w, r)
 
 	return ab, r
 }
@@ -50,7 +53,7 @@ func TestCurrentUserID(t *testing.T) {
 
 	ab, r := testSetupContext()
 
-	id, err := ab.CurrentUserID(nil, r)
+	id, err := ab.CurrentUserID(r)
 	if err != nil {
 		t.Error(err)
 	}
@@ -65,7 +68,7 @@ func TestCurrentUserIDContext(t *testing.T) {
 
 	ab, r := testSetupContext()
 
-	id, err := ab.CurrentUserID(nil, r)
+	id, err := ab.CurrentUserID(r)
 	if err != nil {
 		t.Error(err)
 	}
@@ -88,7 +91,7 @@ func TestCurrentUserIDP(t *testing.T) {
 		}
 	}()
 
-	_ = ab.CurrentUserIDP(nil, httptest.NewRequest("GET", "/", nil))
+	_ = ab.CurrentUserIDP(httptest.NewRequest("GET", "/", nil))
 }
 
 func TestCurrentUser(t *testing.T) {
@@ -96,7 +99,7 @@ func TestCurrentUser(t *testing.T) {
 
 	ab, r := testSetupContext()
 
-	user, err := ab.CurrentUser(nil, r)
+	user, err := ab.CurrentUser(r)
 	if err != nil {
 		t.Error(err)
 	}
@@ -111,7 +114,7 @@ func TestCurrentUserContext(t *testing.T) {
 
 	ab, _, r := testSetupContextCached()
 
-	user, err := ab.CurrentUser(nil, r)
+	user, err := ab.CurrentUser(r)
 	if err != nil {
 		t.Error(err)
 	}
@@ -132,7 +135,7 @@ func TestCurrentUserP(t *testing.T) {
 		}
 	}()
 
-	_ = ab.CurrentUserP(nil, httptest.NewRequest("GET", "/", nil))
+	_ = ab.CurrentUserP(httptest.NewRequest("GET", "/", nil))
 }
 
 func TestLoadCurrentUserID(t *testing.T) {
@@ -140,7 +143,7 @@ func TestLoadCurrentUserID(t *testing.T) {
 
 	ab, r := testSetupContext()
 
-	id, err := ab.LoadCurrentUserID(nil, &r)
+	id, err := ab.LoadCurrentUserID(&r)
 	if err != nil {
 		t.Error(err)
 	}
@@ -159,7 +162,7 @@ func TestLoadCurrentUserIDContext(t *testing.T) {
 
 	ab, _, r := testSetupContextCached()
 
-	pid, err := ab.LoadCurrentUserID(nil, &r)
+	pid, err := ab.LoadCurrentUserID(&r)
 	if err != nil {
 		t.Error(err)
 	}
@@ -181,7 +184,7 @@ func TestLoadCurrentUserIDP(t *testing.T) {
 	}()
 
 	r := httptest.NewRequest("GET", "/", nil)
-	_ = ab.LoadCurrentUserIDP(nil, &r)
+	_ = ab.LoadCurrentUserIDP(&r)
 }
 
 func TestLoadCurrentUser(t *testing.T) {
@@ -189,7 +192,7 @@ func TestLoadCurrentUser(t *testing.T) {
 
 	ab, r := testSetupContext()
 
-	user, err := ab.LoadCurrentUser(nil, &r)
+	user, err := ab.LoadCurrentUser(&r)
 	if err != nil {
 		t.Error(err)
 	}
@@ -210,7 +213,7 @@ func TestLoadCurrentUserContext(t *testing.T) {
 
 	ab, wantUser, r := testSetupContextCached()
 
-	user, err := ab.LoadCurrentUser(nil, &r)
+	user, err := ab.LoadCurrentUser(&r)
 	if err != nil {
 		t.Error(err)
 	}
@@ -233,7 +236,7 @@ func TestLoadCurrentUserP(t *testing.T) {
 	}()
 
 	r := httptest.NewRequest("GET", "/", nil)
-	_ = ab.LoadCurrentUserP(nil, &r)
+	_ = ab.LoadCurrentUserP(&r)
 }
 
 func TestCTXKeyString(t *testing.T) {

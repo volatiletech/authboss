@@ -32,7 +32,7 @@ func (c contextKey) String() string {
 }
 
 // CurrentUserID retrieves the current user from the session.
-func (a *Authboss) CurrentUserID(w http.ResponseWriter, r *http.Request) (string, error) {
+func (a *Authboss) CurrentUserID(r *http.Request) (string, error) {
 	if pid := r.Context().Value(CTXKeyPID); pid != nil {
 		return pid.(string), nil
 	}
@@ -43,8 +43,8 @@ func (a *Authboss) CurrentUserID(w http.ResponseWriter, r *http.Request) (string
 
 // CurrentUserIDP retrieves the current user but panics if it's not available for
 // any reason.
-func (a *Authboss) CurrentUserIDP(w http.ResponseWriter, r *http.Request) string {
-	i, err := a.CurrentUserID(w, r)
+func (a *Authboss) CurrentUserIDP(r *http.Request) string {
+	i, err := a.CurrentUserID(r)
 	if err != nil {
 		panic(err)
 	} else if len(i) == 0 {
@@ -57,12 +57,12 @@ func (a *Authboss) CurrentUserIDP(w http.ResponseWriter, r *http.Request) string
 // CurrentUser retrieves the current user from the session and the database.
 // Before the user is loaded from the database the context key is checked.
 // If the session doesn't have the user ID ErrUserNotFound will be returned.
-func (a *Authboss) CurrentUser(w http.ResponseWriter, r *http.Request) (User, error) {
+func (a *Authboss) CurrentUser(r *http.Request) (User, error) {
 	if user := r.Context().Value(CTXKeyUser); user != nil {
 		return user.(User), nil
 	}
 
-	pid, err := a.CurrentUserID(w, r)
+	pid, err := a.CurrentUserID(r)
 	if err != nil {
 		return nil, err
 	} else if len(pid) == 0 {
@@ -74,8 +74,8 @@ func (a *Authboss) CurrentUser(w http.ResponseWriter, r *http.Request) (User, er
 
 // CurrentUserP retrieves the current user but panics if it's not available for
 // any reason.
-func (a *Authboss) CurrentUserP(w http.ResponseWriter, r *http.Request) User {
-	i, err := a.CurrentUser(w, r)
+func (a *Authboss) CurrentUserP(r *http.Request) User {
+	i, err := a.CurrentUser(r)
 	if err != nil {
 		panic(err)
 	} else if i == nil {
@@ -91,12 +91,8 @@ func (a *Authboss) currentUser(ctx context.Context, pid string) (User, error) {
 // LoadCurrentUserID takes a pointer to a pointer to the request in order to
 // change the current method's request pointer itself to the new request that
 // contains the new context that has the pid in it.
-func (a *Authboss) LoadCurrentUserID(w http.ResponseWriter, r **http.Request) (string, error) {
-	if pid := (*r).Context().Value(CTXKeyPID); pid != nil {
-		return pid.(string), nil
-	}
-
-	pid, err := a.CurrentUserID(w, *r)
+func (a *Authboss) LoadCurrentUserID(r **http.Request) (string, error) {
+	pid, err := a.CurrentUserID(*r)
 	if err != nil {
 		return "", err
 	}
@@ -112,8 +108,8 @@ func (a *Authboss) LoadCurrentUserID(w http.ResponseWriter, r **http.Request) (s
 }
 
 // LoadCurrentUserIDP loads the current user id and panics if it's not found
-func (a *Authboss) LoadCurrentUserIDP(w http.ResponseWriter, r **http.Request) string {
-	pid, err := a.LoadCurrentUserID(w, r)
+func (a *Authboss) LoadCurrentUserIDP(r **http.Request) string {
+	pid, err := a.LoadCurrentUserID(r)
 	if err != nil {
 		panic(err)
 	} else if len(pid) == 0 {
@@ -127,12 +123,12 @@ func (a *Authboss) LoadCurrentUserIDP(w http.ResponseWriter, r **http.Request) s
 // change the current method's request pointer itself to the new request that
 // contains the new context that has the user in it. Calls LoadCurrentUserID
 // so the primary id is also put in the context.
-func (a *Authboss) LoadCurrentUser(w http.ResponseWriter, r **http.Request) (User, error) {
+func (a *Authboss) LoadCurrentUser(r **http.Request) (User, error) {
 	if user := (*r).Context().Value(CTXKeyUser); user != nil {
 		return user.(User), nil
 	}
 
-	pid, err := a.LoadCurrentUserID(w, r)
+	pid, err := a.LoadCurrentUserID(r)
 	if err != nil {
 		return nil, err
 	}
@@ -154,8 +150,8 @@ func (a *Authboss) LoadCurrentUser(w http.ResponseWriter, r **http.Request) (Use
 
 // LoadCurrentUserP does the same as LoadCurrentUser but panics if
 // the current user is not found.
-func (a *Authboss) LoadCurrentUserP(w http.ResponseWriter, r **http.Request) User {
-	user, err := a.LoadCurrentUser(w, r)
+func (a *Authboss) LoadCurrentUserP(r **http.Request) User {
+	user, err := a.LoadCurrentUser(r)
 	if err != nil {
 		panic(err)
 	} else if user == nil {

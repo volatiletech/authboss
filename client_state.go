@@ -54,7 +54,7 @@ type ClientStateEvent struct {
 type ClientStateReadWriter interface {
 	// ReadState should return a map like structure allowing it to look up
 	// any values in the current session, or any cookie in the request
-	ReadState(http.ResponseWriter, *http.Request) (ClientState, error)
+	ReadState(*http.Request) (ClientState, error)
 	// WriteState can sometimes be called with a nil ClientState in the event
 	// that no ClientState was recovered from the request context.
 	WriteState(http.ResponseWriter, ClientState, []ClientStateEvent) error
@@ -81,62 +81,66 @@ type ClientState interface {
 type ClientStateResponseWriter struct {
 	http.ResponseWriter
 
-	cookieState  ClientStateReadWriter
-	sessionState ClientStateReadWriter
+	cookieStateRW  ClientStateReadWriter
+	sessionStateRW ClientStateReadWriter
+
+	cookieState  ClientState
+	sessionState ClientState
 
 	hasWritten         bool
-	ctx                context.Context
-	sessionStateEvents []ClientStateEvent
 	cookieStateEvents  []ClientStateEvent
+	sessionStateEvents []ClientStateEvent
 }
 
 // LoadClientStateMiddleware wraps all requests with the ClientStateResponseWriter
 // as well as loading the current client state into the context for use.
 func (a *Authboss) LoadClientStateMiddleware(h http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		request, err := a.LoadClientState(w, r)
+		writer := a.NewResponse(w)
+		request, err := a.LoadClientState(writer, r)
 		if err != nil {
 			panic(fmt.Sprintf("failed to load client state: %+v", err))
 		}
-
-		writer := a.NewResponse(w, request)
 
 		h.ServeHTTP(writer, request)
 	})
 }
 
 // NewResponse wraps the ResponseWriter with a ClientStateResponseWriter
-func (a *Authboss) NewResponse(w http.ResponseWriter, r *http.Request) *ClientStateResponseWriter {
+func (a *Authboss) NewResponse(w http.ResponseWriter) *ClientStateResponseWriter {
 	return &ClientStateResponseWriter{
 		ResponseWriter: w,
-		cookieState:    a.Config.Storage.CookieState,
-		sessionState:   a.Config.Storage.SessionState,
-		ctx:            r.Context(),
+		cookieStateRW:  a.Config.Storage.CookieState,
+		sessionStateRW: a.Config.Storage.SessionState,
 	}
 }
 
-// LoadClientState loads the state from sessions and cookies into the request context
+// LoadClientState loads the state from sessions and cookies into the ResponseWriter
+// for later use.
 func (a *Authboss) LoadClientState(w http.ResponseWriter, r *http.Request) (*http.Request, error) {
 	if a.Storage.SessionState != nil {
-		state, err := a.Storage.SessionState.ReadState(w, r)
+		state, err := a.Storage.SessionState.ReadState(r)
 		if err != nil {
 			return nil, err
 		} else if state == nil {
-			return r, nil
+			return nil, nil
 		}
 
-		ctx := context.WithValue(r.Context(), CTXKeySessionState, state)
-		r = r.WithContext(ctx)
+		c := MustClientStateResponseWriter(w)
+		c.sessionState = state
+		r = r.WithContext(context.WithValue(r.Context(), CTXKeySessionState, state))
 	}
 	if a.Storage.CookieState != nil {
-		state, err := a.Storage.CookieState.ReadState(w, r)
+		state, err := a.Storage.CookieState.ReadState(r)
 		if err != nil {
 			return nil, err
 		} else if state == nil {
-			return r, nil
+			return nil, nil
 		}
-		ctx := context.WithValue(r.Context(), CTXKeyCookieState, state)
-		r = r.WithContext(ctx)
+
+		c := MustClientStateResponseWriter(w)
+		c.cookieState = state
+		r = r.WithContext(context.WithValue(r.Context(), CTXKeyCookieState, state))
 	}
 
 	return r, nil
@@ -201,28 +205,14 @@ func (c *ClientStateResponseWriter) putClientState() error {
 		return nil
 	}
 
-	if c.sessionState != nil && len(c.sessionStateEvents) > 0 {
-		sessionStateIntf := c.ctx.Value(CTXKeySessionState)
-
-		var session ClientState
-		if sessionStateIntf != nil {
-			session = sessionStateIntf.(ClientState)
-		}
-
-		err := c.sessionState.WriteState(c, session, c.sessionStateEvents)
+	if c.sessionStateRW != nil && len(c.sessionStateEvents) > 0 {
+		err := c.sessionStateRW.WriteState(c, c.sessionState, c.sessionStateEvents)
 		if err != nil {
 			return err
 		}
 	}
-	if c.cookieState != nil && len(c.cookieStateEvents) > 0 {
-		cookieStateIntf := c.ctx.Value(CTXKeyCookieState)
-
-		var cookie ClientState
-		if cookieStateIntf != nil {
-			cookie = cookieStateIntf.(ClientState)
-		}
-
-		err := c.cookieState.WriteState(c, cookie, c.cookieStateEvents)
+	if c.cookieStateRW != nil && len(c.cookieStateEvents) > 0 {
+		err := c.cookieStateRW.WriteState(c, c.cookieState, c.cookieStateEvents)
 		if err != nil {
 			return err
 		}
@@ -269,7 +259,7 @@ func delState(w http.ResponseWriter, CTXKey contextKey, key string) {
 	setState(w, CTXKey, ClientStateEventDel, key, "")
 }
 
-func setState(w http.ResponseWriter, CTXKey contextKey, op ClientStateEventKind, key, val string) {
+func setState(w http.ResponseWriter, ctxKey contextKey, op ClientStateEventKind, key, val string) {
 	csrw := MustClientStateResponseWriter(w)
 	ev := ClientStateEvent{
 		Kind: op,
@@ -280,7 +270,7 @@ func setState(w http.ResponseWriter, CTXKey contextKey, op ClientStateEventKind,
 		ev.Value = val
 	}
 
-	switch CTXKey {
+	switch ctxKey {
 	case CTXKeySessionState:
 		csrw.sessionStateEvents = append(csrw.sessionStateEvents, ev)
 	case CTXKeyCookieState:
@@ -288,8 +278,8 @@ func setState(w http.ResponseWriter, CTXKey contextKey, op ClientStateEventKind,
 	}
 }
 
-func getState(r *http.Request, CTXKey contextKey, key string) (string, bool) {
-	val := r.Context().Value(CTXKey)
+func getState(r *http.Request, ctxKey contextKey, key string) (string, bool) {
+	val := r.Context().Value(ctxKey)
 	if val == nil {
 		return "", false
 	}

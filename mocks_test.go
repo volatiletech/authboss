@@ -65,7 +65,7 @@ func newMockClientStateRW(keyValue ...string) mockClientStateReadWriter {
 	return mockClientStateReadWriter{state}
 }
 
-func (m mockClientStateReadWriter) ReadState(w http.ResponseWriter, r *http.Request) (ClientState, error) {
+func (m mockClientStateReadWriter) ReadState(r *http.Request) (ClientState, error) {
 	return m.state, nil
 }
 

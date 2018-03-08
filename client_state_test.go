@@ -15,7 +15,7 @@ func TestStateGet(t *testing.T) {
 	ab.Storage.CookieState = newMockClientStateRW("three", "four")
 
 	r := httptest.NewRequest("GET", "/", nil)
-	w := ab.NewResponse(httptest.NewRecorder(), r)
+	w := ab.NewResponse(httptest.NewRecorder())
 
 	var err error
 	r, err = ab.LoadClientState(w, r)
@@ -37,8 +37,7 @@ func TestStateResponseWriterDoubleWritePanic(t *testing.T) {
 	ab := New()
 	ab.Storage.SessionState = newMockClientStateRW("one", "two")
 
-	r := httptest.NewRequest("GET", "/", nil)
-	w := ab.NewResponse(httptest.NewRecorder(), r)
+	w := ab.NewResponse(httptest.NewRecorder())
 
 	w.WriteHeader(200)
 	// Check this doesn't panic
@@ -59,8 +58,7 @@ func TestStateResponseWriterLastSecondWriteHeader(t *testing.T) {
 	ab := New()
 	ab.Storage.SessionState = newMockClientStateRW()
 
-	r := httptest.NewRequest("GET", "/", nil)
-	w := ab.NewResponse(httptest.NewRecorder(), r)
+	w := ab.NewResponse(httptest.NewRecorder())
 
 	PutSession(w, "one", "two")
 
@@ -77,8 +75,7 @@ func TestStateResponseWriterLastSecondWriteWrite(t *testing.T) {
 	ab := New()
 	ab.Storage.SessionState = newMockClientStateRW()
 
-	r := httptest.NewRequest("GET", "/", nil)
-	w := ab.NewResponse(httptest.NewRecorder(), r)
+	w := ab.NewResponse(httptest.NewRecorder())
 
 	PutSession(w, "one", "two")
 
@@ -94,8 +91,7 @@ func TestStateResponseWriterEvents(t *testing.T) {
 	t.Parallel()
 
 	ab := New()
-	r := httptest.NewRequest("GET", "/", nil)
-	w := ab.NewResponse(httptest.NewRecorder(), r)
+	w := ab.NewResponse(httptest.NewRecorder())
 
 	PutSession(w, "one", "two")
 	DelSession(w, "one")
@@ -130,14 +126,14 @@ func TestFlashClearer(t *testing.T) {
 	ab.Storage.SessionState = newMockClientStateRW(FlashSuccessKey, "a", FlashErrorKey, "b")
 
 	r := httptest.NewRequest("GET", "/", nil)
-	w := ab.NewResponse(httptest.NewRecorder(), r)
+	w := ab.NewResponse(httptest.NewRecorder())
 
 	if msg := FlashSuccess(w, r); msg != "" {
-		t.Error("Unexpected flash success:", msg)
+		t.Error("unexpected flash success:", msg)
 	}
 
 	if msg := FlashError(w, r); msg != "" {
-		t.Error("Unexpected flash error:", msg)
+		t.Error("unexpected flash error:", msg)
 	}
 
 	var err error

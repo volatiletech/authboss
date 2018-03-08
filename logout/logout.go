@@ -40,7 +40,7 @@ func (l *Logout) Logout(w http.ResponseWriter, r *http.Request) error {
 
 	// TODO(aarondl): Evaluate this log messages usefulness, there's no other reason
 	// to pull the user out of the context here.
-	user, err := l.CurrentUser(w, r)
+	user, err := l.CurrentUser(r)
 	if err != nil {
 		return err
 	}

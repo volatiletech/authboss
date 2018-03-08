@@ -62,7 +62,7 @@ func TestRememberAfterAuth(t *testing.T) {
 	r = r.WithContext(context.WithValue(r.Context(), authboss.CTXKeyValues, mocks.Values{Remember: true}))
 	r = r.WithContext(context.WithValue(r.Context(), authboss.CTXKeyUser, user))
 	rec := httptest.NewRecorder()
-	w := h.ab.NewResponse(rec, r)
+	w := h.ab.NewResponse(rec)
 
 	if handled, err := h.remember.RememberAfterAuth(w, r, false); err != nil {
 		t.Fatal(err)
@@ -89,7 +89,7 @@ func TestRememberAfterAuthSkip(t *testing.T) {
 
 	r := mocks.Request("POST")
 	rec := httptest.NewRecorder()
-	w := h.ab.NewResponse(rec, r)
+	w := h.ab.NewResponse(rec)
 
 	if handled, err := h.remember.RememberAfterAuth(w, r, false); err != nil {
 		t.Fatal(err)
@@ -128,7 +128,7 @@ func TestMiddlewareAuth(t *testing.T) {
 
 	r := mocks.Request("POST")
 	rec := httptest.NewRecorder()
-	w := h.ab.NewResponse(rec, r)
+	w := h.ab.NewResponse(rec)
 
 	var err error
 	r, err = h.ab.LoadClientState(w, r)
@@ -168,7 +168,7 @@ func TestAuthenticateSuccess(t *testing.T) {
 
 	r := mocks.Request("POST")
 	rec := httptest.NewRecorder()
-	w := h.ab.NewResponse(rec, r)
+	w := h.ab.NewResponse(rec)
 
 	var err error
 	r, err = h.ab.LoadClientState(w, r)
@@ -213,7 +213,7 @@ func TestAuthenticateTokenNotFound(t *testing.T) {
 
 	r := mocks.Request("POST")
 	rec := httptest.NewRecorder()
-	w := h.ab.NewResponse(rec, r)
+	w := h.ab.NewResponse(rec)
 
 	var err error
 	r, err = h.ab.LoadClientState(w, r)
@@ -246,7 +246,7 @@ func TestAuthenticateBadTokens(t *testing.T) {
 
 		r := mocks.Request("POST")
 		rec := httptest.NewRecorder()
-		w := h.ab.NewResponse(rec, r)
+		w := h.ab.NewResponse(rec)
 
 		var err error
 		r, err = h.ab.LoadClientState(w, r)
@@ -295,7 +295,7 @@ func TestAfterPasswordReset(t *testing.T) {
 	r := mocks.Request("POST")
 	r = r.WithContext(context.WithValue(r.Context(), authboss.CTXKeyUser, user))
 	rec := httptest.NewRecorder()
-	w := h.ab.NewResponse(rec, r)
+	w := h.ab.NewResponse(rec)
 
 	if handled, err := h.remember.AfterPasswordReset(w, r, false); err != nil {
 		t.Error(err)

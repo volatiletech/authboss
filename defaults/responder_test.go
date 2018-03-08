@@ -195,7 +195,7 @@ func TestResponseRedirectNonAPI(t *testing.T) {
 	ab := authboss.New()
 	ab.Config.Storage.SessionState = mocks.NewClientRW()
 	ab.Config.Storage.CookieState = mocks.NewClientRW()
-	aw := ab.NewResponse(w, r)
+	aw := ab.NewResponse(w)
 
 	ro := authboss.RedirectOptions{
 		Success: "success", Failure: "failure",
@@ -234,7 +234,7 @@ func TestResponseRedirectNonAPIFollowRedir(t *testing.T) {
 	ab := authboss.New()
 	ab.Config.Storage.SessionState = mocks.NewClientRW()
 	ab.Config.Storage.CookieState = mocks.NewClientRW()
-	aw := ab.NewResponse(w, r)
+	aw := ab.NewResponse(w)
 
 	ro := authboss.RedirectOptions{
 		RedirectPath: "/redirect", FollowRedirParam: true,

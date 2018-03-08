@@ -284,7 +284,7 @@ func TestEndPostSuccessLogin(t *testing.T) {
 	r := mocks.Request("GET")
 	w := httptest.NewRecorder()
 
-	if err := h.recover.EndPost(h.ab.NewResponse(w, r), r); err != nil {
+	if err := h.recover.EndPost(h.ab.NewResponse(w), r); err != nil {
 		t.Error(err)
 	}
 

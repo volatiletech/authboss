@@ -51,7 +51,7 @@ func (r *Remember) RememberAfterAuth(w http.ResponseWriter, req *http.Request, h
 		return false, nil
 	}
 
-	user := r.Authboss.CurrentUserP(w, req)
+	user := r.Authboss.CurrentUserP(req)
 	hash, token, err := GenerateToken(user.GetPID())
 	if err != nil {
 		return false, err
@@ -190,7 +190,7 @@ func Authenticate(ab *authboss.Authboss, w http.ResponseWriter, req *http.Reques
 // AfterPasswordReset is called after the password has been reset, since
 // it should invalidate all tokens associated to that user.
 func (r *Remember) AfterPasswordReset(w http.ResponseWriter, req *http.Request, handled bool) (bool, error) {
-	user, err := r.Authboss.CurrentUser(w, req)
+	user, err := r.Authboss.CurrentUser(req)
 	if err != nil {
 		return false, err
 	}

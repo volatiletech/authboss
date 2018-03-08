@@ -64,7 +64,7 @@ func (c *Confirm) Init(ab *authboss.Authboss) (err error) {
 func (c *Confirm) PreventAuth(w http.ResponseWriter, r *http.Request, handled bool) (bool, error) {
 	logger := c.Authboss.RequestLogger(r)
 
-	user, err := c.Authboss.CurrentUser(w, r)
+	user, err := c.Authboss.CurrentUser(r)
 	if err != nil {
 		return false, err
 	}
@@ -87,7 +87,7 @@ func (c *Confirm) PreventAuth(w http.ResponseWriter, r *http.Request, handled bo
 // StartConfirmationWeb hijacks a request and forces a user to be confirmed first
 // it's assumed that the current user is loaded into the request context.
 func (c *Confirm) StartConfirmationWeb(w http.ResponseWriter, r *http.Request, handled bool) (bool, error) {
-	user, err := c.Authboss.CurrentUser(w, r)
+	user, err := c.Authboss.CurrentUser(r)
 	if err != nil {
 		return false, err
 	}
@@ -233,7 +233,7 @@ func (c *Confirm) Get(w http.ResponseWriter, r *http.Request) error {
 func Middleware(ab *authboss.Authboss) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			user := ab.LoadCurrentUserP(w, &r)
+			user := ab.LoadCurrentUserP(&r)
 
 			cu := authboss.MustBeConfirmable(user)
 			if cu.GetConfirmed() {

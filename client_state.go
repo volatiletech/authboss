@@ -56,7 +56,7 @@ type ClientStateReadWriter interface {
 	// any values in the current session, or any cookie in the request
 	ReadState(*http.Request) (ClientState, error)
 	// WriteState can sometimes be called with a nil ClientState in the event
-	// that no ClientState was recovered from the request context.
+	// that no ClientState was read in from LoadClientState
 	WriteState(http.ResponseWriter, ClientState, []ClientStateEvent) error
 }
 

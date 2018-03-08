@@ -128,7 +128,7 @@ func TestAuthPostSuccess(t *testing.T) {
 
 		r := mocks.Request("POST")
 		resp := httptest.NewRecorder()
-		w := h.ab.NewResponse(resp, r)
+		w := h.ab.NewResponse(resp)
 
 		if err := h.auth.LoginPost(w, r); err != nil {
 			t.Error(err)
@@ -175,7 +175,7 @@ func TestAuthPostSuccess(t *testing.T) {
 
 		r := mocks.Request("POST")
 		resp := httptest.NewRecorder()
-		w := h.ab.NewResponse(resp, r)
+		w := h.ab.NewResponse(resp)
 
 		if err := h.auth.LoginPost(w, r); err != nil {
 			t.Error(err)
@@ -209,7 +209,7 @@ func TestAuthPostSuccess(t *testing.T) {
 
 		r := mocks.Request("POST")
 		resp := httptest.NewRecorder()
-		w := h.ab.NewResponse(resp, r)
+		w := h.ab.NewResponse(resp)
 
 		if err := h.auth.LoginPost(w, r); err != nil {
 			t.Error(err)
@@ -253,7 +253,7 @@ func TestAuthPostBadPassword(t *testing.T) {
 
 		r := mocks.Request("POST")
 		resp := httptest.NewRecorder()
-		w := h.ab.NewResponse(resp, r)
+		w := h.ab.NewResponse(resp)
 
 		var afterCalled bool
 		h.ab.Events.After(authboss.EventAuthFail, func(w http.ResponseWriter, r *http.Request, handled bool) (bool, error) {
@@ -288,7 +288,7 @@ func TestAuthPostBadPassword(t *testing.T) {
 
 		r := mocks.Request("POST")
 		resp := httptest.NewRecorder()
-		w := h.ab.NewResponse(resp, r)
+		w := h.ab.NewResponse(resp)
 
 		var afterCalled bool
 		h.ab.Events.After(authboss.EventAuthFail, func(w http.ResponseWriter, r *http.Request, handled bool) (bool, error) {
@@ -328,7 +328,7 @@ func TestAuthPostUserNotFound(t *testing.T) {
 
 	r := mocks.Request("POST")
 	resp := httptest.NewRecorder()
-	w := harness.ab.NewResponse(resp, r)
+	w := harness.ab.NewResponse(resp)
 
 	// This event is really the only thing that separates "user not found" from "bad password"
 	var afterCalled bool

@@ -22,7 +22,7 @@ func TestExpireIsExpired(t *testing.T) {
 	r := httptest.NewRequest("GET", "/", nil)
 	r = r.WithContext(context.WithValue(r.Context(), authboss.CTXKeyPID, "primaryid"))
 	r = r.WithContext(context.WithValue(r.Context(), authboss.CTXKeyUser, struct{}{}))
-	w := ab.NewResponse(httptest.NewRecorder(), r)
+	w := ab.NewResponse(httptest.NewRecorder())
 	r, err := ab.LoadClientState(w, r)
 	if err != nil {
 		t.Error(err)
@@ -79,7 +79,7 @@ func TestExpireNotExpired(t *testing.T) {
 	r := httptest.NewRequest("GET", "/", nil)
 	r = r.WithContext(context.WithValue(r.Context(), authboss.CTXKeyPID, "primaryid"))
 	r = r.WithContext(context.WithValue(r.Context(), authboss.CTXKeyUser, struct{}{}))
-	w := ab.NewResponse(httptest.NewRecorder(), r)
+	w := ab.NewResponse(httptest.NewRecorder())
 	r, err = ab.LoadClientState(w, r)
 	if err != nil {
 		t.Error(err)
@@ -144,7 +144,7 @@ func TestExpireRefreshExpiry(t *testing.T) {
 	clientRW := mocks.NewClientRW()
 	ab.Storage.SessionState = clientRW
 	r := httptest.NewRequest("GET", "/", nil)
-	w := ab.NewResponse(httptest.NewRecorder(), r)
+	w := ab.NewResponse(httptest.NewRecorder())
 
 	RefreshExpiry(w, r)
 	w.WriteHeader(200)

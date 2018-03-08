@@ -75,7 +75,7 @@ func TestLogoutLogout(t *testing.T) {
 
 	r := mocks.Request("POST")
 	resp := httptest.NewRecorder()
-	w := h.ab.NewResponse(resp, r)
+	w := h.ab.NewResponse(resp)
 
 	// This enables the logging portion, which is debatable-y not useful in a log out method
 	user := &mocks.User{Email: "test@test.com"}

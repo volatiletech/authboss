@@ -236,7 +236,7 @@ func NewClientRW() *ClientStateRW {
 }
 
 // ReadState from memory
-func (c *ClientStateRW) ReadState(http.ResponseWriter, *http.Request) (authboss.ClientState, error) {
+func (c *ClientStateRW) ReadState(*http.Request) (authboss.ClientState, error) {
 	return &ClientState{Values: c.ClientValues}, nil
 }
 

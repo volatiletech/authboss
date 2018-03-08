@@ -118,7 +118,7 @@ func TestRegisterPostSuccess(t *testing.T) {
 
 		r := mocks.Request("POST")
 		resp := httptest.NewRecorder()
-		w := h.ab.NewResponse(resp, r)
+		w := h.ab.NewResponse(resp)
 
 		if err := h.reg.Post(w, r); err != nil {
 			t.Error(err)
@@ -161,7 +161,7 @@ func TestRegisterPostSuccess(t *testing.T) {
 
 		r := mocks.Request("POST")
 		resp := httptest.NewRecorder()
-		w := h.ab.NewResponse(resp, r)
+		w := h.ab.NewResponse(resp)
 
 		if err := h.reg.Post(w, r); err != nil {
 			t.Error(err)
@@ -205,7 +205,7 @@ func TestRegisterPostValidationFailure(t *testing.T) {
 
 	r := mocks.Request("POST")
 	resp := httptest.NewRecorder()
-	w := h.ab.NewResponse(resp, r)
+	w := h.ab.NewResponse(resp)
 
 	if err := h.reg.Post(w, r); err != nil {
 		t.Error(err)
@@ -256,7 +256,7 @@ func TestRegisterPostUserExists(t *testing.T) {
 
 	r := mocks.Request("POST")
 	resp := httptest.NewRecorder()
-	w := h.ab.NewResponse(resp, r)
+	w := h.ab.NewResponse(resp)
 
 	if err := h.reg.Post(w, r); err != nil {
 		t.Error(err)

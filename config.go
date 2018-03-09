@@ -27,6 +27,11 @@ type Config struct {
 		// LogoutOK is the redirect path after a log out.
 		LogoutOK string
 
+		// OAuth2LoginOK is the redirect path after a successful oauth2 login
+		OAuth2LoginOK string
+		// OAuth2LoginNotOK is the redirect path after an unsuccessful oauth2 login
+		OAuth2LoginNotOK string
+
 		// RecoverOK is the redirect path after a successful recovery of a password.
 		RecoverOK string
 

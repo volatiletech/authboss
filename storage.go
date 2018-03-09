@@ -13,22 +13,6 @@ import (
 	"github.com/pkg/errors"
 )
 
-// Data store constants for attribute names.
-const (
-	StoreEmail    = "email"
-	StoreUsername = "username"
-	StorePassword = "password"
-)
-
-// Data store constants for OAuth2 attribute names.
-const (
-	StoreOAuth2UID      = "oauth2_uid"
-	StoreOAuth2Provider = "oauth2_provider"
-	StoreOAuth2Token    = "oauth2_token"
-	StoreOAuth2Refresh  = "oauth2_refresh"
-	StoreOAuth2Expiry   = "oauth2_expiry"
-)
-
 var (
 	// ErrUserFound should be returned from Create (see ConfirmUser) when the primaryID
 	// of the record is found.
@@ -52,7 +36,7 @@ type ServerStorer interface {
 }
 
 // CreatingServerStorer is used for creating new users
-// like when Registration is being done.
+// like when Registration or OAuth2 is being done.
 type CreatingServerStorer interface {
 	ServerStorer
 
@@ -62,6 +46,34 @@ type CreatingServerStorer interface {
 	// Create the user in storage, it should not overwrite a user
 	// and should return ErrUserFound if it currently exists.
 	Create(ctx context.Context, user User) error
+}
+
+// OAuth2ServerStorer has the ability to create users from data from the provider.
+type OAuth2ServerStorer interface {
+	ServerStorer
+
+	// NewFromOAuth2 should return an OAuth2User from a set
+	// of details returned from OAuth2Provider.FindUserDetails
+	// A more in-depth explanation is that once we've got an access token
+	// for the service in question (say a service that rhymes with book)
+	// the FindUserDetails function does an http request to a known endpoint that
+	// provides details about the user, those details are captured in a generic
+	// way as map[string]string and passed into this function to be turned
+	// into a real user.
+	//
+	// It's possible that the user exists in the database already, and so
+	// an attempt should be made to look that user up using the details.
+	// Any details that have changed should be updated. Do not save the user
+	// since that will be done by a later call to OAuth2ServerStorer.SaveOAuth2()
+	NewFromOAuth2(ctx context.Context, provider string, details map[string]string) (OAuth2User, error)
+
+	// SaveOAuth2 has different semantics from the typical ServerStorer.Save, in this case
+	// we want to insert a user if they do not exist. The difference must be made clear because
+	// in the non-oauth2 case, we know exactly when we want to Create vs Update. However
+	// since we're simply trying to persist a user that may have been in our database, but if not
+	// should already be (since you can think of the operation as a caching of what's on the oauth2 provider's
+	// servers).
+	SaveOAuth2(ctx context.Context, user OAuth2User) error
 }
 
 // ConfirmingServerStorer can find a user by a confirm token
@@ -84,6 +96,8 @@ type RecoveringServerStorer interface {
 
 // RememberingServerStorer allows users to be remembered across sessions
 type RememberingServerStorer interface {
+	ServerStorer
+
 	// AddRememberToken to a user
 	AddRememberToken(pid, token string) error
 	// DelRememberTokens removes all tokens for the given pid
@@ -128,6 +142,16 @@ func EnsureCanRemember(storer ServerStorer) RememberingServerStorer {
 	s, ok := storer.(RememberingServerStorer)
 	if !ok {
 		panic("could not upgrade ServerStorer to RememberingServerStorer, check your struct")
+	}
+
+	return s
+}
+
+// EnsureCanOAuth2 makes sure the server storer supports oauth2 creation and lookup
+func EnsureCanOAuth2(storer ServerStorer) OAuth2ServerStorer {
+	s, ok := storer.(OAuth2ServerStorer)
+	if !ok {
+		panic("could not upgrade ServerStorer to OAuth2ServerStorer, check your struct")
 	}
 
 	return s

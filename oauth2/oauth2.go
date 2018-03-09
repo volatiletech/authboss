@@ -1,6 +1,36 @@
+// Package oauth2 allows users to be created and authenticated
+// via oauth2 services like facebook, google etc. Currently
+// only the web server flow is supported.
+//
+// The general flow looks like this:
+//   1. User goes to Start handler and has his session packed with goodies
+//      then redirects to the OAuth service.
+//   2. OAuth service returns to OAuthCallback which extracts state and parameters
+//      and generally checks that everything is ok. It uses the token received to
+//      get an access token from the oauth2 library
+//   3. Calls the OAuth2Provider.FindUserDetails which should return the user's details
+//      in a generic form.
+//   4. Passes the user details into the OAuth2ServerStorer.NewFromOAuth2 in order
+//      to create a user object we can work with.
+//   5. Saves the user in the database, logs them in, redirects.
+//
+// In order to do this there are a number of parts:
+//   1. The configuration of a provider (handled by authboss.Config.Modules.OAuth2Providers)
+//   2. The flow of redirection of client, parameter passing etc (handled by this package)
+//   3. The HTTP call to the service once a token has been retrieved to get user details
+//      (handled by OAuth2Provider.FindUserDetails)
+//   4. The creation of a user from the user details returned from the FindUserDetails
+//      (authboss.OAuth2ServerStorer)
+//
+// Of these parts, the responsibility of the authboss library consumer is on 1, 3, and 4.
+// Configuration of providers that should be used is totally up to the consumer. The FindUserDetails
+// function is typically up to the user, but we have some basic ones included in this package too.
+// The creation of users from the FindUserDetail's map[string]string return is handled as part
+// of the implementation of the OAuth2ServerStorer.
 package oauth2
 
 import (
+	"context"
 	"crypto/rand"
 	"encoding/base64"
 	"encoding/json"
@@ -9,13 +39,19 @@ import (
 	"net/url"
 	"path"
 	"path/filepath"
+	"sort"
 	"strings"
 
 	"github.com/pkg/errors"
+	"golang.org/x/oauth2"
 
 	"github.com/volatiletech/authboss"
-	"github.com/volatiletech/authboss/internal/response"
-	"golang.org/x/oauth2"
+)
+
+// FormValue constants
+const (
+	FormValueOAuth2State = "state"
+	FormValueOAuth2Redir = "redir"
 )
 
 var (
@@ -31,68 +67,60 @@ func init() {
 	authboss.RegisterModule("oauth2", &OAuth2{})
 }
 
-// Initialize module
-func (o *OAuth2) Initialize(ab *authboss.Authboss) error {
+// Init module
+func (o *OAuth2) Init(ab *authboss.Authboss) error {
 	o.Authboss = ab
-	if o.OAuth2Storer == nil && o.OAuth2StoreMaker == nil {
-		return errors.New("need an oauth2Storer")
+
+	// Do annoying sorting on keys so we can have predictible
+	// route registration (both for consistency inside the router but also for tests -_-)
+	var keys []string
+	for k := range o.Authboss.Config.Modules.OAuth2Providers {
+		keys = append(keys, k)
 	}
+	sort.Strings(keys)
+
+	for _, provider := range keys {
+		cfg := o.Authboss.Config.Modules.OAuth2Providers[provider]
+		provider = strings.ToLower(provider)
+
+		init := fmt.Sprintf("/oauth2/%s", provider)
+		callback := fmt.Sprintf("/oauth2/callback/%s", provider)
+
+		o.Authboss.Config.Core.Router.Get(init, o.Authboss.Core.ErrorHandler.Wrap(o.Start))
+		o.Authboss.Config.Core.Router.Get(callback, o.Authboss.Core.ErrorHandler.Wrap(o.End))
+
+		if mount := o.Authboss.Config.Paths.Mount; len(mount) > 0 {
+			callback = path.Join(mount, callback)
+		}
+
+		cfg.OAuth2Config.RedirectURL = o.Authboss.Config.Paths.RootURL + callback
+	}
+
 	return nil
 }
 
-// Routes for module
-func (o *OAuth2) Routes() authboss.RouteTable {
-	routes := make(authboss.RouteTable)
+// Start the oauth2 process
+func (o *OAuth2) Start(w http.ResponseWriter, r *http.Request) error {
+	logger := o.Authboss.RequestLogger(r)
 
-	for prov, cfg := range o.OAuth2Providers {
-		prov = strings.ToLower(prov)
-
-		init := fmt.Sprintf("/oauth2/%s", prov)
-		callback := fmt.Sprintf("/oauth2/callback/%s", prov)
-
-		routes[init] = o.oauthInit
-		routes[callback] = o.oauthCallback
-
-		if len(o.MountPath) > 0 {
-			callback = path.Join(o.MountPath, callback)
-		}
-
-		cfg.OAuth2Config.RedirectURL = o.RootURL + callback
-	}
-
-	routes["/oauth2/logout"] = o.logout
-
-	return routes
-}
-
-// Storage requirements
-func (o *OAuth2) Storage() authboss.StorageOptions {
-	return authboss.StorageOptions{
-		authboss.StoreEmail:          authboss.String,
-		authboss.StoreOAuth2UID:      authboss.String,
-		authboss.StoreOAuth2Provider: authboss.String,
-		authboss.StoreOAuth2Token:    authboss.String,
-		authboss.StoreOAuth2Refresh:  authboss.String,
-		authboss.StoreOAuth2Expiry:   authboss.DateTime,
-	}
-}
-
-func (o *OAuth2) oauthInit(ctx *authboss.Context, w http.ResponseWriter, r *http.Request) error {
 	provider := strings.ToLower(filepath.Base(r.URL.Path))
-	cfg, ok := o.OAuth2Providers[provider]
+	logger.Infof("started oauth2 flow for provider: %s", provider)
+	cfg, ok := o.Authboss.Config.Modules.OAuth2Providers[provider]
 	if !ok {
-		return errors.Errorf("OAuth2 provider %q not found", provider)
+		return errors.Errorf("oauth2 provider %q not found", provider)
 	}
 
-	random := make([]byte, 32)
-	_, err := rand.Read(random)
-	if err != nil {
-		return err
+	// Create nonce
+	nonce := make([]byte, 32)
+	if _, err := rand.Read(nonce); err != nil {
+		return errors.Wrap(err, "failed to create nonce")
 	}
 
-	state := base64.URLEncoding.EncodeToString(random)
-	ctx.SessionStorer.Put(authboss.SessionOAuth2State, state)
+	state := base64.URLEncoding.EncodeToString(nonce)
+	authboss.PutSession(w, authboss.SessionOAuth2State, state)
 
+	// This clearly ignores the fact that query parameters can have multiple
+	// values but I guess we're ignoring that
 	passAlongs := make(map[string]string)
 	for k, vals := range r.URL.Query() {
 		for _, val := range vals {
@@ -101,13 +129,13 @@ func (o *OAuth2) oauthInit(ctx *authboss.Context, w http.ResponseWriter, r *http
 	}
 
 	if len(passAlongs) > 0 {
-		str, err := json.Marshal(passAlongs)
+		byt, err := json.Marshal(passAlongs)
 		if err != nil {
 			return err
 		}
-		ctx.SessionStorer.Put(authboss.SessionOAuth2Params, string(str))
+		authboss.PutSession(w, authboss.SessionOAuth2Params, string(byt))
 	} else {
-		ctx.SessionStorer.Del(authboss.SessionOAuth2Params)
+		authboss.DelSession(w, authboss.SessionOAuth2Params)
 	}
 
 	url := cfg.OAuth2Config.AuthCodeURL(state)
@@ -117,128 +145,153 @@ func (o *OAuth2) oauthInit(ctx *authboss.Context, w http.ResponseWriter, r *http
 		url = fmt.Sprintf("%s&%s", url, extraParams)
 	}
 
-	http.Redirect(w, r, url, http.StatusFound)
-	return nil
+	ro := authboss.RedirectOptions{
+		Code:         http.StatusTemporaryRedirect,
+		RedirectPath: url,
+	}
+	return o.Authboss.Core.Redirector.Redirect(w, r, ro)
 }
 
-// for testing
+// for testing, mocked out at the beginning
 var exchanger = (*oauth2.Config).Exchange
 
-func (o *OAuth2) oauthCallback(ctx *authboss.Context, w http.ResponseWriter, r *http.Request) error {
+// End the oauth2 process, this is the handler for the oauth2 callback
+// that the third party will redirect to.
+func (o *OAuth2) End(w http.ResponseWriter, r *http.Request) error {
+	logger := o.Authboss.RequestLogger(r)
 	provider := strings.ToLower(filepath.Base(r.URL.Path))
+	logger.Infof("finishing oauth2 flow for provider: %s", provider)
 
-	sessState, err := ctx.SessionStorer.GetErr(authboss.SessionOAuth2State)
-	ctx.SessionStorer.Del(authboss.SessionOAuth2State)
-	if err != nil {
-		return err
-	}
-
-	sessValues, ok := ctx.SessionStorer.Get(authboss.SessionOAuth2Params)
-	// Don't delete this value from session immediately, Events use this too
-	var values map[string]string
-	if ok {
-		if err := json.Unmarshal([]byte(sessValues), &values); err != nil {
-			return err
-		}
-	}
-
-	hasErr := r.FormValue("error")
-	if len(hasErr) > 0 {
-		if err := o.Events.FireAfter(authboss.EventOAuthFail, ctx); err != nil {
-			return err
-		}
-
-		return authboss.ErrAndRedirect{
-			Err:        errors.New(r.FormValue("error_reason")),
-			Location:   o.AuthLoginFailPath,
-			FlashError: fmt.Sprintf("%s login cancelled or failed.", strings.Title(provider)),
-		}
-	}
-
-	cfg, ok := o.OAuth2Providers[provider]
+	// This shouldn't happen because the router should 404 first, but just in case
+	cfg, ok := o.Authboss.Config.Modules.OAuth2Providers[provider]
 	if !ok {
 		return errors.Errorf("oauth2 provider %q not found", provider)
 	}
 
-	// Ensure request is genuine
-	state := r.FormValue(authboss.FormValueOAuth2State)
-	splState := strings.Split(state, ";")
-	if len(splState) == 0 || splState[0] != sessState {
+	wantState, ok := authboss.GetSession(r, authboss.SessionOAuth2State)
+	if !ok {
+		return errors.New("oauth2 endpoint hit without session state")
+	}
+
+	// Verify we got the same state in the session as was passed to us in the
+	// query parameter.
+	state := r.FormValue(FormValueOAuth2State)
+	if state != wantState {
 		return errOAuthStateValidation
 	}
 
-	// Get the code
+	rawParams, ok := authboss.GetSession(r, authboss.SessionOAuth2Params)
+	var params map[string]string
+	if ok {
+		if err := json.Unmarshal([]byte(rawParams), &params); err != nil {
+			return errors.Wrap(err, "failed to decode oauth2 params")
+		}
+	}
+
+	authboss.DelSession(w, authboss.SessionOAuth2State)
+	authboss.DelSession(w, authboss.SessionOAuth2Params)
+
+	hasErr := r.FormValue("error")
+	if len(hasErr) > 0 {
+		reason := r.FormValue("error_reason")
+		logger.Infof("oauth2 login failed: %s, reason: %s", hasErr, reason)
+
+		handled, err := o.Authboss.Events.FireAfter(authboss.EventOAuth2Fail, w, r)
+		if err != nil {
+			return err
+		} else if handled {
+			return nil
+		}
+
+		ro := authboss.RedirectOptions{
+			Code:         http.StatusTemporaryRedirect,
+			RedirectPath: o.Authboss.Config.Paths.OAuth2LoginNotOK,
+			Failure:      fmt.Sprintf("%s login cancelled or failed", strings.Title(provider)),
+		}
+		return o.Authboss.Core.Redirector.Redirect(w, r, ro)
+	}
+
+	// Get the code which we can use to make an access token
 	code := r.FormValue("code")
-	token, err := exchanger(cfg.OAuth2Config, o.Config.ContextProvider(r), code)
+	token, err := exchanger(cfg.OAuth2Config, r.Context(), code)
 	if err != nil {
 		return errors.Wrap(err, "could not validate oauth2 code")
 	}
 
-	user, err := cfg.Callback(o.Config.ContextProvider(r), *cfg.OAuth2Config, token)
+	details, err := cfg.FindUserDetails(r.Context(), *cfg.OAuth2Config, token)
 	if err != nil {
 		return err
 	}
 
-	// OAuth2UID is required.
-	uid, err := user.StringErr(authboss.StoreOAuth2UID)
+	storer := authboss.EnsureCanOAuth2(o.Authboss.Config.Storage.Server)
+	user, err := storer.NewFromOAuth2(r.Context(), provider, details)
 	if err != nil {
-		return err
+		return errors.Wrap(err, "failed to create oauth2 user from values")
 	}
 
-	user[authboss.StoreOAuth2UID] = uid
-	user[authboss.StoreOAuth2Provider] = provider
-	user[authboss.StoreOAuth2Expiry] = token.Expiry
-	user[authboss.StoreOAuth2Token] = token.AccessToken
+	user.PutOAuth2Provider(provider)
+	user.PutOAuth2AccessToken(token.AccessToken)
+	user.PutOAuth2Expiry(token.Expiry)
 	if len(token.RefreshToken) != 0 {
-		user[authboss.StoreOAuth2Refresh] = token.RefreshToken
+		user.PutOAuth2RefreshToken(token.RefreshToken)
 	}
 
-	if err = ctx.OAuth2Storer.PutOAuth(uid, provider, user); err != nil {
+	if err := storer.SaveOAuth2(r.Context(), user); err != nil {
 		return err
 	}
 
-	// Fully log user in
-	ctx.SessionStorer.Put(authboss.SessionKey, fmt.Sprintf("%s;%s", uid, provider))
-	ctx.SessionStorer.Del(authboss.SessionHalfAuthKey)
+	r = r.WithContext(context.WithValue(r.Context(), authboss.CTXKeyUser, user))
 
-	if err = o.Events.FireAfter(authboss.EventOAuth, ctx); err != nil {
+	handled, err := o.Authboss.Events.FireBefore(authboss.EventOAuth2, w, r)
+	if err != nil {
+		return err
+	} else if handled {
 		return nil
 	}
 
-	ctx.SessionStorer.Del(authboss.SessionOAuth2Params)
+	// Fully log user in
+	authboss.PutSession(w, authboss.SessionKey, authboss.MakeOAuth2PID(provider, user.GetOAuth2UID()))
+	authboss.DelSession(w, authboss.SessionHalfAuthKey)
 
-	redirect := o.AuthLoginOKPath
+	// Create a query string from all the pieces we've received
+	// as passthru from the original request.
+	redirect := o.Authboss.Config.Paths.OAuth2LoginOK
 	query := make(url.Values)
-	for k, v := range values {
+	for k, v := range params {
 		switch k {
 		case authboss.CookieRemember:
-		case authboss.FormValueRedirect:
+			if v == "true" {
+				r = r.WithContext(context.WithValue(r.Context(), authboss.CTXKeyValues, RMTrue{}))
+			}
+		case FormValueOAuth2Redir:
 			redirect = v
 		default:
 			query.Set(k, v)
 		}
 	}
 
+	handled, err = o.Authboss.Events.FireAfter(authboss.EventOAuth2, w, r)
+	if err != nil {
+		return err
+	} else if handled {
+		return nil
+	}
+
 	if len(query) > 0 {
 		redirect = fmt.Sprintf("%s?%s", redirect, query.Encode())
 	}
 
-	sf := fmt.Sprintf("Logged in successfully with %s.", strings.Title(provider))
-	response.Redirect(ctx, w, r, redirect, sf, "", false)
-	return nil
-}
-
-func (o *OAuth2) logout(ctx *authboss.Context, w http.ResponseWriter, r *http.Request) error {
-	switch r.Method {
-	case "GET":
-		ctx.SessionStorer.Del(authboss.SessionKey)
-		ctx.CookieStorer.Del(authboss.CookieRemember)
-		ctx.SessionStorer.Del(authboss.SessionLastAction)
-
-		response.Redirect(ctx, w, r, o.AuthLogoutOKPath, "You have logged out", "", true)
-	default:
-		w.WriteHeader(http.StatusMethodNotAllowed)
+	ro := authboss.RedirectOptions{
+		Code:         http.StatusTemporaryRedirect,
+		RedirectPath: redirect,
+		Success:      fmt.Sprintf("Logged in successfully with %s.", strings.Title(provider)),
 	}
-
-	return nil
+	return o.Authboss.Config.Core.Redirector.Redirect(w, r, ro)
 }
+
+// RMTrue is a dummy struct implementing authboss.RememberValuer
+// in order to tell the remember me module to remember them.
+type RMTrue struct{}
+
+// GetShouldRemember always returns true
+func (RMTrue) GetShouldRemember() bool { return true }

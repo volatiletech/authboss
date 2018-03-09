@@ -35,8 +35,7 @@ func (r *Remember) Init(ab *authboss.Authboss) error {
 	r.Authboss = ab
 
 	r.Events.After(authboss.EventAuth, r.RememberAfterAuth)
-	//TODO(aarondl): Rectify this once oauth2 is done
-	// r.Events.After(authboss.EventOAuth, r.RememberAfterAuth)
+	r.Events.After(authboss.EventOAuth, r.RememberAfterAuth)
 	r.Events.After(authboss.EventPasswordReset, r.AfterPasswordReset)
 
 	return nil

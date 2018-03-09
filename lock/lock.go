@@ -35,8 +35,8 @@ type Lock struct {
 func (l *Lock) Init(ab *authboss.Authboss) error {
 	l.Authboss = ab
 
-	// Events
 	l.Events.Before(authboss.EventAuth, l.BeforeAuth)
+	l.Events.Before(authboss.EventOAuth, l.BeforeAuth)
 	l.Events.After(authboss.EventAuth, l.AfterAuthSuccess)
 	l.Events.After(authboss.EventAuthFail, l.AfterAuthFail)
 

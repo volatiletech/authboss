@@ -4,9 +4,9 @@ package authboss
 
 import "strconv"
 
-const _Event_name = "EventRegisterEventAuthEventOAuthEventAuthFailEventOAuthFailEventRecoverStartEventRecoverEndEventGetUserEventGetUserSessionEventPasswordReset"
+const _Event_name = "EventRegisterEventAuthEventOAuth2EventAuthFailEventOAuth2FailEventRecoverStartEventRecoverEndEventGetUserEventGetUserSessionEventPasswordReset"
 
-var _Event_index = [...]uint8{0, 13, 22, 32, 45, 59, 76, 91, 103, 122, 140}
+var _Event_index = [...]uint8{0, 13, 22, 33, 46, 61, 78, 93, 105, 124, 142}
 
 func (i Event) String() string {
 	if i < 0 || i >= Event(len(_Event_index)-1) {

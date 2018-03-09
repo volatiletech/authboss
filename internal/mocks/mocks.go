@@ -25,9 +25,12 @@ type User struct {
 	AttemptCount       int
 	LastAttempt        time.Time
 	Locked             time.Time
-	OAuthToken         string
-	OAuthRefresh       string
-	OAuthExpiry        time.Time
+
+	OAuth2UID      string
+	OAuth2Provider string
+	OAuth2Token    string
+	OAuth2Refresh  string
+	OAuth2Expiry   time.Time
 
 	Arbitrary map[string]string
 }
@@ -43,9 +46,12 @@ func (m User) GetConfirmed() bool              { return m.Confirmed }
 func (m User) GetAttemptCount() int            { return m.AttemptCount }
 func (m User) GetLastAttempt() time.Time       { return m.LastAttempt }
 func (m User) GetLocked() time.Time            { return m.Locked }
-func (m User) GetOAuthToken() string           { return m.OAuthToken }
-func (m User) GetOAuthRefresh() string         { return m.OAuthRefresh }
-func (m User) GetOAuthExpiry() time.Time       { return m.OAuthExpiry }
+func (m User) IsOAuth2User() bool              { return len(m.OAuth2Provider) != 0 }
+func (m User) GetOAuth2UID() string            { return m.OAuth2UID }
+func (m User) GetOAuth2Provider() string       { return m.OAuth2Provider }
+func (m User) GetOAuth2AccessToken() string    { return m.OAuth2Token }
+func (m User) GetOAuth2RefreshToken() string   { return m.OAuth2Refresh }
+func (m User) GetOAuth2Expiry() time.Time      { return m.OAuth2Expiry }
 func (m User) GetArbitrary() map[string]string { return m.Arbitrary }
 
 func (m *User) PutPID(email string)                 { m.Email = email }
@@ -61,9 +67,11 @@ func (m *User) PutConfirmed(confirmed bool)          { m.Confirmed = confirmed }
 func (m *User) PutAttemptCount(attemptCount int)     { m.AttemptCount = attemptCount }
 func (m *User) PutLastAttempt(attemptTime time.Time) { m.LastAttempt = attemptTime }
 func (m *User) PutLocked(locked time.Time)           { m.Locked = locked }
-func (m *User) PutOAuthToken(oAuthToken string)      { m.OAuthToken = oAuthToken }
-func (m *User) PutOAuthRefresh(oAuthRefresh string)  { m.OAuthRefresh = oAuthRefresh }
-func (m *User) PutOAuthExpiry(oAuthExpiry time.Time) { m.OAuthExpiry = oAuthExpiry }
+func (m *User) PutOAuth2UID(uid string)              { m.OAuth2UID = uid }
+func (m *User) PutOAuth2Provider(provider string)    { m.OAuth2Provider = provider }
+func (m *User) PutOAuth2AccessToken(token string)    { m.OAuth2Token = token }
+func (m *User) PutOAuth2RefreshToken(refresh string) { m.OAuth2Refresh = refresh }
+func (m *User) PutOAuth2Expiry(expiry time.Time)     { m.OAuth2Expiry = expiry }
 func (m *User) PutArbitrary(arb map[string]string)   { m.Arbitrary = arb }
 
 // ServerStorer should be valid for any module storer defined in authboss.
@@ -112,6 +120,38 @@ func (s *ServerStorer) Save(ctx context.Context, user authboss.User) error {
 		return authboss.ErrUserNotFound
 	}
 	s.Users[u.Email] = u
+	return nil
+}
+
+// NewFromOAuth2 finds a user with the given details, or returns a new one
+func (s *ServerStorer) NewFromOAuth2(ctx context.Context, provider string, details map[string]string) (authboss.OAuth2User, error) {
+	uid := details["uid"]
+	email := details["email"]
+	name := details["name"]
+	pid := authboss.MakeOAuth2PID(provider, uid)
+
+	u, ok := s.Users[pid]
+	if ok {
+		u.Username = name
+		u.Email = email
+		return u, nil
+	}
+
+	return &User{
+		OAuth2UID:      uid,
+		OAuth2Provider: provider,
+		Email:          email,
+		Username:       name,
+	}, nil
+}
+
+// SaveOAuth2 creates a user if not found, or updates one that exists.
+func (s *ServerStorer) SaveOAuth2(ctx context.Context, user authboss.OAuth2User) error {
+	u := user.(*User)
+
+	pid := authboss.MakeOAuth2PID(u.OAuth2Provider, u.OAuth2UID)
+	// Since we don't have to differentiate between insert/update in a map, we just overwrite
+	s.Users[pid] = u
 	return nil
 }
 

@@ -13,9 +13,9 @@ type Event int
 const (
 	EventRegister Event = iota
 	EventAuth
-	EventOAuth
+	EventOAuth2
 	EventAuthFail
-	EventOAuthFail
+	EventOAuth2Fail
 	EventRecoverStart
 	EventRecoverEnd
 	EventGetUser

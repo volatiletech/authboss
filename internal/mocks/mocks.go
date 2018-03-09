@@ -192,12 +192,21 @@ func (s *ServerStorer) DelRememberTokens(key string) error {
 
 // UseRememberToken if it exists, deleting it in the process
 func (s *ServerStorer) UseRememberToken(givenKey, token string) (err error) {
-	if arr, ok := s.RMTokens[givenKey]; ok {
-		for _, tok := range arr {
-			if tok == token {
+	arr, ok := s.RMTokens[givenKey]
+	if !ok {
+		return authboss.ErrTokenNotFound
+	}
+
+	for i, tok := range arr {
+		if tok == token {
+			if len(arr) == 1 {
 				delete(s.RMTokens, givenKey)
 				return nil
 			}
+
+			arr[i] = arr[len(arr)-1]
+			s.RMTokens[givenKey] = arr[:len(arr)-2]
+			return nil
 		}
 	}
 

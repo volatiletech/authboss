@@ -15,10 +15,20 @@ type mockUser struct {
 	Password string
 }
 
-type mockServerStorer map[string]mockUser
+func newMockServerStorer() *mockServerStorer {
+	return &mockServerStorer{
+		Users:  make(map[string]*mockUser),
+		Tokens: make(map[string][]string),
+	}
+}
 
-func (m mockServerStorer) Load(ctx context.Context, key string) (User, error) {
-	u, ok := m[key]
+type mockServerStorer struct {
+	Users  map[string]*mockUser
+	Tokens map[string][]string
+}
+
+func (m *mockServerStorer) Load(ctx context.Context, key string) (User, error) {
+	u, ok := m.Users[key]
 	if !ok {
 		return nil, ErrUserNotFound
 	}
@@ -26,26 +36,53 @@ func (m mockServerStorer) Load(ctx context.Context, key string) (User, error) {
 	return u, nil
 }
 
-func (m mockServerStorer) Save(ctx context.Context, user User) error {
-	pid := user.GetPID()
-	m[pid] = user.(mockUser)
+func (m *mockServerStorer) Save(ctx context.Context, user User) error {
+	u := user.(*mockUser)
+	m.Users[u.Email] = u
 
 	return nil
 }
 
-func (m mockUser) PutPID(email string) {
+func (m *mockServerStorer) AddRememberToken(pid, token string) error {
+	m.Tokens[pid] = append(m.Tokens[pid], token)
+	return nil
+}
+
+func (m *mockServerStorer) DelRememberTokens(pid string) error {
+	delete(m.Tokens, pid)
+	return nil
+}
+
+func (m *mockServerStorer) UseRememberToken(pid, token string) error {
+	arr, ok := m.Tokens[pid]
+	if !ok {
+		return ErrTokenNotFound
+	}
+
+	for i, tok := range arr {
+		if tok == token {
+			arr[i] = arr[len(arr)-1]
+			m.Tokens[pid] = arr[:len(arr)-2]
+			return nil
+		}
+	}
+
+	return ErrTokenNotFound
+}
+
+func (m *mockUser) PutPID(email string) {
 	m.Email = email
 }
 
-func (m mockUser) PutPassword(password string) {
+func (m *mockUser) PutPassword(password string) {
 	m.Password = password
 }
 
-func (m mockUser) GetPID() (email string) {
+func (m *mockUser) GetPID() (email string) {
 	return m.Email
 }
 
-func (m mockUser) GetPassword() (password string) {
+func (m *mockUser) GetPassword() (password string) {
 	return m.Password
 }
 

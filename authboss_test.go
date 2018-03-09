@@ -1,6 +1,7 @@
 package authboss
 
 import (
+	"context"
 	"testing"
 )
 
@@ -15,88 +16,19 @@ func TestAuthBossInit(t *testing.T) {
 }
 
 func TestAuthbossUpdatePassword(t *testing.T) {
-	t.Skip("TODO(aarondl): Implement")
-	/*
-		t.Parallel()
+	t.Parallel()
 
-		ab := New()
-		session := mockClientStore{}
-		cookies := mockClientStore{}
-		ab.SessionStoreMaker = newMockClientStoreMaker(session)
-		ab.CookieStoreMaker = newMockClientStoreMaker(cookies)
+	user := &mockUser{}
+	storer := newMockServerStorer()
 
-		called := false
-		ab.Events.After(EventPasswordReset, func(ctx context.Context) error {
-			called = true
-			return nil
-		})
+	ab := New()
+	ab.Config.Storage.Server = storer
 
-		user1 := struct {
-			Password string
-		}{}
-		user2 := struct {
-			Password sql.NullString
-		}{}
+	if err := ab.UpdatePassword(context.Background(), user, "hello world"); err != nil {
+		t.Error(err)
+	}
 
-		r, _ := http.NewRequest("GET", "http://localhost", nil)
-
-		called = false
-		err := ab.UpdatePassword(nil, r, "newpassword", &user1, func() error { return nil })
-		if err != nil {
-			t.Error(err)
-		}
-
-		if len(user1.Password) == 0 {
-			t.Error("Password not updated")
-		}
-		if !called {
-			t.Error("Events should have been called.")
-		}
-
-		called = false
-		err = ab.UpdatePassword(nil, r, "newpassword", &user2, func() error { return nil })
-		if err != nil {
-			t.Error(err)
-		}
-
-		if !user2.Password.Valid || len(user2.Password.String) == 0 {
-			t.Error("Password not updated")
-		}
-		if !called {
-			t.Error("Events should have been called.")
-		}
-
-		called = false
-		oldPassword := user1.Password
-		err = ab.UpdatePassword(nil, r, "", &user1, func() error { return nil })
-		if err != nil {
-			t.Error(err)
-		}
-
-		if user1.Password != oldPassword {
-			t.Error("Password not updated")
-		}
-		if called {
-			t.Error("Events should not have been called")
-		}
-	*/
-}
-
-func TestAuthbossUpdatePasswordFail(t *testing.T) {
-	t.Skip("TODO(aarondl): Implement")
-	/*
-		t.Parallel()
-
-		ab := New()
-
-		user1 := struct {
-			Password string
-		}{}
-
-		anErr := errors.New("anError")
-		err := ab.UpdatePassword(nil, nil, "update", &user1, func() error { return anErr })
-		if err != anErr {
-			t.Error("Expected an specific error:", err)
-		}
-	*/
+	if len(user.Password) == 0 {
+		t.Error("password was not updated")
+	}
 }

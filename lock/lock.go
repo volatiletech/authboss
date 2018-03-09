@@ -36,7 +36,7 @@ func (l *Lock) Init(ab *authboss.Authboss) error {
 	l.Authboss = ab
 
 	l.Events.Before(authboss.EventAuth, l.BeforeAuth)
-	l.Events.Before(authboss.EventOAuth, l.BeforeAuth)
+	l.Events.Before(authboss.EventOAuth2, l.BeforeAuth)
 	l.Events.After(authboss.EventAuth, l.AfterAuthSuccess)
 	l.Events.After(authboss.EventAuthFail, l.AfterAuthFail)
 
@@ -160,7 +160,6 @@ func (l *Lock) Unlock(ctx context.Context, key string) error {
 //
 // Panics if the user was not able to be loaded in order to allow a panic handler to show
 // a nice error page, also panics if it failed to redirect for whatever reason.
-// TODO(aarondl): Document this middleware better
 func Middleware(ab *authboss.Authboss) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {

@@ -35,7 +35,7 @@ func (r *Remember) Init(ab *authboss.Authboss) error {
 	r.Authboss = ab
 
 	r.Events.After(authboss.EventAuth, r.RememberAfterAuth)
-	r.Events.After(authboss.EventOAuth, r.RememberAfterAuth)
+	r.Events.After(authboss.EventOAuth2, r.RememberAfterAuth)
 	r.Events.After(authboss.EventPasswordReset, r.AfterPasswordReset)
 
 	return nil
@@ -65,50 +65,6 @@ func (r *Remember) RememberAfterAuth(w http.ResponseWriter, req *http.Request, h
 
 	return false, nil
 }
-
-/*
-// TODO(aarondl): Either discard or make this useful later after oauth2
-// afterOAuth is called after oauth authentication is successful.
-// Has to pander to horrible state variable packing to figure out if we want
-// to be remembered.
-func (r *Remember) afterOAuth(ctx *authboss.Context) error {
-	sessValues, ok := ctx.SessionStorer.Get(authboss.SessionOAuth2Params)
-	if !ok {
-		return nil
-	}
-
-	var values map[string]string
-	if err := json.Unmarshal([]byte(sessValues), &values); err != nil {
-		return err
-	}
-
-	val, ok := values[authboss.CookieRemember]
-	should := ok && val == "true"
-
-	if !should {
-		return nil
-	}
-
-	if ctx.User == nil {
-		return errUserMissing
-	}
-
-	uid, err := ctx.User.StringErr(authboss.StoreOAuth2Provider)
-	if err != nil {
-		return err
-	}
-	provider, err := ctx.User.StringErr(authboss.StoreOAuth2Provider)
-	if err != nil {
-		return err
-	}
-
-	if _, err := r.new(ctx.CookieStorer, uid+";"+provider); err != nil {
-		return errors.Wrap(err, "failed to create remember token")
-	}
-
-	return nil
-}
-*/
 
 // Middleware automatically authenticates users if they have remember me tokens
 // If the user has been loaded already, it returns early

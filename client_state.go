@@ -221,6 +221,20 @@ func (c *ClientStateResponseWriter) putClientState() error {
 	return nil
 }
 
+// DelKnownSession deletes all known session variables, effectively
+// logging a user out.
+func DelKnownSession(w http.ResponseWriter) {
+	DelSession(w, SessionKey)
+	DelSession(w, SessionLastAction)
+	DelSession(w, SessionHalfAuthKey)
+}
+
+// DelKnownCookie deletes all known cookie variables, which can be used
+// to delete remember me pieces.
+func DelKnownCookie(w http.ResponseWriter) {
+	DelCookie(w, CookieRemember)
+}
+
 // PutSession puts a value into the session
 func PutSession(w http.ResponseWriter, key, val string) {
 	putState(w, CTXKeySessionState, key, val)

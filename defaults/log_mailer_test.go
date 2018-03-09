@@ -16,7 +16,7 @@ func TestMailer(t *testing.T) {
 	mailServer := &bytes.Buffer{}
 	mailer := NewLogMailer(mailServer)
 
-	err := mailer.Send(context.TODO(), authboss.Email{
+	err := mailer.Send(context.Background(), authboss.Email{
 		To:       []string{"some@email.com", "a@a.com"},
 		ToNames:  []string{"Jake", "Noname"},
 		From:     "some@guy.com",

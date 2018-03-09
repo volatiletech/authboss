@@ -38,21 +38,15 @@ func (l *Logout) Init(ab *authboss.Authboss) error {
 func (l *Logout) Logout(w http.ResponseWriter, r *http.Request) error {
 	logger := l.RequestLogger(r)
 
-	// TODO(aarondl): Evaluate this log messages usefulness, there's no other reason
-	// to pull the user out of the context here.
 	user, err := l.CurrentUser(r)
-	if err != nil {
-		return err
+	if err == nil && user != nil {
+		logger.Infof("user %s logged out", user.GetPID())
+	} else {
+		logger.Info("user (unknown) logged out")
 	}
 
-	logger.Infof("user %s logged out", user.GetPID())
-
-	authboss.DelSession(w, authboss.SessionKey)
-	authboss.DelSession(w, authboss.SessionLastAction)
-	authboss.DelSession(w, authboss.SessionHalfAuthKey)
-	if l.Authboss.Config.Storage.CookieState != nil {
-		authboss.DelCookie(w, authboss.CookieRemember)
-	}
+	authboss.DelKnownSession(w)
+	authboss.DelKnownCookie(w)
 
 	ro := authboss.RedirectOptions{
 		Code:         http.StatusTemporaryRedirect,

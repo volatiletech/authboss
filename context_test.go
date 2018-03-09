@@ -19,8 +19,10 @@ func loadClientStateP(ab *Authboss, w http.ResponseWriter, r *http.Request) *htt
 func testSetupContext() (*Authboss, *http.Request) {
 	ab := New()
 	ab.Storage.SessionState = newMockClientStateRW(SessionKey, "george-pid")
-	ab.Storage.Server = mockServerStorer{
-		"george-pid": mockUser{Email: "george-pid", Password: "unreadable"},
+	ab.Storage.Server = &mockServerStorer{
+		Users: map[string]*mockUser{
+			"george-pid": &mockUser{Email: "george-pid", Password: "unreadable"},
+		},
 	}
 	r := httptest.NewRequest("GET", "/", nil)
 	w := ab.NewResponse(httptest.NewRecorder())
@@ -29,9 +31,9 @@ func testSetupContext() (*Authboss, *http.Request) {
 	return ab, r
 }
 
-func testSetupContextCached() (*Authboss, mockUser, *http.Request) {
+func testSetupContextCached() (*Authboss, *mockUser, *http.Request) {
 	ab := New()
-	wantUser := mockUser{Email: "george-pid", Password: "unreadable"}
+	wantUser := &mockUser{Email: "george-pid", Password: "unreadable"}
 	req := httptest.NewRequest("GET", "/", nil)
 	ctx := context.WithValue(req.Context(), CTXKeyPID, "george-pid")
 	ctx = context.WithValue(ctx, CTXKeyUser, wantUser)
@@ -43,7 +45,7 @@ func testSetupContextCached() (*Authboss, mockUser, *http.Request) {
 func testSetupContextPanic() *Authboss {
 	ab := New()
 	ab.Storage.SessionState = newMockClientStateRW(SessionKey, "george-pid")
-	ab.Storage.Server = mockServerStorer{}
+	ab.Storage.Server = &mockServerStorer{}
 
 	return ab
 }
@@ -201,8 +203,8 @@ func TestLoadCurrentUser(t *testing.T) {
 		t.Error("got:", got)
 	}
 
-	want := user.(mockUser)
-	got := r.Context().Value(CTXKeyUser).(mockUser)
+	want := user.(*mockUser)
+	got := r.Context().Value(CTXKeyUser).(*mockUser)
 	if got != want {
 		t.Errorf("users mismatched:\nwant: %#v\ngot: %#v", want, got)
 	}
@@ -218,7 +220,7 @@ func TestLoadCurrentUserContext(t *testing.T) {
 		t.Error(err)
 	}
 
-	got := user.(mockUser)
+	got := user.(*mockUser)
 	if got != wantUser {
 		t.Errorf("users mismatched:\nwant: %#v\ngot: %#v", wantUser, got)
 	}

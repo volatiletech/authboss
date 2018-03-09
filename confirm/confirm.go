@@ -229,7 +229,6 @@ func (c *Confirm) Get(w http.ResponseWriter, r *http.Request) error {
 //
 // Panics if the user was not able to be loaded in order to allow a panic handler to show
 // a nice error page, also panics if it failed to redirect for whatever reason.
-// TODO(aarondl): Document this middleware better
 func Middleware(ab *authboss.Authboss) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {

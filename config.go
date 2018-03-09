@@ -146,19 +146,23 @@ type Config struct {
 // Defaults sets the configuration's default values.
 func (c *Config) Defaults() {
 	c.Paths.Mount = "/auth"
-	c.Paths.RootURL = "http://localhost:8080"
 	c.Paths.AuthLoginOK = "/"
 	c.Paths.ConfirmOK = "/"
 	c.Paths.ConfirmNotOK = "/"
+	c.Paths.LockNotOK = "/"
 	c.Paths.LogoutOK = "/"
+	c.Paths.OAuth2LoginOK = "/"
+	c.Paths.OAuth2LoginNotOK = "/"
 	c.Paths.RecoverOK = "/"
 	c.Paths.RegisterOK = "/"
+	c.Paths.RootURL = "http://localhost:8080"
 
 	c.Modules.BCryptCost = bcrypt.DefaultCost
-	c.Modules.ExpireAfter = 60 * time.Minute
+	c.Modules.ExpireAfter = time.Hour
 	c.Modules.LockAfter = 3
 	c.Modules.LockWindow = 5 * time.Minute
-	c.Modules.LockDuration = 5 * time.Hour
+	c.Modules.LockDuration = 12 * time.Hour
 	c.Modules.LogoutMethod = "DELETE"
-	c.Modules.RecoverTokenDuration = time.Duration(24) * time.Hour
+	c.Modules.RecoverLoginAfterRecovery = false
+	c.Modules.RecoverTokenDuration = 24 * time.Hour
 }

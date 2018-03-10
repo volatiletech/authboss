@@ -1,492 +1,519 @@
 <img src="http://i.imgur.com/fPIgqLg.jpg"/>
 
-Authboss
-========
+<!-- TOC -->
 
-[![GoDoc](https://godoc.org/github.com/volatiletech/authboss?status.svg)](https://godoc.org/github.com/volatiletech/authboss) [![Build Status](https://circleci.com/gh/go-authboss/authboss.svg?style=shield&circle-token=:circle-token)](https://circleci.com/gh/go-authboss/authboss) [![Coverage Status](https://coveralls.io/repos/go-authboss/authboss/badge.svg?branch=master)](https://coveralls.io/r/go-authboss/authboss?branch=master) [![Gitter](https://badges.gitter.im/Join%20Chat.svg)](https://gitter.im/go-authboss/authboss?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge)
+- [Authboss](#authboss)
+- [Why use Authboss?](#why-use-authboss)
+- [Getting Started](#getting-started)
+    - [App Requirements](#app-requirements)
+        - [CSRF Protection](#csrf-protection)
+        - [Request Throttling](#request-throttling)
+    - [Integration Requirements](#integration-requirements)
+        - [Middleware](#middleware)
+        - [Configuration](#configuration)
+        - [Storage and Core implementations](#storage-and-core-implementations)
+        - [ServerStorer implementation](#serverstorer-implementation)
+        - [User implementation](#user-implementation)
+        - [Values implementation](#values-implementation)
+    - [Config](#config)
+        - [Paths](#paths)
+        - [Modules](#modules)
+        - [Mail](#mail)
+        - [Storage](#storage)
+        - [Core](#core)
+- [Available Modules](#available-modules)
+- [Middlewares](#middlewares)
+- [Use Cases](#use-cases)
+    - [Get Current User](#get-current-user)
+    - [Reset Password](#reset-password)
+    - [User Auth via Password](#user-auth-via-password)
+    - [User Auth via OAuth2](#user-auth-via-oauth2)
+    - [User Registration](#user-registration)
+    - [Confirming Registrations](#confirming-registrations)
+    - [Password Recovery](#password-recovery)
+    - [Remember Me](#remember-me)
+    - [Locking Users](#locking-users)
+    - [Expiring User Sessions](#expiring-user-sessions)
 
-Authboss is a modular authentication system for the web. It tries to remove as much boilerplate and "hard things" as possible so that
-each time you start a new web project in Go, you can plug it in, configure, and start building your app without having to build an
-authentication system each time. This reduces the potential for mistakes since authentication is not exactly trivial and should hopefully
-be generic enough to be plugged into all sorts of different web applications.
+<!-- /TOC -->
 
-Note on Roadmap (v2)
-========
+# Authboss
 
-It's been a long time since Authboss has been released, and there have been a lot of developments in Go as well as the community
-and package management we'd like to take advantage of. There are several large refactorings that we think will make authboss
-much cleaner and as a result easier to maintain as well (and maybe get some higher test coverage). So with that we're beginning
-the v2 effort. Here's some of the things you can expect in terms of features and areas of concentration:
+[![GoDoc](https://godoc.org/github.com/volatiletech/authboss?status.svg)](https://godoc.org/github.com/volatiletech/authboss)
+[![Build Status](https://circleci.com/gh/volatiletech/authboss.svg?style=shield&circle-token=:circle-token)](https://circleci.com/gh/volatiletech/authboss)
+[![Coverage Status](https://coveralls.io/repos/volatiletech/authboss/badge.svg?branch=master)](https://coveralls.io/r/volatiletech/authboss?branch=master)
+[![Mail](https://img.shields.io/badge/mail%20list-authboss-lightgrey.svg)](https://groups.google.com/a/volatile.tech/forum/#!forum/authboss)
 
-- JWT style auth for JS-based pages
-- Cleaner separation of view from logic
-- Storer rewrite
-- Go 1.7 context usage
+Authboss is a modular authentication system for the web.
 
-As far as the project goes this is how it will be managed:
+It has several modules that represent authentication and authorization features that are common
+to websites in general so that you can enable as many as you need, and leave the others out.
+It makes it easy to plug in authentication to an application and get a lot of functionality
+for (hopefully) a smaller amount of integration effort.
 
-- The current master HEAD will be available as v1.0.0
-- No new features will be put in v1 branch, only critical bugfixes (life support only)
-- v1 will be removed 6 months after the release of v2
-- v2 will leave gopkg.in for proper Semantic versioning + vendoring
-    - This change means that everyone should start using govendor/glide/godep to manage authboss v2
+# Why use Authboss?
 
-Modules
-========
-Each module can be turned on simply by importing it and the side-effects take care of the rest. Not all the capabilities
-of authboss are represented by a module, see [use cases](#use_cases) to view the supported use cases as well as how to
-use them in your app.
+Every time you'd like to start a new web project, you really want to get to the heart of what you're
+trying to accomplish very quickly and it would be a sure bet to say one of the systems you're excited
+about implementing and innovating on is not authentication. In fact it's very much the opposite: it's
+one of those things that you have to do and one of those things you loathe to do. Authboss is supposed
+to remove a lot of the tedium that comes with this, as well as a lot of the chances to make mistakes.
+This allows you to care about what you're intending to do, rather than on ancillary support systems
+to make it happen.
 
-Name           | Import Path                                                                                         | Description
----------------|-----------------------------------------------------------------------------------------------------|------------
-Auth           | [github.com/volatiletech/authboss/auth](https://github.com/volatiletech/authboss/tree/master/auth)           | Provides database password authentication for users.
-Confirm        | [github.com/volatiletech/authboss/confirm](https://github.com/volatiletech/authboss/tree/master/confirm)         | Sends an e-mail verification before allowing users to log in.
-Lock           | [github.com/volatiletech/authboss/lock](https://github.com/volatiletech/authboss/tree/master/lock)               | Locks user accounts after N authentication failures in M time.
-OAuth2         | [github.com/volatiletech/authboss/oauth2](https://github.com/volatiletech/authboss/tree/master/oauth2)           | Provides oauth2 authentication for users.
-Recover        | [github.com/volatiletech/authboss/recover](https://github.com/volatiletech/authboss/tree/master/recover)         | Allows for password resets via e-mail.
-Register       | [github.com/volatiletech/authboss/register](https://github.com/volatiletech/authboss/tree/master/register)       | User-initiated account creation.
-Remember       | [github.com/volatiletech/authboss/remember](https://github.com/volatiletech/authboss/tree/master/remember)       | Persisting login sessions past session cookie expiry.
+Here are a few bullet point reasons you might like to try it out:
 
-Getting Started
-===============
+* Saves you time (Authboss integration time should be less than re-implementation time)
+* Saves you mistakes (at least using Authboss, people can bug fix as a collective and all benefit)
+* Should integrate with or without any web framework
 
-Install the library and import it:
+# Getting Started
 
+To get started with Authboss in the simplest way, is to simply create a Config, populate it
+with the things that are required, and start implementing [use cases](#use_cases). The use
+cases describe what's required to be able to be able to use a particular piece of functionality,
+or the best practice when implementing a piece of functionality. Please note the
+[app requirements](#app_requirements) for your application as well
+[integration requirements](#integration_requirements) that follow.
+
+Of course the standard practice of fetching the library is just the beginning:
+
+```bash
+# Get the latest, keep in mind you should be vendoring with dep or using vgo at this point
+# To ensure versions don't get messed up underneath you
+go get -u github.com/volatiletech/authboss
 ```
-go get github.com/volatiletech/authboss
-```
 
-After that a good place to start in any Authboss implementation is the [configuration struct](http://godoc.org/github.com/volatiletech/authboss#Config).
-There are many defaults setup for you but there are some elements that must be provided.
-to find out what is configurable view the documentation linked to above, each struct element
-is documented.
-
-**Required options:**
-- Storer or OAuth2Storer (for user storage)
-- SessionStoreMaker (for flash messages, having a user logged in)
-- CookieStoreMaker (for remember me cookies)
-- XSRFName/XSRFMaker (for generating xsrf tokens to prevent xsrf attacks in authboss forms)
-
-**Recommended options:**
-- LogWriter: This is where authboss will log it's errors, as well as put status information on startup.
-- MountPath: If you are mounting the authboss paths behind a certain path like /auth
-- ViewsPath: Views to override the default authboss views go here (default: ./)
-- Mailer: If you use any modules that make use of e-mails, this should be set.
-- EmailFrom: The e-mail address you send your authboss notifications from.
-- RootURL: This should be set if you use oauth2 or e-mails as it's required for generating URLs.
-- ErrorHandler/NotFoundHandler/BadRequestHandler: You should display something that makes sense for your app with these.
-
-The amount of code necessary to start and configure authboss is fairly minimal, of course this is excluding
-your storer, cookie storer, session storer, xsrf maker implementations.
+Here's a bit of starter code that was stolen from the sample.
 
 ```go
-ab := authboss.New() // Usually store this globally
-ab.MountPath = "/authboss"
-ab.LogWriter = os.Stdout
+ab := authboss.New()
+
+ab.Config.Storage.Server = myDatabaseImplementation
+ab.Config.Storage.SessionState = mySessionImplementation
+ab.Config.Storage.CookieState = myCookieImplementation
+
+ab.Config.Paths.Mount = "/authboss"
+ab.Config.Paths.RootURL = "https://www.example.com/"
+
+// This is using the renderer from: github.com/volatiletech/authboss
+ab.Config.Core.ViewRenderer = abrenderer.New("/auth")
+// Probably want a MailRenderer here too.
+
+// Set up defaults for basically everything besides the ViewRenderer in the HTTP stack
+defaults.SetDefaultCore(&ab.Config, false)
 
 if err := ab.Init(); err != nil {
-	// Handle error, don't let program continue to run
-	log.Fatalln(err)
+    panic(err)
 }
 
-// Make sure to put authboss's router somewhere
-http.Handle("/authboss", ab.NewRouter())
-http.ListenAndServe(":8080", nil)
-```
-
-Once you've got this code set up, it's time to implement the use cases you care about.
-
-<a name="use_cases"></a>Use Cases
-=================================
-- Get the logged in user ([goto](#current_user))
-- Reset a User's password ([goto](#reset_password))
-- User authentication via password ([goto](#auth))
-- User authentication via OAuth2 ([goto](#oauth2))
-- User registration ([goto](#register))
-- Confirming registrations via e-mail ([goto](#confirm))
-- Password recovery via e-mail ([goto](#recover))
-- Persisting login sessions past session expiration ([goto](#remember))
-- Locking user accounts after so many authentication failures ([goto](#lock))
-- Expiring user sessions after inactivity ([goto](#expire))
-- Form Field validation for Authboss forms ([goto](#validation))
-- Redirect after authboss route (login/logout/oauth etc.) ([goto](#redirecting))
-
-<a name="how_to"></a>How To
-============================
-
-There is a full implementation of authboss at: https://github.com/volatiletech/authboss-sample
-This sample implements a blog with all of the modules with exception that it doesn't use the expiry middleware
-since it conflicts with the remember module.
-
-## <a name="current_user"></a>Get the logged in User
-
-The current user should always be retrieved through the methods authboss.CurrentUser and authboss.CurrentUserP (panic version).
-The reason for this is because they do checking against Remember me tokens and differentiate between normal and oauth2 logins.
-
-The interface{} returned is actually your User struct (see: [Storers](#storers)) and you can convert it if it's not nil.
-
-```go
-func (a *Authboss) CurrentUser(w http.ResponseWriter, r *http.Request) (interface{}, error)
-```
-
-Return Values        | Meaning
----------------------|--------------------------------------------------------------
-nil, nil             | The session had no user ID in it, no remember token, no user.
-nil, ErrUserNotFound | Session had user ID, but user not found in database.
-nil, err             | Some horrible error has occurred.
-user struct, nil     | The user is logged in.
-
-## <a name="reset_password"></a>Reset a User's password
-
-Because on password reset various cleanings need to happen (for example Remember Me tokens
-should all be deleted) setting the user's password yourself is not a good idea.
-
-Authboss has the [UpdatePassword](http://godoc.org/github.com/volatiletech/authboss#Authboss.UpdatePassword) method for you to use. Please consult it's documentation
-for a thorough explanation of each parameter and usage.
-
-```go
-func (a *Authboss) UpdatePassword(w http.ResponseWriter, r *http.Request, ptPassword string, user interface{}, updater func() error) error
-```
-
-An example usage might be:
-
-```go
-myUserSave := func() error {
-	_, err := db.Exec(`update user set name = $1, password = $2 where id = $3`, user.Name, user.Password, user.ID)
-	return err
-}
-
-// WARNING: Never pass the form value directly into the database as you see here :D
-err := ab.UpdatePassword(w, r, r.FormValue("password"), &user1, myUserSave)
-if err != nil {
-	// Handle error here, in most cases this will be the error from myUserSave
-}
+// Mount the router to a path (this should be the same as the Mount path above)
+// mux in this example is a chi router, but it could be anything that can route to
+// the Core.Router.
+mux.Mount("/authboss", http.StripPrefix("/authboss", ab.Config.Core.Router))
 
 ```
 
-## <a name="auth"></a>User Authentication via Password
-**Requirements:**
-- Auth module ([github.com/volatiletech/authboss/auth](https://github.com/volatiletech/authboss/tree/master/auth))
-- [Storer](#storers)
-- [Session Storer](#client_storers)
-- [Views](#views)
-
-**Storage Requirements:**
-- Email OR Username (string)
-- Password (string)
-
-**How it works:** A route is registered for an authentication page. Link to the route, the user follows this link.
-The Layout and the authboss login view is displayed. The user enters their credentials then the user credentials are verified. The storer will pull back the user and verify that the bcrypted password is correct, then log him in using
-a session cookie and redirect him to the AuthLoginOKPath.
-
-Another link is created for a logout. Simply link/redirect the user to this page and the user will be logged out.
-
-## <a name="oauth2"></a> User Authentication via OAuth2
-**Requirements:**
-- OAuth2 module ([github.com/volatiletech/authboss/oauth2](https://github.com/volatiletech/authboss/tree/master/oauth2))
-- [OAuth2Storer](#storers)
-- OAuth2Providers
-- [Session and Cookie Storers](#client_storers)
-
-**Storage Requirements:**
-- Oauth2Uid (string)
-- Oauth2Provider (string)
-- Oauth2Token (string)
-- Oauth2Refresh (string)
-- Oauth2Expiry (time.Time)
-
-**How it works:** Routes are registered for each oauth2 provider you specify in the OAuth2Providers configuration.
-You redirect the user to one of these initial routes (/mount_path/oauth2/providername) and the oauth2 module
-will ensure the user logs in and receives a token. It then calls the Callback you specify in your OAuth2Provider
-inside the config, this is responsible for returning various information, please see the docs for [OAuth2Provider](http://godoc.org/github.com/volatiletech/authboss#OAuth2Provider).
-Once the callback is complete, the user is saved in the database, and logged in using the session.
-
-Please note that in order to redirect to specific URLs or have the user use the remember module for oauth2 logins you must pass
-query parameters in the initial route.
-
-```go
-params := url.Values{}
-params.Set(authboss.CookieRemember, "true")
-params.Set(authboss.FormValueRedirect, `/my/redirect/path`)
-uri := `/authboss_mount_path/oauth2/google?` + params.Encode()
-
-// Use uri to create a link for the user to log in with Google oauth2 in a template
-// <a href="{{.googleOAuthUri}}">Log in with Google!</a>
-```
-
-**Examples:**
-- [OAuth2Providers](https://github.com/volatiletech/authboss-sample/blob/master/blog.go#L57)
-- [Writing a custom OAuth2Provider Callback](https://github.com/volatiletech/authboss/blob/master/oauth2/providers.go#L29)
-
-## <a name="register"></a> User Registration
-**Requirements:**
-- Register module ([github.com/volatiletech/authboss/register](https://github.com/volatiletech/authboss/tree/master/register))
-- [RegisterStorer](#storers)
-- [Session Storer](#client_storers)
-- [Views](#views)
-
-**Storage Requirements:**
-- Email OR Username (string)
-- Password (string)
-
-**How it works:** User is linked to registration page, the Layout and Registration view are rendered.
-When the form is submitted, the policies are checked to ensure validation of all form fields (including any custom ones created
-by overridden views). The password is bcrypt'd and the user is stored. If the confirm module has been loaded
-the user will be redirected to the RegisterOKPath with a message telling them to check their e-mail and an e-mail will have been
-sent. If the module is not loaded they will be automatically logged in after registration.
-
-See also: [Validation](#validation)
-
-## <a name="confirm"></a> Confirming Registrations
-**Requirements:**
-- Register module ([github.com/volatiletech/authboss/register](https://github.com/volatiletech/authboss/tree/master/register))
-- Confirm module ([github.com/volatiletech/authboss/confirm](https://github.com/volatiletech/authboss/tree/master/confirm))
-- [RegisterStorer](#storers)
-- [Session and Cookie Storers](#client_storers)
-- [Views](#views)
-
-**Storage Requirements:**
-- Email (string)
-- ConfirmToken (string)
-- Confirmed (bool)
-
-**How it works:** After registration, the user will be informed they have an e-mail waiting for them. They click the link
-provided in the e-mail and their account becomes confirmed, they will automatically be logged in and redirected to RegisterOKPath.
-
-## <a name="recover"></a> Password Recovery
-**Requirements:**
-- Recover module ([github.com/volatiletech/authboss/recover](https://github.com/volatiletech/authboss/tree/master/recover))
-- [RecoverStorer](#storers)
-- [Session Storer](#client_storers)
-- [Views](#views)
-
-**Storage Requirements:**
-- RecoverToken (string)
-- RecoverTokenExpiry (time.Time)
-
-**How it works:** The user goes to the password recovery page. They then enter their primary ID two times and press recover.
-An e-mail is sent to the user that includes a token that expires after some time. The user clicks the link
-in the e-mail and is prompted to enter a new password. Once the password they enter passes all policies
-their new password is stored, they are logged in and redirected to the RecoverOKPath.
-
-## <a name="remember"></a> Remember Me (persistent login)
-**Requirements:**
-- Remember module ([github.com/volatiletech/authboss/remember](https://github.com/volatiletech/authboss/tree/master/remember))
-- [RememberStorer](#storers)
-- [Session and Cookie Storers](#client_storers)
-
-**Storage Requirements:**
-
-A separate table/Nested Array containing many tokens for any given user
-- Token (string)
-
-**RememberStorer:** A remember storer is an interface that must be satisfied by one of the authboss.Cfg.Storer or authboss.Cfg.OAuth2Storer if
-neither satisfies the requirement the module will fail to load.
-
-**How it works:** When the authentication form is submitted if the form value rm is set to "true" the remember module will automatically
-create a remember token for the user and set this in the database as well as in a cookie. As for OAuth2 logins, it will look for
-an encoded state parameter that is automatically included by simply passing rm=true in the query arguments to the initial oauth2 login
-url ([see OAuth2](#oauth2) for more details).
-
-If the user is not logged in and the CurrentUser method is called remember module will look for a token in the request and
-attempt to use this to log the user in. If a valid token is found the user is logged in and receives a new token and the old one is deleted.
-
-If a user recovers their password using the recover module, all remember me tokens are deleted for that user.
-
-**Half Auth:** A session value with the name in the constant authboss.SessionHalfAuth will be set to "true" if the session was created
-by a half-auth. Doing a full log in using the auth or oauth2 modules ensure this value is cleared. You should be careful about providing access
-to pages with sensitive information if this value is true in the session, and force a full auth in these situations.
-
-## <a name="lock"></a> Locking Accounts for Authentication Failures
-**Requirements:**
-- Lock module ([github.com/volatiletech/authboss/lock](https://github.com/volatiletech/authboss/tree/master/lock))
-- [Storer](#storers)
-
-**Storage Requirements:**
-- AttemptNumber (int64)
-- AttemptTime (time.Time)
-- Locked (time.Time)
-
-**How it works:** When a user fails authentication the attempt time is stored as well as the number of attempts being set to one.
-If the user continues to fail authentication in the timeframe of AttemptTime + LockWindow
-then the attempt number will continue to increase. Once the account number reaches the configured LockAfter amount the account will become
-locked for the configured LockDuration. After this duration the user will be able to attempt to log in again.
-
-## <a name="expire"></a> Expiring Inactive User Sessions
-**Requirements:**
-- [ExpireMiddleware](http://godoc.org/github.com/volatiletech/authboss#Authboss.ExpireMiddleware)
-- [Session Storer](#client_storers)
-
-**How it works:** A middleware is installed into the stack. This middleware uses the session to log the last action time of the user.
-If the last action occurred longer than the configured expire time ago then the users login session will be deleted.
-
-```go
-mux := mux.NewRouter() // Gorilla Mux syntax
-http.ListenAndServe(":8080", ab.ExpireMiddleware(mux)) // Install the middleware
-```
+For a more in-depth look you **must** look at the authboss sample to see what a full implementation
+looks like. This will probably help you more than anything.
 
-## <a name="validation"></a> Validation
+[github.com/volatiletech/authboss-sample](https://github.com/volatiletech/authboss-sample)
 
-**Field validation:** Validation is achieved through the use of policies. These policies are in the configuration. They can be added for any field.
-Any type can be used for validation that implements the Validator interface. Authboss supplies a quite flexible field validator called
-[Rules](http://godoc.org/github.com/volatiletech/authboss#Rules) that you can use instead of writing your own. Validation errors are reported and
-handled all in the same way, and the view decides how to display these to the user. See the examples or the authboss default view files to see
-how to display errors.
+## App Requirements
 
-```go
-ab.Policies = []Validator{
-	authboss.Rules{
-		FieldName:       "username",
-		Required:        true,
-		MinLength:       2,
-		MaxLength:       4,
-		AllowWhitespace: false,
-	},
-}
-```
+Authboss does a lot of things, but it doesn't do some of the important things that are required by
+a typical authentication system, because it can't guarantee that you're doing many of those things
+in a different way already, so it punts the responsibility.
 
-**Confirmation fields:** To ensure one field matches a confirmation field, such as when registering and entering a password. Simply add
-the field to the list of ConfirmFields, where each real entry in the array is two entries, the first being the name of the field to be confirmed
-and the second being the name of the confirm field. These confirm fields are only used on the register page, and by default only has password but
-you can add others.
+### CSRF Protection
 
-```go
-ab.ConfirmFields: []string{
-	StorePassword, ConfirmPrefix + StorePassword,
-},
-```
+What this means is you should apply a middleware that can protect the application from crsf
+attacks or you may be vulnerable. Authboss previously handled this but it took on a dependency
+that was unnecessary and it complicated the code. Because Authboss does not render views nor
+consumes data directly from the user, it no longer does this.
 
-## <a name="redirecting"></a> Redirecting after Authboss routes
-
-Sometimes you want your web application to authenticate a user and redirect him back
-to where he came from, or to a different page. You can do this by passing the "redir" query parameter
-with a path to whatever URL you'd like. For example:
-
-```html
-<a href="/auth/login?redir=/userprofile">Login</a>
-```
-
-These redirection paths only occur on success paths currently, although this may change in the future.
-
-## <a name="storers"></a> Implementing Storers
-Authboss makes no presumptions about how you want to store your data. While different web frameworks have their own authentication plugins
-such as passport or devise, Go has so no such standard framework and therefore we cannot make any of these assumptions and data handling
-is a bit more manual.
+### Request Throttling
 
-There are three parts to storage: Storer interfaces, User Struct, Binding/Unbinding.
-
-#### Storer Interfaces
-
-- [Storer](http://godoc.org/github.com/volatiletech/authboss#Storer)
-- [OAuth2Storer](http://godoc.org/github.com/volatiletech/authboss#OAuth2Storer)
-- [ConfirmStorer](http://godoc.org/github.com/volatiletech/confirm#ConfirmStorer)
-- [RecoverStorer](http://godoc.org/github.com/volatiletech/recover#RecoverStorer)
-- [RegisterStorer](http://godoc.org/github.com/volatiletech/register#RegisterStorer)
-- [RememberStorer](http://godoc.org/github.com/volatiletech/remember#RememberStorer)
-
-Each of the store interfaces provides some amount of functionality to a module. Without the appropriate storer type the module cannot function.
-Most of these interfaces simply do look ups on the user based on different field. Some of them like the RememberStorer are more special in their
-functionality.
-
-You can see an example here: [Blog Storer](https://github.com/volatiletech/authboss-sample/blob/master/storer.go).
-This storer implements all 6 of the Storer Interfaces. If you don't use as many modules as the blog, you don't need to implement all of these methods.
-
-Most of the methods return an (interface{}, error), the interface{} user struct that is described below. In cases where the queries produce no values (ie no user found),
-special error values are returned, ErrUserNotFound and ErrTokenNotFound. Please consult the documentation for each Storer interface for more information
-on what you should be returning in each situation.
-
-#### User Struct
-
-The idea is to create a struct that matches Authboss's storage requirements so that it can be easily serialized from and to using reflection available
-through the methods: authboss.Attributes.Bind(), and authboss.Unbind(). These methods use a camel-case naming convention and do not have struct tags for
-naming control (yet). Oauth2Uid in the struct -> "oauth2_uid" in the attributes map and vice versa. Bind() uses reflection to set attributes so the user
-struct should be returned from storer methods as a pointer.
-
-**Fields:** Each module in authboss has storage requirements. These are listed in the documentation but also at runtime authboss.ModuleAttributes is
-available to list out each required field. The fields must be named appropriately and of the correct type.
-
-**Choose a PrimaryID:** Email or Username can be selected for a primary id for the user (default email). This must be a unique field in the data store
-and must be set to the Authboss configuration's PrimaryID, you can use authboss.StoreEmail and authboss.StoreUsername constants
-to set it appropriately. Keep in mind that you can have both of these fields if you choose, but only one will be used
-to log in with. Systems that wish to use Username should consider keeping e-mail address to allow the rest of the modules
-that require email such as recover or confirm to function.
-
-#### Binding/Unbinding
-
-In your Create/Put/PutOAuth methods you will be handed an authboss.Attributes type. You can manually work with this type, and there are
-many helper methods available but by far the easiest way is to simply pass in a correct user struct to it's .Bind() method. See examples below. In any type of Get
-methods, the user struct should be filled with data, and passed back through the interface{} return parameter. authboss.Unbind() will be called on this struct to
-extract it's data into authboss.Attributes, which is used for all authboss operations, and later Put will be called with the updated attributes for you to save them again.
-
-#### Examples
-
-- [Storer & OAuth2Storer combined](https://github.com/volatiletech/authboss-sample/blob/master/storer.go)
-
-## <a name="client_storers"></a> Implementing Client Storers
-
-[ClientStorer Interface](http://godoc.org/gopkg.in/remember/authboss.v1#ClientStorer)
-
-ClientStorer's encapsulate the functionality of cookies for the web application. The session storer is for session data, the cookie storer is actually
-only used for the remember tokens so it should create cookies of very long durations (however long you want your users remembered for).
-
-These are simple to implement and the following examples should show exactly what needs to be done. If you're using gorilla toolkit you can copy
-these examples almost verbatim.
-
-Keep in mind that these need not be only cookie-based, any storage medium that can reliably take a request/response pair and store session/client data
-can be used. You could insert a redis backend here if you like that approach better than just cookies.
-
-**Examples:**
-- [Session Storer](https://github.com/volatiletech/authboss-sample/blob/master/session_storer.go)
-- [Cookie Storer](https://github.com/volatiletech/authboss-sample/blob/master/cookie_storer.go)
-
-## <a name="views"></a> Views
-The view system in Authboss uses Go templates with the concepts of layout/views to render HTML to the user. It uses the authboss.HTMLData type
-to pass data into templates. This HTMLData type has some helpers to merge different values in.
-
-**ViewData:** There is a LayoutDataMaker function that should be defined in the config to provide any layout data (titles, additional data) for rendering authboss views.
-This should typically include the keys: authboss.FlashSuccessKey, authboss.FlashErrorKey to display error and success messages from Authboss.
-
-```go
-// Example LayoutDataMaker
-func layoutData(w http.ResponseWriter, r *http.Request) authboss.HTMLData {
-	userInter, err := ab.CurrentUser(w, r)
-
-	return authboss.HTMLData{
-		"loggedin":               userInter != nil,
-		authboss.FlashSuccessKey: ab.FlashSuccess(w, r),
-		authboss.FlashErrorKey:   ab.FlashError(w, r),
-	}
-}
-```
-
-**Layouts:** There are 3 layouts to provide, these are specified in the configuration and you must load them yourself (using template.New().Parse() etc).
-Each of these layouts should have a template defined within them like so: {{template "authboss" .}} if you are going to use this layout for other pages
-that are not authboss-related, you can use an empty define at the end to prevent errors when the authboss template has not been provided: {{define "authboss"}}{{end}}
-- Layout (for html/views)
-- LayoutEmailHTML (for HTML e-mails)
-- LayoutEmailText (for Text e-mails)
-
-**Overriding Default Views:** The default authboss views are loaded automatically, they can be overridden simply by specifying the ViewPath (default ./) in the configuration
-and placing files with the correct names in that directory.
-
-Overiddable views are:
-
-View                      | Name
---------------------------|--------------------------
-Login Page                | login.html.tpl
-Register Page             | register.html.tpl
-Recover Page              | recover.html.tpl
-Recover New Password      | recover_complete.html.tpl
-Confirmation Email (html) | confirm_email.html.tpl
-Confirmation Email (txt)  | confirm_email.txt.tpl
-Recover Email (html)      | recover_email.html.tpl
-Recover Email (txt)       | recover_email.txt.tpl
-
-[Example Layout Configuration](https://github.com/volatiletech/authboss-sample/blob/master/blog.go#L47)
-
-**Example Overriden Templates:**
-- [Layout](https://github.com/volatiletech/authboss-sample/blob/master/views/layout.html.tpl)
-- [Login](https://github.com/volatiletech/authboss-sample/blob/master/ab_views/login.html.tpl)
-- [Recover](https://github.com/volatiletech/authboss-sample/blob/master/ab_views/recover.html.tpl)
-- [Recover New Password](https://github.com/volatiletech/authboss-sample/blob/master/ab_views/recover_complete.html.tpl)
-- [Register](https://github.com/volatiletech/authboss-sample/blob/master/ab_views/register.html.tpl)
+Currently Authboss is vulnerable to brute force attacks because there are no protections on
+it's endpoints. This again is left up to the creator of the website to protect the whole website
+at once (as well as Authboss) from these sorts of attacks.
+
+## Integration Requirements
+
+In terms of integrating Authboss into your app, the following things must be considered.
+
+### Middleware
+
+There is also middlewares that are required to be installed in your middleware stack if it's
+all to function properly, please see [Middlewares](#Middlewares) for more information.
+
+### Configuration
+
+There are some required configuration variables:
+
+* Config.Paths.Mount
+* Config.Paths.RootURL
+
+### Storage and Core implementations
+
+Everything under Config.Storage and Config.Core are required. however you can optionally use default 
+implementations from the [defaults package](https://github.com/volatiletech/authboss/defaults).
+This also provides an easy way to share implementations of certain web parts (like HTML Form Parsing).
+
+The following is a list of storage interfaces, they must be provided by the user. Server is a
+very involved implementation, please see the additional documentation below for more details.
+
+* Config.Storage.Server
+* Config.Storage.SessionState
+* Config.Storage.CookieState (only for remember me)
+
+The following is a list of the core pieces, these typically are abstracting the HTTP stack.
+
+* Config.Core.Router
+* Config.Core.ErrorHandler
+* Config.Core.Responder
+* Config.Core.Redirector
+* Config.Core.BodyReader
+* Config.Core.ViewRenderer
+* Config.Core.MailRenderer
+* Config.Core.Mailer
+* Config.Core.Logger
+
+### ServerStorer implementation
+
+The [ServerStorer](https://godoc.org//github.com/volatiletech/authboss/#ServerStorer) is a
+flexible meant to be upgraded to add capabilities depending on what modules you'd like to use.
+It starts out by only knowing how to save and load users, but the `remember` module as an example
+needs to be able to find users by remember me tokens so it can upgrade to a
+[RememberingServerStorer](https://godoc.org/github.com/volatiletech/authboss/#RememberingServerStorer)
+which adds these abilities.
+
+Your serverstorer implementation does not need to implement all these additional user interfaces
+unless you're using a module that requires it. See the [Use Cases](#use_cases) documentation to know what the requirements are.
+
+### User implementation
+
+Users in Authboss are represented by the
+[User interface](https://godoc.org//github.com/volatiletech/authboss/#User). The user
+interface is a flexible notion, because it can be upgraded to suit the needs of the various modules.
+
+Initially the User must only be able to Get/Set a `PID` or primary identifier. This allows the authboss
+modules to know how to refer to him in the database. The `ServerStorer` also makes use of this
+to save/retrieve users.
+
+As mentioned, it can be upgraded, for example suppose now we want to use the `confirm` module,
+in that case the e-mail address now becomes a requirement. So the `confirm` module will attempt
+to upgrade the user (and panic if it fails) to a
+[ConfirmableUser](https://godoc.org//github.com/volatiletech/authboss/#ConfirmableUser)
+which supports retrieving and setting of confirm tokens, e-mail addresses, and a confirmed state.
+
+Your user struct does not need to implement all these additional user interfaces unless you're
+using a module that requires it. See the [Use Cases](#use_cases) documentation to know what the
+requirements are.
+
+### Values implementation
+
+The `BodyReader` interface in the Config returns
+[Validator](https://godoc.org//github.com/volatiletech/authboss/#Validator) implementations
+which can be validated. But much like the user can be upgraded to fulfill different properties.
+
+Typically the way this will look as an implementation is to check the page being requested, switch on that to parse the body in whatever way (msgpack, json, url-encoded, doesn't matter), and produce
+a struct that has the ability to `Validate` it's data as well as functions to retrieve the data
+necessary for the particular valuer required by the module.
+
+Your body reader implementation does not need to implement all valuer types unless you're
+using a module that requires it. See the [Use Cases](#use_cases) documentation to know what the
+requirements are.
+
+## Config
+
+The config struct is an important part of Authboss. It's the key to making Authboss do what you
+want with the implementations you want. Please look at it's code definition as you read the
+documentation below, it will make much more sense.
+
+[Config Struct Documentation](https://godoc.org/github.com/volatiletech/authboss/#Config) 
+
+### Paths
+
+Paths are the paths that should be redirected to or used in whatever circumstance they describe.
+Two special paths that are required are `Mount` and `RootURL`, without which certain authboss
+modules will not function correctly.
+
+### Modules
+
+Modules are module specific configuration options. They mostly control the behavior of modules.
+For example RegisterPreserveFields decides a whitelist of fields to allow back into the data
+to be re-rendered so the user doesn't have to type them in again.
+
+### Mail
+
+Mail sending related options.
+
+### Storage
+
+These are the implementations of how storage on the server and the client are done in your
+app. There are no default implementations for these at this time. See the Godoc for more information
+about what these are.
+
+### Core
+
+These are the implementations of the HTTP stack for your app. How do responses render? How are
+they redirected? How are errors handled?
+
+For most of these there are default implementations implementations from the
+[defaults package](https://github.com/volatiletech/authboss/defaults) available, but not for all.
+See the package documentation for more information about these interfaces.
+
+# Available Modules
+
+Each module can be turned on simply by importing it and the side-effects take care of the rest.
+Not all the capabilities of authboss are represented by a module, see [Use Cases](#use_cases)
+to view the supported use cases as well as how to use them in your app.
+
+Name     | Import Path                               | Description
+---------|-------------------------------------------|------------
+Auth     | github.com/volatiletech/authboss/auth     | Provides database password authentication for users.
+Confirm  | github.com/volatiletech/authboss/confirm  | Sends an e-mail verification before allowing users to log in.
+Expire   | github.com/volatiletech/authboss/expire   | Expires a user's login
+Lock     | github.com/volatiletech/authboss/lock     | Locks user accounts after N authentication failures in M time.
+Logout   | github.com/volatiletech/authboss/logout   | Destroys user sessions for auth/oauth2.
+OAuth2   | github.com/volatiletech/authboss/oauth2   | Provides oauth2 authentication for users.
+Recover  | github.com/volatiletech/authboss/recover  | Allows for password resets via e-mail.
+Register | github.com/volatiletech/authboss/register | User-initiated account creation.
+Remember | github.com/volatiletech/authboss/remember | Persisting login sessions past session cookie expiry.
+
+# Middlewares
+
+The only middleware that's truly required is the LoadClientStateMiddleware, and that's because it
+enables session and cookie handling for Authboss. Without that, it's not a very useful piece of
+software.
+
+The remaining middlewares are either the implementation of an entire module (like expire),
+or a key part of a module. For example you probably wouldn't want to use the lock module
+without the middleware that would stop a locked user from using an authenticated resource,
+because then locking wouldn't be useful unless of course you had your own way of dealing
+with locking, which is why it's only recommended, and not required. Typically you will
+use the middlewares if you use the module.
+
+Name | Requirement | Description
+---- | ----------- | -----------
+[LoadClientStateMiddleware](https://godoc.org/github.com/volatiletech/authboss/#Authboss.LoadClientStateMiddleware) | **Required** | Enables cookie and session handling
+[confirm.Middleware](https://godoc.org/github.com/volatiletech/authboss/confirm/#Middleware) | Recommended with confirm | Ensures users are confirmed or rejects request
+[expire.Middleware](https://godoc.org/github.com/volatiletech/authboss/expire/#Middleware) | **Required** with expire | Expires user sessions after an inactive period
+[lock.Middleware](https://godoc.org/github.com/volatiletech/authboss/lock/#Middleware) | Recommended with lock | Rejects requests from clients logged in as a locked user
+[remember.Middleware](https://godoc.org/github.com/volatiletech/authboss/remember/#Middleware) | Recommended with remember | Logs a user in from a remember cookie
+
+
+# Use Cases
+
+## Get Current User
+
+CurrentUser can be retrieved by calling
+[Authboss.CurrentUser](https://godoc.org/github.com/volatiletech/authboss/#Authboss.CurrentUser)
+but a pre-requisite is that
+[Authboss.LoadClientState](https://godoc.org/github.com/volatiletech/authboss/#Authboss.LoadClientState)
+has been called first to load the client state into the request context. This is typically achieved by
+using the 
+[Authboss.LoadClientStateMiddleware](https://godoc.org/github.com/volatiletech/authboss/#Authboss.LoadClientStateMiddleware), but can
+be done manually as well.
+
+## Reset Password
+
+Updating a user's password is non-trivial for several reasons:
+
+1. The bcrypt algorithm must have the correct cost, and also be being used.
+1. The user's remember me tokens should all be deleted so that previously authenticated sessions are invalid
+1. Optionally the user should be logged out (**not taken care of by UpdatePassword**)
+
+In order to do this, we can use the
+[Authboss.UpdatePassword](https://godoc.org/github.com/volatiletech/authboss/#Authboss.UpdatePassword)
+method. This ensures the above facets are taken care of.
+
+If it's also desirable to have the user logged out, please use the following methods to erase
+all known sessions and cookies from the user.
+
+* [authboss.DelKnownSession](https://godoc.org//github.com/volatiletech/authboss/#DelKnownSession)
+* [authboss.DelKnownCookie](https://godoc.org//github.com/volatiletech/authboss/#DelKnownCookie)
+
+## User Auth via Password
+
+| Info and Requirements |          |
+| --------------------- | -------- |
+Module        | auth
+Pages         | login
+Emails        | _None_
+Middlewares   | LoadClientStateMiddleware 
+ClientStorage | Session and Cookie
+ServerStorer  | ServerStorer (basic)
+User          | AuthableUser
+Values        | UserValuer
+Mailer        | _None_
+
+To enable this side-effect import the auth module, and ensure that the requirements above are met.
+It's very likely that you'd also want to enable the logout module in addition to this.
+
+## User Auth via OAuth2
+
+| Info and Requirements |          |
+| --------------------- | -------- |
+Module        | oauth2
+Pages         | _None_
+Emails        | _None_
+Middlewares   | LoadClientStateMiddleware 
+ClientStorage | Session
+ServerStorer  | OAuth2ServerStorer
+User          | OAuth2User
+Values        | _None_
+Mailer        | _None_
+
+This is a tougher implementation than most modules because there's a lot going on. In addition to the
+requirements stated above, you must also configure the OAuth2Providers in the config struct.
+
+The providers require an oauth2 configuration that's typical for the Go oauth2 package, but in addition
+to that they need a `FindUserDetails` method which has to take the token that's retrieved from the oauth2
+provider, and call an endpoint that retrieves details about the user (at LEAST user's uid).
+These parameters are returned in `map[string]string` form and passed into the OAuth2ServerStorer.
+
+Please see the following documentation for more details:
+
+* [Package docs for oauth2](https://godoc.org//github.com/volatiletech/authboss/oauth2/)
+* [authboss.OAuth2Provider](https://godoc.org//github.com/volatiletech/authboss/#OAuth2Provider)
+* [authboss.OAuth2ServerStorer](https://godoc.org//github.com/volatiletech/authboss/#OAuth2ServerStorer)
+
+## User Registration
+
+| Info and Requirements |          |
+| --------------------- | -------- |
+Module        | register
+Pages         | register
+Emails        | _None_
+Middlewares   | LoadClientStateMiddleware 
+ClientStorage | Session
+ServerStorer  | CreatingServerStorer
+User          | AuthableUser, optionally ArbitraryUser
+Values        | UserValuer, optionally ArbitraryValuer
+Mailer        | _None_
+
+Users can self-register for a service using this module. You may optionally want them to confirm
+themselves, which can be done using the confirm module.
+
+The complications in implementing registrations are around the RegisterPreserveFields. This is to
+help in the case where a user fills out all these registration details, and then say enters a password
+which doesn't mean minimum requirements and it fails during validation. These preserve fields should
+stop the user from having to type in all that data again (it's a whitelist). This **must** be used
+in conjuction with `ArbitraryValuer.GetValues()` and is described more on the configuration options
+and the Valuer types themselves.
+
+## Confirming Registrations
+
+| Info and Requirements |          |
+| --------------------- | -------- |
+Module        | confirm
+Pages         | confirm
+Emails        | confirm_html, confirm_txt
+Middlewares   | LoadClientStateMiddleware, confirm.Middleware
+ClientStorage | Session
+ServerStorer  | ConfirmingServerStorer
+User          | ConfirmableUser
+Values        | ConfirmValuer
+Mailer        | Required
+
+Confirming registrations via e-mail can be done with this module (whether or not done via the register
+module).
+
+A hook on register kicks off the start of a confirmation which sends an e-mail with a token for the user.
+When the user re-visits the page, the `BodyReader` must read the token and return a type that can
+return the token.
+
+## Password Recovery
+
+| Info and Requirements |          |
+| --------------------- | -------- |
+Module        | recover
+Pages         | recover_start, recover_middle, recover_end
+Emails        | recover_html, recover_txt
+Middlewares   | LoadClientStateMiddleware
+ClientStorage | Session
+ServerStorer  | RecoveringServerStorer
+User          | RecoverableUser
+Values        | RecoverStartValuer, RecoverMiddleValuer, RecoverEndValuer
+Mailer        | Required
+
+The flow for password recovery is that the user is initially shown a page that wants their `PID` to
+be entered. The `RecoverStartValuer` retrieves that on `POST` to `/recover`.
+
+An e-mail is sent out, and the user clicks the link inside it and is taken back to `/recover/end`
+as a `GET`, at this point the `RecoverMiddleValuer` grabs the token and will insert it into the data
+to be rendered.
+
+They enter their password into the form, and `POST` to `/recover/end` which sends the token and
+the new password which is retrieved by `RecoverEndValuer` which sets their password and saves them.
+
+## Remember Me
+
+| Info and Requirements |          |
+| --------------------- | -------- |
+Module        | remember
+Pages         | _None_
+Emails        | _None_
+Middlewares   | LoadClientStateMiddleware, remember.Middleware
+ClientStorage | Session, Cookies
+ServerStorer  | RememberingServerStorer
+User          | User
+Values        | RememberValuer (not a Validator)
+Mailer        | _None_
+
+Remember uses cookie storage to log in users without a session via the `remember.Middleware`.
+Because of this this middleware should be used high up in the stack, but it also needs to be after
+the `LoadClientStateMiddleware` so that client state is available via the authboss mechanisms.
+
+There is an intricacy to the `RememberingServerStorer`, it doesn't use the `User` struct at all,
+instead it simply instructs the storer to save tokens to a pid and recall them just the same. Typically
+in most databases this will require a separate table, though you could implement using pg arrays
+or something as well.
+
+A user who is logged in via Remember tokens is also considered "half-authed" which is a session
+key that you can query to check to see if a user should have full rights to more sensitive data,
+if they are half-authed and they want to change their user details for example you may want to
+force them to go to the login screen and put in their password to get a full auth first.
+
+## Locking Users
+
+| Info and Requirements |          |
+| --------------------- | -------- |
+Module        | lock
+Pages         | _None_
+Emails        | _None_
+Middlewares   | LoadClientStateMiddleware, lock.Middleware
+ClientStorage | Session
+ServerStorer  | ServerStorer
+User          | LockableUser
+Values        | _None_
+Mailer        | _None_
+
+Lock ensures that a user's account becomes locked if authentication (both auth and oauth2) are
+failed enough times.
+
+The middleware protects resources from locked users, without it, there is no point to this module.
+You should put in front of any resource that requires a login to function.
+
+## Expiring User Sessions
+
+| Info and Requirements |          |
+| --------------------- | -------- |
+Module        | expire
+Pages         | _None_
+Emails        | _None_
+Middlewares   | LoadClientStateMiddleware, expire.Middleware
+ClientStorage | Session
+ServerStorer  | _None_
+User          | User
+Values        | _None_
+Mailer        | _None_
+
+Expire simply uses sessions to track when the last action of a user is, if that action is longer
+than configured then the session is deleted and the user removed from the request context.
+
+This middleware should at a high level to ensure that "activity" is logged properly, as well as any
+middlewares down the chain do not attempt to do anything with the user before it's removed from the
+request context.

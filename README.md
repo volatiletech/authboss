@@ -70,11 +70,11 @@ Here are a few bullet point reasons you might like to try it out:
 # Getting Started
 
 To get started with Authboss in the simplest way, is to simply create a Config, populate it
-with the things that are required, and start implementing [use cases](#use_cases). The use
+with the things that are required, and start implementing [use cases](#use-cases). The use
 cases describe what's required to be able to be able to use a particular piece of functionality,
 or the best practice when implementing a piece of functionality. Please note the
-[app requirements](#app_requirements) for your application as well
-[integration requirements](#integration_requirements) that follow.
+[app requirements](#app-requirements) for your application as well
+[integration requirements](#integration-requirements) that follow.
 
 Of course the standard practice of fetching the library is just the beginning:
 
@@ -189,7 +189,7 @@ needs to be able to find users by remember me tokens so it can upgrade to a
 which adds these abilities.
 
 Your serverstorer implementation does not need to implement all these additional user interfaces
-unless you're using a module that requires it. See the [Use Cases](#use_cases) documentation to know what the requirements are.
+unless you're using a module that requires it. See the [Use Cases](#use-cases) documentation to know what the requirements are.
 
 ### User implementation
 
@@ -208,7 +208,7 @@ to upgrade the user (and panic if it fails) to a
 which supports retrieving and setting of confirm tokens, e-mail addresses, and a confirmed state.
 
 Your user struct does not need to implement all these additional user interfaces unless you're
-using a module that requires it. See the [Use Cases](#use_cases) documentation to know what the
+using a module that requires it. See the [Use Cases](#use-cases) documentation to know what the
 requirements are.
 
 ### Values implementation
@@ -222,7 +222,7 @@ a struct that has the ability to `Validate` it's data as well as functions to re
 necessary for the particular valuer required by the module.
 
 Your body reader implementation does not need to implement all valuer types unless you're
-using a module that requires it. See the [Use Cases](#use_cases) documentation to know what the
+using a module that requires it. See the [Use Cases](#use-cases) documentation to know what the
 requirements are.
 
 ## Config
@@ -267,7 +267,7 @@ See the package documentation for more information about these interfaces.
 # Available Modules
 
 Each module can be turned on simply by importing it and the side-effects take care of the rest.
-Not all the capabilities of authboss are represented by a module, see [Use Cases](#use_cases)
+Not all the capabilities of authboss are represented by a module, see [Use Cases](#use-cases)
 to view the supported use cases as well as how to use them in your app.
 
 Name     | Import Path                               | Description

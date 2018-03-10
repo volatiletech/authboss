@@ -181,14 +181,14 @@ The following is a list of the core pieces, these typically are abstracting the 
 
 ### ServerStorer implementation
 
-The [ServerStorer](https://godoc.org//github.com/volatiletech/authboss/#ServerStorer) is a
-flexible meant to be upgraded to add capabilities depending on what modules you'd like to use.
+The [ServerStorer](https://godoc.org//github.com/volatiletech/authboss/#ServerStorer) is 
+meant to be upgraded to add capabilities depending on what modules you'd like to use.
 It starts out by only knowing how to save and load users, but the `remember` module as an example
-needs to be able to find users by remember me tokens so it can upgrade to a
+needs to be able to find users by remember me tokens, so it upgrades to a
 [RememberingServerStorer](https://godoc.org/github.com/volatiletech/authboss/#RememberingServerStorer)
 which adds these abilities.
 
-Your serverstorer implementation does not need to implement all these additional user interfaces
+Your `ServerStorer` implementation does not need to implement all these additional user interfaces
 unless you're using a module that requires it. See the [Use Cases](#use-cases) documentation to know what the requirements are.
 
 ### User implementation
@@ -207,15 +207,17 @@ to upgrade the user (and panic if it fails) to a
 [ConfirmableUser](https://godoc.org//github.com/volatiletech/authboss/#ConfirmableUser)
 which supports retrieving and setting of confirm tokens, e-mail addresses, and a confirmed state.
 
-Your user struct does not need to implement all these additional user interfaces unless you're
+Your `User` implementation does not need to implement all these additional user interfaces unless you're
 using a module that requires it. See the [Use Cases](#use-cases) documentation to know what the
 requirements are.
 
 ### Values implementation
 
-The `BodyReader` interface in the Config returns
+The [BodyReader](https://godoc.org//github.com/volatiletech/authboss/#BodyReader)
+interface in the Config returns
 [Validator](https://godoc.org//github.com/volatiletech/authboss/#Validator) implementations
-which can be validated. But much like the user can be upgraded to fulfill different properties.
+which can be validated. But much like the storer and user it can be upgraded to add different
+capabilities.
 
 Typically the way this will look as an implementation is to check the page being requested, switch on that to parse the body in whatever way (msgpack, json, url-encoded, doesn't matter), and produce
 a struct that has the ability to `Validate` it's data as well as functions to retrieve the data
@@ -242,7 +244,7 @@ modules will not function correctly.
 ### Modules
 
 Modules are module specific configuration options. They mostly control the behavior of modules.
-For example RegisterPreserveFields decides a whitelist of fields to allow back into the data
+For example `RegisterPreserveFields` decides a whitelist of fields to allow back into the data
 to be re-rendered so the user doesn't have to type them in again.
 
 ### Mail
@@ -272,10 +274,10 @@ to view the supported use cases as well as how to use them in your app.
 
 Name     | Import Path                               | Description
 ---------|-------------------------------------------|------------
-Auth     | github.com/volatiletech/authboss/auth     | Provides database password authentication for users.
-Confirm  | github.com/volatiletech/authboss/confirm  | Sends an e-mail verification before allowing users to log in.
+Auth     | github.com/volatiletech/authboss/auth     | Database password authentication for users.
+Confirm  | github.com/volatiletech/authboss/confirm  | Prevents login before e-mail verification.
 Expire   | github.com/volatiletech/authboss/expire   | Expires a user's login
-Lock     | github.com/volatiletech/authboss/lock     | Locks user accounts after N authentication failures in M time.
+Lock     | github.com/volatiletech/authboss/lock     | Locks user accounts after authentication failures.
 Logout   | github.com/volatiletech/authboss/logout   | Destroys user sessions for auth/oauth2.
 OAuth2   | github.com/volatiletech/authboss/oauth2   | Provides oauth2 authentication for users.
 Recover  | github.com/volatiletech/authboss/recover  | Allows for password resets via e-mail.
@@ -284,7 +286,7 @@ Remember | github.com/volatiletech/authboss/remember | Persisting login sessions
 
 # Middlewares
 
-The only middleware that's truly required is the LoadClientStateMiddleware, and that's because it
+The only middleware that's truly required is the `LoadClientStateMiddleware`, and that's because it
 enables session and cookie handling for Authboss. Without that, it's not a very useful piece of
 software.
 
@@ -300,7 +302,7 @@ Name | Requirement | Description
 [LoadClientStateMiddleware](https://godoc.org/github.com/volatiletech/authboss/#Authboss.LoadClientStateMiddleware) | **Required** | Enables cookie and session handling
 [confirm.Middleware](https://godoc.org/github.com/volatiletech/authboss/confirm/#Middleware) | Recommended with confirm | Ensures users are confirmed or rejects request
 [expire.Middleware](https://godoc.org/github.com/volatiletech/authboss/expire/#Middleware) | **Required** with expire | Expires user sessions after an inactive period
-[lock.Middleware](https://godoc.org/github.com/volatiletech/authboss/lock/#Middleware) | Recommended with lock | Rejects requests from clients logged in as a locked user
+[lock.Middleware](https://godoc.org/github.com/volatiletech/authboss/lock/#Middleware) | Recommended with lock | Rejects requests from locked users
 [remember.Middleware](https://godoc.org/github.com/volatiletech/authboss/remember/#Middleware) | Recommended with remember | Logs a user in from a remember cookie
 
 
@@ -344,7 +346,7 @@ Pages         | login
 Emails        | _None_
 Middlewares   | LoadClientStateMiddleware 
 ClientStorage | Session and Cookie
-ServerStorer  | ServerStorer (basic)
+ServerStorer  | ServerStorer
 User          | AuthableUser
 Values        | UserValuer
 Mailer        | _None_
@@ -367,12 +369,12 @@ Values        | _None_
 Mailer        | _None_
 
 This is a tougher implementation than most modules because there's a lot going on. In addition to the
-requirements stated above, you must also configure the OAuth2Providers in the config struct.
+requirements stated above, you must also configure the `OAuth2Providers` in the config struct.
 
 The providers require an oauth2 configuration that's typical for the Go oauth2 package, but in addition
 to that they need a `FindUserDetails` method which has to take the token that's retrieved from the oauth2
 provider, and call an endpoint that retrieves details about the user (at LEAST user's uid).
-These parameters are returned in `map[string]string` form and passed into the OAuth2ServerStorer.
+These parameters are returned in `map[string]string` form and passed into the `OAuth2ServerStorer`.
 
 Please see the following documentation for more details:
 
@@ -397,7 +399,7 @@ Mailer        | _None_
 Users can self-register for a service using this module. You may optionally want them to confirm
 themselves, which can be done using the confirm module.
 
-The complications in implementing registrations are around the RegisterPreserveFields. This is to
+The complications in implementing registrations are around the `RegisterPreserveFields`. This is to
 help in the case where a user fills out all these registration details, and then say enters a password
 which doesn't mean minimum requirements and it fails during validation. These preserve fields should
 stop the user from having to type in all that data again (it's a whitelist). This **must** be used

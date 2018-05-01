@@ -27,6 +27,9 @@ func NewResponder(renderer authboss.Renderer) *Responder {
 func (r *Responder) Respond(w http.ResponseWriter, req *http.Request, code int, page string, data authboss.HTMLData) error {
 	ctxData := req.Context().Value(authboss.CTXKeyData)
 	if ctxData != nil {
+		if data == nil {
+			data = authboss.HTMLData{}
+		}
 		data.Merge(ctxData.(authboss.HTMLData))
 	}
 

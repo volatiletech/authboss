@@ -14,6 +14,9 @@ const (
 	FormValueEmail    = "email"
 	FormValuePassword = "password"
 	FormValueUsername = "username"
+
+	FormValueConfirm = "cnf"
+	FormValueToken   = "token"
 )
 
 // UserValues from the login form
@@ -22,6 +25,8 @@ type UserValues struct {
 
 	PID      string
 	Password string
+
+	Arbitrary map[string]string
 }
 
 // GetPID from the values
@@ -34,15 +39,78 @@ func (u UserValues) GetPassword() string {
 	return u.Password
 }
 
+// GetValues from the form.
+func (u UserValues) GetValues() map[string]string {
+	return u.Arbitrary
+}
+
+// ConfirmValues retrieves values on the confirm page.
+type ConfirmValues struct {
+	HTTPFormValidator
+
+	Token string
+}
+
+// GetToken from the confirm values
+func (c ConfirmValues) GetToken() string {
+	return c.Token
+}
+
+// RecoverStartValues for recover_start page
+type RecoverStartValues struct {
+	HTTPFormValidator
+
+	PID string
+}
+
+// GetPID for recovery
+func (r RecoverStartValues) GetPID() string { return r.PID }
+
+// RecoverMiddleValues for recover_middle page
+type RecoverMiddleValues struct {
+	HTTPFormValidator
+
+	Token string
+}
+
+// GetToken for recovery
+func (r RecoverMiddleValues) GetToken() string { return r.Token }
+
+// RecoverEndValues for recover_end page
+type RecoverEndValues struct {
+	HTTPFormValidator
+
+	Token       string
+	NewPassword string
+}
+
+// GetToken for recovery
+func (r RecoverEndValues) GetToken() string { return r.Token }
+
+// GetPassword for recovery
+func (r RecoverEndValues) GetPassword() string { return r.NewPassword }
+
 // HTTPFormReader reads forms from various pages and decodes
 // them.
 type HTTPFormReader struct {
+	// UseUsername instead of e-mail address
 	UseUsername bool
-	Rulesets    map[string][]Rules
+
+	// Rulesets for each page.
+	Rulesets map[string][]Rules
+	// Confirm fields for each page.
+	Confirms map[string][]string
+	// Whitelist values for each page through the html forms
+	// this is for security so that we can properly protect the
+	// arbitrary user API. In reality this really only needs to be set
+	// for the register page since everything else is expecting
+	// a hardcoded set of values.
+	Whitelist map[string][]string
 }
 
 // NewHTTPFormReader creates a form reader with default validation rules
-// for each page.
+// and fields for each page. If no defaults are required, simply construct
+// this using the struct members itself for more control.
 func NewHTTPFormReader(useUsernameNotEmail bool) *HTTPFormReader {
 	var pid string
 	var pidRules Rules
@@ -73,9 +141,19 @@ func NewHTTPFormReader(useUsernameNotEmail bool) *HTTPFormReader {
 	}
 
 	return &HTTPFormReader{
-		UseUsername: useUsernameNotEmail,
 		Rulesets: map[string][]Rules{
-			"login": []Rules{pidRules, passwordRule},
+			"login":         {pidRules},
+			"register":      {pidRules, passwordRule},
+			"confirm":       {Rules{FieldName: FormValueConfirm, Required: true}},
+			"recover_start": {pidRules},
+			"recover_end":   {passwordRule},
+		},
+		Confirms: map[string][]string{
+			"register":    {FormValuePassword, authboss.ConfirmPrefix + FormValuePassword},
+			"recover_end": {FormValuePassword, authboss.ConfirmPrefix + FormValuePassword},
+		},
+		Whitelist: map[string][]string{
+			"register": []string{FormValueEmail, FormValuePassword},
 		},
 	}
 }
@@ -87,9 +165,16 @@ func (h HTTPFormReader) Read(page string, r *http.Request) (authboss.Validator, 
 	}
 
 	rules := h.Rulesets[page]
+	confirms := h.Confirms[page]
+	whitelist := h.Whitelist[page]
 	values := URLValuesToMap(r.Form)
 
 	switch page {
+	case "confirm":
+		return ConfirmValues{
+			HTTPFormValidator: HTTPFormValidator{Values: values, Ruleset: rules},
+			Token:             values[FormValueConfirm],
+		}, nil
 	case "login":
 		var pid string
 		if h.UseUsername {
@@ -98,17 +183,58 @@ func (h HTTPFormReader) Read(page string, r *http.Request) (authboss.Validator, 
 			pid = values[FormValueEmail]
 		}
 
-		validator := HTTPFormValidator{
-			Values:        values,
-			Ruleset:       rules,
-			ConfirmFields: []string{FormValuePassword, authboss.ConfirmPrefix + FormValuePassword},
+		return UserValues{
+			HTTPFormValidator: HTTPFormValidator{Values: values, Ruleset: rules, ConfirmFields: confirms},
+			PID:               pid,
+			Password:          values[FormValuePassword],
+		}, nil
+	case "recover_start":
+		var pid string
+		if h.UseUsername {
+			pid = values[FormValueUsername]
+		} else {
+			pid = values[FormValueEmail]
 		}
-		password := values[FormValuePassword]
+
+		return RecoverStartValues{
+			HTTPFormValidator: HTTPFormValidator{Values: values, Ruleset: rules, ConfirmFields: confirms},
+			PID:               pid,
+		}, nil
+	case "recover_middle":
+		return RecoverMiddleValues{
+			HTTPFormValidator: HTTPFormValidator{Values: values, Ruleset: rules, ConfirmFields: confirms},
+			Token:             values[FormValueToken],
+		}, nil
+	case "recover_end":
+		return RecoverEndValues{
+			HTTPFormValidator: HTTPFormValidator{Values: values, Ruleset: rules, ConfirmFields: confirms},
+			Token:             values[FormValueToken],
+			NewPassword:       values[FormValuePassword],
+		}, nil
+	case "register":
+		arbitrary := make(map[string]string)
+
+		for k, v := range values {
+			for _, w := range whitelist {
+				if k == w {
+					arbitrary[k] = v
+					break
+				}
+			}
+		}
+
+		var pid string
+		if h.UseUsername {
+			pid = values[FormValueUsername]
+		} else {
+			pid = values[FormValueEmail]
+		}
 
 		return UserValues{
-			HTTPFormValidator: validator,
+			HTTPFormValidator: HTTPFormValidator{Values: values, Ruleset: rules, ConfirmFields: confirms},
 			PID:               pid,
-			Password:          password,
+			Password:          values[FormValuePassword],
+			Arbitrary:         arbitrary,
 		}, nil
 	default:
 		return nil, errors.Errorf("failed to parse unknown page's form: %s", page)

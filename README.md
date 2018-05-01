@@ -300,6 +300,7 @@ use the middlewares if you use the module.
 Name | Requirement | Description
 ---- | ----------- | -----------
 [LoadClientStateMiddleware](https://godoc.org/github.com/volatiletech/authboss/#Authboss.LoadClientStateMiddleware) | **Required** | Enables cookie and session handling
+[ModuleListMiddleware](https://godoc.org/github.com/volatiletech/authboss/#Authboss.ModuleListMiddleware) | Optional | Inserts a loaded module list into the view data
 [confirm.Middleware](https://godoc.org/github.com/volatiletech/authboss/confirm/#Middleware) | Recommended with confirm | Ensures users are confirmed or rejects request
 [expire.Middleware](https://godoc.org/github.com/volatiletech/authboss/expire/#Middleware) | **Required** with expire | Expires user sessions after an inactive period
 [lock.Middleware](https://godoc.org/github.com/volatiletech/authboss/lock/#Middleware) | Recommended with lock | Rejects requests from locked users
@@ -344,11 +345,11 @@ all known sessions and cookies from the user.
 Module        | auth
 Pages         | login
 Emails        | _None_
-Middlewares   | LoadClientStateMiddleware 
+Middlewares   | [LoadClientStateMiddleware](https://godoc.org/github.com/volatiletech/authboss/#Authboss.LoadClientStateMiddleware)
 ClientStorage | Session and Cookie
-ServerStorer  | ServerStorer
-User          | AuthableUser
-Values        | UserValuer
+ServerStorer  | [ServerStorer](https://godoc.org/github.com/volatiletech/authboss/#ServerStorer)
+User          | [AuthableUser](https://godoc.org/github.com/volatiletech/authboss/#AuthableUser)
+Values        | [UserValuer](https://godoc.org/github.com/volatiletech/authboss/#UserValuer)
 Mailer        | _None_
 
 To enable this side-effect import the auth module, and ensure that the requirements above are met.
@@ -361,10 +362,10 @@ It's very likely that you'd also want to enable the logout module in addition to
 Module        | oauth2
 Pages         | _None_
 Emails        | _None_
-Middlewares   | LoadClientStateMiddleware 
+Middlewares   | [LoadClientStateMiddleware](https://godoc.org/github.com/volatiletech/authboss/#Authboss.LoadClientStateMiddleware)
 ClientStorage | Session
-ServerStorer  | OAuth2ServerStorer
-User          | OAuth2User
+ServerStorer  | [OAuth2ServerStorer](https://godoc.org/github.com/volatiletech/authboss/#OAuth2ServerStorer)
+User          | [OAuth2User](https://godoc.org/github.com/volatiletech/authboss/#OAuth2User)
 Values        | _None_
 Mailer        | _None_
 
@@ -389,11 +390,11 @@ Please see the following documentation for more details:
 Module        | register
 Pages         | register
 Emails        | _None_
-Middlewares   | LoadClientStateMiddleware 
+Middlewares   | [LoadClientStateMiddleware](https://godoc.org/github.com/volatiletech/authboss/#Authboss.LoadClientStateMiddleware)
 ClientStorage | Session
-ServerStorer  | CreatingServerStorer
-User          | AuthableUser, optionally ArbitraryUser
-Values        | UserValuer, optionally ArbitraryValuer
+ServerStorer  | [CreatingServerStorer](https://godoc.org/github.com/volatiletech/authboss/#CreatingServerStorer)
+User          | [AuthableUser](https://godoc.org/github.com/volatiletech/authboss/#AuthableUser), optionally [ArbitraryUser](https://godoc.org/github.com/volatiletech/authboss/#ArbitraryUser)
+Values        | [UserValuer](https://godoc.org/github.com/volatiletech/authboss/#UserValuer), optionally also [ArbitraryValuer](https://godoc.org/github.com/volatiletech/authboss/#ArbitraryValuer)
 Mailer        | _None_
 
 Users can self-register for a service using this module. You may optionally want them to confirm
@@ -413,11 +414,11 @@ and the Valuer types themselves.
 Module        | confirm
 Pages         | confirm
 Emails        | confirm_html, confirm_txt
-Middlewares   | LoadClientStateMiddleware, confirm.Middleware
+Middlewares   | [LoadClientStateMiddleware](https://godoc.org/github.com/volatiletech/authboss/#Authboss.LoadClientStateMiddleware), [confirm.Middleware](https://godoc.org/github.com/volatiletech/authboss/confirm/#Middleware)
 ClientStorage | Session
-ServerStorer  | ConfirmingServerStorer
-User          | ConfirmableUser
-Values        | ConfirmValuer
+ServerStorer  | [ConfirmingServerStorer](https://godoc.org/github.com/volatiletech/authboss/#ConfirmingServerStorer)
+User          | [ConfirmableUser](https://godoc.org/github.com/volatiletech/authboss/#ConfirmableUser)
+Values        | [ConfirmValuer](https://godoc.org/github.com/volatiletech/authboss/#ConfirmValuer)
 Mailer        | Required
 
 Confirming registrations via e-mail can be done with this module (whether or not done via the register
@@ -432,13 +433,13 @@ return the token.
 | Info and Requirements |          |
 | --------------------- | -------- |
 Module        | recover
-Pages         | recover_start, recover_middle, recover_end
+Pages         | recover_start, recover_middle (not used for renders, only values), recover_end
 Emails        | recover_html, recover_txt
-Middlewares   | LoadClientStateMiddleware
+Middlewares   | [LoadClientStateMiddleware](https://godoc.org/github.com/volatiletech/authboss/#Authboss.LoadClientStateMiddleware)
 ClientStorage | Session
-ServerStorer  | RecoveringServerStorer
-User          | RecoverableUser
-Values        | RecoverStartValuer, RecoverMiddleValuer, RecoverEndValuer
+ServerStorer  | [RecoveringServerStorer](https://godoc.org/github.com/volatiletech/authboss/#RecoveringServerStorer)
+User          | [RecoverableUser](https://godoc.org/github.com/volatiletech/authboss/#RecoverableUser)
+Values        | [RecoverStartValuer](https://godoc.org/github.com/volatiletech/authboss/#RecoverStartValuer), [RecoverMiddleValuer](https://godoc.org/github.com/volatiletech/authboss/#RecoverMiddleValuer), [RecoverEndValuer](https://godoc.org/github.com/volatiletech/authboss/#RecoverEndValuer)
 Mailer        | Required
 
 The flow for password recovery is that the user is initially shown a page that wants their `PID` to
@@ -458,11 +459,12 @@ the new password which is retrieved by `RecoverEndValuer` which sets their passw
 Module        | remember
 Pages         | _None_
 Emails        | _None_
-Middlewares   | LoadClientStateMiddleware, remember.Middleware
+Middlewares   | LoadClientStateMiddleware, 
+Middlewares   | [LoadClientStateMiddleware](https://godoc.org/github.com/volatiletech/authboss/#Authboss.LoadClientStateMiddleware), [remember.Middleware](https://godoc.org/github.com/volatiletech/authboss/remember/#Middleware)
 ClientStorage | Session, Cookies
-ServerStorer  | RememberingServerStorer
+ServerStorer  | [RememberingServerStorer](https://godoc.org/github.com/volatiletech/authboss/#RememberingServerStorer)
 User          | User
-Values        | RememberValuer (not a Validator)
+Values        | [RememberValuer](https://godoc.org/github.com/volatiletech/authboss/#RememberValuer) (not a Validator)
 Mailer        | _None_
 
 Remember uses cookie storage to log in users without a session via the `remember.Middleware`.
@@ -486,10 +488,10 @@ force them to go to the login screen and put in their password to get a full aut
 Module        | lock
 Pages         | _None_
 Emails        | _None_
-Middlewares   | LoadClientStateMiddleware, lock.Middleware
+Middlewares   | [LoadClientStateMiddleware](https://godoc.org/github.com/volatiletech/authboss/#Authboss.LoadClientStateMiddleware), [lock.Middleware](https://godoc.org/github.com/volatiletech/authboss/lock/#Middleware)
 ClientStorage | Session
-ServerStorer  | ServerStorer
-User          | LockableUser
+ServerStorer  | [ServerStorer](https://godoc.org/github.com/volatiletech/authboss/#ServerStorer)
+User          | [LockableUser](https://godoc.org/github.com/volatiletech/authboss/#LockableUser)
 Values        | _None_
 Mailer        | _None_
 
@@ -506,10 +508,10 @@ You should put in front of any resource that requires a login to function.
 Module        | expire
 Pages         | _None_
 Emails        | _None_
-Middlewares   | LoadClientStateMiddleware, expire.Middleware
+Middlewares   | [LoadClientStateMiddleware](https://godoc.org/github.com/volatiletech/authboss/#Authboss.LoadClientStateMiddleware), [expire.Middleware](https://godoc.org/github.com/volatiletech/authboss/expire/#Middleware)
 ClientStorage | Session
 ServerStorer  | _None_
-User          | User
+User          | [User](https://godoc.org/github.com/volatiletech/authboss/#User)
 Values        | _None_
 Mailer        | _None_
 

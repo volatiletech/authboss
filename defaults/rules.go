@@ -12,6 +12,7 @@ import (
 var blankRegex = regexp.MustCompile(`^\s*$`)
 
 // Rules defines a ruleset by which a string can be validated.
+// The errors it produces are english only, with some basic pluralization.
 type Rules struct {
 	// FieldName is the name of the field this is intended to validate.
 	FieldName string
@@ -115,9 +116,15 @@ func (r Rules) lengthErr() (err string) {
 	case r.MinLength > 0 && r.MaxLength > 0:
 		err = fmt.Sprintf("Must be between %d and %d characters", r.MinLength, r.MaxLength)
 	case r.MinLength > 0:
-		err = fmt.Sprintf("Must be at least %d characters", r.MinLength)
+		err = fmt.Sprintf("Must be at least %d character", r.MinLength)
+		if r.MinLength > 1 {
+			err += "s"
+		}
 	case r.MaxLength > 0:
-		err = fmt.Sprintf("Must be at most %d characters", r.MaxLength)
+		err = fmt.Sprintf("Must be at most %d character", r.MaxLength)
+		if r.MaxLength > 1 {
+			err += "s"
+		}
 	}
 
 	return err
@@ -125,35 +132,50 @@ func (r Rules) lengthErr() (err string) {
 
 func (r Rules) charErr() (err string) {
 	if r.MinLetters > 0 {
-		err = fmt.Sprintf("Must contain at least %d letters", r.MinLetters)
+		err = fmt.Sprintf("Must contain at least %d letter", r.MinLetters)
+		if r.MinLetters > 1 {
+			err += "s"
+		}
 	}
 	return err
 }
 
 func (r Rules) upperErr() (err string) {
 	if r.MinUpper > 0 {
-		err = fmt.Sprintf("Must contain at least %d uppercase letters", r.MinUpper)
+		err = fmt.Sprintf("Must contain at least %d uppercase letter", r.MinUpper)
+		if r.MinUpper > 1 {
+			err += "s"
+		}
 	}
 	return err
 }
 
 func (r Rules) lowerErr() (err string) {
 	if r.MinLower > 0 {
-		err = fmt.Sprintf("Must contain at least %d lowercase letters", r.MinLower)
+		err = fmt.Sprintf("Must contain at least %d lowercase letter", r.MinLower)
+		if r.MinLower > 1 {
+			err += "s"
+		}
 	}
 	return err
 }
 
 func (r Rules) numericErr() (err string) {
 	if r.MinNumeric > 0 {
-		err = fmt.Sprintf("Must contain at least %d numbers", r.MinNumeric)
+		err = fmt.Sprintf("Must contain at least %d number", r.MinNumeric)
+		if r.MinNumeric > 1 {
+			err += "s"
+		}
 	}
 	return err
 }
 
 func (r Rules) symbolErr() (err string) {
 	if r.MinSymbols > 0 {
-		err = fmt.Sprintf("Must contain at least %d symbols", r.MinSymbols)
+		err = fmt.Sprintf("Must contain at least %d symbol", r.MinSymbols)
+		if r.MinSymbols > 1 {
+			err += "s"
+		}
 	}
 	return err
 }

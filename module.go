@@ -1,6 +1,10 @@
 package authboss
 
-import "reflect"
+import (
+	"context"
+	"net/http"
+	"reflect"
+)
 
 var registeredModules = make(map[string]Moduler)
 
@@ -79,4 +83,33 @@ func (a *Authboss) loadModule(name string) error {
 	mod, ok := value.Interface().(Moduler)
 	a.loadedModules[name] = mod
 	return mod.Init(a)
+}
+
+// ModuleListMiddleware puts a map in the data that can be used
+// to provide the renderer with information about which pieces of the
+// views to show.
+// Data looks like:
+// map[modulename] = Moduler
+//
+// The Moduler interface type should be ignored, and the key being present
+// or not is the only important point. Copying this data structure ignores
+// allocations.
+func ModuleListMiddleware(ab *Authboss) func(http.Handler) http.Handler {
+	return func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			var data HTMLData
+
+			ctx := r.Context()
+			dataIntf := ctx.Value(CTXKeyData)
+			if dataIntf != nil {
+				data = dataIntf.(HTMLData)
+			} else {
+				data = HTMLData{}
+			}
+
+			data[DataModules] = ab.loadedModules
+			r = r.WithContext(context.WithValue(ctx, CTXKeyData, data))
+			next.ServeHTTP(w, r)
+		})
+	}
 }

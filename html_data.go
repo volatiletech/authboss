@@ -9,6 +9,10 @@ const (
 	DataValidation = "errors"
 	// DataPreserve preserves fields
 	DataPreserve = "preserve"
+	// DataModules contains a map[string]Moduler of which modules are loaded
+	// the Init() method should NEVER be called in a template. This structure
+	// is only returned to avoid allocations.
+	DataModules = "modules"
 )
 
 // HTMLData is used to render templates with.

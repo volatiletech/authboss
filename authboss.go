@@ -8,6 +8,7 @@ package authboss
 
 import (
 	"context"
+	"net/http"
 
 	"github.com/pkg/errors"
 	"golang.org/x/crypto/bcrypt"
@@ -41,7 +42,7 @@ func (a *Authboss) Init(modulesToLoad ...string) error {
 
 	for _, name := range modulesToLoad {
 		if err := a.loadModule(name); err != nil {
-			return errors.Errorf("module %s failed to load", name)
+			return errors.Errorf("module %s failed to load: %+v", name, err)
 		}
 	}
 
@@ -74,4 +75,25 @@ func (a *Authboss) UpdatePassword(ctx context.Context, user AuthableUser, newPas
 	}
 
 	return rmStorer.DelRememberTokens(user.GetPID())
+}
+
+// Middleware prevents someone from accessing a route by returning a 404 if they are not logged in.
+// This middleware also loads the current user.
+func Middleware(ab *Authboss) func(http.Handler) http.Handler {
+	return func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			log := ab.RequestLogger(r)
+			if u, err := ab.LoadCurrentUser(&r); err != nil {
+				log.Errorf("error fetching current user: %+v", err)
+				w.WriteHeader(http.StatusInternalServerError)
+				return
+			} else if u == nil {
+				log.Infof("providing not found for unauthorized user at: %s", r.URL.Path)
+				w.WriteHeader(http.StatusNotFound)
+				return
+			} else {
+				next.ServeHTTP(w, r)
+			}
+		})
+	}
 }

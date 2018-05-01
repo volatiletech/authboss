@@ -257,8 +257,8 @@ func TestEndPostSuccess(t *testing.T) {
 	if len(h.session.ClientValues[authboss.SessionKey]) != 0 {
 		t.Error("should not have logged in the user")
 	}
-	if !strings.Contains(h.redirector.Options.Success, "recovered password") {
-		t.Error("should not talk about logging in")
+	if !strings.Contains(h.redirector.Options.Success, "updated password") {
+		t.Error("should talk about recovering the password")
 	}
 	if strings.Contains(h.redirector.Options.Success, "logged in") {
 		t.Error("should not talk about logging in")
@@ -374,7 +374,7 @@ func invalidCheck(t *testing.T, h *testHarness, w *httptest.ResponseRecorder) {
 	if h.responder.Page != PageRecoverEnd {
 		t.Error("page was wrong:", h.responder.Page)
 	}
-	if h.responder.Data[authboss.DataValidation].(authboss.ErrorList)[0].Error() != "recovery token is invalid" {
+	if h.responder.Data[authboss.DataValidation].(map[string][]string)[""][0] != "recovery token is invalid" {
 		t.Error("expected a vague error to mislead")
 	}
 }

@@ -219,7 +219,7 @@ func (r *Recover) EndPost(w http.ResponseWriter, req *http.Request) error {
 		return err
 	}
 
-	successMsg := "Successfully recovered password"
+	successMsg := "Successfully updated password"
 	if r.Authboss.Config.Modules.RecoverLoginAfterRecovery {
 		authboss.PutSession(w, authboss.SessionKey, user.GetPID())
 		successMsg += " and logged in"
@@ -234,9 +234,8 @@ func (r *Recover) EndPost(w http.ResponseWriter, req *http.Request) error {
 }
 
 func (r *Recover) invalidToken(page string, w http.ResponseWriter, req *http.Request) error {
-	data := authboss.HTMLData{authboss.DataValidation: authboss.ErrorList{
-		errors.New("recovery token is invalid"),
-	}}
+	errors := []error{errors.New("recovery token is invalid")}
+	data := authboss.HTMLData{authboss.DataValidation: authboss.ErrorMap(errors)}
 	return r.Authboss.Core.Responder.Respond(w, req, http.StatusOK, PageRecoverEnd, data)
 }
 

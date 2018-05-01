@@ -76,7 +76,7 @@ func (r *Register) Post(w http.ResponseWriter, req *http.Request) error {
 	if errs != nil {
 		logger.Info("registration validation failed")
 		data := authboss.HTMLData{
-			authboss.DataValidation: authboss.ErrorList(errs),
+			authboss.DataValidation: authboss.ErrorMap(errs),
 		}
 		if preserve != nil {
 			data[authboss.DataPreserve] = preserve
@@ -110,7 +110,7 @@ func (r *Register) Post(w http.ResponseWriter, req *http.Request) error {
 		logger.Infof("user %s attempted to re-register", pid)
 		errs = []error{errors.New("user already exists")}
 		data := authboss.HTMLData{
-			authboss.DataValidation: authboss.ErrorList(errs),
+			authboss.DataValidation: authboss.ErrorMap(errs),
 		}
 		if preserve != nil {
 			data[authboss.DataPreserve] = preserve

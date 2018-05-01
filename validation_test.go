@@ -78,3 +78,15 @@ func TestErrorList_Map(t *testing.T) {
 		t.Error("Wrong unkown error at 0:", unknownErrs[0])
 	}
 }
+
+func TestErrorList_MapHelper(t *testing.T) {
+	t.Parallel()
+
+	errList := []error{
+		mockFieldError{"username", errors.New("")},
+		mockFieldError{"username", errors.New("")},
+		mockFieldError{"password", errors.New("")},
+	}
+
+	var _ map[string][]string = ErrorMap(errList)
+}

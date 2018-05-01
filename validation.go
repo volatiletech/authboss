@@ -18,10 +18,18 @@ type Validator interface {
 }
 
 // FieldError describes an error on a field
+// Typically .Error() has both Name() and Err() together, hence the reason
+// for separation.
 type FieldError interface {
 	error
 	Name() string
 	Err() error
+}
+
+// ErrorMap is a shortcut to change []error into ErrorList and call Map on it since
+// this is a common operation.
+func ErrorMap(e []error) map[string][]string {
+	return ErrorList(e).Map()
 }
 
 // ErrorList is simply a slice of errors with helpers.

@@ -203,3 +203,8 @@ func (m mockEmailRenderer) Render(ctx context.Context, name string, data HTMLDat
 		panic("shouldn't get here")
 	}
 }
+
+type mockLogger struct{}
+
+func (m mockLogger) Info(s string)  {}
+func (m mockLogger) Error(s string) {}

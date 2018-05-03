@@ -182,6 +182,10 @@ func TestRegisterPostSuccess(t *testing.T) {
 		if resp.Code != http.StatusTeapot {
 			t.Error("code was wrong:", resp.Code)
 		}
+
+		if !afterCalled {
+			t.Error("the after handler should have been called")
+		}
 	})
 }
 

@@ -87,13 +87,10 @@ func (a *Authboss) loadModule(name string) error {
 
 // ModuleListMiddleware puts a map in the data that can be used
 // to provide the renderer with information about which pieces of the
-// views to show.
+// views to show. The bool is extraneous, as presence in the map is the indication
+// of wether or not the module is loaded.
 // Data looks like:
-// map[modulename] = Moduler
-//
-// The Moduler interface type should be ignored, and the key being present
-// or not is the only important point. Copying this data structure ignores
-// allocations.
+// map[modulename] = true
 func ModuleListMiddleware(ab *Authboss) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -107,7 +104,12 @@ func ModuleListMiddleware(ab *Authboss) func(http.Handler) http.Handler {
 				data = HTMLData{}
 			}
 
-			data[DataModules] = ab.loadedModules
+			loaded := make(map[string]bool, len(ab.loadedModules))
+			for k := range ab.loadedModules {
+				loaded[k] = true
+			}
+
+			data[DataModules] = loaded
 			r = r.WithContext(context.WithValue(ctx, CTXKeyData, data))
 			next.ServeHTTP(w, r)
 		})

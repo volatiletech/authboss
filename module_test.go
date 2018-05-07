@@ -80,10 +80,10 @@ func TestModuleLoadedMiddleware(t *testing.T) {
 		"auth":    nil,
 	}
 
-	var mods map[string]Moduler
+	var mods map[string]bool
 	server := ModuleListMiddleware(ab)(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		data := r.Context().Value(CTXKeyData).(HTMLData)
-		mods = data[DataModules].(map[string]Moduler)
+		mods = data[DataModules].(map[string]bool)
 	}))
 
 	server.ServeHTTP(nil, httptest.NewRequest("GET", "/", nil))
@@ -96,6 +96,6 @@ func TestModuleLoadedMiddleware(t *testing.T) {
 		t.Error("auth should be loaded")
 	}
 	if _, ok := mods["recover"]; !ok {
-		t.Error("auth should be loaded")
+		t.Error("recover should be loaded")
 	}
 }

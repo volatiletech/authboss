@@ -9,9 +9,9 @@ const (
 	DataValidation = "errors"
 	// DataPreserve preserves fields
 	DataPreserve = "preserve"
-	// DataModules contains a map[string]Moduler of which modules are loaded
-	// the Init() method should NEVER be called in a template. This structure
-	// is only returned to avoid allocations.
+	// DataModules contains a map[string]bool of which modules are loaded
+	// The bool is largely extraneous and can be ignored, if the module is loaded
+	// it will be present in the map, if not it will be missing.
 	DataModules = "modules"
 )
 

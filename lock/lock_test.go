@@ -283,7 +283,7 @@ func TestMiddlewareAllow(t *testing.T) {
 	}))
 
 	user := &mocks.User{
-		Locked: time.Now().UTC().Add(time.Hour),
+		Locked: time.Now().UTC().Add(-time.Hour),
 	}
 
 	r := mocks.Request("GET")
@@ -312,7 +312,7 @@ func TestMiddlewareDisallow(t *testing.T) {
 	}))
 
 	user := &mocks.User{
-		Locked: time.Now().UTC().Add(-time.Hour),
+		Locked: time.Now().UTC().Add(time.Hour),
 	}
 
 	r := mocks.Request("GET")

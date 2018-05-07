@@ -163,7 +163,7 @@ func Middleware(ab *authboss.Authboss) func(http.Handler) http.Handler {
 			user := ab.LoadCurrentUserP(&r)
 
 			lu := authboss.MustBeLockable(user)
-			if IsLocked(lu) {
+			if !IsLocked(lu) {
 				next.ServeHTTP(w, r)
 				return
 			}

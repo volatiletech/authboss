@@ -5,6 +5,7 @@ import (
 	"context"
 	"crypto/sha512"
 	"encoding/base64"
+	"errors"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -241,7 +242,7 @@ func TestEndPostSuccess(t *testing.T) {
 		RecoverTokenExpiry: time.Now().UTC().AddDate(0, 0, 1),
 	}
 
-	r := mocks.Request("GET")
+	r := mocks.Request("POST")
 	w := httptest.NewRecorder()
 
 	if err := h.recover.EndPost(w, r); err != nil {
@@ -281,7 +282,7 @@ func TestEndPostSuccessLogin(t *testing.T) {
 		RecoverTokenExpiry: time.Now().UTC().AddDate(0, 0, 1),
 	}
 
-	r := mocks.Request("GET")
+	r := mocks.Request("POST")
 	w := httptest.NewRecorder()
 
 	if err := h.recover.EndPost(h.ab.NewResponse(w), r); err != nil {
@@ -299,6 +300,44 @@ func TestEndPostSuccessLogin(t *testing.T) {
 	}
 	if !strings.Contains(h.redirector.Options.Success, "logged in") {
 		t.Error("should talk about logging in")
+	}
+}
+
+func TestEndPostValidationFailure(t *testing.T) {
+	t.Parallel()
+
+	h := testSetup()
+
+	h.bodyReader.Return = &mocks.Values{
+		Errors: []error{errors.New("password is not sufficiently complex")},
+	}
+	h.storer.Users["test@test.com"] = &mocks.User{
+		Email:              "test@test.com",
+		Password:           "to-overwrite",
+		RecoverToken:       testStdBase64Token,
+		RecoverTokenExpiry: time.Now().UTC().AddDate(0, 0, 1),
+	}
+
+	r := mocks.Request("POST")
+	w := httptest.NewRecorder()
+
+	if err := h.recover.EndPost(w, r); err != nil {
+		t.Error(err)
+	}
+
+	if w.Code != http.StatusOK {
+		t.Error("code was wrong:", w.Code)
+	}
+	if h.responder.Page != PageRecoverEnd {
+		t.Error("rendered the wrong page")
+	}
+	if m, ok := h.responder.Data[authboss.DataValidation].(map[string][]string); !ok {
+		t.Error("expected validation errors")
+	} else if m[""][0] != "password is not sufficiently complex" {
+		t.Error("error message data was not correct:", m[""])
+	}
+	if len(h.session.ClientValues[authboss.SessionKey]) != 0 {
+		t.Error("should not have logged in the user")
 	}
 }
 

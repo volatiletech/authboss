@@ -183,6 +183,15 @@ func (r *Recover) EndPost(w http.ResponseWriter, req *http.Request) error {
 	password := values.GetPassword()
 	token := values.GetToken()
 
+	if errs := validatable.Validate(); errs != nil {
+		logger.Info("recovery validation failed")
+		data := authboss.HTMLData{
+			authboss.DataValidation: authboss.ErrorMap(errs),
+			DataRecoverToken:        token,
+		}
+		return r.Config.Core.Responder.Respond(w, req, http.StatusOK, PageRecoverEnd, data)
+	}
+
 	rawToken, err := base64.URLEncoding.DecodeString(token)
 	if err != nil {
 		logger.Infof("invalid recover token submitted, base64 decode failed: %+v", err)

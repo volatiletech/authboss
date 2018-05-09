@@ -1,6 +1,8 @@
 package defaults
 
 import (
+	"encoding/json"
+	"io/ioutil"
 	"net/http"
 	"net/url"
 	"regexp"
@@ -90,9 +92,13 @@ func (r RecoverEndValues) GetToken() string { return r.Token }
 // GetPassword for recovery
 func (r RecoverEndValues) GetPassword() string { return r.NewPassword }
 
-// HTTPFormReader reads forms from various pages and decodes
+// HTTPBodyReader reads forms from various pages and decodes
 // them.
-type HTTPFormReader struct {
+type HTTPBodyReader struct {
+	// ReadJSON if turned on reads json from the http request
+	// instead of a encoded form.
+	ReadJSON bool
+
 	// UseUsername instead of e-mail address
 	UseUsername bool
 
@@ -108,10 +114,10 @@ type HTTPFormReader struct {
 	Whitelist map[string][]string
 }
 
-// NewHTTPFormReader creates a form reader with default validation rules
+// NewHTTPBodyReader creates a form reader with default validation rules
 // and fields for each page. If no defaults are required, simply construct
 // this using the struct members itself for more control.
-func NewHTTPFormReader(useUsernameNotEmail bool) *HTTPFormReader {
+func NewHTTPBodyReader(readJSON, useUsernameNotEmail bool) *HTTPBodyReader {
 	var pid string
 	var pidRules Rules
 
@@ -140,7 +146,9 @@ func NewHTTPFormReader(useUsernameNotEmail bool) *HTTPFormReader {
 		MinLower:   1,
 	}
 
-	return &HTTPFormReader{
+	return &HTTPBodyReader{
+		UseUsername: useUsernameNotEmail,
+		ReadJSON:    readJSON,
 		Rulesets: map[string][]Rules{
 			"login":         {pidRules},
 			"register":      {pidRules, passwordRule},
@@ -159,15 +167,29 @@ func NewHTTPFormReader(useUsernameNotEmail bool) *HTTPFormReader {
 }
 
 // Read the form pages
-func (h HTTPFormReader) Read(page string, r *http.Request) (authboss.Validator, error) {
-	if err := r.ParseForm(); err != nil {
-		return nil, errors.Wrapf(err, "failed to parse form on page: %s", page)
+func (h HTTPBodyReader) Read(page string, r *http.Request) (authboss.Validator, error) {
+	var values map[string]string
+
+	if h.ReadJSON {
+		b, err := ioutil.ReadAll(r.Body)
+		r.Body.Close()
+		if err != nil {
+			return nil, errors.Wrap(err, "failed to read http body")
+		}
+
+		if err = json.Unmarshal(b, &values); err != nil {
+			return nil, errors.Wrap(err, "failed to parse json http body")
+		}
+	} else {
+		if err := r.ParseForm(); err != nil {
+			return nil, errors.Wrapf(err, "failed to parse form on page: %s", page)
+		}
+		values = URLValuesToMap(r.Form)
 	}
 
 	rules := h.Rulesets[page]
 	confirms := h.Confirms[page]
 	whitelist := h.Whitelist[page]
-	values := URLValuesToMap(r.Form)
 
 	switch page {
 	case "confirm":

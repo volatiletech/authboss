@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"strings"
 	"time"
+
+	"github.com/pkg/errors"
 )
 
 // User has functions for each piece of data it requires.
@@ -154,14 +156,25 @@ func MakeOAuth2PID(provider, uid string) string {
 }
 
 // ParseOAuth2PID returns the uid and provider for a given OAuth2 pid
-func ParseOAuth2PID(pid string) (provider, uid string) {
+func ParseOAuth2PID(pid string) (provider, uid string, err error) {
 	splits := strings.Split(pid, ";;")
 	if len(splits) != 3 {
-		panic(fmt.Sprintf("failed to parse oauth2 pid, too many segments: %s", pid))
+		return "", "", errors.Errorf("failed to parse oauth2 pid, too many segments: %s", pid)
 	}
 	if splits[0] != "oauth2" {
-		panic(fmt.Sprintf("invalid oauth2 pid, did not start with oauth2: %s", pid))
+		return "", "", errors.Errorf("invalid oauth2 pid, did not start with oauth2: %s", pid)
 	}
 
-	return splits[1], splits[2]
+	return splits[1], splits[2], nil
+}
+
+// ParseOAuth2PIDP returns the uid and provider for a given OAuth2 pid
+func ParseOAuth2PIDP(pid string) (provider, uid string) {
+	var err error
+	provider, uid, err = ParseOAuth2PID(pid)
+	if err != nil {
+		panic(err)
+	}
+
+	return provider, uid
 }

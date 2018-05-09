@@ -1,5 +1,10 @@
 package authboss
 
+import (
+	"context"
+	"net/http"
+)
+
 // Keys for use in HTMLData that are meaningful
 const (
 	// DataErr is for one off errors that don't really belong to
@@ -65,4 +70,19 @@ func (h HTMLData) MergeKV(data ...interface{}) HTMLData {
 	}
 
 	return h
+}
+
+// MergeDataInRequest edits the request pointer to point to a new request with
+// a modified context that contains the merged data.
+func MergeDataInRequest(r **http.Request, other HTMLData) {
+	ctx := (*r).Context()
+	currentIntf := ctx.Value(CTXKeyData)
+	if currentIntf == nil {
+		*r = (*r).WithContext(context.WithValue(ctx, CTXKeyData, other))
+		return
+	}
+
+	current := currentIntf.(HTMLData)
+	merged := current.Merge(other)
+	*r = (*r).WithContext(context.WithValue(ctx, CTXKeyData, merged))
 }

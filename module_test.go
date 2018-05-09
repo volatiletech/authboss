@@ -78,6 +78,10 @@ func TestModuleLoadedMiddleware(t *testing.T) {
 	ab.loadedModules = map[string]Moduler{
 		"recover": nil,
 		"auth":    nil,
+		"oauth2":  nil,
+	}
+	ab.Config.Modules.OAuth2Providers = map[string]OAuth2Provider{
+		"google": OAuth2Provider{},
 	}
 
 	var mods map[string]bool
@@ -88,8 +92,8 @@ func TestModuleLoadedMiddleware(t *testing.T) {
 
 	server.ServeHTTP(nil, httptest.NewRequest("GET", "/", nil))
 
-	if len(mods) != 2 {
-		t.Error("want two modules, got:", len(mods))
+	if len(mods) != 4 {
+		t.Error("want 4 modules, got:", len(mods))
 	}
 
 	if _, ok := mods["auth"]; !ok {
@@ -97,5 +101,11 @@ func TestModuleLoadedMiddleware(t *testing.T) {
 	}
 	if _, ok := mods["recover"]; !ok {
 		t.Error("recover should be loaded")
+	}
+	if _, ok := mods["oauth2"]; !ok {
+		t.Error("modules should include oauth2.google")
+	}
+	if _, ok := mods["oauth2.google"]; !ok {
+		t.Error("modules should include oauth2.google")
 	}
 }

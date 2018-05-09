@@ -3,6 +3,7 @@ package remember
 
 import (
 	"bytes"
+	"context"
 	"crypto/rand"
 	"crypto/sha512"
 	"encoding/base64"
@@ -72,7 +73,7 @@ func Middleware(ab *authboss.Authboss) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			if r.Context().Value(authboss.CTXKeyPID) == nil && r.Context().Value(authboss.CTXKeyUser) == nil {
-				if err := Authenticate(ab, w, r); err != nil {
+				if err := Authenticate(ab, w, &r); err != nil {
 					logger := ab.RequestLogger(r)
 					logger.Errorf("failed to authenticate user via remember me: %+v", err)
 				}
@@ -89,9 +90,12 @@ func Middleware(ab *authboss.Authboss) func(http.Handler) http.Handler {
 // - Can't decode the base64
 // - Invalid token format
 // - Can't find token in DB
-func Authenticate(ab *authboss.Authboss, w http.ResponseWriter, req *http.Request) error {
-	logger := ab.RequestLogger(req)
-	cookie, ok := authboss.GetCookie(req, authboss.CookieRemember)
+//
+// In order to authenticate it adds to the request context as well as to the
+// cookie and session states.
+func Authenticate(ab *authboss.Authboss, w http.ResponseWriter, req **http.Request) error {
+	logger := ab.RequestLogger(*req)
+	cookie, ok := authboss.GetCookie(*req, authboss.CookieRemember)
 	if !ok {
 		return nil
 	}
@@ -131,9 +135,10 @@ func Authenticate(ab *authboss.Authboss, w http.ResponseWriter, req *http.Reques
 	}
 
 	if err = storer.AddRememberToken(pid, hash); err != nil {
-		return errors.Wrap(err, "failed to save me token")
+		return errors.Wrap(err, "failed to save remember me token")
 	}
 
+	*req = (*req).WithContext(context.WithValue((*req).Context(), authboss.CTXKeyPID, pid))
 	authboss.PutSession(w, authboss.SessionKey, pid)
 	authboss.PutSession(w, authboss.SessionHalfAuthKey, "true")
 	authboss.DelCookie(w, authboss.CookieRemember)

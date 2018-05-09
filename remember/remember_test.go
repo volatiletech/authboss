@@ -176,7 +176,7 @@ func TestAuthenticateSuccess(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	if err = Authenticate(h.ab, w, r); err != nil {
+	if err = Authenticate(h.ab, w, &r); err != nil {
 		t.Fatal(err)
 	}
 
@@ -197,6 +197,10 @@ func TestAuthenticateSuccess(t *testing.T) {
 	}
 	if h.session.ClientValues[authboss.SessionHalfAuthKey] != "true" {
 		t.Error("it should have become a half-authed session")
+	}
+
+	if r.Context().Value(authboss.CTXKeyPID).(string) != "test@test.com" {
+		t.Error("should have set the context value to log the user in")
 	}
 }
 
@@ -221,7 +225,7 @@ func TestAuthenticateTokenNotFound(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	if err = Authenticate(h.ab, w, r); err != nil {
+	if err = Authenticate(h.ab, w, &r); err != nil {
 		t.Fatal(err)
 	}
 
@@ -233,6 +237,10 @@ func TestAuthenticateTokenNotFound(t *testing.T) {
 
 	if len(h.session.ClientValues[authboss.SessionKey]) != 0 {
 		t.Error("it should have not logged the user in")
+	}
+
+	if r.Context().Value(authboss.CTXKeyPID) != nil {
+		t.Error("the context's pid should be empty")
 	}
 }
 
@@ -254,7 +262,7 @@ func TestAuthenticateBadTokens(t *testing.T) {
 			t.Fatal(err)
 		}
 
-		if err = Authenticate(h.ab, w, r); err != nil {
+		if err = Authenticate(h.ab, w, &r); err != nil {
 			t.Fatal(err)
 		}
 
@@ -266,6 +274,10 @@ func TestAuthenticateBadTokens(t *testing.T) {
 
 		if len(h.session.ClientValues[authboss.SessionKey]) != 0 {
 			t.Error("it should have not logged the user in")
+		}
+
+		if r.Context().Value(authboss.CTXKeyPID) != nil {
+			t.Error("the context's pid should be empty")
 		}
 	}
 

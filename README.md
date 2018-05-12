@@ -34,6 +34,10 @@
     - [Remember Me](#remember-me)
     - [Locking Users](#locking-users)
     - [Expiring User Sessions](#expiring-user-sessions)
+    - [Rendering Views](#rendering-views)
+        - [HTML Views](#html-views)
+        - [JSON Views](#json-views)
+        - [Data](#data)
 
 <!-- /TOC -->
 
@@ -100,8 +104,8 @@ ab.Config.Paths.RootURL = "https://www.example.com/"
 ab.Config.Core.ViewRenderer = abrenderer.New("/auth")
 // Probably want a MailRenderer here too.
 
-// Set up defaults for basically everything besides the ViewRenderer in the HTTP stack
-defaults.SetDefaultCore(&ab.Config, false)
+// Set up defaults for basically everything besides the ViewRenderer/MailRenderer in the HTTP stack
+defaults.SetCore(&ab.Config, false)
 
 if err := ab.Init(); err != nil {
     panic(err)
@@ -114,10 +118,10 @@ mux.Mount("/authboss", http.StripPrefix("/authboss", ab.Config.Core.Router))
 
 ```
 
-For a more in-depth look you **must** look at the authboss sample to see what a full implementation
-looks like. This will probably help you more than anything.
+For a more in-depth look you **definitely should** look at the authboss sample to see what a full 
+implementation looks like. This will probably help you more than any of this documentation.
 
-[github.com/volatiletech/authboss-sample](https://github.com/volatiletech/authboss-sample)
+[https://github.com/volatiletech/authboss-sample](https://github.com/volatiletech/authboss-sample)
 
 ## App Requirements
 
@@ -144,23 +148,25 @@ In terms of integrating Authboss into your app, the following things must be con
 
 ### Middleware
 
-There is also middlewares that are required to be installed in your middleware stack if it's
+There are middlewares that are required to be installed in your middleware stack if it's
 all to function properly, please see [Middlewares](#Middlewares) for more information.
 
 ### Configuration
 
-There are some required configuration variables:
+There are some required configuration variables that have no sane defaults:
 
 * Config.Paths.Mount
 * Config.Paths.RootURL
 
 ### Storage and Core implementations
 
-Everything under Config.Storage and Config.Core are required. however you can optionally use default 
+Everything under Config.Storage and Config.Core are required. however you can optionally use default
 implementations from the [defaults package](https://github.com/volatiletech/authboss/defaults).
-This also provides an easy way to share implementations of certain web parts (like HTML Form Parsing).
+This also provides an easy way to share implementations of certain stack pieces (like HTML Form Parsing).
+As you see in the example above these can be easily initialized with the `SetCore` method in that
+package.
 
-The following is a list of storage interfaces, they must be provided by the user. Server is a
+The following is a list of storage interfaces, they must be provided by the implementer. Server is a
 very involved implementation, please see the additional documentation below for more details.
 
 * Config.Storage.Server
@@ -168,6 +174,9 @@ very involved implementation, please see the additional documentation below for 
 * Config.Storage.CookieState (only for remember me)
 
 The following is a list of the core pieces, these typically are abstracting the HTTP stack.
+Out of all of these you'll probably be mostly okay with the default implementations in the
+defaults package but there are two big exceptions to this rule and that's the ViewRenderer
+and the MailRenderer. For more information please see the use case [Rendering Views](#rendering-views)
 
 * Config.Core.Router
 * Config.Core.ErrorHandler
@@ -181,14 +190,14 @@ The following is a list of the core pieces, these typically are abstracting the 
 
 ### ServerStorer implementation
 
-The [ServerStorer](https://godoc.org//github.com/volatiletech/authboss/#ServerStorer) is 
+The [ServerStorer](https://godoc.org//github.com/volatiletech/authboss/#ServerStorer) is
 meant to be upgraded to add capabilities depending on what modules you'd like to use.
 It starts out by only knowing how to save and load users, but the `remember` module as an example
 needs to be able to find users by remember me tokens, so it upgrades to a
 [RememberingServerStorer](https://godoc.org/github.com/volatiletech/authboss/#RememberingServerStorer)
 which adds these abilities.
 
-Your `ServerStorer` implementation does not need to implement all these additional user interfaces
+Your `ServerStorer` implementation does not need to implement all these additional interfaces
 unless you're using a module that requires it. See the [Use Cases](#use-cases) documentation to know what the requirements are.
 
 ### User implementation
@@ -233,7 +242,7 @@ The config struct is an important part of Authboss. It's the key to making Authb
 want with the implementations you want. Please look at it's code definition as you read the
 documentation below, it will make much more sense.
 
-[Config Struct Documentation](https://godoc.org/github.com/volatiletech/authboss/#Config) 
+[Config Struct Documentation](https://godoc.org/github.com/volatiletech/authboss/#Config)
 
 ### Paths
 
@@ -264,7 +273,7 @@ they redirected? How are errors handled?
 
 For most of these there are default implementations implementations from the
 [defaults package](https://github.com/volatiletech/authboss/defaults) available, but not for all.
-See the package documentation for more information about these interfaces.
+See the package documentation for more information about what's available.
 
 # Available Modules
 
@@ -315,8 +324,8 @@ CurrentUser can be retrieved by calling
 [Authboss.CurrentUser](https://godoc.org/github.com/volatiletech/authboss/#Authboss.CurrentUser)
 but a pre-requisite is that
 [Authboss.LoadClientState](https://godoc.org/github.com/volatiletech/authboss/#Authboss.LoadClientState)
-has been called first to load the client state into the request context. This is typically achieved by
-using the 
+has been called first to load the client state into the request context.
+This is typically achieved by using the
 [Authboss.LoadClientStateMiddleware](https://godoc.org/github.com/volatiletech/authboss/#Authboss.LoadClientStateMiddleware), but can
 be done manually as well.
 
@@ -344,6 +353,7 @@ all known sessions and cookies from the user.
 | --------------------- | -------- |
 Module        | auth
 Pages         | login
+Routes        | /login
 Emails        | _None_
 Middlewares   | [LoadClientStateMiddleware](https://godoc.org/github.com/volatiletech/authboss/#Authboss.LoadClientStateMiddleware)
 ClientStorage | Session and Cookie
@@ -361,6 +371,7 @@ It's very likely that you'd also want to enable the logout module in addition to
 | --------------------- | -------- |
 Module        | oauth2
 Pages         | _None_
+Routes        | /oauth2/{provider}, /oauth2/callback/{provider}
 Emails        | _None_
 Middlewares   | [LoadClientStateMiddleware](https://godoc.org/github.com/volatiletech/authboss/#Authboss.LoadClientStateMiddleware)
 ClientStorage | Session
@@ -389,6 +400,7 @@ Please see the following documentation for more details:
 | --------------------- | -------- |
 Module        | register
 Pages         | register
+Routes        | /register
 Emails        | _None_
 Middlewares   | [LoadClientStateMiddleware](https://godoc.org/github.com/volatiletech/authboss/#Authboss.LoadClientStateMiddleware)
 ClientStorage | Session
@@ -413,6 +425,7 @@ and the Valuer types themselves.
 | --------------------- | -------- |
 Module        | confirm
 Pages         | confirm
+Routes        | /confirm
 Emails        | confirm_html, confirm_txt
 Middlewares   | [LoadClientStateMiddleware](https://godoc.org/github.com/volatiletech/authboss/#Authboss.LoadClientStateMiddleware), [confirm.Middleware](https://godoc.org/github.com/volatiletech/authboss/confirm/#Middleware)
 ClientStorage | Session
@@ -434,6 +447,7 @@ return the token.
 | --------------------- | -------- |
 Module        | recover
 Pages         | recover_start, recover_middle (not used for renders, only values), recover_end
+Routes        | /recover, /recover/end
 Emails        | recover_html, recover_txt
 Middlewares   | [LoadClientStateMiddleware](https://godoc.org/github.com/volatiletech/authboss/#Authboss.LoadClientStateMiddleware)
 ClientStorage | Session
@@ -458,8 +472,9 @@ the new password which is retrieved by `RecoverEndValuer` which sets their passw
 | --------------------- | -------- |
 Module        | remember
 Pages         | _None_
+Routes        | _None_
 Emails        | _None_
-Middlewares   | LoadClientStateMiddleware, 
+Middlewares   | LoadClientStateMiddleware,
 Middlewares   | [LoadClientStateMiddleware](https://godoc.org/github.com/volatiletech/authboss/#Authboss.LoadClientStateMiddleware), [remember.Middleware](https://godoc.org/github.com/volatiletech/authboss/remember/#Middleware)
 ClientStorage | Session, Cookies
 ServerStorer  | [RememberingServerStorer](https://godoc.org/github.com/volatiletech/authboss/#RememberingServerStorer)
@@ -487,6 +502,7 @@ force them to go to the login screen and put in their password to get a full aut
 | --------------------- | -------- |
 Module        | lock
 Pages         | _None_
+Routes        | _None_
 Emails        | _None_
 Middlewares   | [LoadClientStateMiddleware](https://godoc.org/github.com/volatiletech/authboss/#Authboss.LoadClientStateMiddleware), [lock.Middleware](https://godoc.org/github.com/volatiletech/authboss/lock/#Middleware)
 ClientStorage | Session
@@ -507,6 +523,7 @@ You should put in front of any resource that requires a login to function.
 | --------------------- | -------- |
 Module        | expire
 Pages         | _None_
+Routes        | _None_
 Emails        | _None_
 Middlewares   | [LoadClientStateMiddleware](https://godoc.org/github.com/volatiletech/authboss/#Authboss.LoadClientStateMiddleware), [expire.Middleware](https://godoc.org/github.com/volatiletech/authboss/expire/#Middleware)
 ClientStorage | Session
@@ -521,3 +538,39 @@ than configured then the session is deleted and the user removed from the reques
 This middleware should at a high level to ensure that "activity" is logged properly, as well as any
 middlewares down the chain do not attempt to do anything with the user before it's removed from the
 request context.
+
+## Rendering Views
+
+The authboss rendering system is simple. It's defined by one interface: [Renderer](https://godoc.org/github.com/volatiletech/authboss/#Renderer)
+
+The renderer knows how to load templates, and how to render them with some data and that's it.
+So let's examine the most common view types that you might want to use.
+
+### HTML Views
+
+When your app is a traditional web application and is generating it's HTML serverside using templates
+this becomes a small wrapper on top of your rendering setup. For example if you're using `html/template`
+then you could just use `template.New()` inside the `Load()` method and store that somewhere and
+call `template.Execute()` in the `Render()` method.
+
+There is also a very basic renderer: [Authboss Renderer](https://github.com/volatiletech/authboss-renderer) which has some very ugly built in views
+and the ability to override them with your own if you don't want to integrate your own rendering
+system into that interface.
+
+### JSON Views
+
+If you're building an API that's mostly backed by a javascript front-end, then you'll probably
+want to use a renderer that returns JSON. There is a simple json renderer available in the [defaults package](https://github.com/volatiletech/authboss/defaults) package if you wish to use that.
+
+### Data
+
+The most important part about this interface is the data that you have to render.
+There are several keys that are used throughout authboss that you'll want to render in your views.
+
+They're in the file [html_data.go](https://github.com/volatiletech/authboss/blob/master/html_data.go)
+and are constants prefixed with `Data`. See the documentation in that file for more information on
+which keys exist and what they contain.
+
+The default [responder](https://godoc.org/github.com/volatiletech/authboss/defaults/#Responder)
+also happens to collect data from the Request context, and hence this is a great place to inject
+data you'd like to render (for example data for your html layout, or csrf tokens).

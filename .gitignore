@@ -26,3 +26,5 @@ _testmain.go
 
 *.iml
 .idea
+
+defaults/smtp_mailer_test.json

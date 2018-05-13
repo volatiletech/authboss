@@ -10,10 +10,14 @@ import (
 	"text/template"
 	"time"
 
+	"github.com/pkg/errors"
 	"github.com/volatiletech/authboss"
 )
 
 // NewSMTPMailer creates an SMTP Mailer to send emails with.
+// An example usage might be something like:
+//
+//   NewSMTPMailer("smtp.gmail.com", smtp.PlainAuth("", "admin@yoursite.com", "password", "smtp.gmail.com"))
 func NewSMTPMailer(server string, auth smtp.Auth) *SMTPMailer {
 	if len(server) == 0 {
 		panic("SMTP Mailer must be created with a server string.")
@@ -31,6 +35,10 @@ type SMTPMailer struct {
 
 // Send an e-mail
 func (s SMTPMailer) Send(ctx context.Context, mail authboss.Email) error {
+	if len(mail.TextBody) == 0 && len(mail.HTMLBody) == 0 {
+		return errors.New("refusing to send mail without text or html body")
+	}
+
 	buf := &bytes.Buffer{}
 
 	data := struct {
@@ -110,15 +118,19 @@ MIME-Version: 1.0
 Content-Type: multipart/alternative; boundary="==============={{.Boundary}}=="
 Content-Transfer-Encoding: 7bit
 
+{{if .Mail.TextBody -}}
 --==============={{.Boundary}}==
 Content-Type: text/plain; charset=UTF-8
 Content-Transfer-Encoding: 7bit
 
 {{.Mail.TextBody}}
+{{end -}}
+{{if .Mail.HTMLBody -}}
 --==============={{.Boundary}}==
 Content-Type: text/html; charset=UTF-8
 Content-Transfer-Encoding: 7bit
 
 {{.Mail.HTMLBody}}
+{{end -}}
 --==============={{.Boundary}}==--
 `))

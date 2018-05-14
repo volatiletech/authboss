@@ -36,111 +36,111 @@ type User struct {
 }
 
 // GetPID from user
-func (m User) GetPID() string { return m.Email }
+func (u User) GetPID() string { return u.Email }
 
 // GetEmail from user
-func (m User) GetEmail() string { return m.Email }
+func (u User) GetEmail() string { return u.Email }
 
 // GetUsername from user
-func (m User) GetUsername() string { return m.Username }
+func (u User) GetUsername() string { return u.Username }
 
 // GetPassword from user
-func (m User) GetPassword() string { return m.Password }
+func (u User) GetPassword() string { return u.Password }
 
 // GetRecoverToken from user
-func (m User) GetRecoverToken() string { return m.RecoverToken }
+func (u User) GetRecoverToken() string { return u.RecoverToken }
 
 // GetRecoverExpiry from user
-func (m User) GetRecoverExpiry() time.Time { return m.RecoverTokenExpiry }
+func (u User) GetRecoverExpiry() time.Time { return u.RecoverTokenExpiry }
 
 // GetConfirmToken from user
-func (m User) GetConfirmToken() string { return m.ConfirmToken }
+func (u User) GetConfirmToken() string { return u.ConfirmToken }
 
 // GetConfirmed from user
-func (m User) GetConfirmed() bool { return m.Confirmed }
+func (u User) GetConfirmed() bool { return u.Confirmed }
 
 // GetAttemptCount from user
-func (m User) GetAttemptCount() int { return m.AttemptCount }
+func (u User) GetAttemptCount() int { return u.AttemptCount }
 
 // GetLastAttempt from user
-func (m User) GetLastAttempt() time.Time { return m.LastAttempt }
+func (u User) GetLastAttempt() time.Time { return u.LastAttempt }
 
 // GetLocked from user
-func (m User) GetLocked() time.Time { return m.Locked }
+func (u User) GetLocked() time.Time { return u.Locked }
 
 // IsOAuth2User returns true if the user is an oauth2 user
-func (m User) IsOAuth2User() bool { return len(m.OAuth2Provider) != 0 }
+func (u User) IsOAuth2User() bool { return len(u.OAuth2Provider) != 0 }
 
 // GetOAuth2UID from user
-func (m User) GetOAuth2UID() string { return m.OAuth2UID }
+func (u User) GetOAuth2UID() string { return u.OAuth2UID }
 
 // GetOAuth2Provider from user
-func (m User) GetOAuth2Provider() string { return m.OAuth2Provider }
+func (u User) GetOAuth2Provider() string { return u.OAuth2Provider }
 
 // GetOAuth2AccessToken from user
-func (m User) GetOAuth2AccessToken() string { return m.OAuth2Token }
+func (u User) GetOAuth2AccessToken() string { return u.OAuth2Token }
 
 // GetOAuth2RefreshToken from user
-func (m User) GetOAuth2RefreshToken() string { return m.OAuth2Refresh }
+func (u User) GetOAuth2RefreshToken() string { return u.OAuth2Refresh }
 
 // GetOAuth2Expiry from user
-func (m User) GetOAuth2Expiry() time.Time { return m.OAuth2Expiry }
+func (u User) GetOAuth2Expiry() time.Time { return u.OAuth2Expiry }
 
 // GetArbitrary from user
-func (m User) GetArbitrary() map[string]string { return m.Arbitrary }
+func (u User) GetArbitrary() map[string]string { return u.Arbitrary }
 
 // PutPID into user
-func (m *User) PutPID(email string) { m.Email = email }
+func (u *User) PutPID(email string) { u.Email = email }
 
 // PutUsername into user
-func (m *User) PutUsername(username string) { m.Username = username }
+func (u *User) PutUsername(username string) { u.Username = username }
 
 // PutEmail into user
-func (m *User) PutEmail(email string) { m.Email = email }
+func (u *User) PutEmail(email string) { u.Email = email }
 
 // PutPassword into user
-func (m *User) PutPassword(password string) { m.Password = password }
+func (u *User) PutPassword(password string) { u.Password = password }
 
 // PutRecoverToken into user
-func (m *User) PutRecoverToken(recoverToken string) { m.RecoverToken = recoverToken }
+func (u *User) PutRecoverToken(recoverToken string) { u.RecoverToken = recoverToken }
 
 // PutRecoverExpiry into user
-func (m *User) PutRecoverExpiry(recoverTokenExpiry time.Time) {
-	m.RecoverTokenExpiry = recoverTokenExpiry
+func (u *User) PutRecoverExpiry(recoverTokenExpiry time.Time) {
+	u.RecoverTokenExpiry = recoverTokenExpiry
 }
 
 // PutConfirmToken into user
-func (m *User) PutConfirmToken(confirmToken string) { m.ConfirmToken = confirmToken }
+func (u *User) PutConfirmToken(confirmToken string) { u.ConfirmToken = confirmToken }
 
 // PutConfirmed into user
-func (m *User) PutConfirmed(confirmed bool) { m.Confirmed = confirmed }
+func (u *User) PutConfirmed(confirmed bool) { u.Confirmed = confirmed }
 
 // PutAttemptCount into user
-func (m *User) PutAttemptCount(attemptCount int) { m.AttemptCount = attemptCount }
+func (u *User) PutAttemptCount(attemptCount int) { u.AttemptCount = attemptCount }
 
 // PutLastAttempt into user
-func (m *User) PutLastAttempt(attemptTime time.Time) { m.LastAttempt = attemptTime }
+func (u *User) PutLastAttempt(attemptTime time.Time) { u.LastAttempt = attemptTime }
 
 // PutLocked into user
-func (m *User) PutLocked(locked time.Time) { m.Locked = locked }
+func (u *User) PutLocked(locked time.Time) { u.Locked = locked }
 
 // PutOAuth2UID into user
-func (m *User) PutOAuth2UID(uid string) { m.OAuth2UID = uid }
+func (u *User) PutOAuth2UID(uid string) { u.OAuth2UID = uid }
 
 // PutOAuth2Provider into user
-func (m *User) PutOAuth2Provider(provider string) { m.OAuth2Provider = provider }
+func (u *User) PutOAuth2Provider(provider string) { u.OAuth2Provider = provider }
 
 // PutOAuth2AccessToken into user
-func (m *User) PutOAuth2AccessToken(token string) { m.OAuth2Token = token }
+func (u *User) PutOAuth2AccessToken(token string) { u.OAuth2Token = token }
 
 // PutOAuth2RefreshToken into user
-func (m *User) PutOAuth2RefreshToken(refresh string) { m.OAuth2Refresh = refresh }
+func (u *User) PutOAuth2RefreshToken(refresh string) { u.OAuth2Refresh = refresh }
 
 // PutOAuth2Expiry into user
-func (m *User) PutOAuth2Expiry(expiry time.Time) { m.OAuth2Expiry = expiry }
+func (u *User) PutOAuth2Expiry(expiry time.Time) { u.OAuth2Expiry = expiry }
 
 // PutArbitrary into user
-func (m *User) PutArbitrary(arb map[string]string) { m.Arbitrary = arb }
+func (u *User) PutArbitrary(arb map[string]string) { u.Arbitrary = arb }
 
 // ServerStorer should be valid for any module storer defined in authboss.
 type ServerStorer struct {

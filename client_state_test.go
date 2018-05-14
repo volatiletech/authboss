@@ -159,3 +159,40 @@ func TestFlashClearer(t *testing.T) {
 		t.Error("event was wrong", got)
 	}
 }
+
+func TestDelKnown(t *testing.T) {
+	t.Parallel()
+
+	csrw := &ClientStateResponseWriter{}
+
+	DelKnownSession(csrw)
+	DelKnownCookie(csrw)
+
+	mustBeDel := func(ev ClientStateEvent) {
+		t.Helper()
+		if ev.Kind != ClientStateEventDel {
+			t.Error("events should all be deletes")
+		}
+	}
+
+	if len(csrw.sessionStateEvents) != 3 {
+		t.Error("should have deleted 3 session entries")
+	}
+	mustBeDel(csrw.sessionStateEvents[0])
+	mustBeDel(csrw.sessionStateEvents[1])
+	mustBeDel(csrw.sessionStateEvents[2])
+
+	for i, key := range []string{SessionKey, SessionHalfAuthKey, SessionLastAction} {
+		if sessionKey := csrw.sessionStateEvents[i].Key; key != sessionKey {
+			t.Errorf("%d) key was wrong, want: %s, got: %s", i, key, sessionKey)
+		}
+	}
+
+	if len(csrw.cookieStateEvents) != 1 {
+		t.Error("should have deleted 1 cookie")
+	}
+	mustBeDel(csrw.cookieStateEvents[0])
+	if key := csrw.cookieStateEvents[0].Key; key != CookieRemember {
+		t.Error("cookie key was wrong:", key)
+	}
+}

@@ -225,8 +225,8 @@ func (c *ClientStateResponseWriter) putClientState() error {
 // logging a user out.
 func DelKnownSession(w http.ResponseWriter) {
 	DelSession(w, SessionKey)
-	DelSession(w, SessionLastAction)
 	DelSession(w, SessionHalfAuthKey)
+	DelSession(w, SessionLastAction)
 }
 
 // DelKnownCookie deletes all known cookie variables, which can be used

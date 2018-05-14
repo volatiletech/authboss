@@ -8,11 +8,31 @@ import (
 	"net/http"
 	"net/url"
 	"strings"
+	"time"
 )
 
 type mockUser struct {
 	Email    string
 	Password string
+	Username string
+
+	RecoverToken       string
+	RecoverTokenExpiry time.Time
+
+	ConfirmToken string
+	Confirmed    bool
+
+	AttemptCount int
+	LastAttempt  time.Time
+	Locked       time.Time
+
+	OAuth2UID      string
+	OAuth2Provider string
+	OAuth2Token    string
+	OAuth2Refresh  string
+	OAuth2Expiry   time.Time
+
+	Arbitrary map[string]string
 }
 
 func newMockServerStorer() *mockServerStorer {
@@ -70,21 +90,57 @@ func (m *mockServerStorer) UseRememberToken(pid, token string) error {
 	return ErrTokenNotFound
 }
 
-func (m *mockUser) PutPID(email string) {
-	m.Email = email
+// This section of functions was purely for test coverage
+func (m *mockServerStorer) New(ctx context.Context) User                { panic("not impl") }
+func (m *mockServerStorer) Create(ctx context.Context, user User) error { panic("not impl") }
+func (m *mockServerStorer) NewFromOAuth2(ctx context.Context, provider string, details map[string]string) (OAuth2User, error) {
+	panic("not impl")
 }
+func (m *mockServerStorer) LoadByConfirmToken(ctx context.Context, token string) (ConfirmableUser, error) {
+	panic("not impl")
+}
+func (m *mockServerStorer) LoadByRecoverToken(ctx context.Context, token string) (RecoverableUser, error) {
+	panic("not impl")
+}
+func (m *mockServerStorer) SaveOAuth2(ctx context.Context, user OAuth2User) error { panic("not impl") }
 
-func (m *mockUser) PutPassword(password string) {
-	m.Password = password
+func (m mockUser) GetPID() string                       { return m.Email }
+func (m mockUser) GetEmail() string                     { return m.Email }
+func (m mockUser) GetUsername() string                  { return m.Username }
+func (m mockUser) GetPassword() string                  { return m.Password }
+func (m mockUser) GetRecoverToken() string              { return m.RecoverToken }
+func (m mockUser) GetRecoverExpiry() time.Time          { return m.RecoverTokenExpiry }
+func (m mockUser) GetConfirmToken() string              { return m.ConfirmToken }
+func (m mockUser) GetConfirmed() bool                   { return m.Confirmed }
+func (m mockUser) GetAttemptCount() int                 { return m.AttemptCount }
+func (m mockUser) GetLastAttempt() time.Time            { return m.LastAttempt }
+func (m mockUser) GetLocked() time.Time                 { return m.Locked }
+func (m mockUser) IsOAuth2User() bool                   { return len(m.OAuth2Provider) != 0 }
+func (m mockUser) GetOAuth2UID() string                 { return m.OAuth2UID }
+func (m mockUser) GetOAuth2Provider() string            { return m.OAuth2Provider }
+func (m mockUser) GetOAuth2AccessToken() string         { return m.OAuth2Token }
+func (m mockUser) GetOAuth2RefreshToken() string        { return m.OAuth2Refresh }
+func (m mockUser) GetOAuth2Expiry() time.Time           { return m.OAuth2Expiry }
+func (m mockUser) GetArbitrary() map[string]string      { return m.Arbitrary }
+func (m *mockUser) PutPID(email string)                 { m.Email = email }
+func (m *mockUser) PutUsername(username string)         { m.Username = username }
+func (m *mockUser) PutEmail(email string)               { m.Email = email }
+func (m *mockUser) PutPassword(password string)         { m.Password = password }
+func (m *mockUser) PutRecoverToken(recoverToken string) { m.RecoverToken = recoverToken }
+func (m *mockUser) PutRecoverExpiry(recoverTokenExpiry time.Time) {
+	m.RecoverTokenExpiry = recoverTokenExpiry
 }
-
-func (m *mockUser) GetPID() (email string) {
-	return m.Email
-}
-
-func (m *mockUser) GetPassword() (password string) {
-	return m.Password
-}
+func (m *mockUser) PutConfirmToken(confirmToken string)  { m.ConfirmToken = confirmToken }
+func (m *mockUser) PutConfirmed(confirmed bool)          { m.Confirmed = confirmed }
+func (m *mockUser) PutAttemptCount(attemptCount int)     { m.AttemptCount = attemptCount }
+func (m *mockUser) PutLastAttempt(attemptTime time.Time) { m.LastAttempt = attemptTime }
+func (m *mockUser) PutLocked(locked time.Time)           { m.Locked = locked }
+func (m *mockUser) PutOAuth2UID(uid string)              { m.OAuth2UID = uid }
+func (m *mockUser) PutOAuth2Provider(provider string)    { m.OAuth2Provider = provider }
+func (m *mockUser) PutOAuth2AccessToken(token string)    { m.OAuth2Token = token }
+func (m *mockUser) PutOAuth2RefreshToken(refresh string) { m.OAuth2Refresh = refresh }
+func (m *mockUser) PutOAuth2Expiry(expiry time.Time)     { m.OAuth2Expiry = expiry }
+func (m *mockUser) PutArbitrary(arb map[string]string)   { m.Arbitrary = arb }
 
 type mockClientStateReadWriter struct {
 	state mockClientState
@@ -178,9 +234,7 @@ type mockRenderer struct {
 	expectName string
 }
 
-func (m mockRenderer) Load(names ...string) error {
-	return nil
-}
+func (m mockRenderer) Load(names ...string) error { return nil }
 
 func (m mockRenderer) Render(ctx context.Context, name string, data HTMLData) ([]byte, string, error) {
 	if len(m.expectName) != 0 && m.expectName != name {
@@ -192,6 +246,8 @@ func (m mockRenderer) Render(ctx context.Context, name string, data HTMLData) ([
 }
 
 type mockEmailRenderer struct{}
+
+func (m mockEmailRenderer) Load(names ...string) error { return nil }
 
 func (m mockEmailRenderer) Render(ctx context.Context, name string, data HTMLData) ([]byte, string, error) {
 	switch name {

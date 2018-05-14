@@ -31,6 +31,38 @@ func TestLogout(t *testing.T) {
 	}
 }
 
+func TestLogoutRoutes(t *testing.T) {
+	t.Parallel()
+
+	ab := authboss.New()
+	router := &mocks.Router{}
+	errHandler := &mocks.ErrorHandler{}
+	ab.Config.Core.Router = router
+	ab.Config.Core.ErrorHandler = errHandler
+
+	l := &Logout{}
+	ab.Config.Modules.LogoutMethod = "what"
+	if err := l.Init(ab); err == nil {
+		t.Error("should have failed to register the route")
+	}
+
+	ab.Config.Modules.LogoutMethod = "GET"
+	if err := l.Init(ab); err != nil {
+		t.Error("should have failed to register the route")
+	}
+	if err := router.HasGets("/logout"); err != nil {
+		t.Error(err)
+	}
+
+	ab.Config.Modules.LogoutMethod = "POST"
+	if err := l.Init(ab); err != nil {
+		t.Error("should have failed to register the route")
+	}
+	if err := router.HasPosts("/logout"); err != nil {
+		t.Error(err)
+	}
+}
+
 type testHarness struct {
 	logout *Logout
 	ab     *authboss.Authboss

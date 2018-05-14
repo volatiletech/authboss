@@ -87,6 +87,8 @@ type Config struct {
 	Mail struct {
 		// From is the email address authboss e-mails come from.
 		From string
+		// FromName is the name authboss e-mails come from.
+		FromName string
 		// SubjectPrefix is used to add something to the front of the authboss
 		// email subjects.
 		SubjectPrefix string

@@ -133,9 +133,10 @@ func (r *Recover) SendRecoverEmail(ctx context.Context, to, encodedToken string)
 	url := fmt.Sprintf("%s%s?%s", r.Authboss.Config.Paths.RootURL, p, query.Encode())
 
 	email := authboss.Email{
-		To:      []string{to},
-		From:    r.Authboss.Config.Mail.From,
-		Subject: r.Authboss.Config.Mail.SubjectPrefix + "Password Reset",
+		To:       []string{to},
+		From:     r.Authboss.Config.Mail.From,
+		FromName: r.Authboss.Config.Mail.FromName,
+		Subject:  r.Authboss.Config.Mail.SubjectPrefix + "Password Reset",
 	}
 
 	ro := authboss.EmailResponseOptions{

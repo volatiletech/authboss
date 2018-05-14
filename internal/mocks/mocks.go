@@ -35,44 +35,112 @@ type User struct {
 	Arbitrary map[string]string
 }
 
-func (m User) GetPID() string                  { return m.Email }
-func (m User) GetEmail() string                { return m.Email }
-func (m User) GetUsername() string             { return m.Username }
-func (m User) GetPassword() string             { return m.Password }
-func (m User) GetRecoverToken() string         { return m.RecoverToken }
-func (m User) GetRecoverExpiry() time.Time     { return m.RecoverTokenExpiry }
-func (m User) GetConfirmToken() string         { return m.ConfirmToken }
-func (m User) GetConfirmed() bool              { return m.Confirmed }
-func (m User) GetAttemptCount() int            { return m.AttemptCount }
-func (m User) GetLastAttempt() time.Time       { return m.LastAttempt }
-func (m User) GetLocked() time.Time            { return m.Locked }
-func (m User) IsOAuth2User() bool              { return len(m.OAuth2Provider) != 0 }
-func (m User) GetOAuth2UID() string            { return m.OAuth2UID }
-func (m User) GetOAuth2Provider() string       { return m.OAuth2Provider }
-func (m User) GetOAuth2AccessToken() string    { return m.OAuth2Token }
-func (m User) GetOAuth2RefreshToken() string   { return m.OAuth2Refresh }
-func (m User) GetOAuth2Expiry() time.Time      { return m.OAuth2Expiry }
+// GetPID from user
+func (m User) GetPID() string { return m.Email }
+
+// GetEmail from user
+func (m User) GetEmail() string { return m.Email }
+
+// GetUsername from user
+func (m User) GetUsername() string { return m.Username }
+
+// GetPassword from user
+func (m User) GetPassword() string { return m.Password }
+
+// GetRecoverToken from user
+func (m User) GetRecoverToken() string { return m.RecoverToken }
+
+// GetRecoverExpiry from user
+func (m User) GetRecoverExpiry() time.Time { return m.RecoverTokenExpiry }
+
+// GetConfirmToken from user
+func (m User) GetConfirmToken() string { return m.ConfirmToken }
+
+// GetConfirmed from user
+func (m User) GetConfirmed() bool { return m.Confirmed }
+
+// GetAttemptCount from user
+func (m User) GetAttemptCount() int { return m.AttemptCount }
+
+// GetLastAttempt from user
+func (m User) GetLastAttempt() time.Time { return m.LastAttempt }
+
+// GetLocked from user
+func (m User) GetLocked() time.Time { return m.Locked }
+
+// IsOAuth2User returns true if the user is an oauth2 user
+func (m User) IsOAuth2User() bool { return len(m.OAuth2Provider) != 0 }
+
+// GetOAuth2UID from user
+func (m User) GetOAuth2UID() string { return m.OAuth2UID }
+
+// GetOAuth2Provider from user
+func (m User) GetOAuth2Provider() string { return m.OAuth2Provider }
+
+// GetOAuth2AccessToken from user
+func (m User) GetOAuth2AccessToken() string { return m.OAuth2Token }
+
+// GetOAuth2RefreshToken from user
+func (m User) GetOAuth2RefreshToken() string { return m.OAuth2Refresh }
+
+// GetOAuth2Expiry from user
+func (m User) GetOAuth2Expiry() time.Time { return m.OAuth2Expiry }
+
+// GetArbitrary from user
 func (m User) GetArbitrary() map[string]string { return m.Arbitrary }
 
-func (m *User) PutPID(email string)                 { m.Email = email }
-func (m *User) PutUsername(username string)         { m.Username = username }
-func (m *User) PutEmail(email string)               { m.Email = email }
-func (m *User) PutPassword(password string)         { m.Password = password }
+// PutPID into user
+func (m *User) PutPID(email string) { m.Email = email }
+
+// PutUsername into user
+func (m *User) PutUsername(username string) { m.Username = username }
+
+// PutEmail into user
+func (m *User) PutEmail(email string) { m.Email = email }
+
+// PutPassword into user
+func (m *User) PutPassword(password string) { m.Password = password }
+
+// PutRecoverToken into user
 func (m *User) PutRecoverToken(recoverToken string) { m.RecoverToken = recoverToken }
+
+// PutRecoverExpiry into user
 func (m *User) PutRecoverExpiry(recoverTokenExpiry time.Time) {
 	m.RecoverTokenExpiry = recoverTokenExpiry
 }
-func (m *User) PutConfirmToken(confirmToken string)  { m.ConfirmToken = confirmToken }
-func (m *User) PutConfirmed(confirmed bool)          { m.Confirmed = confirmed }
-func (m *User) PutAttemptCount(attemptCount int)     { m.AttemptCount = attemptCount }
+
+// PutConfirmToken into user
+func (m *User) PutConfirmToken(confirmToken string) { m.ConfirmToken = confirmToken }
+
+// PutConfirmed into user
+func (m *User) PutConfirmed(confirmed bool) { m.Confirmed = confirmed }
+
+// PutAttemptCount into user
+func (m *User) PutAttemptCount(attemptCount int) { m.AttemptCount = attemptCount }
+
+// PutLastAttempt into user
 func (m *User) PutLastAttempt(attemptTime time.Time) { m.LastAttempt = attemptTime }
-func (m *User) PutLocked(locked time.Time)           { m.Locked = locked }
-func (m *User) PutOAuth2UID(uid string)              { m.OAuth2UID = uid }
-func (m *User) PutOAuth2Provider(provider string)    { m.OAuth2Provider = provider }
-func (m *User) PutOAuth2AccessToken(token string)    { m.OAuth2Token = token }
+
+// PutLocked into user
+func (m *User) PutLocked(locked time.Time) { m.Locked = locked }
+
+// PutOAuth2UID into user
+func (m *User) PutOAuth2UID(uid string) { m.OAuth2UID = uid }
+
+// PutOAuth2Provider into user
+func (m *User) PutOAuth2Provider(provider string) { m.OAuth2Provider = provider }
+
+// PutOAuth2AccessToken into user
+func (m *User) PutOAuth2AccessToken(token string) { m.OAuth2Token = token }
+
+// PutOAuth2RefreshToken into user
 func (m *User) PutOAuth2RefreshToken(refresh string) { m.OAuth2Refresh = refresh }
-func (m *User) PutOAuth2Expiry(expiry time.Time)     { m.OAuth2Expiry = expiry }
-func (m *User) PutArbitrary(arb map[string]string)   { m.Arbitrary = arb }
+
+// PutOAuth2Expiry into user
+func (m *User) PutOAuth2Expiry(expiry time.Time) { m.OAuth2Expiry = expiry }
+
+// PutArbitrary into user
+func (m *User) PutArbitrary(arb map[string]string) { m.Arbitrary = arb }
 
 // ServerStorer should be valid for any module storer defined in authboss.
 type ServerStorer struct {

@@ -1,5 +1,19 @@
 <img src="http://i.imgur.com/fPIgqLg.jpg"/>
 
+# Deprecation Notice
+
+As of now, **v1 is going to be deprecated very shortly**. This means there will
+be no more updates to this code unless it's security critical, and it will
+be completely abandoned in 6 months time, this code will continue to be
+available in the tag, but it's use is not recommended. There are already
+bug fixes that have not been backported in the v2 branch.
+
+Once fully released, the currently release-candidate v2 branch will become the master
+branch and non-vendored versions of Authboss will start updating (thanks to go get!).
+I highly recommend before that time you fork/vendor or do something to preserve what's here.
+
+There's an upgrade guide available in the v2 branch. Please update soon!
+
 Authboss
 ========
 
@@ -12,25 +26,6 @@ Authboss is a modular authentication system for the web. It tries to remove as m
 each time you start a new web project in Go, you can plug it in, configure, and start building your app without having to build an
 authentication system each time. This reduces the potential for mistakes since authentication is not exactly trivial and should hopefully
 be generic enough to be plugged into all sorts of different web applications.
-
-Note on Roadmap (v2)
-========
-
-It's been a long time since Authboss has been released, and there have been a lot of developments in Go as well as the community
-and package management we'd like to take advantage of. There are several large refactorings that we think will make authboss
-much cleaner and as a result easier to maintain as well (and maybe get some higher test coverage). So with that we're beginning
-the v2 effort. Here's some of the things you can expect in terms of features and areas of concentration:
-
-- JWT style auth for JS-based pages
-- Cleaner separation of view from logic
-- Storer rewrite
-- Go 1.7 context usage
-
-As far as the project goes this is how it will be managed:
-
-- The current master HEAD will be available as v1.0.0
-- No new features will be put in v1 branch, only critical bugfixes (life support only)
-- v1 will be removed 6 months after the release of v2
 
 Currently done:
 

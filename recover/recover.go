@@ -5,6 +5,7 @@ import (
 	"context"
 	"crypto/rand"
 	"crypto/sha512"
+	"crypto/subtle"
 	"encoding/base64"
 	"errors"
 	"fmt"
@@ -35,6 +36,8 @@ const (
 	recoverInitiateSuccessFlash = "An email has been sent to you with further instructions on how to reset your password."
 	recoverTokenExpiredFlash    = "Account recovery request has expired. Please try again."
 	recoverFailedErrorFlash     = "Account recovery has failed. Please contact tech support."
+
+	recoverTokenSize = 64
 )
 
 func init() {
@@ -97,12 +100,13 @@ func (r *Recover) StartPost(w http.ResponseWriter, req *http.Request) error {
 
 	ru := authboss.MustBeRecoverable(user)
 
-	hash, token, err := GenerateToken()
+	selector, verifier, token, err := GenerateRecoverCreds()
 	if err != nil {
 		return err
 	}
 
-	ru.PutRecoverToken(hash)
+	ru.PutRecoverSelector(selector)
+	ru.PutRecoverVerifier(verifier)
 	ru.PutRecoverExpiry(time.Now().UTC().Add(r.Config.Modules.RecoverTokenDuration))
 
 	if err := r.Authboss.Storage.Server.Save(req.Context(), ru); err != nil {
@@ -199,11 +203,17 @@ func (r *Recover) EndPost(w http.ResponseWriter, req *http.Request) error {
 		return r.invalidToken(PageRecoverEnd, w, req)
 	}
 
-	hash := sha512.Sum512(rawToken)
-	dbToken := base64.StdEncoding.EncodeToString(hash[:])
+	if len(rawToken) != recoverTokenSize {
+		logger.Infof("invalid recover token submitted, size was wrong: %d", len(rawToken))
+		return r.invalidToken(PageRecoverEnd, w, req)
+	}
+
+	selectorBytes := sha512.Sum512(rawToken[:32])
+	verifierBytes := sha512.Sum512(rawToken[32:])
+	selector := base64.StdEncoding.EncodeToString(selectorBytes[:])
 
 	storer := authboss.EnsureCanRecover(r.Authboss.Config.Storage.Server)
-	user, err := storer.LoadByRecoverToken(req.Context(), dbToken)
+	user, err := storer.LoadByRecoverSelector(req.Context(), selector)
 	if err == authboss.ErrUserNotFound {
 		logger.Info("invalid recover token submitted, user not found")
 		return r.invalidToken(PageRecoverEnd, w, req)
@@ -216,13 +226,26 @@ func (r *Recover) EndPost(w http.ResponseWriter, req *http.Request) error {
 		return r.invalidToken(PageRecoverEnd, w, req)
 	}
 
+	dbVerifierBytes, err := base64.StdEncoding.DecodeString(user.GetRecoverVerifier())
+	if err != nil {
+		logger.Infof("invalid recover verifier stored in database: %s", user.GetRecoverVerifier())
+		return r.invalidToken(PageRecoverEnd, w, req)
+	}
+
+	if subtle.ConstantTimeEq(int32(len(verifierBytes)), int32(len(dbVerifierBytes))) != 1 ||
+		subtle.ConstantTimeCompare(verifierBytes[:], dbVerifierBytes) != 1 {
+		logger.Info("stored recover verifier does not match provided one")
+		return r.invalidToken(PageRecoverEnd, w, req)
+	}
+
 	pass, err := bcrypt.GenerateFromPassword([]byte(password), r.Authboss.Config.Modules.BCryptCost)
 	if err != nil {
 		return err
 	}
 
 	user.PutPassword(string(pass))
-	user.PutRecoverToken("")                // Don't allow another recovery
+	user.PutRecoverSelector("")             // Don't allow another recovery
+	user.PutRecoverVerifier("")             // Don't allow another recovery
 	user.PutRecoverExpiry(time.Now().UTC()) // Put current time for those DBs that can't handle 0 time
 
 	if err := storer.Save(req.Context(), user); err != nil {
@@ -249,13 +272,20 @@ func (r *Recover) invalidToken(page string, w http.ResponseWriter, req *http.Req
 	return r.Authboss.Core.Responder.Respond(w, req, http.StatusOK, PageRecoverEnd, data)
 }
 
-// GenerateToken appropriate for user recovery
-func GenerateToken() (hash, token string, err error) {
-	rawToken := make([]byte, 32)
+// GenerateRecoverCreds generates pieces needed for user recovery
+// selector: hash of the first half of a 64 byte value (to be stored in the database and used in SELECT query)
+// verifier: hash of the second half of a 64 byte value (to be stored in database but never used in SELECT query)
+// token: the user-facing base64 encoded selector+verifier
+func GenerateRecoverCreds() (selector, verifier, token string, err error) {
+	rawToken := make([]byte, recoverTokenSize)
 	if _, err = rand.Read(rawToken); err != nil {
-		return "", "", err
+		return "", "", "", err
 	}
-	sum := sha512.Sum512(rawToken)
+	selectorBytes := sha512.Sum512(rawToken[:32])
+	verifierBytes := sha512.Sum512(rawToken[32:])
 
-	return base64.StdEncoding.EncodeToString(sum[:]), base64.URLEncoding.EncodeToString(rawToken), nil
+	return base64.StdEncoding.EncodeToString(selectorBytes[:]),
+		base64.StdEncoding.EncodeToString(verifierBytes[:]),
+		base64.URLEncoding.EncodeToString(rawToken),
+		nil
 }

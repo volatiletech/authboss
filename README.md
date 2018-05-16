@@ -441,6 +441,10 @@ A hook on register kicks off the start of a confirmation which sends an e-mail w
 When the user re-visits the page, the `BodyReader` must read the token and return a type that can
 return the token.
 
+Confirmations carry two values in the database to prevent a timing attack. The selector and the
+verifier, always make sure in the ConfirmingServerStorer you're searching by the selector and
+not the verifier.
+
 ## Password Recovery
 
 | Info and Requirements |          |
@@ -465,6 +469,10 @@ to be rendered.
 
 They enter their password into the form, and `POST` to `/recover/end` which sends the token and
 the new password which is retrieved by `RecoverEndValuer` which sets their password and saves them.
+
+Password recovery has two values in the database to prevent a timing attack. The selector and the
+verifier, always make sure in the RecoveringServerStorer you're searching by the selector and
+not the verifier.
 
 ## Remember Me
 

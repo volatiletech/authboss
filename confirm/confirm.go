@@ -5,6 +5,7 @@ import (
 	"context"
 	"crypto/rand"
 	"crypto/sha512"
+	"crypto/subtle"
 	"encoding/base64"
 	"fmt"
 	"net/http"
@@ -31,6 +32,8 @@ const (
 	// DataConfirmURL is the name of the e-mail template variable
 	// that gives the url to send to the user for confirmation.
 	DataConfirmURL = "url"
+
+	confirmTokenSize = 64
 )
 
 func init() {
@@ -110,13 +113,14 @@ func (c *Confirm) StartConfirmationWeb(w http.ResponseWriter, r *http.Request, h
 func (c *Confirm) StartConfirmation(ctx context.Context, user authboss.ConfirmableUser, sendEmail bool) error {
 	logger := c.Authboss.Logger(ctx)
 
-	hash, token, err := GenerateToken()
+	selector, verifier, token, err := GenerateConfirmCreds()
 	if err != nil {
 		return err
 	}
 
 	user.PutConfirmed(false)
-	user.PutConfirmToken(hash)
+	user.PutConfirmSelector(selector)
+	user.PutConfirmVerifier(verifier)
 
 	logger.Infof("generated new confirm token for user: %s", user.GetPID())
 	if err := c.Authboss.Config.Storage.Server.Save(ctx, user); err != nil {
@@ -170,45 +174,49 @@ func (c *Confirm) Get(w http.ResponseWriter, r *http.Request) error {
 
 	if errs := validator.Validate(); errs != nil {
 		logger.Infof("validation failed in Confirm.Get, this typically means a bad token: %+v", errs)
-		ro := authboss.RedirectOptions{
-			Code:         http.StatusTemporaryRedirect,
-			Failure:      "Invalid confirm token.",
-			RedirectPath: c.Authboss.Config.Paths.ConfirmNotOK,
-		}
-		return c.Authboss.Config.Core.Redirector.Redirect(w, r, ro)
+		return c.invalidToken(w, r)
 	}
 
 	values := authboss.MustHaveConfirmValues(validator)
 
-	toHash, err := base64.URLEncoding.DecodeString(values.GetToken())
+	rawToken, err := base64.URLEncoding.DecodeString(values.GetToken())
 	if err != nil {
 		logger.Infof("error decoding token in Confirm.Get, this typically means a bad token: %s %+v", values.GetToken(), err)
-		ro := authboss.RedirectOptions{
-			Code:         http.StatusTemporaryRedirect,
-			Failure:      "Invalid confirm token.",
-			RedirectPath: c.Authboss.Config.Paths.ConfirmNotOK,
-		}
-		return c.Authboss.Config.Core.Redirector.Redirect(w, r, ro)
+		return c.invalidToken(w, r)
 	}
 
-	sum := sha512.Sum512(toHash)
-	token := base64.StdEncoding.EncodeToString(sum[:])
+	if len(rawToken) != confirmTokenSize {
+		logger.Infof("invalid confirm token submitted, size was wrong: %d", len(rawToken))
+		return c.invalidToken(w, r)
+	}
+
+	selectorBytes := sha512.Sum512(rawToken[:32])
+	verifierBytes := sha512.Sum512(rawToken[32:])
+	selector := base64.StdEncoding.EncodeToString(selectorBytes[:])
 
 	storer := authboss.EnsureCanConfirm(c.Authboss.Config.Storage.Server)
-	user, err := storer.LoadByConfirmToken(r.Context(), token)
+	user, err := storer.LoadByConfirmSelector(r.Context(), selector)
 	if err == authboss.ErrUserNotFound {
-		logger.Infof("confirm token was not found in database: %s", token)
-		ro := authboss.RedirectOptions{
-			Code:         http.StatusTemporaryRedirect,
-			Failure:      "Invalid confirm token.",
-			RedirectPath: c.Authboss.Config.Paths.ConfirmNotOK,
-		}
-		return c.Authboss.Config.Core.Redirector.Redirect(w, r, ro)
+		logger.Infof("confirm selector was not found in database: %s", selector)
+		return c.invalidToken(w, r)
 	} else if err != nil {
 		return err
 	}
 
-	user.PutConfirmToken("")
+	dbVerifierBytes, err := base64.StdEncoding.DecodeString(user.GetConfirmVerifier())
+	if err != nil {
+		logger.Infof("invalid confirm verifier stored in database: %s", user.GetConfirmVerifier())
+		return c.invalidToken(w, r)
+	}
+
+	if subtle.ConstantTimeEq(int32(len(verifierBytes)), int32(len(dbVerifierBytes))) != 1 ||
+		subtle.ConstantTimeCompare(verifierBytes[:], dbVerifierBytes) != 1 {
+		logger.Info("stored confirm verifier does not match provided one")
+		return c.invalidToken(w, r)
+	}
+
+	user.PutConfirmSelector("")
+	user.PutConfirmVerifier("")
 	user.PutConfirmed(true)
 
 	logger.Infof("user %s confirmed their account", user.GetPID())
@@ -220,6 +228,15 @@ func (c *Confirm) Get(w http.ResponseWriter, r *http.Request) error {
 		Code:         http.StatusTemporaryRedirect,
 		Success:      "You have successfully confirmed your account.",
 		RedirectPath: c.Authboss.Config.Paths.ConfirmOK,
+	}
+	return c.Authboss.Config.Core.Redirector.Redirect(w, r, ro)
+}
+
+func (c *Confirm) invalidToken(w http.ResponseWriter, r *http.Request) error {
+	ro := authboss.RedirectOptions{
+		Code:         http.StatusTemporaryRedirect,
+		Failure:      "confirm token is invalid",
+		RedirectPath: c.Authboss.Config.Paths.ConfirmNotOK,
 	}
 	return c.Authboss.Config.Core.Redirector.Redirect(w, r, ro)
 }
@@ -253,12 +270,20 @@ func Middleware(ab *authboss.Authboss) func(http.Handler) http.Handler {
 	}
 }
 
-// GenerateToken creates a random token that will be used to confirm the user.
-func GenerateToken() (hash string, token string, err error) {
-	tok := make([]byte, 32)
-	if _, err := rand.Read(tok); err != nil {
-		return "", "", err
+// GenerateConfirmCreds generates pieces needed for user confirmy
+// selector: hash of the first half of a 64 byte value (to be stored in the database and used in SELECT query)
+// verifier: hash of the second half of a 64 byte value (to be stored in database but never used in SELECT query)
+// token: the user-facing base64 encoded selector+verifier
+func GenerateConfirmCreds() (selector, verifier, token string, err error) {
+	rawToken := make([]byte, confirmTokenSize)
+	if _, err = rand.Read(rawToken); err != nil {
+		return "", "", "", err
 	}
-	sum := sha512.Sum512(tok)
-	return base64.StdEncoding.EncodeToString(sum[:]), base64.URLEncoding.EncodeToString(tok[:]), nil
+	selectorBytes := sha512.Sum512(rawToken[:32])
+	verifierBytes := sha512.Sum512(rawToken[32:])
+
+	return base64.StdEncoding.EncodeToString(selectorBytes[:]),
+		base64.StdEncoding.EncodeToString(verifierBytes[:]),
+		base64.URLEncoding.EncodeToString(rawToken),
+		nil
 }

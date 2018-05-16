@@ -18,9 +18,11 @@ type User struct {
 	Username           string
 	Email              string
 	Password           string
-	RecoverToken       string
+	RecoverSelector    string
+	RecoverVerifier    string
 	RecoverTokenExpiry time.Time
-	ConfirmToken       string
+	ConfirmSelector    string
+	ConfirmVerifier    string
 	Confirmed          bool
 	AttemptCount       int
 	LastAttempt        time.Time
@@ -47,14 +49,20 @@ func (u User) GetUsername() string { return u.Username }
 // GetPassword from user
 func (u User) GetPassword() string { return u.Password }
 
-// GetRecoverToken from user
-func (u User) GetRecoverToken() string { return u.RecoverToken }
+// GetRecoverSelector from user
+func (u User) GetRecoverSelector() string { return u.RecoverSelector }
+
+// GetRecoverVerifier from user
+func (u User) GetRecoverVerifier() string { return u.RecoverVerifier }
 
 // GetRecoverExpiry from user
 func (u User) GetRecoverExpiry() time.Time { return u.RecoverTokenExpiry }
 
-// GetConfirmToken from user
-func (u User) GetConfirmToken() string { return u.ConfirmToken }
+// GetConfirmSelector from user
+func (u User) GetConfirmSelector() string { return u.ConfirmSelector }
+
+// GetConfirmVerifier from user
+func (u User) GetConfirmVerifier() string { return u.ConfirmVerifier }
 
 // GetConfirmed from user
 func (u User) GetConfirmed() bool { return u.Confirmed }
@@ -101,16 +109,22 @@ func (u *User) PutEmail(email string) { u.Email = email }
 // PutPassword into user
 func (u *User) PutPassword(password string) { u.Password = password }
 
-// PutRecoverToken into user
-func (u *User) PutRecoverToken(recoverToken string) { u.RecoverToken = recoverToken }
+// PutRecoverSelector into user
+func (u *User) PutRecoverSelector(recoverSelector string) { u.RecoverSelector = recoverSelector }
+
+// PutRecoverVerifier into user
+func (u *User) PutRecoverVerifier(recoverVerifier string) { u.RecoverVerifier = recoverVerifier }
 
 // PutRecoverExpiry into user
 func (u *User) PutRecoverExpiry(recoverTokenExpiry time.Time) {
 	u.RecoverTokenExpiry = recoverTokenExpiry
 }
 
-// PutConfirmToken into user
-func (u *User) PutConfirmToken(confirmToken string) { u.ConfirmToken = confirmToken }
+// PutConfirmSelector into user
+func (u *User) PutConfirmSelector(confirmSelector string) { u.ConfirmSelector = confirmSelector }
+
+// PutConfirmVerifier into user
+func (u *User) PutConfirmVerifier(confirmVerifier string) { u.ConfirmVerifier = confirmVerifier }
 
 // PutConfirmed into user
 func (u *User) PutConfirmed(confirmed bool) { u.Confirmed = confirmed }
@@ -223,10 +237,10 @@ func (s *ServerStorer) SaveOAuth2(ctx context.Context, user authboss.OAuth2User)
 	return nil
 }
 
-// LoadByConfirmToken finds a user by his confirm token
-func (s *ServerStorer) LoadByConfirmToken(ctx context.Context, token string) (authboss.ConfirmableUser, error) {
+// LoadByConfirmSelector finds a user by his confirm selector
+func (s *ServerStorer) LoadByConfirmSelector(ctx context.Context, selector string) (authboss.ConfirmableUser, error) {
 	for _, v := range s.Users {
-		if v.ConfirmToken == token {
+		if v.ConfirmSelector == selector {
 			return v, nil
 		}
 	}
@@ -234,10 +248,10 @@ func (s *ServerStorer) LoadByConfirmToken(ctx context.Context, token string) (au
 	return nil, authboss.ErrUserNotFound
 }
 
-// LoadByRecoverToken finds a user by his recover token
-func (s *ServerStorer) LoadByRecoverToken(ctx context.Context, token string) (authboss.RecoverableUser, error) {
+// LoadByRecoverSelector finds a user by his recover token
+func (s *ServerStorer) LoadByRecoverSelector(ctx context.Context, selector string) (authboss.RecoverableUser, error) {
 	for _, v := range s.Users {
-		if v.RecoverToken == token {
+		if v.RecoverSelector == selector {
 			return v, nil
 		}
 	}

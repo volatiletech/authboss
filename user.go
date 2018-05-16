@@ -34,13 +34,15 @@ type AuthableUser interface {
 type ConfirmableUser interface {
 	User
 
-	GetConfirmed() (confirmed bool)
-	GetConfirmToken() (token string)
 	GetEmail() (email string)
+	GetConfirmed() (confirmed bool)
+	GetConfirmSelector() (selector string)
+	GetConfirmVerifier() (verifier string)
 
-	PutConfirmed(confirmed bool)
-	PutConfirmToken(token string)
 	PutEmail(email string)
+	PutConfirmed(confirmed bool)
+	PutConfirmSelector(selector string)
+	PutConfirmVerifier(verifier string)
 }
 
 // LockableUser is a user that can be locked
@@ -61,11 +63,13 @@ type RecoverableUser interface {
 	AuthableUser
 
 	GetEmail() (email string)
-	GetRecoverToken() (token string)
+	GetRecoverSelector() (selector string)
+	GetRecoverVerifier() (verifier string)
 	GetRecoverExpiry() (expiry time.Time)
 
 	PutEmail(email string)
-	PutRecoverToken(token string)
+	PutRecoverSelector(selector string)
+	PutRecoverVerifier(verifier string)
 	PutRecoverExpiry(expiry time.Time)
 }
 

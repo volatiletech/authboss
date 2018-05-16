@@ -184,12 +184,12 @@ func TestGetSuccess(t *testing.T) {
 
 	harness := testSetup()
 
-	hash, token, err := GenerateToken()
+	selector, verifier, token, err := GenerateConfirmCreds()
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	user := &mocks.User{Email: "test@test.com", Confirmed: false, ConfirmToken: hash}
+	user := &mocks.User{Email: "test@test.com", Confirmed: false, ConfirmSelector: selector, ConfirmVerifier: verifier}
 	harness.storer.Users["test@test.com"] = user
 	harness.bodyReader.Return = mocks.Values{
 		Token: token,
@@ -209,8 +209,11 @@ func TestGetSuccess(t *testing.T) {
 		t.Error("redir path was wrong:", p)
 	}
 
-	if len(user.ConfirmToken) != 0 {
-		t.Error("the confirm token should have been erased")
+	if len(user.ConfirmSelector) != 0 {
+		t.Error("the confirm selector should have been erased")
+	}
+	if len(user.ConfirmVerifier) != 0 {
+		t.Error("the confirm verifier should have been erased")
 	}
 	if !user.Confirmed {
 		t.Error("the user should have been confirmed")
@@ -239,7 +242,7 @@ func TestGetValidationFailure(t *testing.T) {
 	if p := harness.redirector.Options.RedirectPath; p != harness.ab.Paths.ConfirmNotOK {
 		t.Error("redir path was wrong:", p)
 	}
-	if reason := harness.redirector.Options.Failure; reason != "Invalid confirm token." {
+	if reason := harness.redirector.Options.Failure; reason != "confirm token is invalid" {
 		t.Error("reason for failure was wrong:", reason)
 	}
 }
@@ -266,7 +269,7 @@ func TestGetBase64DecodeFailure(t *testing.T) {
 	if p := harness.redirector.Options.RedirectPath; p != harness.ab.Paths.ConfirmNotOK {
 		t.Error("redir path was wrong:", p)
 	}
-	if reason := harness.redirector.Options.Failure; reason != "Invalid confirm token." {
+	if reason := harness.redirector.Options.Failure; reason != "confirm token is invalid" {
 		t.Error("reason for failure was wrong:", reason)
 	}
 }
@@ -276,7 +279,7 @@ func TestGetUserNotFoundFailure(t *testing.T) {
 
 	harness := testSetup()
 
-	_, token, err := GenerateToken()
+	_, _, token, err := GenerateConfirmCreds()
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -298,7 +301,7 @@ func TestGetUserNotFoundFailure(t *testing.T) {
 	if p := harness.redirector.Options.RedirectPath; p != harness.ab.Paths.ConfirmNotOK {
 		t.Error("redir path was wrong:", p)
 	}
-	if reason := harness.redirector.Options.Failure; reason != "Invalid confirm token." {
+	if reason := harness.redirector.Options.Failure; reason != "confirm token is invalid" {
 		t.Error("reason for failure was wrong:", reason)
 	}
 }
@@ -362,22 +365,31 @@ func TestMiddlewareDisallow(t *testing.T) {
 	}
 }
 
-func TestGenerateToken(t *testing.T) {
+func TestGenerateRecoverCreds(t *testing.T) {
 	t.Parallel()
 
-	hash, token, err := GenerateToken()
+	selector, verifier, token, err := GenerateConfirmCreds()
 	if err != nil {
 		t.Error(err)
 	}
 
-	// base64 length: n = 64; 4*(64/3) = 85.3; round to nearest 4: 88
-	if len(hash) != 88 {
-		t.Errorf("string length was wrong (%d): %s", len(hash), hash)
+	if verifier == selector {
+		t.Error("the verifier and selector should be different")
 	}
 
-	// base64 length: n = 32; 4*(32/3) = 42.6; round to nearest 4: 44
-	if len(token) != 44 {
-		t.Errorf("string length was wrong (%d): %s", len(token), token)
+	// base64 length: n = 64; 4*(64/3) = 85.3; round to nearest 4: 88
+	if len(verifier) != 88 {
+		t.Errorf("verifier length was wrong (%d): %s", len(verifier), verifier)
+	}
+
+	// base64 length: n = 64; 4*(64/3) = 85.3; round to nearest 4: 88
+	if len(selector) != 88 {
+		t.Errorf("selector length was wrong (%d): %s", len(selector), selector)
+	}
+
+	// base64 length: n = 64; 4*(64/3) = 85.33; round to nearest 4: 88
+	if len(token) != 88 {
+		t.Errorf("token length was wrong (%d): %s", len(token), token)
 	}
 
 	rawToken, err := base64.URLEncoding.DecodeString(token)
@@ -385,13 +397,21 @@ func TestGenerateToken(t *testing.T) {
 		t.Error(err)
 	}
 
-	rawHash, err := base64.StdEncoding.DecodeString(hash)
+	rawSelector, err := base64.StdEncoding.DecodeString(selector)
+	if err != nil {
+		t.Error(err)
+	}
+	rawVerifier, err := base64.StdEncoding.DecodeString(verifier)
 	if err != nil {
 		t.Error(err)
 	}
 
-	checkHash := sha512.Sum512(rawToken)
-	if 0 != bytes.Compare(checkHash[:], rawHash) {
-		t.Error("expected hashes to match")
+	checkSelector := sha512.Sum512(rawToken[:32])
+	if 0 != bytes.Compare(checkSelector[:], rawSelector) {
+		t.Error("expected selector to match")
+	}
+	checkVerifier := sha512.Sum512(rawToken[32:])
+	if 0 != bytes.Compare(checkVerifier[:], rawVerifier) {
+		t.Error("expected verifier to match")
 	}
 }

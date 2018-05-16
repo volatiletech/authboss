@@ -17,8 +17,9 @@ import (
 )
 
 const (
-	testURLBase64Token = "glL8qvO1YKmLxoyEQwVQPpUMM13f6_e4R-2hUQDzP2g="
-	testStdBase64Token = "cn0uhfu5Ar2A2JsSs/zdj93zhC1lHJDyIhUYdSgyp71XL/nRb3be/I6AeMz4DACwTRqRAJ6loJedJyOcOtU1Jg=="
+	testSelector = `rnaGE8TDilrINHPxq/2xNU1FUTzsUSX8FvN5YzooyyWKk88fw1DjjbKBRGFtGew9OeZ+xeCC4mslfvQQMYspIg==`
+	testVerifier = `W1Mz30QhavVM4d8jKaFtxGBfb4GX+fOn7V0Pc1WeftgtyOtY5OX7sY9gIeY5CIY4n8LvfWy14W7/6rs2KO9pgA==`
+	testToken    = `w5OZ51E61Q6wsJOVr9o7KmyepP7Od5VBHQ1ADDUBkiGGMjKfnMFPjtvNpLjLKJqffw72KWZzNLj0Cs8wqywdEQ==`
 )
 
 func TestInit(t *testing.T) {
@@ -233,12 +234,13 @@ func TestEndPostSuccess(t *testing.T) {
 	h := testSetup()
 
 	h.bodyReader.Return = &mocks.Values{
-		Token: testURLBase64Token,
+		Token: testToken,
 	}
 	h.storer.Users["test@test.com"] = &mocks.User{
 		Email:              "test@test.com",
 		Password:           "to-overwrite",
-		RecoverToken:       testStdBase64Token,
+		RecoverSelector:    testSelector,
+		RecoverVerifier:    testVerifier,
 		RecoverTokenExpiry: time.Now().UTC().AddDate(0, 0, 1),
 	}
 
@@ -273,12 +275,13 @@ func TestEndPostSuccessLogin(t *testing.T) {
 
 	h.ab.Config.Modules.RecoverLoginAfterRecovery = true
 	h.bodyReader.Return = &mocks.Values{
-		Token: testURLBase64Token,
+		Token: testToken,
 	}
 	h.storer.Users["test@test.com"] = &mocks.User{
 		Email:              "test@test.com",
 		Password:           "to-overwrite",
-		RecoverToken:       testStdBase64Token,
+		RecoverSelector:    testSelector,
+		RecoverVerifier:    testVerifier,
 		RecoverTokenExpiry: time.Now().UTC().AddDate(0, 0, 1),
 	}
 
@@ -314,7 +317,8 @@ func TestEndPostValidationFailure(t *testing.T) {
 	h.storer.Users["test@test.com"] = &mocks.User{
 		Email:              "test@test.com",
 		Password:           "to-overwrite",
-		RecoverToken:       testStdBase64Token,
+		RecoverSelector:    testSelector,
+		RecoverVerifier:    testVerifier,
 		RecoverTokenExpiry: time.Now().UTC().AddDate(0, 0, 1),
 	}
 
@@ -366,12 +370,13 @@ func TestEndPostExpiredToken(t *testing.T) {
 	h := testSetup()
 
 	h.bodyReader.Return = &mocks.Values{
-		Token: testURLBase64Token,
+		Token: testToken,
 	}
 	h.storer.Users["test@test.com"] = &mocks.User{
 		Email:              "test@test.com",
 		Password:           "to-overwrite",
-		RecoverToken:       testStdBase64Token,
+		RecoverSelector:    testSelector,
+		RecoverVerifier:    testVerifier,
 		RecoverTokenExpiry: time.Now().UTC().AddDate(0, 0, -1),
 	}
 
@@ -391,7 +396,7 @@ func TestEndPostUserNotExist(t *testing.T) {
 	h := testSetup()
 
 	h.bodyReader.Return = &mocks.Values{
-		Token: testURLBase64Token,
+		Token: testToken,
 	}
 
 	r := mocks.Request("GET")
@@ -418,22 +423,31 @@ func invalidCheck(t *testing.T, h *testHarness, w *httptest.ResponseRecorder) {
 	}
 }
 
-func TestGenerateToken(t *testing.T) {
+func TestGenerateRecoverCreds(t *testing.T) {
 	t.Parallel()
 
-	hash, token, err := GenerateToken()
+	selector, verifier, token, err := GenerateRecoverCreds()
 	if err != nil {
 		t.Error(err)
 	}
 
-	// base64 length: n = 64; 4*(64/3) = 85.3; round to nearest 4: 88
-	if len(hash) != 88 {
-		t.Errorf("string length was wrong (%d): %s", len(hash), hash)
+	if verifier == selector {
+		t.Error("the verifier and selector should be different")
 	}
 
-	// base64 length: n = 32; 4*(32/3) = 42.6; round to nearest 4: 44
-	if len(token) != 44 {
-		t.Errorf("string length was wrong (%d): %s", len(token), token)
+	// base64 length: n = 64; 4*(64/3) = 85.3; round to nearest 4: 88
+	if len(verifier) != 88 {
+		t.Errorf("verifier length was wrong (%d): %s", len(verifier), verifier)
+	}
+
+	// base64 length: n = 64; 4*(64/3) = 85.3; round to nearest 4: 88
+	if len(selector) != 88 {
+		t.Errorf("selector length was wrong (%d): %s", len(selector), selector)
+	}
+
+	// base64 length: n = 64; 4*(64/3) = 85.33; round to nearest 4: 88
+	if len(token) != 88 {
+		t.Errorf("token length was wrong (%d): %s", len(token), token)
 	}
 
 	rawToken, err := base64.URLEncoding.DecodeString(token)
@@ -441,13 +455,21 @@ func TestGenerateToken(t *testing.T) {
 		t.Error(err)
 	}
 
-	rawHash, err := base64.StdEncoding.DecodeString(hash)
+	rawSelector, err := base64.StdEncoding.DecodeString(selector)
+	if err != nil {
+		t.Error(err)
+	}
+	rawVerifier, err := base64.StdEncoding.DecodeString(verifier)
 	if err != nil {
 		t.Error(err)
 	}
 
-	checkHash := sha512.Sum512(rawToken)
-	if 0 != bytes.Compare(checkHash[:], rawHash) {
-		t.Error("expected hashes to match")
+	checkSelector := sha512.Sum512(rawToken[:32])
+	if 0 != bytes.Compare(checkSelector[:], rawSelector) {
+		t.Error("expected selector to match")
+	}
+	checkVerifier := sha512.Sum512(rawToken[32:])
+	if 0 != bytes.Compare(checkVerifier[:], rawVerifier) {
+		t.Error("expected verifier to match")
 	}
 }

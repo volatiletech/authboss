@@ -80,18 +80,18 @@ type OAuth2ServerStorer interface {
 type ConfirmingServerStorer interface {
 	ServerStorer
 
-	// LoadByConfirmToken finds a user by his confirm token field
+	// LoadByConfirmSelector finds a user by his confirm selector field
 	// and should return ErrUserNotFound if that user cannot be found.
-	LoadByConfirmToken(ctx context.Context, token string) (ConfirmableUser, error)
+	LoadByConfirmSelector(ctx context.Context, selector string) (ConfirmableUser, error)
 }
 
 // RecoveringServerStorer allows users to be recovered by a token
 type RecoveringServerStorer interface {
 	ServerStorer
 
-	// LoadByRecoverToken finds a user by his recover token field
+	// LoadByRecoverSelector finds a user by his recover selector field
 	// and should return ErrUserNotFound if that user cannot be found.
-	LoadByRecoverToken(ctx context.Context, token string) (RecoverableUser, error)
+	LoadByRecoverSelector(ctx context.Context, selector string) (RecoverableUser, error)
 }
 
 // RememberingServerStorer allows users to be remembered across sessions

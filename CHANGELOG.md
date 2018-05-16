@@ -5,6 +5,17 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 ## [Unreleased]
 
+### Changed
+
+- Recover and Confirm now use split tokens
+
+    The reason for this change is that there's a timing attack possible
+    because of the use of memcmp() by databases to check if the token exists.
+    By using a separate piece of the token as a selector, we use memcmp() in
+    one place, but a crypto constant time compare in the other to check the
+    other value, and this value cannot be leaked by timing, and since you need
+    both to recover/confirm as the user, this attack should now be mitigated.
+
 ## [2.0.0-rc2] - 2018-05-14
 
 Mostly rewrote Authboss by changing many of the core interfaces. This release

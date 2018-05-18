@@ -33,7 +33,8 @@ const (
 	// that gives the url to send to the user for confirmation.
 	DataConfirmURL = "url"
 
-	confirmTokenSize = 64
+	confirmTokenSize  = 64
+	confirmTokenSplit = confirmTokenSize / 2
 )
 
 func init() {
@@ -190,8 +191,8 @@ func (c *Confirm) Get(w http.ResponseWriter, r *http.Request) error {
 		return c.invalidToken(w, r)
 	}
 
-	selectorBytes := sha512.Sum512(rawToken[:32])
-	verifierBytes := sha512.Sum512(rawToken[32:])
+	selectorBytes := sha512.Sum512(rawToken[:confirmTokenSplit])
+	verifierBytes := sha512.Sum512(rawToken[confirmTokenSplit:])
 	selector := base64.StdEncoding.EncodeToString(selectorBytes[:])
 
 	storer := authboss.EnsureCanConfirm(c.Authboss.Config.Storage.Server)
@@ -279,8 +280,8 @@ func GenerateConfirmCreds() (selector, verifier, token string, err error) {
 	if _, err = rand.Read(rawToken); err != nil {
 		return "", "", "", err
 	}
-	selectorBytes := sha512.Sum512(rawToken[:32])
-	verifierBytes := sha512.Sum512(rawToken[32:])
+	selectorBytes := sha512.Sum512(rawToken[:confirmTokenSplit])
+	verifierBytes := sha512.Sum512(rawToken[confirmTokenSplit:])
 
 	return base64.StdEncoding.EncodeToString(selectorBytes[:]),
 		base64.StdEncoding.EncodeToString(verifierBytes[:]),

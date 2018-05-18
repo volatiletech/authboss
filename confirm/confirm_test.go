@@ -406,11 +406,11 @@ func TestGenerateRecoverCreds(t *testing.T) {
 		t.Error(err)
 	}
 
-	checkSelector := sha512.Sum512(rawToken[:32])
+	checkSelector := sha512.Sum512(rawToken[:confirmTokenSplit])
 	if 0 != bytes.Compare(checkSelector[:], rawSelector) {
 		t.Error("expected selector to match")
 	}
-	checkVerifier := sha512.Sum512(rawToken[32:])
+	checkVerifier := sha512.Sum512(rawToken[confirmTokenSplit:])
 	if 0 != bytes.Compare(checkVerifier[:], rawVerifier) {
 		t.Error("expected verifier to match")
 	}

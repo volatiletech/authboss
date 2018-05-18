@@ -37,7 +37,8 @@ const (
 	recoverTokenExpiredFlash    = "Account recovery request has expired. Please try again."
 	recoverFailedErrorFlash     = "Account recovery has failed. Please contact tech support."
 
-	recoverTokenSize = 64
+	recoverTokenSize  = 64
+	recoverTokenSplit = recoverTokenSize / 2
 )
 
 func init() {
@@ -208,8 +209,8 @@ func (r *Recover) EndPost(w http.ResponseWriter, req *http.Request) error {
 		return r.invalidToken(PageRecoverEnd, w, req)
 	}
 
-	selectorBytes := sha512.Sum512(rawToken[:32])
-	verifierBytes := sha512.Sum512(rawToken[32:])
+	selectorBytes := sha512.Sum512(rawToken[:recoverTokenSplit])
+	verifierBytes := sha512.Sum512(rawToken[recoverTokenSplit:])
 	selector := base64.StdEncoding.EncodeToString(selectorBytes[:])
 
 	storer := authboss.EnsureCanRecover(r.Authboss.Config.Storage.Server)
@@ -281,8 +282,8 @@ func GenerateRecoverCreds() (selector, verifier, token string, err error) {
 	if _, err = rand.Read(rawToken); err != nil {
 		return "", "", "", err
 	}
-	selectorBytes := sha512.Sum512(rawToken[:32])
-	verifierBytes := sha512.Sum512(rawToken[32:])
+	selectorBytes := sha512.Sum512(rawToken[:recoverTokenSplit])
+	verifierBytes := sha512.Sum512(rawToken[recoverTokenSplit:])
 
 	return base64.StdEncoding.EncodeToString(selectorBytes[:]),
 		base64.StdEncoding.EncodeToString(verifierBytes[:]),

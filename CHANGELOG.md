@@ -3,7 +3,7 @@
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [2.0.0-rc3] - 2018-05-25
 
 ### Changed
 
@@ -15,6 +15,9 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
     one place, but a crypto constant time compare in the other to check the
     other value, and this value cannot be leaked by timing, and since you need
     both to recover/confirm as the user, this attack should now be mitigated.
+
+    This requires users to implement additional fields on the user and rename
+    the Storer methods.
 
 ## [2.0.0-rc2] - 2018-05-14
 

@@ -260,20 +260,20 @@ func (s *ServerStorer) LoadByRecoverSelector(ctx context.Context, selector strin
 }
 
 // AddRememberToken for remember me
-func (s *ServerStorer) AddRememberToken(key, token string) error {
+func (s *ServerStorer) AddRememberToken(ctx context.Context, key, token string) error {
 	arr := s.RMTokens[key]
 	s.RMTokens[key] = append(arr, token)
 	return nil
 }
 
 // DelRememberTokens for a user
-func (s *ServerStorer) DelRememberTokens(key string) error {
+func (s *ServerStorer) DelRememberTokens(ctx context.Context, key string) error {
 	delete(s.RMTokens, key)
 	return nil
 }
 
 // UseRememberToken if it exists, deleting it in the process
-func (s *ServerStorer) UseRememberToken(givenKey, token string) (err error) {
+func (s *ServerStorer) UseRememberToken(ctx context.Context, givenKey, token string) (err error) {
 	arr, ok := s.RMTokens[givenKey]
 	if !ok {
 		return authboss.ErrTokenNotFound

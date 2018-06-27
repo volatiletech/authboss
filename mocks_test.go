@@ -65,17 +65,17 @@ func (m *mockServerStorer) Save(ctx context.Context, user User) error {
 	return nil
 }
 
-func (m *mockServerStorer) AddRememberToken(pid, token string) error {
+func (m *mockServerStorer) AddRememberToken(ctx context.Context, pid, token string) error {
 	m.Tokens[pid] = append(m.Tokens[pid], token)
 	return nil
 }
 
-func (m *mockServerStorer) DelRememberTokens(pid string) error {
+func (m *mockServerStorer) DelRememberTokens(ctx context.Context, pid string) error {
 	delete(m.Tokens, pid)
 	return nil
 }
 
-func (m *mockServerStorer) UseRememberToken(pid, token string) error {
+func (m *mockServerStorer) UseRememberToken(ctx context.Context, pid, token string) error {
 	arr, ok := m.Tokens[pid]
 	if !ok {
 		return ErrTokenNotFound

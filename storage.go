@@ -99,12 +99,12 @@ type RememberingServerStorer interface {
 	ServerStorer
 
 	// AddRememberToken to a user
-	AddRememberToken(pid, token string) error
+	AddRememberToken(ctx context.Context, pid, token string) error
 	// DelRememberTokens removes all tokens for the given pid
-	DelRememberTokens(pid string) error
+	DelRememberTokens(ctx context.Context, pid string) error
 	// UseRememberToken finds the pid-token pair and deletes it.
 	// If the token could not be found return ErrTokenNotFound
-	UseRememberToken(pid, token string) error
+	UseRememberToken(ctx context.Context, pid, token string) error
 }
 
 // EnsureCanCreate makes sure the server storer supports create operations

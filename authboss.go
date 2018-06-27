@@ -74,7 +74,7 @@ func (a *Authboss) UpdatePassword(ctx context.Context, user AuthableUser, newPas
 		return nil
 	}
 
-	return rmStorer.DelRememberTokens(user.GetPID())
+	return rmStorer.DelRememberTokens(ctx, user.GetPID())
 }
 
 // Middleware prevents someone from accessing a route by returning a 404 if they are not logged in.

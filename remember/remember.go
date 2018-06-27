@@ -58,7 +58,7 @@ func (r *Remember) RememberAfterAuth(w http.ResponseWriter, req *http.Request, h
 	}
 
 	storer := authboss.EnsureCanRemember(r.Authboss.Config.Storage.Server)
-	if err = storer.AddRememberToken(user.GetPID(), hash); err != nil {
+	if err = storer.AddRememberToken(req.Context(), user.GetPID(), hash); err != nil {
 		return false, err
 	}
 
@@ -119,7 +119,7 @@ func Authenticate(ab *authboss.Authboss, w http.ResponseWriter, req **http.Reque
 	hash := base64.StdEncoding.EncodeToString(sum[:])
 
 	storer := authboss.EnsureCanRemember(ab.Config.Storage.Server)
-	err = storer.UseRememberToken(pid, hash)
+	err = storer.UseRememberToken((*req).Context(), pid, hash)
 	switch {
 	case err == authboss.ErrTokenNotFound:
 		logger.Infof("remember me cookie had a token that was not in storage, deleting cookie")
@@ -134,7 +134,7 @@ func Authenticate(ab *authboss.Authboss, w http.ResponseWriter, req **http.Reque
 		return err
 	}
 
-	if err = storer.AddRememberToken(pid, hash); err != nil {
+	if err = storer.AddRememberToken((*req).Context(), pid, hash); err != nil {
 		return errors.Wrap(err, "failed to save remember me token")
 	}
 
@@ -163,7 +163,7 @@ func (r *Remember) AfterPasswordReset(w http.ResponseWriter, req *http.Request, 
 
 	logger.Infof("deleting tokens and rm cookies for user %s due to password reset", pid)
 
-	return false, storer.DelRememberTokens(pid)
+	return false, storer.DelRememberTokens(req.Context(), pid)
 }
 
 // GenerateToken creates a remember me token

@@ -28,3 +28,5 @@ _testmain.go
 .idea
 
 defaults/smtp_mailer_test.json
+
+vendor

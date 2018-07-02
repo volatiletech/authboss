@@ -17,7 +17,7 @@ import (
 )
 
 func init() {
-	exchanger = func(_ *oauth2.Config, _ context.Context, _ string) (*oauth2.Token, error) {
+	exchanger = func(_ *oauth2.Config, _ context.Context, _ string, _ ...oauth2.AuthCodeOption) (*oauth2.Token, error) {
 		return testToken, nil
 	}
 }

@@ -29,4 +29,3 @@ _testmain.go
 
 defaults/smtp_mailer_test.json
 
-vendor

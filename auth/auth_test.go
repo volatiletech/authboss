@@ -30,10 +30,10 @@ func TestAuthInit(t *testing.T) {
 		t.Error(err)
 	}
 
-	if err := router.HasGets("/login"); err != nil {
+	if err := router.HasGets("/auth/login"); err != nil {
 		t.Error(err)
 	}
-	if err := router.HasPosts("/login"); err != nil {
+	if err := router.HasPosts("/auth/login"); err != nil {
 		t.Error(err)
 	}
 }

@@ -412,12 +412,20 @@ Mailer        | _None_
 Users can self-register for a service using this module. You may optionally want them to confirm
 themselves, which can be done using the confirm module.
 
-The complications in implementing registrations are around the `RegisterPreserveFields`. This is to
-help in the case where a user fills out all these registration details, and then say enters a password
+The complicated part in implementing registrations are around the `RegisterPreserveFields`. This is to
+help in the case where a user fills out many fields, and then say enters a password
 which doesn't mean minimum requirements and it fails during validation. These preserve fields should
 stop the user from having to type in all that data again (it's a whitelist). This **must** be used
-in conjuction with `ArbitraryValuer.GetValues()` and is described more on the configuration options
-and the Valuer types themselves.
+in conjuction with `ArbitraryValuer` and although it's not a hard requirement `ArbitraryUser`
+should be used otherwise the arbitrary values cannot be stored in the database.
+
+When the register module sees arbitrary data from an `ArbitraryValuer`, it loads the data key
+`authboss.DataPreserve = preserve` into the data for rendering registration failures.
+This means the values will be accessible in the templates by using `.preserve.field_name`.
+Preserve may be empty or nil so use `{{with ...}}` to make sure you don't have template errors.
+
+There is additional go documentation on the `RegisterPreserveFields` config option as well as
+the `ArbitraryUser` and `ArbitraryValuer` interfaces themselves.
 
 ## Confirming Registrations
 

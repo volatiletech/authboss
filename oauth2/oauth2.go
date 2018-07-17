@@ -35,6 +35,7 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
+	"io"
 	"net/http"
 	"net/url"
 	"path"
@@ -112,7 +113,7 @@ func (o *OAuth2) Start(w http.ResponseWriter, r *http.Request) error {
 
 	// Create nonce
 	nonce := make([]byte, 32)
-	if _, err := rand.Read(nonce); err != nil {
+	if _, err := io.ReadFull(rand.Reader, nonce); err != nil {
 		return errors.Wrap(err, "failed to create nonce")
 	}
 

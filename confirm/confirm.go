@@ -8,6 +8,7 @@ import (
 	"crypto/subtle"
 	"encoding/base64"
 	"fmt"
+	"io"
 	"net/http"
 	"net/url"
 	"path"
@@ -277,7 +278,7 @@ func Middleware(ab *authboss.Authboss) func(http.Handler) http.Handler {
 // token: the user-facing base64 encoded selector+verifier
 func GenerateConfirmCreds() (selector, verifier, token string, err error) {
 	rawToken := make([]byte, confirmTokenSize)
-	if _, err = rand.Read(rawToken); err != nil {
+	if _, err = io.ReadFull(rand.Reader, rawToken); err != nil {
 		return "", "", "", err
 	}
 	selectorBytes := sha512.Sum512(rawToken[:confirmTokenSplit])

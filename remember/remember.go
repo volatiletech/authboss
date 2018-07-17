@@ -7,6 +7,7 @@ import (
 	"crypto/rand"
 	"crypto/sha512"
 	"encoding/base64"
+	"io"
 	"net/http"
 
 	"github.com/pkg/errors"
@@ -172,7 +173,7 @@ func GenerateToken(pid string) (hash string, token string, err error) {
 	copy(rawToken, []byte(pid))
 	rawToken[len(pid)] = ';'
 
-	if _, err := rand.Read(rawToken[len(pid)+1:]); err != nil {
+	if _, err := io.ReadFull(rand.Reader, rawToken[len(pid)+1:]); err != nil {
 		return "", "", errors.Wrap(err, "failed to create remember me nonce")
 	}
 

@@ -459,6 +459,46 @@ func TestAddPost(t *testing.T) {
 	}
 }
 
+func TestAddPostTooMany(t *testing.T) {
+	t.Parallel()
+
+	h := testSetup()
+	uname := "test@test.com"
+	h.storer.Users[uname] = &mocks.User{
+		Email: uname,
+		OTPs:  "2aID,2aID,2aID,2aID,2aID",
+	}
+	h.session.ClientValues[authboss.SessionKey] = uname
+
+	r := mocks.Request("POST")
+	w := h.ab.NewResponse(httptest.NewRecorder())
+
+	var err error
+	r, err = h.ab.LoadClientState(w, r)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if err := h.otp.AddPost(w, r); err != nil {
+		t.Fatal(err)
+	}
+
+	if h.responder.Page != PageAdd {
+		t.Error("wanted add page, got:", h.responder.Page)
+	}
+	if h.responder.Status != http.StatusOK {
+		t.Error("wanted ok status, got:", h.responder.Status)
+	}
+	if len(h.responder.Data[authboss.DataValidation].(string)) == 0 {
+		t.Error("there should have been a validation error")
+	}
+
+	otps := splitOTPs(h.storer.Users[uname].OTPs)
+	if len(otps) != maxOTPs {
+		t.Error("expected the number of OTPs to be equal to the maximum")
+	}
+}
+
 func TestAddGetUserNotFound(t *testing.T) {
 	t.Parallel()
 

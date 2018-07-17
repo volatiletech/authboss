@@ -20,6 +20,7 @@ import (
 
 const (
 	otpSize = 16
+	maxOTPs = 5
 
 	// PageLogin is for identifying the login page for parsing & validation
 	PageLogin = "otplogin"
@@ -196,14 +197,20 @@ func (o *OTP) AddPost(w http.ResponseWriter, r *http.Request) error {
 		return err
 	}
 
+	otpUser := MustBeOTPable(user)
+	currentOTPs := splitOTPs(otpUser.GetOTPs())
+
+	if len(currentOTPs) >= maxOTPs {
+		data := authboss.HTMLData{authboss.DataValidation: fmt.Sprintf("you cannot have more than %d one time passwords", maxOTPs)}
+		return o.Core.Responder.Respond(w, r, http.StatusOK, PageAdd, data)
+	}
+
 	logger.Infof("generating otp for %s", user.GetPID())
 	otp, hash, err := generateOTP()
 	if err != nil {
 		return err
 	}
 
-	otpUser := MustBeOTPable(user)
-	currentOTPs := splitOTPs(otpUser.GetOTPs())
 	currentOTPs = append(currentOTPs, hash)
 	otpUser.PutOTPs(joinOTPs(currentOTPs))
 

@@ -11,6 +11,9 @@ type Config struct {
 	Paths struct {
 		// Mount is the path to mount authboss's routes at (eg /auth).
 		Mount string
+		// NotAuthorized is the default URL to kick users back to when
+		// they attempt an action that requires them to be logged in and they're not auth'd
+		NotAuthorized string
 
 		// AuthLoginOK is the redirect path after a successful authentication.
 		AuthLoginOK string
@@ -148,6 +151,7 @@ type Config struct {
 // Defaults sets the configuration's default values.
 func (c *Config) Defaults() {
 	c.Paths.Mount = "/auth"
+	c.Paths.NotAuthorized = "/"
 	c.Paths.AuthLoginOK = "/"
 	c.Paths.ConfirmOK = "/"
 	c.Paths.ConfirmNotOK = "/"

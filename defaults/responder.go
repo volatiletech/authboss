@@ -6,12 +6,6 @@ import (
 	"github.com/volatiletech/authboss"
 )
 
-const (
-	// RedirectFormValueName is the name of the form field
-	// in the http request that will be used when redirecting
-	RedirectFormValueName = "redir"
-)
-
 // Responder helps respond to http requests
 type Responder struct {
 	Renderer authboss.Renderer

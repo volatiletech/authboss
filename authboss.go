@@ -8,7 +8,10 @@ package authboss
 
 import (
 	"context"
+	"fmt"
 	"net/http"
+	"net/url"
+	"path"
 
 	"github.com/pkg/errors"
 	"golang.org/x/crypto/bcrypt"
@@ -77,19 +80,53 @@ func (a *Authboss) UpdatePassword(ctx context.Context, user AuthableUser, newPas
 	return rmStorer.DelRememberTokens(ctx, user.GetPID())
 }
 
-// Middleware prevents someone from accessing a route by returning a 404 if they are not logged in.
-// This middleware also loads the current user.
-func Middleware(ab *Authboss) func(http.Handler) http.Handler {
+// Middleware prevents someone from accessing a route they are not allowed to.
+// It allows the user through if they are logged in.
+//
+// If redirectToLogin is true, the user will be redirected to the login page, otherwise they will
+// get a 404. The redirect goes to: mountPath/login, this means it's expected that the auth module
+// is loaded if this is set to true.
+//
+// If allowHalfAuth is true then half-authed users are allowed through, otherwise a half-authed
+// user will not be allowed through.
+func Middleware(ab *Authboss, redirectToLogin bool, allowHalfAuth bool) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			log := ab.RequestLogger(r)
+
+			fail := func(w http.ResponseWriter, r *http.Request) {
+				if redirectToLogin {
+					log.Infof("redirecting unauthorized user to login from: %s", r.URL.Path)
+					vals := make(url.Values)
+					vals.Set(FormValueRedirect, r.URL.Path)
+
+					ro := RedirectOptions{
+						Code:         http.StatusTemporaryRedirect,
+						Failure:      "please re-login",
+						RedirectPath: path.Join(ab.Config.Paths.Mount, fmt.Sprintf("/login?%s", vals.Encode())),
+					}
+
+					if err := ab.Config.Core.Redirector.Redirect(w, r, ro); err != nil {
+						log.Errorf("failed to redirect user during authboss.Middleware redirect: %+v", err)
+						return
+					}
+				}
+
+				log.Infof("not found for unauthorized user at: %s", r.URL.Path)
+				w.WriteHeader(http.StatusNotFound)
+			}
+
+			if !allowHalfAuth && !IsFullyAuthed(r) {
+				fail(w, r)
+				return
+			}
+
 			if u, err := ab.LoadCurrentUser(&r); err != nil {
 				log.Errorf("error fetching current user: %+v", err)
 				w.WriteHeader(http.StatusInternalServerError)
 				return
 			} else if u == nil {
-				log.Infof("providing not found for unauthorized user at: %s", r.URL.Path)
-				w.WriteHeader(http.StatusNotFound)
+				fail(w, r)
 				return
 			} else {
 				next.ServeHTTP(w, r)

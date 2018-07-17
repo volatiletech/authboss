@@ -221,6 +221,13 @@ func (c *ClientStateResponseWriter) putClientState() error {
 	return nil
 }
 
+// IsFullyAuthed returns false if the user has a HalfAuth
+// in his session.
+func IsFullyAuthed(r *http.Request) bool {
+	_, hasHalfAuth := GetSession(r, SessionHalfAuthKey)
+	return !hasHalfAuth
+}
+
 // DelKnownSession deletes all known session variables, effectively
 // logging a user out.
 func DelKnownSession(w http.ResponseWriter) {

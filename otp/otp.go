@@ -4,31 +4,40 @@ package otp
 
 import (
 	"context"
+	"crypto/rand"
+	"crypto/sha512"
+	"crypto/subtle"
+	"encoding/base64"
 	"fmt"
+	"io"
 	"net/http"
 	"strconv"
 	"strings"
 
+	"github.com/pkg/errors"
 	"github.com/volatiletech/authboss"
-	"golang.org/x/crypto/bcrypt"
 )
 
 const (
+	otpSize = 16
+
 	// PageLogin is for identifying the login page for parsing & validation
-	PageLogin = "loginotp"
+	PageLogin = "otplogin"
 	// PageAdd is for adding an otp to the user
-	PageAdd = "addotp"
+	PageAdd = "otpadd"
 	// PageClear is for deleting all the otps from the user
-	PageClear = "clearotp"
+	PageClear = "otpclear"
 
 	// DataNumberOTPs shows the number of otps for add/clear operations
-	DataNumberOTPs = "notps"
-	// DataNewOTP shows the new otp that was added
+	DataNumberOTPs = "otp_count"
+	// DataOTP shows the new otp that was added
 	DataOTP = "otp"
 )
 
 // User for one time passwords
 type User interface {
+	authboss.User
+
 	// GetOTPs retrieves a string of comma separated bcrypt'd one time passwords
 	GetOTPs() string
 	// PutOTPs puts a string of comma separated bcrypt'd one time passwords
@@ -39,7 +48,7 @@ type User interface {
 func MustBeOTPable(user authboss.User) User {
 	u, ok := user.(User)
 	if !ok {
-		panic(fmt.Sprintf("could not upgrade user to an authable user, type: %T", u))
+		panic(fmt.Sprintf("could not upgrade user to an otpable user, type: %T", u))
 	}
 
 	return u
@@ -105,21 +114,25 @@ func (o *OTP) LoginPost(w http.ResponseWriter, r *http.Request) error {
 	}
 
 	otpUser := MustBeOTPable(pidUser)
-	passwords := decodeOTPs(otpUser.GetOTPs())
+	passwords := splitOTPs(otpUser.GetOTPs())
 
 	r = r.WithContext(context.WithValue(r.Context(), authboss.CTXKeyUser, pidUser))
 
-	input := creds.GetPassword()
+	inputSum := sha512.Sum512([]byte(creds.GetPassword()))
 	matchPassword := -1
-	handled := false
 	for i, p := range passwords {
-		err = bcrypt.CompareHashAndPassword([]byte(p), []byte(input))
-		if err == nil {
+		dbSum, err := base64.StdEncoding.DecodeString(p)
+		if err != nil {
+			return errors.Wrap(err, "otp in database was not valid base64")
+		}
+
+		if 1 == subtle.ConstantTimeCompare(inputSum[:], dbSum) {
 			matchPassword = i
 			break
 		}
 	}
 
+	handled := false
 	if matchPassword < 0 {
 		handled, err = o.Authboss.Events.FireAfter(authboss.EventAuthFail, w, r)
 		if err != nil {
@@ -133,9 +146,10 @@ func (o *OTP) LoginPost(w http.ResponseWriter, r *http.Request) error {
 		return o.Authboss.Core.Responder.Respond(w, r, http.StatusOK, PageLogin, data)
 	}
 
+	logger.Infof("removing otp password from %s", pid)
 	passwords[matchPassword] = passwords[len(passwords)-1]
 	passwords = passwords[:len(passwords)-1]
-	otpUser.PutOTPs(encodeOTPs(passwords))
+	otpUser.PutOTPs(joinOTPs(passwords))
 	if err = o.Authboss.Config.Storage.Server.Save(r.Context(), pidUser); err != nil {
 		return err
 	}
@@ -170,17 +184,7 @@ func (o *OTP) LoginPost(w http.ResponseWriter, r *http.Request) error {
 
 // AddGet shows how many passwords exist and allows the user to create a new one
 func (o *OTP) AddGet(w http.ResponseWriter, r *http.Request) error {
-	logger := o.RequestLogger(r)
-
-	user, err := o.Authboss.CurrentUser(r)
-	if err != nil {
-		return err
-	}
-
-	otpUser := MustBeOTPable(user)
-	ln := strconv.Itoa(len(decodeOTPs(otpUser.GetOTPs())))
-
-	return o.Core.Responder.Respond(w, r, http.StatusOK, PageAdd, authboss.HTMLData{NumberOTPS: ln})
+	return o.showOTPCount(w, r, PageAdd)
 }
 
 // AddPost adds a new password to the user and displays it
@@ -192,14 +196,16 @@ func (o *OTP) AddPost(w http.ResponseWriter, r *http.Request) error {
 		return err
 	}
 
-	// GENERATE AN OTP
-	panic("otp not generated")
-	otp := ""
+	logger.Infof("generating otp for %s", user.GetPID())
+	otp, hash, err := generateOTP()
+	if err != nil {
+		return err
+	}
 
 	otpUser := MustBeOTPable(user)
-	currentOTPs := decodeOTPs(otpUser.GetOTPs())
-	currentOTPs = append(currentOTPs, otp)
-	otpUser.PutOTPs(encodeOTPs(currentOTPs))
+	currentOTPs := splitOTPs(otpUser.GetOTPs())
+	currentOTPs = append(currentOTPs, hash)
+	otpUser.PutOTPs(joinOTPs(currentOTPs))
 
 	if err := o.Authboss.Config.Storage.Server.Save(r.Context(), user); err != nil {
 		return err
@@ -210,23 +216,70 @@ func (o *OTP) AddPost(w http.ResponseWriter, r *http.Request) error {
 
 // ClearGet shows how many passwords exist and allows the user to clear them all
 func (o *OTP) ClearGet(w http.ResponseWriter, r *http.Request) error {
-	return o.Core.Responder.Respond(w, r, http.StatusOK, PageClear, nil)
+	return o.showOTPCount(w, r, PageClear)
 }
 
 // ClearPost clears all otps that are stored for the user.
 func (o *OTP) ClearPost(w http.ResponseWriter, r *http.Request) error {
-	panic("not implemented")
-	return nil
+	logger := o.RequestLogger(r)
+
+	user, err := o.Authboss.CurrentUser(r)
+	if err != nil {
+		return err
+	}
+
+	logger.Infof("clearing all otps for user: %s", user.GetPID())
+	otpUser := MustBeOTPable(user)
+	otpUser.PutOTPs("")
+
+	if err := o.Authboss.Config.Storage.Server.Save(r.Context(), user); err != nil {
+		return err
+	}
+
+	return o.Core.Responder.Respond(w, r, http.StatusOK, PageAdd, authboss.HTMLData{DataNumberOTPs: "0"})
 }
 
-func encodeOTPs(otps []string) string {
+func (o *OTP) showOTPCount(w http.ResponseWriter, r *http.Request, page string) error {
+	user, err := o.Authboss.CurrentUser(r)
+	if err != nil {
+		return err
+	}
+
+	otpUser := MustBeOTPable(user)
+	ln := strconv.Itoa(len(splitOTPs(otpUser.GetOTPs())))
+
+	return o.Core.Responder.Respond(w, r, http.StatusOK, page, authboss.HTMLData{DataNumberOTPs: ln})
+}
+
+func joinOTPs(otps []string) string {
 	return strings.Join(otps, ",")
 }
 
-func decodeOTPs(otps string) []string {
+func splitOTPs(otps string) []string {
 	if len(otps) == 0 {
 		return nil
 	}
 
 	return strings.Split(otps, ",")
+}
+
+func generateOTP() (otp string, hash string, err error) {
+	secret := make([]byte, otpSize)
+	if _, err = io.ReadFull(rand.Reader, secret); err != nil {
+		return "", "", err
+	}
+
+	otp = fmt.Sprintf("%x-%x-%x-%x",
+		secret[0:4],
+		secret[4:8],
+		secret[8:12],
+		secret[12:16],
+	)
+
+	sum := sha512.Sum512([]byte(otp))
+	encoded := make([]byte, base64.StdEncoding.EncodedLen(sha512.Size))
+	base64.StdEncoding.Encode(encoded, sum[:])
+	hash = string(encoded)
+
+	return otp, hash, nil
 }

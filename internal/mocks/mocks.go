@@ -34,6 +34,8 @@ type User struct {
 	OAuth2Refresh  string
 	OAuth2Expiry   time.Time
 
+	OTPs string
+
 	Arbitrary map[string]string
 }
 
@@ -97,6 +99,9 @@ func (u User) GetOAuth2Expiry() time.Time { return u.OAuth2Expiry }
 // GetArbitrary from user
 func (u User) GetArbitrary() map[string]string { return u.Arbitrary }
 
+// GetOTPs from user
+func (u User) GetOTPs() string { return u.OTPs }
+
 // PutPID into user
 func (u *User) PutPID(email string) { u.Email = email }
 
@@ -155,6 +160,9 @@ func (u *User) PutOAuth2Expiry(expiry time.Time) { u.OAuth2Expiry = expiry }
 
 // PutArbitrary into user
 func (u *User) PutArbitrary(arb map[string]string) { u.Arbitrary = arb }
+
+// PutOTPs into user
+func (u *User) PutOTPs(otps string) { u.OTPs = otps }
 
 // ServerStorer should be valid for any module storer defined in authboss.
 type ServerStorer struct {

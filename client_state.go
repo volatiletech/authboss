@@ -159,7 +159,7 @@ func MustClientStateResponseWriter(w http.ResponseWriter) *ClientStateResponseWr
 			continue
 		}
 
-		panic(fmt.Sprintf("failed to find a ClientStateResponseWriter or UnderlyingResponseWriter in: %T", w))
+		panic(fmt.Sprintf("ResponseWriter must be a ClientStateResponseWriter or UnderlyingResponseWriter in (see: authboss.LoadClientStateMiddleware): %T", w))
 	}
 }
 

@@ -149,7 +149,7 @@ In terms of integrating Authboss into your app, the following things must be con
 ### Middleware
 
 There are middlewares that are required to be installed in your middleware stack if it's
-all to function properly, please see [Middlewares](#Middlewares) for more information.
+all to function properly, please see [Middlewares](#middlewares) for more information.
 
 ### Configuration
 

@@ -3,12 +3,26 @@
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [2.0.0-rc6] - 2018-08-16
 
 ### Added
 
 - Add more documentation about how RegisterPreserveFields works so people
   don't have to chase the godocs to figure out how to implement it.
+
+### Changed
+
+- LoadClientStateMiddleware no longer panics when LoadClientState fails.
+  Instead it logs error messages and gives a 500 server error to users instead
+  of returning no response from the server at all due to panic.
+
+### Fixed
+
+- Fix a bug where LoadClientState could return a nil request if the state
+  returned nil instead of falling through.
+- Fix Middlewares link in README
+- Fix error message when forgetting authboss.LoadClientStateMiddleware to
+  be a bit more indicative of what the problem might be.
 
 ## [2.0.0-rc5] - 2018-07-04
 

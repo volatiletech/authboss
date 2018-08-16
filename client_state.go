@@ -99,7 +99,11 @@ func (a *Authboss) LoadClientStateMiddleware(h http.Handler) http.Handler {
 		writer := a.NewResponse(w)
 		request, err := a.LoadClientState(writer, r)
 		if err != nil {
-			panic(fmt.Sprintf("failed to load client state: %+v", err))
+			logger := a.RequestLogger(r)
+			logger.Errorf("failed to load client state %+v", err)
+
+			w.WriteHeader(http.StatusInternalServerError)
+			return
 		}
 
 		h.ServeHTTP(writer, request)
@@ -122,25 +126,21 @@ func (a *Authboss) LoadClientState(w http.ResponseWriter, r *http.Request) (*htt
 		state, err := a.Storage.SessionState.ReadState(r)
 		if err != nil {
 			return nil, err
-		} else if state == nil {
-			return nil, nil
+		} else if state != nil {
+			c := MustClientStateResponseWriter(w)
+			c.sessionState = state
+			r = r.WithContext(context.WithValue(r.Context(), CTXKeySessionState, state))
 		}
-
-		c := MustClientStateResponseWriter(w)
-		c.sessionState = state
-		r = r.WithContext(context.WithValue(r.Context(), CTXKeySessionState, state))
 	}
 	if a.Storage.CookieState != nil {
 		state, err := a.Storage.CookieState.ReadState(r)
 		if err != nil {
 			return nil, err
-		} else if state == nil {
-			return nil, nil
+		} else if state != nil {
+			c := MustClientStateResponseWriter(w)
+			c.cookieState = state
+			r = r.WithContext(context.WithValue(r.Context(), CTXKeyCookieState, state))
 		}
-
-		c := MustClientStateResponseWriter(w)
-		c.cookieState = state
-		r = r.WithContext(context.WithValue(r.Context(), CTXKeyCookieState, state))
 	}
 
 	return r, nil

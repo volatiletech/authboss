@@ -76,7 +76,7 @@ func (c *Confirm) PreventAuth(w http.ResponseWriter, r *http.Request, handled bo
 
 	cuser := authboss.MustBeConfirmable(user)
 	if cuser.GetConfirmed() {
-		logger.Infof("user %s was confirmed, allowing auth", user.GetPID())
+		logger.Infof("user %s is confirmed, allowing auth", user.GetPID())
 		return false, nil
 	}
 

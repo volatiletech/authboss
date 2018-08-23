@@ -85,6 +85,10 @@ type Config struct {
 		// OAuth2Providers lists all providers that can be used. See
 		// OAuthProvider documentation for more details.
 		OAuth2Providers map[string]OAuth2Provider
+
+		// TOTP2FAIssuer is the issuer that appears in the url when scanning a qr code
+		// for google authenticator.
+		TOTP2FAIssuer string
 	}
 
 	Mail struct {

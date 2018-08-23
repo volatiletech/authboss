@@ -89,7 +89,7 @@ func (a *Authboss) UpdatePassword(ctx context.Context, user AuthableUser, newPas
 //
 // If allowHalfAuth is true then half-authed users are allowed through, otherwise a half-authed
 // user will not be allowed through.
-func Middleware(ab *Authboss, redirectToLogin bool, allowHalfAuth bool) func(http.Handler) http.Handler {
+func Middleware(ab *Authboss, redirectToLogin bool, allowHalfAuth bool, force2fa bool) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			log := ab.RequestLogger(r)
@@ -116,7 +116,7 @@ func Middleware(ab *Authboss, redirectToLogin bool, allowHalfAuth bool) func(htt
 				w.WriteHeader(http.StatusNotFound)
 			}
 
-			if !allowHalfAuth && !IsFullyAuthed(r) {
+			if !allowHalfAuth && !IsFullyAuthed(r) || !force2fa && !IsTwoFactored(r) {
 				fail(w, r)
 				return
 			}

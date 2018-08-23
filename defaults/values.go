@@ -19,6 +19,7 @@ const (
 
 	FormValueConfirm = "cnf"
 	FormValueToken   = "token"
+	FormValueCode    = "code"
 )
 
 // UserValues from the login form
@@ -91,6 +92,16 @@ func (r RecoverEndValues) GetToken() string { return r.Token }
 
 // GetPassword for recovery
 func (r RecoverEndValues) GetPassword() string { return r.NewPassword }
+
+// TwoFA for totp2fa_validate page
+type TwoFA struct {
+	HTTPFormValidator
+
+	Code string
+}
+
+// GetCode from authenticator
+func (r TwoFA) GetCode() string { return r.Code }
 
 // HTTPBodyReader reads forms from various pages and decodes
 // them.
@@ -232,6 +243,11 @@ func (h HTTPBodyReader) Read(page string, r *http.Request) (authboss.Validator, 
 			HTTPFormValidator: HTTPFormValidator{Values: values, Ruleset: rules, ConfirmFields: confirms},
 			Token:             values[FormValueToken],
 			NewPassword:       values[FormValuePassword],
+		}, nil
+	case "totp2fa_validate":
+		return TwoFA{
+			HTTPFormValidator: HTTPFormValidator{Values: values, Ruleset: rules, ConfirmFields: confirms},
+			Code:              values[FormValueCode],
 		}, nil
 	case "register":
 		arbitrary := make(map[string]string)

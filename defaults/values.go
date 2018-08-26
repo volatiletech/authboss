@@ -17,9 +17,10 @@ const (
 	FormValuePassword = "password"
 	FormValueUsername = "username"
 
-	FormValueConfirm = "cnf"
-	FormValueToken   = "token"
-	FormValueCode    = "code"
+	FormValueConfirm     = "cnf"
+	FormValueToken       = "token"
+	FormValueCode        = "code"
+	FormValuePhoneNumber = "phone_number"
 )
 
 // UserValues from the login form
@@ -101,7 +102,21 @@ type TwoFA struct {
 }
 
 // GetCode from authenticator
-func (r TwoFA) GetCode() string { return r.Code }
+func (t TwoFA) GetCode() string { return t.Code }
+
+// SMSTwoFA for sms2fa_validate page
+type SMSTwoFA struct {
+	HTTPFormValidator
+
+	Code        string
+	PhoneNumber string
+}
+
+// GetCode from sms
+func (s SMSTwoFA) GetCode() string { return s.Code }
+
+// GetPhoneNumber from authenticator
+func (s SMSTwoFA) GetPhoneNumber() string { return s.PhoneNumber }
 
 // HTTPBodyReader reads forms from various pages and decodes
 // them.
@@ -248,6 +263,12 @@ func (h HTTPBodyReader) Read(page string, r *http.Request) (authboss.Validator, 
 		return TwoFA{
 			HTTPFormValidator: HTTPFormValidator{Values: values, Ruleset: rules, ConfirmFields: confirms},
 			Code:              values[FormValueCode],
+		}, nil
+	case "sms2fa_validate":
+		return SMSTwoFA{
+			HTTPFormValidator: HTTPFormValidator{Values: values, Ruleset: rules, ConfirmFields: confirms},
+			Code:              values[FormValueCode],
+			PhoneNumber:       values[FormValuePhoneNumber],
 		}, nil
 	case "register":
 		arbitrary := make(map[string]string)

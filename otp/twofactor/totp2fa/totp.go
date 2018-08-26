@@ -4,15 +4,11 @@ package totp2fa
 
 import (
 	"bytes"
-	"crypto/rand"
 	"fmt"
 	"image/png"
 	"io"
 	"net/http"
 	"net/url"
-	"strings"
-
-	"golang.org/x/crypto/bcrypt"
 
 	"github.com/pkg/errors"
 	"github.com/pquerna/otp"
@@ -37,6 +33,11 @@ const (
 	PageTOTPValidateSuccess = "totp2fa_validate_success"
 )
 
+// Form value constants
+const (
+	FormValueCode = "code"
+)
+
 // Data constants
 const (
 	DataRecoveryCodes = "recovery_codes"
@@ -50,7 +51,7 @@ const (
 )
 
 var (
-	errNoTOTPEnabled = errors.New("user does not have 2fa enabled")
+	errNoTOTPEnabled = errors.New("user does not have totp 2fa enabled")
 )
 
 // User for TOTP
@@ -68,19 +69,19 @@ type TOTP struct {
 
 // Setup the module
 func (t *TOTP) Setup() error {
-	t.Authboss.Core.Router.Get("/2fa/setup/totp", t.Core.ErrorHandler.Wrap(t.GetSetup))
-	t.Authboss.Core.Router.Post("/2fa/setup/totp", t.Core.ErrorHandler.Wrap(t.PostSetup))
+	t.Authboss.Core.Router.Get("/2fa/totp/setup", t.Core.ErrorHandler.Wrap(t.GetSetup))
+	t.Authboss.Core.Router.Post("/2fa/totp/setup", t.Core.ErrorHandler.Wrap(t.PostSetup))
 
-	t.Authboss.Core.Router.Get("/2fa/qr/totp", t.Core.ErrorHandler.Wrap(t.GetQRCode))
+	t.Authboss.Core.Router.Get("/2fa/totp/qr", t.Core.ErrorHandler.Wrap(t.GetQRCode))
 
-	t.Authboss.Core.Router.Get("/2fa/confirm/totp", t.Core.ErrorHandler.Wrap(t.GetConfirm))
-	t.Authboss.Core.Router.Post("/2fa/confirm/totp", t.Core.ErrorHandler.Wrap(t.PostConfirm))
+	t.Authboss.Core.Router.Get("/2fa/totp/confirm", t.Core.ErrorHandler.Wrap(t.GetConfirm))
+	t.Authboss.Core.Router.Post("/2fa/totp/confirm", t.Core.ErrorHandler.Wrap(t.PostConfirm))
 
-	t.Authboss.Core.Router.Get("/2fa/remove/totp", t.Core.ErrorHandler.Wrap(t.GetRemove))
-	t.Authboss.Core.Router.Post("/2fa/remove/totp", t.Core.ErrorHandler.Wrap(t.PostRemove))
+	t.Authboss.Core.Router.Get("/2fa/totp/remove", t.Core.ErrorHandler.Wrap(t.GetRemove))
+	t.Authboss.Core.Router.Post("/2fa/totp/remove", t.Core.ErrorHandler.Wrap(t.PostRemove))
 
-	t.Authboss.Core.Router.Get("/2fa/validate/totp", t.Core.ErrorHandler.Wrap(t.GetValidate))
-	t.Authboss.Core.Router.Post("/2fa/validate/totp", t.Core.ErrorHandler.Wrap(t.PostValidate))
+	t.Authboss.Core.Router.Get("/2fa/totp/validate", t.Core.ErrorHandler.Wrap(t.GetValidate))
+	t.Authboss.Core.Router.Post("/2fa/totp/validate", t.Core.ErrorHandler.Wrap(t.PostValidate))
 
 	t.Authboss.Events.Before(authboss.EventAuth, t.BeforeAuth)
 
@@ -95,11 +96,12 @@ func (t *TOTP) BeforeAuth(w http.ResponseWriter, r *http.Request, handled bool) 
 	}
 
 	user := r.Context().Value(authboss.CTXKeyUser).(User)
-	authboss.PutSession(w, SessionTOTPPendingPID, user.GetPID())
 
 	if len(user.GetTOTPSecretKey()) == 0 {
 		return false, nil
 	}
+
+	authboss.PutSession(w, SessionTOTPPendingPID, user.GetPID())
 
 	var query string
 	if len(r.URL.RawQuery) != 0 {
@@ -107,13 +109,14 @@ func (t *TOTP) BeforeAuth(w http.ResponseWriter, r *http.Request, handled bool) 
 	}
 	ro := authboss.RedirectOptions{
 		Code:         http.StatusTemporaryRedirect,
-		RedirectPath: t.Paths.Mount + "/2fa/validate/totp" + query,
+		RedirectPath: t.Paths.Mount + "/2fa/totp/validate" + query,
 	}
 	return true, t.Authboss.Config.Core.Redirector.Redirect(w, r, ro)
 }
 
 // GetSetup shows a screen allows a user to opt in to setting up totp 2fa
 func (t *TOTP) GetSetup(w http.ResponseWriter, r *http.Request) error {
+	authboss.DelSession(w, SessionTOTPSecret)
 	data := authboss.HTMLData{DataValidateMode: dataValidateSetup}
 	return t.Core.Responder.Respond(w, r, http.StatusOK, PageTOTPValidate, data)
 }
@@ -141,7 +144,7 @@ func (t *TOTP) PostSetup(w http.ResponseWriter, r *http.Request) error {
 
 	ro := authboss.RedirectOptions{
 		Code:         http.StatusTemporaryRedirect,
-		RedirectPath: t.Paths.Mount + "/2fa/confirm/totp",
+		RedirectPath: t.Paths.Mount + "/2fa/totp/confirm",
 	}
 	return t.Core.Redirector.Redirect(w, r, ro)
 }
@@ -227,26 +230,26 @@ func (t *TOTP) PostConfirm(w http.ResponseWriter, r *http.Request) error {
 	ok = totp.Validate(inputCode, totpSecret)
 	if !ok {
 		data := authboss.HTMLData{
-			authboss.DataValidation: map[string][]string{"code": []string{"2fa code was invalid"}},
+			authboss.DataValidation: map[string][]string{FormValueCode: []string{"2fa code was invalid"}},
 			DataValidateMode:        dataValidateConfirm,
 			DataTOTPSecret:          totpSecret,
 		}
 		return t.Authboss.Core.Responder.Respond(w, r, http.StatusOK, PageTOTPValidate, data)
 	}
 
-	codes, err := generateRecoveryCodes()
+	codes, err := twofactor.GenerateRecoveryCodes()
 	if err != nil {
 		return err
 	}
 
-	crypted, err := bcryptRecoveryCodes(codes)
+	crypted, err := twofactor.BCryptRecoveryCodes(codes)
 	if err != nil {
 		return err
 	}
 
 	// Save the user which activates 2fa
 	user.PutTOTPSecretKey(totpSecret)
-	user.PutRecoveryCodes(encodeRecoveryCodes(crypted))
+	user.PutRecoveryCodes(twofactor.EncodeRecoveryCodes(crypted))
 	if err = t.Authboss.Config.Storage.Server.Save(r.Context(), user); err != nil {
 		return err
 	}
@@ -254,7 +257,7 @@ func (t *TOTP) PostConfirm(w http.ResponseWriter, r *http.Request) error {
 	authboss.DelSession(w, SessionTOTPSecret)
 
 	logger := t.RequestLogger(r)
-	logger.Infof("user %s enabled totp", user.GetPID())
+	logger.Infof("user %s enabled totp 2fa", user.GetPID())
 
 	data := authboss.HTMLData{
 		DataRecoveryCodes: codes,
@@ -290,13 +293,14 @@ func (t *TOTP) PostRemove(w http.ResponseWriter, r *http.Request) error {
 		return t.Authboss.Core.Responder.Respond(w, r, http.StatusOK, PageTOTPValidate, data)
 	}
 
+	authboss.PutSession(w, authboss.Session2FA, "")
 	user.PutTOTPSecretKey("")
 	if err = t.Authboss.Config.Storage.Server.Save(r.Context(), user); err != nil {
 		return err
 	}
 
 	logger := t.RequestLogger(r)
-	logger.Infof("user %s disabled totp", user.GetPID())
+	logger.Infof("user %s disabled totp 2fa", user.GetPID())
 
 	data := authboss.HTMLData{DataValidateMode: dataValidateRemove}
 	return t.Authboss.Core.Responder.Respond(w, r, http.StatusOK, PageTOTPValidateSuccess, data)
@@ -333,7 +337,7 @@ func (t *TOTP) PostValidate(w http.ResponseWriter, r *http.Request) error {
 	}
 
 	authboss.PutSession(w, authboss.SessionKey, user.GetPID())
-	authboss.PutSession(w, authboss.Session2FA, "true")
+	authboss.PutSession(w, authboss.Session2FA, "totp")
 	authboss.DelSession(w, authboss.SessionHalfAuthKey)
 	authboss.DelSession(w, SessionTOTPPendingPID)
 	authboss.DelSession(w, SessionTOTPSecret)
@@ -342,7 +346,7 @@ func (t *TOTP) PostValidate(w http.ResponseWriter, r *http.Request) error {
 
 	ro := authboss.RedirectOptions{
 		Code:             http.StatusTemporaryRedirect,
-		Success:          "successfully authenticated",
+		Success:          "Successfully Authenticated",
 		RedirectPath:     t.Authboss.Config.Paths.AuthLoginOK,
 		FollowRedirParam: true,
 	}
@@ -379,81 +383,3 @@ func (t *TOTP) validate(r *http.Request) (User, bool, error) {
 
 	return user, totp.Validate(input, secret), nil
 }
-
-const alphabet = "abcdefghijklmnopqrstuvwxyz0123456789"
-const recoveryCodeLength = 10
-
-// generateRecoveryCodes creates 10 recovery codes of the form:
-// abd34-1b24do
-func generateRecoveryCodes() ([]string, error) {
-	byt := make([]byte, 10*recoveryCodeLength)
-	if _, err := io.ReadFull(rand.Reader, byt); err != nil {
-		return nil, err
-	}
-
-	codes := make([]string, 10)
-	for i := range codes {
-		builder := new(strings.Builder)
-		for j := 0; j < recoveryCodeLength; j++ {
-			if recoveryCodeLength/2 == j {
-				builder.WriteByte('-')
-			}
-
-			randNumber := byt[i*recoveryCodeLength+j] % byte(len(alphabet))
-			builder.WriteByte(alphabet[randNumber])
-		}
-		codes[i] = builder.String()
-	}
-
-	return codes, nil
-}
-
-func bcryptRecoveryCodes(codes []string) ([]string, error) {
-	cryptedCodes := make([]string, len(codes))
-	for i, c := range codes {
-		hash, err := bcrypt.GenerateFromPassword([]byte(c), bcrypt.DefaultCost)
-		if err != nil {
-			return nil, err
-		}
-
-		cryptedCodes[i] = string(hash)
-	}
-
-	return cryptedCodes, nil
-}
-
-// useRecoveryCode deletes the code that was used from the string slice and returns it
-// the bool is true if a code was used
-func useRecoveryCode(codes []string, inputCode string) ([]string, bool) {
-	input := []byte(inputCode)
-	use := -1
-
-	for i, c := range codes {
-		err := bcrypt.CompareHashAndPassword([]byte(c), input)
-		if err == nil {
-			use = i
-			break
-		}
-	}
-
-	if use < 0 {
-		return nil, false
-	}
-
-	ret := make([]string, len(codes)-1)
-	for j := range codes {
-		if j == use {
-			continue
-		}
-		set := j
-		if j > use {
-			set--
-		}
-		ret[set] = codes[j]
-	}
-
-	return ret, true
-}
-
-func encodeRecoveryCodes(codes []string) string { return strings.Join(codes, ",") }
-func decodeRecoveryCodes(codes string) []string { return strings.Split(codes, ",") }

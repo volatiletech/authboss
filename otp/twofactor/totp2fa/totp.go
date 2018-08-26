@@ -40,9 +40,8 @@ const (
 
 // Data constants
 const (
-	DataRecoveryCodes = "recovery_codes"
-	DataValidateMode  = "validate_mode"
-	DataTOTPSecret    = SessionTOTPSecret
+	DataValidateMode = "validate_mode"
+	DataTOTPSecret   = SessionTOTPSecret
 
 	dataValidate        = "validate"
 	dataValidateSetup   = "setup"
@@ -260,8 +259,8 @@ func (t *TOTP) PostConfirm(w http.ResponseWriter, r *http.Request) error {
 	logger.Infof("user %s enabled totp 2fa", user.GetPID())
 
 	data := authboss.HTMLData{
-		DataRecoveryCodes: codes,
-		DataValidateMode:  dataValidateConfirm,
+		twofactor.DataRecoveryCodes: codes,
+		DataValidateMode:            dataValidateConfirm,
 	}
 
 	return t.Authboss.Core.Responder.Respond(w, r, http.StatusOK, PageTOTPValidateSuccess, data)
@@ -287,8 +286,8 @@ func (t *TOTP) PostRemove(w http.ResponseWriter, r *http.Request) error {
 		return err
 	case !ok:
 		data := authboss.HTMLData{
-			authboss.DataErr: "totp 2fa code incorrect",
-			DataValidateMode: dataValidateRemove,
+			authboss.DataValidation: map[string][]string{FormValueCode: []string{"2fa code was invalid"}},
+			DataValidateMode:        dataValidateRemove,
 		}
 		return t.Authboss.Core.Responder.Respond(w, r, http.StatusOK, PageTOTPValidate, data)
 	}

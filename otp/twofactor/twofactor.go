@@ -4,6 +4,7 @@ package twofactor
 import (
 	"crypto/rand"
 	"io"
+	"net/http"
 	"strings"
 
 	"github.com/volatiletech/authboss"
@@ -23,118 +24,88 @@ type User interface {
 	PutRecoveryCodes(codes string)
 }
 
-// TOTPUser interface
-type TOTPUser interface {
-	User
+// Page constants
+const (
+	PageRecovery2FA = "recovery2fa"
+)
 
-	GetTOTPSecretKey() string
-	PutTOTPSecretKey(string)
+// Data constants
+const (
+	DataRecoveryCode     = "recovery_code"
+	DataRecoveryCodes    = "recovery_codes"
+	DataNumRecoveryCodes = "n_recovery_codes"
+)
+
+const (
+	alphabet           = "abcdefghijklmnopqrstuvwxyz0123456789"
+	recoveryCodeLength = 10
+)
+
+// Recovery for two-factor authentication is handled by this type
+type Recovery struct {
+	*authboss.Authboss
 }
 
-// SMSUser interface
-type SMSUser interface {
-	User
+// Setup the module to provide recovery regeneration routes
+func (rc *Recovery) Setup() error {
+	rc.Authboss.Core.ViewRenderer.Load(PageRecovery2FA)
 
-	GetPhoneNumber() string
-	PutPhoneNumber(string)
+	rc.Authboss.Core.Router.Get("/2fa/recovery/regen", rc.Authboss.Core.ErrorHandler.Wrap(rc.GetRegen))
+	rc.Authboss.Core.Router.Post("/2fa/recovery/regen", rc.Authboss.Core.ErrorHandler.Wrap(rc.PostRegen))
+
+	return nil
 }
 
-// SMSPhoneGetter retrieves an initial phone number
-// to use as the SMS 2fa number.
-type SMSPhoneGetter interface {
-	GetInitialPhoneNumber() string
+// GetRegen shows a button that enables a user to regen their codes
+// as well as how many codes are currently remaining.
+func (rc *Recovery) GetRegen(w http.ResponseWriter, r *http.Request) error {
+	abUser, err := rc.CurrentUser(r)
+	if err != nil {
+		return err
+	}
+	user := abUser.(User)
+
+	var nCodes int
+	codes := user.GetRecoveryCodes()
+	if len(codes) != 0 {
+		nCodes++
+	}
+	for _, c := range codes {
+		if c == ',' {
+			nCodes++
+		}
+	}
+
+	data := authboss.HTMLData{DataNumRecoveryCodes: nCodes}
+	return rc.Authboss.Core.Responder.Respond(w, r, http.StatusOK, PageRecovery2FA, data)
 }
 
-/*
-GET  /2fa/setup/{sms,totp}
-POST /2fa/setup/{sms,totp}
-- sms:
-	- send a 6-8 digit code to the users's phone number
-	- save this temporary code in the session for the next API call
+// PostRegen regenerates the codes
+func (rc *Recovery) PostRegen(w http.ResponseWriter, r *http.Request) error {
+	abUser, err := rc.CurrentUser(r)
+	if err != nil {
+		return err
+	}
+	user := abUser.(User)
 
-- totp:
-	- generate a private key and store it, temporarily in session
+	codes, err := GenerateRecoveryCodes()
+	if err != nil {
+		return err
+	}
 
-GET /2fa/qr/{sms,totp}
-- totp:
-	- send back an image of the secret key that's in the session, fallback to the database
+	hashedCodes, err := BCryptRecoveryCodes(codes)
+	if err != nil {
+		return err
+	}
 
-GET  /2fa/confirm/{sms,totp}
-POST /2fa/confirm/{sms,totp}
-- totp:
-	- post the 2fa code, this finalizes the secret key in the session by storing it into the database
-	- generate and save 10 recovery codes, return in data
-- sms:
-	- post the sms code delivered to your phone, to finalize that sms phone number
-	- generate and save 10 recovery codes, return in data
+	user.PutRecoveryCodes(EncodeRecoveryCodes(hashedCodes))
+	if err = rc.Authboss.Config.Storage.Server.Save(r.Context(), user); err != nil {
+		return err
+	}
 
-GET /2fa/remove/{sms,totp}
-- totp:
-	- ask for a code
-- sms:
-	- send code to fone
-
-POST /2fa/remove/{sms,totp}
-- totp:
-	- if code matches, remove 2fa
-- sms:
-	- if code matches, remove 2fa
-
-GET /2fa/recovery DOES NOT EXIST LOL, WAT 2 SHO?
-	- show recovery codes
-POST /2fa/recovery/regenerate
-	- regenerate 10 recovery codes and display them
-*/
-
-/*
-
-// Authenticator is a type that implements the basic functionality
-// to be able to authenticate via a one time password as a second factor.
-type Authenticator interface {
-	// Setup a secret and generate a code from it so that the 2fa method can be attached
-	// to the user if they correctly pass back the code. The secret itself
-	// is stored in the session and will be passed back to be stored on the
-	// user object in the enable step.
-	Setup(User) (code string, secret string, err error)
-
-	// Enable 2fa on the user, requires the code produced
-	// by the secret and the secret itself that will have come
-	// from Setup.
-	Enable(user User, code string, secret string) error
-
-	// Teardown prepares to disable 2fa on the user.
-	Teardown(User) (code string, err error)
-
-	// Disable 2fa on the user, requires a code sent by teardown
-	// or in some cases that the user will already know.
-	Disable(user User, code string, secret string) error
-
-	// IsActive checks if this authenticator is active on the current user
-	// This is to ensure that only one authentication method is active at a time
-	IsActive(User) bool
+	data := authboss.HTMLData{DataRecoveryCodes: codes}
+	return rc.Authboss.Core.Responder.Respond(w, r, http.StatusOK, PageRecovery2FA, data)
 }
-
-// Authenticator is the basic functionality for a second factor authenticator
-type Authenticator interface {
-	Secret(User) (secret string, err error)
-	Code(user User, secret string) (code string, err error)
-	Verify(user User, code, secret string) error
-
-	Enabled(User) bool
-	Enable(User) error
-	Disable(User) error
-}
-
-// QRAuthenticator is able to provide a QR code to represent it's secrets
-type QRAuthenticator interface {
-	// Returns a file as []byte and a mime type
-	QRCode(User) ([]byte, string)
-}
-
-*/
-
-const alphabet = "abcdefghijklmnopqrstuvwxyz0123456789"
-const recoveryCodeLength = 10
 
 // GenerateRecoveryCodes creates 10 recovery codes of the form:
 // abd34-1b24do (using alphabet, of length recoveryCodeLength).

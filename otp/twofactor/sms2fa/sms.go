@@ -16,9 +16,6 @@ import (
 	"github.com/volatiletech/authboss/otp/twofactor"
 )
 
-// TODO: implement time protection on resend-sms
-// TODO: resend logic
-
 // Session keys
 const (
 	SessionSMSNumber     = "sms_number"
@@ -41,7 +38,6 @@ const (
 
 // Data constants
 const (
-	DataRecoveryCodes  = "recovery_codes"
 	DataValidateMode   = "validate_mode"
 	DataSMSSecret      = SessionSMSSecret
 	DataSMSPhoneNumber = "sms_phone_number"
@@ -332,8 +328,8 @@ func (s *SMSValidator) validateCode(w http.ResponseWriter, r *http.Request, user
 	if !verified {
 		logger.Infof("user %s sms failure (wrong code)", user.GetPID())
 		data := authboss.HTMLData{
-			authboss.DataErr: "sms 2fa code incorrect",
-			DataValidateMode: s.Action,
+			authboss.DataValidation: map[string][]string{FormValueCode: []string{"2fa code was invalid"}},
+			DataValidateMode:        s.Action,
 		}
 		return s.Authboss.Core.Responder.Respond(w, r, http.StatusOK, PageSMSValidate, data)
 	}
@@ -370,7 +366,7 @@ func (s *SMSValidator) validateCode(w http.ResponseWriter, r *http.Request, user
 		authboss.DelSession(w, SessionSMSNumber)
 
 		logger.Infof("user %s enabled sms 2fa", user.GetPID())
-		data[DataRecoveryCodes] = codes
+		data[twofactor.DataRecoveryCodes] = codes
 	case dataValidateRemove:
 		user.PutSMSPhoneNumber("")
 		if err := s.Authboss.Config.Storage.Server.Save(r.Context(), user); err != nil {

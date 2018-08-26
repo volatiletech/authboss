@@ -11,6 +11,7 @@ type TOTPCodeValuer interface {
 	authboss.Validator
 
 	GetCode() string
+	GetRecoveryCode() string
 }
 
 // MustHaveTOTPCodeValues upgrades a validatable set of values

@@ -353,6 +353,7 @@ func (t *TOTP) PostValidate(w http.ResponseWriter, r *http.Request) error {
 }
 
 func (t *TOTP) validate(r *http.Request) (User, bool, error) {
+	logger := t.RequestLogger(r)
 	var abUser authboss.User
 	var err error
 
@@ -378,6 +379,23 @@ func (t *TOTP) validate(r *http.Request) (User, bool, error) {
 	}
 
 	totpCodeValues := MustHaveTOTPCodeValues(validator)
+
+	if recoveryCode := totpCodeValues.GetRecoveryCode(); len(recoveryCode) != 0 {
+		var ok bool
+		recoveryCodes := twofactor.DecodeRecoveryCodes(user.GetRecoveryCodes())
+		recoveryCodes, ok = twofactor.UseRecoveryCode(recoveryCodes, recoveryCode)
+
+		if ok {
+			logger.Infof("user %s used recovery code instead of sms2fa", user.GetPID())
+			user.PutRecoveryCodes(twofactor.EncodeRecoveryCodes(recoveryCodes))
+			if err := t.Authboss.Config.Storage.Server.Save(r.Context(), user); err != nil {
+				return nil, false, err
+			}
+		}
+
+		return user, ok, nil
+	}
+
 	input := totpCodeValues.GetCode()
 
 	return user, totp.Validate(input, secret), nil

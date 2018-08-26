@@ -50,8 +50,9 @@ type Recovery struct {
 func (rc *Recovery) Setup() error {
 	rc.Authboss.Core.ViewRenderer.Load(PageRecovery2FA)
 
-	rc.Authboss.Core.Router.Get("/2fa/recovery/regen", rc.Authboss.Core.ErrorHandler.Wrap(rc.GetRegen))
-	rc.Authboss.Core.Router.Post("/2fa/recovery/regen", rc.Authboss.Core.ErrorHandler.Wrap(rc.PostRegen))
+	middleware := authboss.Middleware(rc.Authboss, true, false, false)
+	rc.Authboss.Core.Router.Get("/2fa/recovery/regen", middleware(rc.Authboss.Core.ErrorHandler.Wrap(rc.GetRegen)))
+	rc.Authboss.Core.Router.Post("/2fa/recovery/regen", middleware(rc.Authboss.Core.ErrorHandler.Wrap(rc.PostRegen)))
 
 	return nil
 }

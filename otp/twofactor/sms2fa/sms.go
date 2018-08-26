@@ -93,16 +93,17 @@ type SMSValidator struct {
 
 // Setup the module
 func (s *SMS) Setup() error {
-	s.Authboss.Core.Router.Get("/2fa/sms/setup", s.Core.ErrorHandler.Wrap(s.GetSetup))
-	s.Authboss.Core.Router.Post("/2fa/sms/setup", s.Core.ErrorHandler.Wrap(s.PostSetup))
+	middleware := authboss.Middleware(s.Authboss, true, false, false)
+	s.Authboss.Core.Router.Get("/2fa/sms/setup", middleware(s.Core.ErrorHandler.Wrap(s.GetSetup)))
+	s.Authboss.Core.Router.Post("/2fa/sms/setup", middleware(s.Core.ErrorHandler.Wrap(s.PostSetup)))
 
 	confirm := &SMSValidator{SMS: s, Action: dataValidateConfirm}
-	s.Authboss.Core.Router.Get("/2fa/sms/confirm", s.Core.ErrorHandler.Wrap(confirm.Get))
-	s.Authboss.Core.Router.Post("/2fa/sms/confirm", s.Core.ErrorHandler.Wrap(confirm.Post))
+	s.Authboss.Core.Router.Get("/2fa/sms/confirm", middleware(s.Core.ErrorHandler.Wrap(confirm.Get)))
+	s.Authboss.Core.Router.Post("/2fa/sms/confirm", middleware(s.Core.ErrorHandler.Wrap(confirm.Post)))
 
 	remove := &SMSValidator{SMS: s, Action: dataValidateRemove}
-	s.Authboss.Core.Router.Get("/2fa/sms/remove", s.Core.ErrorHandler.Wrap(remove.Get))
-	s.Authboss.Core.Router.Post("/2fa/sms/remove", s.Core.ErrorHandler.Wrap(remove.Post))
+	s.Authboss.Core.Router.Get("/2fa/sms/remove", middleware(s.Core.ErrorHandler.Wrap(remove.Get)))
+	s.Authboss.Core.Router.Post("/2fa/sms/remove", middleware(s.Core.ErrorHandler.Wrap(remove.Post)))
 
 	validate := &SMSValidator{SMS: s, Action: dataValidate}
 	s.Authboss.Core.Router.Get("/2fa/sms/validate", s.Core.ErrorHandler.Wrap(validate.Get))

@@ -75,7 +75,7 @@ func (o *OTP) Init(ab *authboss.Authboss) (err error) {
 	o.Authboss.Config.Core.Router.Get("/otp/login", o.Authboss.Core.ErrorHandler.Wrap(o.LoginGet))
 	o.Authboss.Config.Core.Router.Post("/otp/login", o.Authboss.Core.ErrorHandler.Wrap(o.LoginPost))
 
-	middleware := authboss.Middleware(ab, true, false)
+	middleware := authboss.Middleware(ab, true, false, false)
 	o.Authboss.Config.Core.Router.Get("/otp/add", middleware(o.Authboss.Core.ErrorHandler.Wrap(o.AddGet)))
 	o.Authboss.Config.Core.Router.Post("/otp/add", middleware(o.Authboss.Core.ErrorHandler.Wrap(o.AddPost)))
 

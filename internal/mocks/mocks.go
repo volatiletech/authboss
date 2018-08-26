@@ -34,7 +34,10 @@ type User struct {
 	OAuth2Refresh  string
 	OAuth2Expiry   time.Time
 
-	OTPs string
+	OTPs           string
+	TOTPSecretKey  string
+	SMSPhoneNumber string
+	RecoveryCodes  string
 
 	Arbitrary map[string]string
 }
@@ -102,6 +105,15 @@ func (u User) GetArbitrary() map[string]string { return u.Arbitrary }
 // GetOTPs from user
 func (u User) GetOTPs() string { return u.OTPs }
 
+// GetTOTPSecretKey from user
+func (u User) GetTOTPSecretKey() string { return u.TOTPSecretKey }
+
+// GetSMSPhoneNumber from user
+func (u User) GetSMSPhoneNumber() string { return u.SMSPhoneNumber }
+
+// GetRecoveryCodes from user
+func (u User) GetRecoveryCodes() string { return u.RecoveryCodes }
+
 // PutPID into user
 func (u *User) PutPID(email string) { u.Email = email }
 
@@ -163,6 +175,15 @@ func (u *User) PutArbitrary(arb map[string]string) { u.Arbitrary = arb }
 
 // PutOTPs into user
 func (u *User) PutOTPs(otps string) { u.OTPs = otps }
+
+// PutTOTPSecretKey into user
+func (u *User) PutTOTPSecretKey(key string) { u.TOTPSecretKey = key }
+
+// PutSMSPhoneNumber into user
+func (u *User) PutSMSPhoneNumber(number string) { u.SMSPhoneNumber = number }
+
+// PutRecoveryCodes into user
+func (u *User) PutRecoveryCodes(codes string) { u.RecoveryCodes = codes }
 
 // ServerStorer should be valid for any module storer defined in authboss.
 type ServerStorer struct {

@@ -68,16 +68,17 @@ type TOTP struct {
 
 // Setup the module
 func (t *TOTP) Setup() error {
-	t.Authboss.Core.Router.Get("/2fa/totp/setup", t.Core.ErrorHandler.Wrap(t.GetSetup))
-	t.Authboss.Core.Router.Post("/2fa/totp/setup", t.Core.ErrorHandler.Wrap(t.PostSetup))
+	middleware := authboss.Middleware(t.Authboss, true, false, false)
+	t.Authboss.Core.Router.Get("/2fa/totp/setup", middleware(t.Core.ErrorHandler.Wrap(t.GetSetup)))
+	t.Authboss.Core.Router.Post("/2fa/totp/setup", middleware(t.Core.ErrorHandler.Wrap(t.PostSetup)))
 
-	t.Authboss.Core.Router.Get("/2fa/totp/qr", t.Core.ErrorHandler.Wrap(t.GetQRCode))
+	t.Authboss.Core.Router.Get("/2fa/totp/qr", middleware(t.Core.ErrorHandler.Wrap(t.GetQRCode)))
 
-	t.Authboss.Core.Router.Get("/2fa/totp/confirm", t.Core.ErrorHandler.Wrap(t.GetConfirm))
-	t.Authboss.Core.Router.Post("/2fa/totp/confirm", t.Core.ErrorHandler.Wrap(t.PostConfirm))
+	t.Authboss.Core.Router.Get("/2fa/totp/confirm", middleware(t.Core.ErrorHandler.Wrap(t.GetConfirm)))
+	t.Authboss.Core.Router.Post("/2fa/totp/confirm", middleware(t.Core.ErrorHandler.Wrap(t.PostConfirm)))
 
-	t.Authboss.Core.Router.Get("/2fa/totp/remove", t.Core.ErrorHandler.Wrap(t.GetRemove))
-	t.Authboss.Core.Router.Post("/2fa/totp/remove", t.Core.ErrorHandler.Wrap(t.PostRemove))
+	t.Authboss.Core.Router.Get("/2fa/totp/remove", middleware(t.Core.ErrorHandler.Wrap(t.GetRemove)))
+	t.Authboss.Core.Router.Post("/2fa/totp/remove", middleware(t.Core.ErrorHandler.Wrap(t.PostRemove)))
 
 	t.Authboss.Core.Router.Get("/2fa/totp/validate", t.Core.ErrorHandler.Wrap(t.GetValidate))
 	t.Authboss.Core.Router.Post("/2fa/totp/validate", t.Core.ErrorHandler.Wrap(t.PostValidate))

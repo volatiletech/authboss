@@ -327,7 +327,7 @@ func (t *TOTP) PostValidate(w http.ResponseWriter, r *http.Request) error {
 	case err != nil:
 		return err
 	case !ok:
-		logger.Infof("user %s totp failure (wrong code)", user.GetPID())
+		logger.Infof("user %s totp 2fa failure (wrong code)", user.GetPID())
 		data := authboss.HTMLData{
 			authboss.DataErr: "totp 2fa code incorrect",
 			DataValidateMode: dataValidate,
@@ -341,7 +341,7 @@ func (t *TOTP) PostValidate(w http.ResponseWriter, r *http.Request) error {
 	authboss.DelSession(w, SessionTOTPPendingPID)
 	authboss.DelSession(w, SessionTOTPSecret)
 
-	logger.Infof("user %s totp success", user.GetPID())
+	logger.Infof("user %s totp 2fa success", user.GetPID())
 
 	ro := authboss.RedirectOptions{
 		Code:             http.StatusTemporaryRedirect,

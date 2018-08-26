@@ -272,15 +272,25 @@ func (s *SMSValidator) Post(w http.ResponseWriter, r *http.Request) error {
 	if err != nil {
 		return err
 	}
-
 	smsCodeValues := MustHaveSMSValues(validator)
-	inputCode := smsCodeValues.GetCode()
 
-	if len(inputCode) == 0 {
+	var inputCode, recoveryCode string
+	inputCode = smsCodeValues.GetCode()
+
+	// Only allow recovery codes on login/remove operations
+	if s.Action == dataValidate || s.Action == dataValidateRemove {
+		recoveryCode = smsCodeValues.GetRecoveryCode()
+	}
+
+	if len(recoveryCode) == 0 && len(inputCode) == 0 {
 		return s.sendCode(w, r, user)
 	}
 
-	return s.validateCode(w, r, user, inputCode)
+	if len(recoveryCode) != 0 {
+		return s.validateCode(w, r, user, "", recoveryCode)
+	}
+
+	return s.validateCode(w, r, user, inputCode, "")
 }
 
 func (s *SMSValidator) sendCode(w http.ResponseWriter, r *http.Request, user User) error {
@@ -316,17 +326,35 @@ func (s *SMSValidator) sendCode(w http.ResponseWriter, r *http.Request, user Use
 	return s.Core.Responder.Respond(w, r, http.StatusOK, PageSMSValidate, data)
 }
 
-func (s *SMSValidator) validateCode(w http.ResponseWriter, r *http.Request, user User, inputCode string) error {
-	code, ok := authboss.GetSession(r, SessionSMSSecret)
-	if !ok || len(code) == 0 {
-		return errors.Errorf("no code in session for user %s", user.GetPID())
+func (s *SMSValidator) validateCode(w http.ResponseWriter, r *http.Request, user User, inputCode, recoveryCode string) error {
+	logger := s.RequestLogger(r)
+
+	var verified bool
+	if len(recoveryCode) != 0 {
+		var ok bool
+		recoveryCodes := twofactor.DecodeRecoveryCodes(user.GetRecoveryCodes())
+		recoveryCodes, ok = twofactor.UseRecoveryCode(recoveryCodes, recoveryCode)
+
+		verified = ok
+
+		if verified {
+			logger.Infof("user %s used recovery code instead of sms2fa", user.GetPID())
+			user.PutRecoveryCodes(twofactor.EncodeRecoveryCodes(recoveryCodes))
+			if err := s.Authboss.Config.Storage.Server.Save(r.Context(), user); err != nil {
+				return err
+			}
+		}
+	} else {
+		code, ok := authboss.GetSession(r, SessionSMSSecret)
+		if !ok || len(code) == 0 {
+			return errors.Errorf("no code in session for user %s", user.GetPID())
+		}
+
+		verified = 1 == subtle.ConstantTimeCompare([]byte(inputCode), []byte(code))
 	}
 
-	verified := 1 == subtle.ConstantTimeCompare([]byte(inputCode), []byte(code))
-
-	logger := s.RequestLogger(r)
 	if !verified {
-		logger.Infof("user %s sms failure (wrong code)", user.GetPID())
+		logger.Infof("user %s sms 2fa failure (wrong code)", user.GetPID())
 		data := authboss.HTMLData{
 			authboss.DataValidation: map[string][]string{FormValueCode: []string{"2fa code was invalid"}},
 			DataValidateMode:        s.Action,
@@ -383,7 +411,7 @@ func (s *SMSValidator) validateCode(w http.ResponseWriter, r *http.Request, user
 		authboss.DelSession(w, SessionSMSPendingPID)
 		authboss.DelSession(w, SessionSMSSecret)
 
-		logger.Infof("user %s sms success", user.GetPID())
+		logger.Infof("user %s sms 2fa success", user.GetPID())
 
 		ro := authboss.RedirectOptions{
 			Code:             http.StatusTemporaryRedirect,

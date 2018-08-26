@@ -11,6 +11,7 @@ type SMSValuer interface {
 	authboss.Validator
 
 	GetCode() string
+	GetRecoveryCode() string
 }
 
 // SMSPhoneNumberValuer returns a phone number from the body

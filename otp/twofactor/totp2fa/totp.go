@@ -164,6 +164,10 @@ func (t *TOTP) GetQRCode(w http.ResponseWriter, r *http.Request) error {
 		totpSecret = user.GetTOTPSecretKey()
 	}
 
+	if len(totpSecret) == 0 {
+		return errors.New("no totp secret found")
+	}
+
 	key, err = otp.NewKeyFromURL(
 		fmt.Sprintf(otpKeyFormat,
 			url.PathEscape(t.Authboss.Config.Modules.TOTP2FAIssuer),
@@ -293,7 +297,7 @@ func (t *TOTP) PostRemove(w http.ResponseWriter, r *http.Request) error {
 		return t.Authboss.Core.Responder.Respond(w, r, http.StatusOK, PageTOTPValidate, data)
 	}
 
-	authboss.PutSession(w, authboss.Session2FA, "")
+	authboss.DelSession(w, authboss.Session2FA)
 	user.PutTOTPSecretKey("")
 	if err = t.Authboss.Config.Storage.Server.Save(r.Context(), user); err != nil {
 		return err
@@ -330,14 +334,15 @@ func (t *TOTP) PostValidate(w http.ResponseWriter, r *http.Request) error {
 	case !ok:
 		logger.Infof("user %s totp 2fa failure (wrong code)", user.GetPID())
 		data := authboss.HTMLData{
-			authboss.DataErr: "totp 2fa code incorrect",
-			DataValidateMode: dataValidate,
+			authboss.DataValidation: map[string][]string{FormValueCode: []string{"2fa code was invalid"}},
+			DataValidateMode:        dataValidate,
 		}
 		return t.Authboss.Core.Responder.Respond(w, r, http.StatusOK, PageTOTPValidate, data)
 	}
 
 	authboss.PutSession(w, authboss.SessionKey, user.GetPID())
 	authboss.PutSession(w, authboss.Session2FA, "totp")
+
 	authboss.DelSession(w, authboss.SessionHalfAuthKey)
 	authboss.DelSession(w, SessionTOTPPendingPID)
 	authboss.DelSession(w, SessionTOTPSecret)
@@ -371,7 +376,7 @@ func (t *TOTP) validate(r *http.Request) (User, bool, error) {
 
 	secret := user.GetTOTPSecretKey()
 	if len(secret) == 0 {
-		return nil, false, errNoTOTPEnabled
+		return user, false, errNoTOTPEnabled
 	}
 
 	validator, err := t.Authboss.Config.Core.BodyReader.Read(PageTOTPValidate, r)

@@ -581,6 +581,8 @@ type Values struct {
 	PID      string
 	Password string
 	Token    string
+	Code     string
+	Recovery string
 	Remember bool
 
 	Errors []error
@@ -599,6 +601,16 @@ func (v Values) GetPassword() string {
 // GetToken from values
 func (v Values) GetToken() string {
 	return v.Token
+}
+
+// GetCode from values
+func (v Values) GetCode() string {
+	return v.Code
+}
+
+// GetRecoveryCode from values
+func (v Values) GetRecoveryCode() string {
+	return v.Recovery
 }
 
 // GetShouldRemember gets the value that tells

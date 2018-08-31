@@ -62,7 +62,10 @@ func TestLoginGet(t *testing.T) {
 	ab.Config.Core.Responder = responder
 
 	a := &OTP{ab}
-	a.LoginGet(nil, nil)
+
+	r := mocks.Request("POST")
+	r.URL.RawQuery = "redir=/redirectpage"
+	a.LoginGet(nil, r)
 
 	if responder.Page != PageLogin {
 		t.Error("wanted login page, got:", responder.Page)
@@ -70,6 +73,10 @@ func TestLoginGet(t *testing.T) {
 
 	if responder.Status != http.StatusOK {
 		t.Error("wanted ok status, got:", responder.Status)
+	}
+
+	if got := responder.Data[authboss.FormValueRedirect]; got != "/redirectpage" {
+		t.Error("redirect page was wrong:", got)
 	}
 }
 

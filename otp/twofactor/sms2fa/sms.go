@@ -97,7 +97,7 @@ func (s *SMS) Setup() error {
 		return errors.New("must have SMS.Sender set")
 	}
 
-	middleware := authboss.Middleware(s.Authboss, true, false, false)
+	middleware := authboss.MountedMiddleware(s.Authboss, true, s.Authboss.Config.Modules.TwoFactorRedirectOnUnauthed, false, false)
 	s.Authboss.Core.Router.Get("/2fa/sms/setup", middleware(s.Core.ErrorHandler.Wrap(s.GetSetup)))
 	s.Authboss.Core.Router.Post("/2fa/sms/setup", middleware(s.Core.ErrorHandler.Wrap(s.PostSetup)))
 

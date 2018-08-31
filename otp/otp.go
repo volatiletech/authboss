@@ -87,7 +87,11 @@ func (o *OTP) Init(ab *authboss.Authboss) (err error) {
 
 // LoginGet simply displays the login form
 func (o *OTP) LoginGet(w http.ResponseWriter, r *http.Request) error {
-	return o.Core.Responder.Respond(w, r, http.StatusOK, PageLogin, nil)
+	var data authboss.HTMLData
+	if redir := r.URL.Query().Get(authboss.FormValueRedirect); len(redir) != 0 {
+		data = authboss.HTMLData{authboss.FormValueRedirect: redir}
+	}
+	return o.Core.Responder.Respond(w, r, http.StatusOK, PageLogin, data)
 }
 
 // LoginPost attempts to validate the credentials passed in

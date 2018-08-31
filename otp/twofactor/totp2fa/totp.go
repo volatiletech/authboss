@@ -68,7 +68,7 @@ type TOTP struct {
 
 // Setup the module
 func (t *TOTP) Setup() error {
-	middleware := authboss.Middleware(t.Authboss, true, false, false)
+	middleware := authboss.MountedMiddleware(t.Authboss, true, t.Authboss.Config.Modules.TwoFactorRedirectOnUnauthed, true, false)
 	t.Authboss.Core.Router.Get("/2fa/totp/setup", middleware(t.Core.ErrorHandler.Wrap(t.GetSetup)))
 	t.Authboss.Core.Router.Post("/2fa/totp/setup", middleware(t.Core.ErrorHandler.Wrap(t.PostSetup)))
 

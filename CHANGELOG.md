@@ -16,10 +16,11 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 ### Changed
 
-- authboss.Middleware now has two boolean flags to provide more control over
+- authboss.Middleware now has boolean flags to provide more control over
   how unathenticated users are dealt with. It can now redirect users to
   the login screen with a redirect to the page they were attempting to reach
-  and it can also protect against half-authed users.
+  and it can also protect against half-authed users and users who have
+  not authenticated with two factor auth.
 
 ### Fixed
 

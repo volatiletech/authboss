@@ -89,6 +89,12 @@ type Config struct {
 		// TOTP2FAIssuer is the issuer that appears in the url when scanning a qr code
 		// for google authenticator.
 		TOTP2FAIssuer string
+
+		// TwoFactorRedirectOnUnauthed controls whether or not a user is redirected or given
+		// a 404 when they are unauthenticated. The two factor modules all use authboss.Middleware
+		// to protect their routes and this is the redirectToLogin parameter in that middleware
+		// that they pass through.
+		TwoFactorRedirectOnUnauthed bool
 	}
 
 	Mail struct {

@@ -39,6 +39,8 @@ type User struct {
 	SMSPhoneNumber string
 	RecoveryCodes  string
 
+	SMSPhoneNumberSeed string
+
 	Arbitrary map[string]string
 }
 
@@ -110,6 +112,9 @@ func (u User) GetTOTPSecretKey() string { return u.TOTPSecretKey }
 
 // GetSMSPhoneNumber from user
 func (u User) GetSMSPhoneNumber() string { return u.SMSPhoneNumber }
+
+// GetSMSPhoneNumber from user
+func (u User) GetSMSPhoneNumberSeed() string { return u.SMSPhoneNumberSeed }
 
 // GetRecoveryCodes from user
 func (u User) GetRecoveryCodes() string { return u.RecoveryCodes }
@@ -578,12 +583,13 @@ func (b BodyReader) Read(page string, r *http.Request) (authboss.Validator, erro
 
 // Values is returned from the BodyReader
 type Values struct {
-	PID      string
-	Password string
-	Token    string
-	Code     string
-	Recovery string
-	Remember bool
+	PID         string
+	Password    string
+	Token       string
+	Code        string
+	Recovery    string
+	PhoneNumber string
+	Remember    bool
 
 	Errors []error
 }
@@ -606,6 +612,11 @@ func (v Values) GetToken() string {
 // GetCode from values
 func (v Values) GetCode() string {
 	return v.Code
+}
+
+// GetPhoneNumber from values
+func (v Values) GetPhoneNumber() string {
+	return v.PhoneNumber
 }
 
 // GetRecoveryCode from values

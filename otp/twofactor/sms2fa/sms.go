@@ -93,6 +93,10 @@ type SMSValidator struct {
 
 // Setup the module
 func (s *SMS) Setup() error {
+	if s.Sender == nil {
+		return errors.New("must have SMS.Sender set")
+	}
+
 	middleware := authboss.Middleware(s.Authboss, true, false, false)
 	s.Authboss.Core.Router.Get("/2fa/sms/setup", middleware(s.Core.ErrorHandler.Wrap(s.GetSetup)))
 	s.Authboss.Core.Router.Post("/2fa/sms/setup", middleware(s.Core.ErrorHandler.Wrap(s.PostSetup)))
@@ -145,7 +149,7 @@ func (s *SMS) BeforeAuth(w http.ResponseWriter, r *http.Request, handled bool) (
 	return true, s.Authboss.Config.Core.Redirector.Redirect(w, r, ro)
 }
 
-// SendCodeToUser ensures that
+// SendCodeToUser ensures that a code is sent to the user
 func (s *SMS) SendCodeToUser(w http.ResponseWriter, r *http.Request, pid, number string) error {
 	code, err := generateRandomCode()
 	if err != nil {
@@ -402,12 +406,13 @@ func (s *SMSValidator) validateCode(w http.ResponseWriter, r *http.Request, user
 			return err
 		}
 
-		authboss.PutSession(w, authboss.Session2FA, "")
+		authboss.DelSession(w, authboss.Session2FA)
 
 		logger.Infof("user %s disabled sms 2fa", user.GetPID())
 	case dataValidate:
 		authboss.PutSession(w, authboss.SessionKey, user.GetPID())
 		authboss.PutSession(w, authboss.Session2FA, "sms")
+
 		authboss.DelSession(w, authboss.SessionHalfAuthKey)
 		authboss.DelSession(w, SessionSMSPendingPID)
 		authboss.DelSession(w, SessionSMSSecret)

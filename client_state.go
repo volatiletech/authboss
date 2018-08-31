@@ -15,6 +15,8 @@ const (
 	SessionHalfAuthKey = "halfauth"
 	// SessionLastAction is the session key to retrieve the last action of a user.
 	SessionLastAction = "last_action"
+	// Session2FA is set when a user has been authenticated with a second factor
+	Session2FA = "twofactor"
 	// SessionOAuth2State is the xsrf protection key for oauth.
 	SessionOAuth2State = "oauth2_state"
 	// SessionOAuth2Params is the additional settings for oauth like redirection/remember.
@@ -219,6 +221,20 @@ func (c *ClientStateResponseWriter) putClientState() error {
 	}
 
 	return nil
+}
+
+// IsFullyAuthed returns false if the user has a SessionHalfAuth
+// in his session.
+func IsFullyAuthed(r *http.Request) bool {
+	_, hasHalfAuth := GetSession(r, SessionHalfAuthKey)
+	return !hasHalfAuth
+}
+
+// IsTwoFactored returns false if the user doesn't have a Session2FA
+// in his session.
+func IsTwoFactored(r *http.Request) bool {
+	_, has2fa := GetSession(r, Session2FA)
+	return has2fa
 }
 
 // DelKnownSession deletes all known session variables, effectively

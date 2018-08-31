@@ -108,8 +108,9 @@ func (a *Auth) LoginPost(w http.ResponseWriter, r *http.Request) error {
 	}
 
 	ro := authboss.RedirectOptions{
-		Code:         http.StatusTemporaryRedirect,
-		RedirectPath: a.Authboss.Paths.AuthLoginOK,
+		Code:             http.StatusTemporaryRedirect,
+		RedirectPath:     a.Authboss.Paths.AuthLoginOK,
+		FollowRedirParam: true,
 	}
 	return a.Authboss.Core.Redirector.Redirect(w, r, ro)
 }

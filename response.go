@@ -7,6 +7,13 @@ import (
 	"github.com/pkg/errors"
 )
 
+const (
+	// FormValueRedirect should be honored by HTTPRedirector implementations
+	// as the value from the URL that overrides the typical redirect when
+	// FollowRedirParam is set to true.
+	FormValueRedirect = "redir"
+)
+
 // HTTPResponder knows how to respond to an HTTP request
 // Must consider:
 // - Flash messages

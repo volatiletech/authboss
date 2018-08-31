@@ -3,14 +3,31 @@
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
-## [2.0.0-rc6] - 2018-08-16
+## [2.0.0-rc7] - 2018-08-31
 
 ### Added
 
+- Add sms2fa and totp2fa packages so users can use two factor authentication
+- Add twofactor package to enable 2fa recovery codes for sms2fa and totp2fa
+- Add OTP module so users can create one time passwords and use them to
+  log in.
 - Add more documentation about how RegisterPreserveFields works so people
   don't have to chase the godocs to figure out how to implement it.
 
 ### Changed
+
+- authboss.Middleware now has two boolean flags to provide more control over
+  how unathenticated users are dealt with. It can now redirect users to
+  the login screen with a redirect to the page they were attempting to reach
+  and it can also protect against half-authed users.
+
+### Fixed
+
+- Ensure all uses of crypto/rand.Read are replaced by io.ReadFull(rand.Reader)
+  to ensure that we never get a read that's full of zeroes. This was a bug
+  present in a uuid library, we don't want to make the same mistake.
+
+## [2.0.0-rc6] - 2018-08-16
 
 - LoadClientStateMiddleware no longer panics when LoadClientState fails.
   Instead it logs error messages and gives a 500 server error to users instead

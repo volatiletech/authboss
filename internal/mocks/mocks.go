@@ -34,6 +34,13 @@ type User struct {
 	OAuth2Refresh  string
 	OAuth2Expiry   time.Time
 
+	OTPs           string
+	TOTPSecretKey  string
+	SMSPhoneNumber string
+	RecoveryCodes  string
+
+	SMSPhoneNumberSeed string
+
 	Arbitrary map[string]string
 }
 
@@ -97,6 +104,21 @@ func (u User) GetOAuth2Expiry() time.Time { return u.OAuth2Expiry }
 // GetArbitrary from user
 func (u User) GetArbitrary() map[string]string { return u.Arbitrary }
 
+// GetOTPs from user
+func (u User) GetOTPs() string { return u.OTPs }
+
+// GetTOTPSecretKey from user
+func (u User) GetTOTPSecretKey() string { return u.TOTPSecretKey }
+
+// GetSMSPhoneNumber from user
+func (u User) GetSMSPhoneNumber() string { return u.SMSPhoneNumber }
+
+// GetSMSPhoneNumber from user
+func (u User) GetSMSPhoneNumberSeed() string { return u.SMSPhoneNumberSeed }
+
+// GetRecoveryCodes from user
+func (u User) GetRecoveryCodes() string { return u.RecoveryCodes }
+
 // PutPID into user
 func (u *User) PutPID(email string) { u.Email = email }
 
@@ -155,6 +177,18 @@ func (u *User) PutOAuth2Expiry(expiry time.Time) { u.OAuth2Expiry = expiry }
 
 // PutArbitrary into user
 func (u *User) PutArbitrary(arb map[string]string) { u.Arbitrary = arb }
+
+// PutOTPs into user
+func (u *User) PutOTPs(otps string) { u.OTPs = otps }
+
+// PutTOTPSecretKey into user
+func (u *User) PutTOTPSecretKey(key string) { u.TOTPSecretKey = key }
+
+// PutSMSPhoneNumber into user
+func (u *User) PutSMSPhoneNumber(number string) { u.SMSPhoneNumber = number }
+
+// PutRecoveryCodes into user
+func (u *User) PutRecoveryCodes(codes string) { u.RecoveryCodes = codes }
 
 // ServerStorer should be valid for any module storer defined in authboss.
 type ServerStorer struct {
@@ -549,10 +583,13 @@ func (b BodyReader) Read(page string, r *http.Request) (authboss.Validator, erro
 
 // Values is returned from the BodyReader
 type Values struct {
-	PID      string
-	Password string
-	Token    string
-	Remember bool
+	PID         string
+	Password    string
+	Token       string
+	Code        string
+	Recovery    string
+	PhoneNumber string
+	Remember    bool
 
 	Errors []error
 }
@@ -570,6 +607,21 @@ func (v Values) GetPassword() string {
 // GetToken from values
 func (v Values) GetToken() string {
 	return v.Token
+}
+
+// GetCode from values
+func (v Values) GetCode() string {
+	return v.Code
+}
+
+// GetPhoneNumber from values
+func (v Values) GetPhoneNumber() string {
+	return v.PhoneNumber
+}
+
+// GetRecoveryCode from values
+func (v Values) GetRecoveryCode() string {
+	return v.Recovery
 }
 
 // GetShouldRemember gets the value that tells

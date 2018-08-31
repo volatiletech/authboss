@@ -9,6 +9,7 @@ import (
 	"encoding/base64"
 	"errors"
 	"fmt"
+	"io"
 	"net/http"
 	"net/url"
 	"path"
@@ -279,7 +280,7 @@ func (r *Recover) invalidToken(page string, w http.ResponseWriter, req *http.Req
 // token: the user-facing base64 encoded selector+verifier
 func GenerateRecoverCreds() (selector, verifier, token string, err error) {
 	rawToken := make([]byte, recoverTokenSize)
-	if _, err = rand.Read(rawToken); err != nil {
+	if _, err = io.ReadFull(rand.Reader, rawToken); err != nil {
 		return "", "", "", err
 	}
 	selectorBytes := sha512.Sum512(rawToken[:recoverTokenSplit])

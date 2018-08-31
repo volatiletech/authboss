@@ -79,70 +79,113 @@ func testSetup() *testHarness {
 	return harness
 }
 
+func (h *testHarness) loadClientState(w http.ResponseWriter, r **http.Request) {
+	req, err := h.ab.LoadClientState(w, *r)
+	if err != nil {
+		panic(err)
+	}
+
+	*r = req
+}
+
+func (h *testHarness) putUserInCtx(u *mocks.User, r **http.Request) {
+	req := (*r).WithContext(context.WithValue((*r).Context(), authboss.CTXKeyUser, u))
+	*r = req
+}
+
+func (h *testHarness) newHTTP(method string, bodyArgs ...string) (*http.Request, *authboss.ClientStateResponseWriter, *httptest.ResponseRecorder) {
+	r := mocks.Request(method, bodyArgs...)
+	wr := httptest.NewRecorder()
+	w := h.ab.NewResponse(wr)
+
+	return r, w, wr
+}
+
+func (h *testHarness) setSession(key, value string) {
+	h.session.ClientValues[key] = value
+}
+
 func TestBeforeAuth(t *testing.T) {
 	t.Parallel()
 
-	harness := testSetup()
+	t.Run("Handled", func(t *testing.T) {
+		harness := testSetup()
 
-	handled, err := harness.totp.BeforeAuth(nil, nil, true)
-	if handled {
-		t.Error("should not be handled")
-	}
-	if err != nil {
-		t.Error(err)
-	}
+		handled, err := harness.totp.BeforeAuth(nil, nil, true)
+		if handled {
+			t.Error("should not be handled")
+		}
+		if err != nil {
+			t.Error(err)
+		}
+	})
 
-	r := mocks.Request("POST")
-	r.URL.RawQuery = "test=query"
-	wr := httptest.NewRecorder()
-	w := harness.ab.NewResponse(wr)
+	t.Run("UserNoTOTP", func(t *testing.T) {
+		harness := testSetup()
 
-	user := &mocks.User{Email: "test@test.com"}
-	r = r.WithContext(context.WithValue(r.Context(), authboss.CTXKeyUser, user))
+		r, w, _ := harness.newHTTP("POST")
+		r.URL.RawQuery = "test=query"
 
-	r, err = harness.ab.LoadClientState(w, r)
-	handled, err = harness.totp.BeforeAuth(w, r, false)
-	if handled {
-		t.Error("should not be handled")
-	}
-	if err != nil {
-		t.Error(err)
-	}
+		user := &mocks.User{Email: "test@test.com"}
+		harness.putUserInCtx(user, &r)
 
-	user.TOTPSecretKey = "a"
-	r = r.WithContext(context.WithValue(r.Context(), authboss.CTXKeyUser, user))
+		harness.loadClientState(w, &r)
+		handled, err := harness.totp.BeforeAuth(w, r, false)
+		if handled {
+			t.Error("should not be handled")
+		}
+		if err != nil {
+			t.Error(err)
+		}
+	})
 
-	r, err = harness.ab.LoadClientState(w, r)
-	handled, err = harness.totp.BeforeAuth(w, r, false)
-	if !handled {
-		t.Error("should be handled")
-	}
-	if err != nil {
-		t.Error(err)
-	}
+	t.Run("Ok", func(t *testing.T) {
+		harness := testSetup()
 
-	opts := harness.redirector.Options
-	if opts.Code != http.StatusTemporaryRedirect {
-		t.Error("status wrong:", opts.Code)
-	}
+		handled, err := harness.totp.BeforeAuth(nil, nil, true)
+		if handled {
+			t.Error("should not be handled")
+		}
+		if err != nil {
+			t.Error(err)
+		}
 
-	if opts.RedirectPath != "/auth/2fa/totp/validate?test=query" {
-		t.Error("redir path wrong:", opts.RedirectPath)
-	}
+		r, w, _ := harness.newHTTP("POST")
+		r.URL.RawQuery = "test=query"
+
+		user := &mocks.User{Email: "test@test.com", TOTPSecretKey: "secret"}
+		harness.putUserInCtx(user, &r)
+		harness.loadClientState(w, &r)
+
+		handled, err = harness.totp.BeforeAuth(w, r, false)
+		if !handled {
+			t.Error("should be handled")
+		}
+		if err != nil {
+			t.Error(err)
+		}
+
+		opts := harness.redirector.Options
+		if opts.Code != http.StatusTemporaryRedirect {
+			t.Error("status wrong:", opts.Code)
+		}
+
+		if opts.RedirectPath != "/auth/2fa/totp/validate?test=query" {
+			t.Error("redir path wrong:", opts.RedirectPath)
+		}
+	})
 }
 
 func TestGetSetup(t *testing.T) {
 	t.Parallel()
 	h := testSetup()
 
-	h.session.ClientValues[SessionTOTPSecret] = "a"
+	r, w, _ := h.newHTTP("GET")
 
-	r := mocks.Request("GET")
-	wr := httptest.NewRecorder()
-	w := h.ab.NewResponse(wr)
+	h.setSession(SessionTOTPSecret, "secret")
+	h.loadClientState(w, &r)
 
 	var err error
-	r, err = h.ab.LoadClientState(w, r)
 	if err = h.totp.GetSetup(w, r); err != nil {
 		t.Error(err)
 	}
@@ -166,15 +209,11 @@ func TestPostSetup(t *testing.T) {
 	t.Parallel()
 	h := testSetup()
 
-	r := mocks.Request("GET")
-	wr := httptest.NewRecorder()
-	w := h.ab.NewResponse(wr)
-
+	r, w, _ := h.newHTTP("GET")
 	user := &mocks.User{Email: "test@test.com"}
-	r = r.WithContext(context.WithValue(r.Context(), authboss.CTXKeyUser, user))
+	h.putUserInCtx(user, &r)
 
 	var err error
-	r, err = h.ab.LoadClientState(w, r)
 	if err = h.totp.PostSetup(w, r); err != nil {
 		t.Error(err)
 	}
@@ -200,24 +239,20 @@ func TestGetQRCode(t *testing.T) {
 	t.Parallel()
 	h := testSetup()
 
-	r := mocks.Request("GET")
-	wr := httptest.NewRecorder()
-	w := h.ab.NewResponse(wr)
+	r, w, wr := h.newHTTP("GET")
 
 	user := &mocks.User{Email: "test@test.com"}
-	r = r.WithContext(context.WithValue(r.Context(), authboss.CTXKeyUser, user))
+	h.putUserInCtx(user, &r)
 
-	// No session
 	if err := h.totp.GetQRCode(w, r); err == nil {
 		t.Error("should fail because there is no totp secret")
 	}
 
-	key := makeSecretKey(h, user.Email)
-	h.session.ClientValues[SessionTOTPSecret] = key
+	secret := makeSecretKey(h, user.Email)
+	h.setSession(SessionTOTPSecret, secret)
+	h.loadClientState(w, &r)
 
-	var err error
-	r, err = h.ab.LoadClientState(w, r)
-	if err = h.totp.GetQRCode(w, r); err != nil {
+	if err := h.totp.GetQRCode(w, r); err != nil {
 		t.Error(err)
 	}
 
@@ -233,21 +268,17 @@ func TestGetConfirm(t *testing.T) {
 	t.Parallel()
 	h := testSetup()
 
-	r := mocks.Request("GET")
-	wr := httptest.NewRecorder()
-	w := h.ab.NewResponse(wr)
+	r, w, _ := h.newHTTP("GET")
 
-	// No session
 	if err := h.totp.GetConfirm(w, r); err == nil {
 		t.Error("should fail because there is no totp secret")
 	}
 
 	secret := "secret"
-	h.session.ClientValues[SessionTOTPSecret] = secret
+	h.setSession(SessionTOTPSecret, secret)
+	h.loadClientState(w, &r)
 
-	var err error
-	r, err = h.ab.LoadClientState(w, r)
-	if err = h.totp.GetConfirm(w, r); err != nil {
+	if err := h.totp.GetConfirm(w, r); err != nil {
 		t.Error(err)
 	}
 
@@ -266,11 +297,8 @@ func TestPostConfirm(t *testing.T) {
 	t.Parallel()
 	h := testSetup()
 
-	r := mocks.Request("GET")
-	wr := httptest.NewRecorder()
-	w := h.ab.NewResponse(wr)
+	r, w, _ := h.newHTTP("POST")
 
-	// No session
 	if err := h.totp.PostConfirm(w, r); err == nil {
 		t.Error("should fail because there is no totp secret")
 	}
@@ -278,18 +306,17 @@ func TestPostConfirm(t *testing.T) {
 	user := &mocks.User{Email: "test@test.com"}
 	h.storer.Users[user.Email] = user
 
-	key := makeSecretKey(h, user.Email)
-	h.session.ClientValues[SessionTOTPSecret] = key
-	h.session.ClientValues[authboss.SessionKey] = user.Email
+	secret := makeSecretKey(h, user.Email)
+	h.setSession(SessionTOTPSecret, secret)
+	h.setSession(authboss.SessionKey, user.Email)
+	h.loadClientState(w, &r)
 
-	code, err := totp.GenerateCode(key, time.Now())
+	code, err := totp.GenerateCode(secret, time.Now())
 	if err != nil {
 		t.Fatal(err)
 	}
-
 	h.bodyReader.Return = &mocks.Values{Code: code}
 
-	r, err = h.ab.LoadClientState(w, r)
 	if err = h.totp.PostConfirm(w, r); err != nil {
 		t.Error(err)
 	}
@@ -322,9 +349,7 @@ func TestGetRemove(t *testing.T) {
 	t.Parallel()
 	h := testSetup()
 
-	r := mocks.Request("GET")
-	wr := httptest.NewRecorder()
-	w := h.ab.NewResponse(wr)
+	r, w, _ := h.newHTTP("GET")
 
 	if err := h.totp.GetRemove(w, r); err != nil {
 		t.Error(err)
@@ -344,24 +369,17 @@ func TestPostRemove(t *testing.T) {
 	setupMore := func(h *testHarness) *mocks.User {
 		user := &mocks.User{Email: "test@test.com"}
 		h.storer.Users[user.Email] = user
-		h.session.ClientValues[authboss.SessionKey] = user.Email
+		h.setSession(authboss.SessionKey, user.Email)
 
 		return user
 	}
 
-	t.Run("no totp activated", func(t *testing.T) {
+	t.Run("NoTOTPActivated", func(t *testing.T) {
 		h := testSetup()
-		r := mocks.Request("GET")
-		wr := httptest.NewRecorder()
-		w := h.ab.NewResponse(wr)
 
+		r, w, _ := h.newHTTP("POST")
 		setupMore(h)
-
-		var err error
-		r, err = h.ab.LoadClientState(w, r)
-		if err != nil {
-			t.Fatal(err)
-		}
+		h.loadClientState(w, &r)
 
 		// No session
 		if err := h.totp.PostRemove(w, r); err != nil {
@@ -379,23 +397,17 @@ func TestPostRemove(t *testing.T) {
 		}
 	})
 
-	t.Run("wrong code", func(t *testing.T) {
+	t.Run("WrongCode", func(t *testing.T) {
 		h := testSetup()
-		r := mocks.Request("GET")
-		wr := httptest.NewRecorder()
-		w := h.ab.NewResponse(wr)
+
+		r, w, _ := h.newHTTP("POST")
 
 		user := setupMore(h)
 		secret := makeSecretKey(h, user.Email)
 		user.TOTPSecretKey = secret
-
 		h.bodyReader.Return = mocks.Values{Code: "wrong"}
 
-		var err error
-		r, err = h.ab.LoadClientState(w, r)
-		if err != nil {
-			t.Fatal(err)
-		}
+		h.loadClientState(w, &r)
 
 		if err := h.totp.PostRemove(w, r); err != nil {
 			t.Error(err)
@@ -412,28 +424,22 @@ func TestPostRemove(t *testing.T) {
 		}
 	})
 
-	t.Run("ok-code", func(t *testing.T) {
+	t.Run("OkCode", func(t *testing.T) {
 		h := testSetup()
-		r := mocks.Request("GET")
-		wr := httptest.NewRecorder()
-		w := h.ab.NewResponse(wr)
+
+		r, w, _ := h.newHTTP("POST")
 
 		user := setupMore(h)
 		secret := makeSecretKey(h, user.Email)
 		user.TOTPSecretKey = secret
+		h.setSession(authboss.Session2FA, "totp")
+		h.loadClientState(w, &r)
 
 		code, err := totp.GenerateCode(secret, time.Now())
 		if err != nil {
 			t.Fatal(err)
 		}
 		h.bodyReader.Return = mocks.Values{Code: code}
-
-		h.session.ClientValues[authboss.Session2FA] = "totp"
-
-		r, err = h.ab.LoadClientState(w, r)
-		if err != nil {
-			t.Fatal(err)
-		}
 
 		if err := h.totp.PostRemove(w, r); err != nil {
 			t.Error(err)
@@ -459,9 +465,7 @@ func TestGetValidate(t *testing.T) {
 	t.Parallel()
 	h := testSetup()
 
-	r := mocks.Request("GET")
-	wr := httptest.NewRecorder()
-	w := h.ab.NewResponse(wr)
+	r, w, _ := h.newHTTP("GET")
 
 	if err := h.totp.GetValidate(w, r); err != nil {
 		t.Error(err)
@@ -481,24 +485,19 @@ func TestPostValidate(t *testing.T) {
 	setupMore := func(h *testHarness) *mocks.User {
 		user := &mocks.User{Email: "test@test.com"}
 		h.storer.Users[user.Email] = user
+		h.setSession(authboss.SessionKey, user.Email)
 		h.session.ClientValues[authboss.SessionKey] = user.Email
 
 		return user
 	}
 
-	t.Run("no totp activated", func(t *testing.T) {
+	t.Run("NoTOTPActivated", func(t *testing.T) {
 		h := testSetup()
-		r := mocks.Request("GET")
-		wr := httptest.NewRecorder()
-		w := h.ab.NewResponse(wr)
+
+		r, w, _ := h.newHTTP("POST")
 
 		setupMore(h)
-
-		var err error
-		r, err = h.ab.LoadClientState(w, r)
-		if err != nil {
-			t.Fatal(err)
-		}
+		h.loadClientState(w, &r)
 
 		// No session
 		if err := h.totp.PostValidate(w, r); err != nil {
@@ -516,23 +515,16 @@ func TestPostValidate(t *testing.T) {
 		}
 	})
 
-	t.Run("wrong code", func(t *testing.T) {
+	t.Run("WrongCode", func(t *testing.T) {
 		h := testSetup()
-		r := mocks.Request("GET")
-		wr := httptest.NewRecorder()
-		w := h.ab.NewResponse(wr)
+
+		r, w, _ := h.newHTTP("POST")
+		h.loadClientState(w, &r)
 
 		user := setupMore(h)
 		secret := makeSecretKey(h, user.Email)
 		user.TOTPSecretKey = secret
-
 		h.bodyReader.Return = mocks.Values{Code: "wrong"}
-
-		var err error
-		r, err = h.ab.LoadClientState(w, r)
-		if err != nil {
-			t.Fatal(err)
-		}
 
 		if err := h.totp.PostValidate(w, r); err != nil {
 			t.Error(err)
@@ -549,16 +541,15 @@ func TestPostValidate(t *testing.T) {
 		}
 	})
 
-	t.Run("ok-recovery", func(t *testing.T) {
+	t.Run("OkRecovery", func(t *testing.T) {
 		h := testSetup()
-		r := mocks.Request("GET")
-		wr := httptest.NewRecorder()
-		w := h.ab.NewResponse(wr)
 
+		r, w, _ := h.newHTTP("POST")
 		user := setupMore(h)
 		secret := makeSecretKey(h, user.Email)
 		user.TOTPSecretKey = secret
 
+		// Create a single recovery code
 		codes, err := twofactor.GenerateRecoveryCodes()
 		if err != nil {
 			t.Fatal(err)
@@ -569,16 +560,13 @@ func TestPostValidate(t *testing.T) {
 		}
 		user.RecoveryCodes = string(b)
 
+		// User inputs the only code he has
 		h.bodyReader.Return = mocks.Values{Recovery: codes[0]}
 
-		h.session.ClientValues[SessionTOTPPendingPID] = user.Email
-		h.session.ClientValues[SessionTOTPSecret] = "a"
-		h.session.ClientValues[authboss.SessionHalfAuthKey] = "a"
-
-		r, err = h.ab.LoadClientState(w, r)
-		if err != nil {
-			t.Fatal(err)
-		}
+		h.setSession(SessionTOTPPendingPID, user.Email)
+		h.setSession(SessionTOTPSecret, "secret")
+		h.setSession(authboss.SessionHalfAuthKey, "true")
+		h.loadClientState(w, &r)
 
 		if err := h.totp.PostValidate(w, r); err != nil {
 			t.Error(err)

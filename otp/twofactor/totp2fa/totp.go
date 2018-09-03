@@ -29,8 +29,12 @@ const (
 
 // Pages
 const (
-	PageTOTPValidate        = "totp2fa_validate"
-	PageTOTPValidateSuccess = "totp2fa_validate_success"
+	PageTOTPConfirm        = "totp2fa_confirm"
+	PageTOTPConfirmSuccess = "totp2fa_confirm_success"
+	PageTOTPRemove         = "totp2fa_remove"
+	PageTOTPRemoveSuccess  = "totp2fa_remove_success"
+	PageTOTPSetup          = "totp2fa_setup"
+	PageTOTPValidate       = "totp2fa_validate"
 )
 
 // Form value constants
@@ -40,13 +44,7 @@ const (
 
 // Data constants
 const (
-	DataValidateMode = "validate_mode"
-	DataTOTPSecret   = SessionTOTPSecret
-
-	dataValidate        = "validate"
-	dataValidateSetup   = "setup"
-	dataValidateConfirm = "confirm"
-	dataValidateRemove  = "remove"
+	DataTOTPSecret = SessionTOTPSecret
 )
 
 var (
@@ -68,7 +66,7 @@ type TOTP struct {
 
 // Setup the module
 func (t *TOTP) Setup() error {
-	middleware := authboss.MountedMiddleware(t.Authboss, true, t.Authboss.Config.Modules.TwoFactorRedirectOnUnauthed, true, false)
+	middleware := authboss.MountedMiddleware(t.Authboss, true, t.Authboss.Config.Modules.RoutesRedirectOnUnauthed, true, false)
 	t.Authboss.Core.Router.Get("/2fa/totp/setup", middleware(t.Core.ErrorHandler.Wrap(t.GetSetup)))
 	t.Authboss.Core.Router.Post("/2fa/totp/setup", middleware(t.Core.ErrorHandler.Wrap(t.PostSetup)))
 
@@ -85,7 +83,14 @@ func (t *TOTP) Setup() error {
 
 	t.Authboss.Events.Before(authboss.EventAuth, t.BeforeAuth)
 
-	return t.Authboss.Core.ViewRenderer.Load(PageTOTPValidate, PageTOTPValidateSuccess)
+	return t.Authboss.Core.ViewRenderer.Load(
+		PageTOTPSetup,
+		PageTOTPValidate,
+		PageTOTPConfirm,
+		PageTOTPConfirmSuccess,
+		PageTOTPRemove,
+		PageTOTPRemoveSuccess,
+	)
 }
 
 // BeforeAuth stores the user's pid in a special temporary session variable
@@ -117,8 +122,7 @@ func (t *TOTP) BeforeAuth(w http.ResponseWriter, r *http.Request, handled bool) 
 // GetSetup shows a screen allows a user to opt in to setting up totp 2fa
 func (t *TOTP) GetSetup(w http.ResponseWriter, r *http.Request) error {
 	authboss.DelSession(w, SessionTOTPSecret)
-	data := authboss.HTMLData{DataValidateMode: dataValidateSetup}
-	return t.Core.Responder.Respond(w, r, http.StatusOK, PageTOTPValidate, data)
+	return t.Core.Responder.Respond(w, r, http.StatusOK, PageTOTPSetup, nil)
 }
 
 // PostSetup prepares adds a key to the user's session
@@ -203,11 +207,8 @@ func (t *TOTP) GetConfirm(w http.ResponseWriter, r *http.Request) error {
 		return errors.New("request failed, no totp secret present in session")
 	}
 
-	data := authboss.HTMLData{
-		DataValidateMode: dataValidateConfirm,
-		DataTOTPSecret:   totpSecret,
-	}
-	return t.Core.Responder.Respond(w, r, http.StatusOK, PageTOTPValidate, data)
+	data := authboss.HTMLData{DataTOTPSecret: totpSecret}
+	return t.Core.Responder.Respond(w, r, http.StatusOK, PageTOTPConfirm, data)
 }
 
 // PostConfirm finally activates totp if the code matches
@@ -223,7 +224,7 @@ func (t *TOTP) PostConfirm(w http.ResponseWriter, r *http.Request) error {
 		return errors.New("request failed, no totp secret present in session")
 	}
 
-	validator, err := t.Authboss.Config.Core.BodyReader.Read(PageTOTPValidate, r)
+	validator, err := t.Authboss.Config.Core.BodyReader.Read(PageTOTPConfirm, r)
 	if err != nil {
 		return err
 	}
@@ -235,10 +236,9 @@ func (t *TOTP) PostConfirm(w http.ResponseWriter, r *http.Request) error {
 	if !ok {
 		data := authboss.HTMLData{
 			authboss.DataValidation: map[string][]string{FormValueCode: []string{"2fa code was invalid"}},
-			DataValidateMode:        dataValidateConfirm,
 			DataTOTPSecret:          totpSecret,
 		}
-		return t.Authboss.Core.Responder.Respond(w, r, http.StatusOK, PageTOTPValidate, data)
+		return t.Authboss.Core.Responder.Respond(w, r, http.StatusOK, PageTOTPConfirm, data)
 	}
 
 	codes, err := twofactor.GenerateRecoveryCodes()
@@ -263,18 +263,13 @@ func (t *TOTP) PostConfirm(w http.ResponseWriter, r *http.Request) error {
 	logger := t.RequestLogger(r)
 	logger.Infof("user %s enabled totp 2fa", user.GetPID())
 
-	data := authboss.HTMLData{
-		twofactor.DataRecoveryCodes: codes,
-		DataValidateMode:            dataValidateConfirm,
-	}
-
-	return t.Authboss.Core.Responder.Respond(w, r, http.StatusOK, PageTOTPValidateSuccess, data)
+	data := authboss.HTMLData{twofactor.DataRecoveryCodes: codes}
+	return t.Authboss.Core.Responder.Respond(w, r, http.StatusOK, PageTOTPConfirmSuccess, data)
 }
 
 // GetRemove starts removal
 func (t *TOTP) GetRemove(w http.ResponseWriter, r *http.Request) error {
-	data := authboss.HTMLData{DataValidateMode: dataValidateRemove}
-	return t.Authboss.Core.Responder.Respond(w, r, http.StatusOK, PageTOTPValidate, data)
+	return t.Authboss.Core.Responder.Respond(w, r, http.StatusOK, PageTOTPRemove, nil)
 }
 
 // PostRemove removes totp
@@ -282,19 +277,15 @@ func (t *TOTP) PostRemove(w http.ResponseWriter, r *http.Request) error {
 	user, ok, err := t.validate(r)
 	switch {
 	case err == errNoTOTPEnabled:
-		data := authboss.HTMLData{
-			authboss.DataErr: "totp 2fa not active",
-			DataValidateMode: dataValidateRemove,
-		}
-		return t.Authboss.Core.Responder.Respond(w, r, http.StatusOK, PageTOTPValidate, data)
+		data := authboss.HTMLData{authboss.DataErr: "totp 2fa not active"}
+		return t.Authboss.Core.Responder.Respond(w, r, http.StatusOK, PageTOTPRemove, data)
 	case err != nil:
 		return err
 	case !ok:
 		data := authboss.HTMLData{
 			authboss.DataValidation: map[string][]string{FormValueCode: []string{"2fa code was invalid"}},
-			DataValidateMode:        dataValidateRemove,
 		}
-		return t.Authboss.Core.Responder.Respond(w, r, http.StatusOK, PageTOTPValidate, data)
+		return t.Authboss.Core.Responder.Respond(w, r, http.StatusOK, PageTOTPRemove, data)
 	}
 
 	authboss.DelSession(w, authboss.Session2FA)
@@ -306,14 +297,12 @@ func (t *TOTP) PostRemove(w http.ResponseWriter, r *http.Request) error {
 	logger := t.RequestLogger(r)
 	logger.Infof("user %s disabled totp 2fa", user.GetPID())
 
-	data := authboss.HTMLData{DataValidateMode: dataValidateRemove}
-	return t.Authboss.Core.Responder.Respond(w, r, http.StatusOK, PageTOTPValidateSuccess, data)
+	return t.Authboss.Core.Responder.Respond(w, r, http.StatusOK, PageTOTPRemoveSuccess, nil)
 }
 
 // GetValidate shows a page to enter a code into
 func (t *TOTP) GetValidate(w http.ResponseWriter, r *http.Request) error {
-	data := authboss.HTMLData{DataValidateMode: dataValidate}
-	return t.Authboss.Core.Responder.Respond(w, r, http.StatusOK, PageTOTPValidate, data)
+	return t.Authboss.Core.Responder.Respond(w, r, http.StatusOK, PageTOTPValidate, nil)
 }
 
 // PostValidate redirects on success
@@ -324,10 +313,7 @@ func (t *TOTP) PostValidate(w http.ResponseWriter, r *http.Request) error {
 	switch {
 	case err == errNoTOTPEnabled:
 		logger.Infof("user %s totp failure (not enabled)", user.GetPID())
-		data := authboss.HTMLData{
-			authboss.DataErr: "totp 2fa not active",
-			DataValidateMode: dataValidate,
-		}
+		data := authboss.HTMLData{authboss.DataErr: "totp 2fa not active"}
 		return t.Authboss.Core.Responder.Respond(w, r, http.StatusOK, PageTOTPValidate, data)
 	case err != nil:
 		return err
@@ -335,7 +321,6 @@ func (t *TOTP) PostValidate(w http.ResponseWriter, r *http.Request) error {
 		logger.Infof("user %s totp 2fa failure (wrong code)", user.GetPID())
 		data := authboss.HTMLData{
 			authboss.DataValidation: map[string][]string{FormValueCode: []string{"2fa code was invalid"}},
-			DataValidateMode:        dataValidate,
 		}
 		return t.Authboss.Core.Responder.Respond(w, r, http.StatusOK, PageTOTPValidate, data)
 	}

@@ -242,11 +242,8 @@ func TestGetSetup(t *testing.T) {
 		t.Error("session sms number should be cleared")
 	}
 
-	if h.responder.Page != PageSMSValidate {
+	if h.responder.Page != PageSMSSetup {
 		t.Error("page wrong:", h.responder.Page)
-	}
-	if got := h.responder.Data[DataValidateMode]; got != dataValidateSetup {
-		t.Error("data wrong:", got)
 	}
 	if got := h.responder.Data[DataSMSPhoneNumber]; got != "seednumber" {
 		t.Error("data wrong:", got)
@@ -271,11 +268,8 @@ func TestPostSetup(t *testing.T) {
 			t.Error(err)
 		}
 
-		if h.responder.Page != PageSMSValidate {
+		if h.responder.Page != PageSMSSetup {
 			t.Error("page wrong:", h.responder.Page)
-		}
-		if got := h.responder.Data[DataValidateMode]; got != dataValidateSetup {
-			t.Error("data wrong:", got)
 		}
 		validation := h.responder.Data[authboss.DataValidation].(map[string][]string)
 		if got := validation[FormValuePhoneNumber][0]; got != "must provide a phone number" {
@@ -327,18 +321,15 @@ func TestValidatorGet(t *testing.T) {
 	t.Parallel()
 
 	h := testSetup()
-	validator := &SMSValidator{SMS: h.sms, Action: dataValidateConfirm}
+	validator := &SMSValidator{SMS: h.sms, Page: PageSMSConfirm}
 
 	r, w, _ := h.newHTTP("GET")
 	if err := validator.Get(w, r); err != nil {
 		t.Fatal(err)
 	}
 
-	if h.responder.Page != PageSMSValidate {
+	if h.responder.Page != PageSMSConfirm {
 		t.Error("page wrong:", h.responder.Page)
-	}
-	if got := h.responder.Data[DataValidateMode]; got != dataValidateConfirm {
-		t.Error("data wrong:", got)
 	}
 }
 
@@ -346,7 +337,7 @@ func TestValidatorPostSend(t *testing.T) {
 	t.Parallel()
 
 	h := testSetup()
-	validator := &SMSValidator{SMS: h.sms, Action: dataValidate}
+	validator := &SMSValidator{SMS: h.sms, Page: PageSMSValidate}
 
 	r, w, _ := h.newHTTP("POST")
 
@@ -368,7 +359,7 @@ func TestValidatorPostSend(t *testing.T) {
 
 	// When action is confirm, it retrieves the phone number from
 	// the session, not the user.
-	validator.Action = dataValidateConfirm
+	validator.Page = PageSMSConfirm
 	user.SMSPhoneNumber = ""
 	h.setSession(SessionSMSNumber, "number")
 	h.loadClientState(w, &r)
@@ -382,17 +373,13 @@ func TestValidatorPostSend(t *testing.T) {
 	}
 }
 
-// recovery code, normal code
-// user in session, user in pending
-// successful code paths for: validate, remove, and confirm
-
 func TestValidatorPostOk(t *testing.T) {
 	t.Parallel()
 
 	t.Run("OkConfirm", func(t *testing.T) {
 		h := testSetup()
 		r, w, _ := h.newHTTP("POST")
-		v := &SMSValidator{SMS: h.sms, Action: dataValidateConfirm}
+		v := &SMSValidator{SMS: h.sms, Page: PageSMSConfirm}
 
 		user := &mocks.User{Email: "test@test.com"}
 		h.storer.Users[user.Email] = user
@@ -412,11 +399,8 @@ func TestValidatorPostOk(t *testing.T) {
 		// Flush client state
 		w.WriteHeader(http.StatusOK)
 
-		if h.responder.Page != PageSMSValidateSuccess {
+		if h.responder.Page != PageSMSConfirmSuccess {
 			t.Error("page wrong:", h.responder.Page)
-		}
-		if got := h.responder.Data[DataValidateMode]; got != dataValidateConfirm {
-			t.Error("data wrong:", got)
 		}
 		if got := h.responder.Data[twofactor.DataRecoveryCodes].([]string); len(got) == 0 {
 			t.Error("recovery codes should have been returned")
@@ -440,7 +424,7 @@ func TestValidatorPostOk(t *testing.T) {
 	t.Run("OkRemoveWithRecovery", func(t *testing.T) {
 		h := testSetup()
 		r, w, _ := h.newHTTP("POST")
-		v := &SMSValidator{SMS: h.sms, Action: dataValidateRemove}
+		v := &SMSValidator{SMS: h.sms, Page: PageSMSRemove}
 
 		user := &mocks.User{Email: "test@test.com", SMSPhoneNumber: "number"}
 		h.storer.Users[user.Email] = user
@@ -468,11 +452,8 @@ func TestValidatorPostOk(t *testing.T) {
 		// Flush client state
 		w.WriteHeader(http.StatusOK)
 
-		if h.responder.Page != PageSMSValidateSuccess {
+		if h.responder.Page != PageSMSRemoveSuccess {
 			t.Error("page wrong:", h.responder.Page)
-		}
-		if got := h.responder.Data[DataValidateMode]; got != dataValidateRemove {
-			t.Error("data wrong:", got)
 		}
 
 		if h.session.ClientValues[authboss.Session2FA] != "" {
@@ -490,7 +471,7 @@ func TestValidatorPostOk(t *testing.T) {
 	t.Run("OkValidateWithCode", func(t *testing.T) {
 		h := testSetup()
 		r, w, _ := h.newHTTP("POST")
-		v := &SMSValidator{SMS: h.sms, Action: dataValidate}
+		v := &SMSValidator{SMS: h.sms, Page: PageSMSValidate}
 
 		user := &mocks.User{Email: "test@test.com", SMSPhoneNumber: "number"}
 		h.storer.Users[user.Email] = user
@@ -550,7 +531,7 @@ func TestValidatorPostOk(t *testing.T) {
 	t.Run("FailRemoveCode", func(t *testing.T) {
 		h := testSetup()
 		r, w, _ := h.newHTTP("POST")
-		v := &SMSValidator{SMS: h.sms, Action: dataValidateRemove}
+		v := &SMSValidator{SMS: h.sms, Page: PageSMSRemove}
 
 		user := &mocks.User{Email: "test@test.com"}
 		h.storer.Users[user.Email] = user
@@ -565,11 +546,8 @@ func TestValidatorPostOk(t *testing.T) {
 			t.Fatal(err)
 		}
 
-		if h.responder.Page != PageSMSValidate {
+		if h.responder.Page != PageSMSRemove {
 			t.Error("page wrong:", h.responder.Page)
-		}
-		if got := h.responder.Data[DataValidateMode]; got != dataValidateRemove {
-			t.Error("data wrong:", got)
 		}
 		validation := h.responder.Data[authboss.DataValidation].(map[string][]string)
 		if got := validation[FormValueCode][0]; got != "2fa code was invalid" {

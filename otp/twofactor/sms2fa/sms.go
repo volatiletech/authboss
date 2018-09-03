@@ -32,20 +32,20 @@ const (
 
 // Pages
 const (
-	PageSMSValidate        = "sms2fa_validate"
-	PageSMSValidateSuccess = "sms2fa_validate_success"
+	successSuffix = "_success"
+
+	PageSMSConfirm        = "sms2fa_confirm"
+	PageSMSConfirmSuccess = "sms2fa_confirm_success"
+	PageSMSRemove         = "sms2fa_remove"
+	PageSMSRemoveSuccess  = "sms2fa_remove_success"
+	PageSMSSetup          = "sms2fa_setup"
+	PageSMSValidate       = "sms2fa_validate"
 )
 
 // Data constants
 const (
-	DataValidateMode   = "validate_mode"
 	DataSMSSecret      = SessionSMSSecret
 	DataSMSPhoneNumber = "sms_phone_number"
-
-	dataValidate        = "validate"
-	dataValidateSetup   = "setup"
-	dataValidateConfirm = "confirm"
-	dataValidateRemove  = "remove"
 )
 
 const (
@@ -88,7 +88,7 @@ type SMS struct {
 // SMSValidator abstracts the send code/resend code/submit code workflow
 type SMSValidator struct {
 	*SMS
-	Action string
+	Page string
 }
 
 // Setup the module
@@ -97,25 +97,32 @@ func (s *SMS) Setup() error {
 		return errors.New("must have SMS.Sender set")
 	}
 
-	middleware := authboss.MountedMiddleware(s.Authboss, true, s.Authboss.Config.Modules.TwoFactorRedirectOnUnauthed, false, false)
+	middleware := authboss.MountedMiddleware(s.Authboss, true, s.Authboss.Config.Modules.RoutesRedirectOnUnauthed, false, false)
 	s.Authboss.Core.Router.Get("/2fa/sms/setup", middleware(s.Core.ErrorHandler.Wrap(s.GetSetup)))
 	s.Authboss.Core.Router.Post("/2fa/sms/setup", middleware(s.Core.ErrorHandler.Wrap(s.PostSetup)))
 
-	confirm := &SMSValidator{SMS: s, Action: dataValidateConfirm}
+	confirm := &SMSValidator{SMS: s, Page: PageSMSConfirm}
 	s.Authboss.Core.Router.Get("/2fa/sms/confirm", middleware(s.Core.ErrorHandler.Wrap(confirm.Get)))
 	s.Authboss.Core.Router.Post("/2fa/sms/confirm", middleware(s.Core.ErrorHandler.Wrap(confirm.Post)))
 
-	remove := &SMSValidator{SMS: s, Action: dataValidateRemove}
+	remove := &SMSValidator{SMS: s, Page: PageSMSRemove}
 	s.Authboss.Core.Router.Get("/2fa/sms/remove", middleware(s.Core.ErrorHandler.Wrap(remove.Get)))
 	s.Authboss.Core.Router.Post("/2fa/sms/remove", middleware(s.Core.ErrorHandler.Wrap(remove.Post)))
 
-	validate := &SMSValidator{SMS: s, Action: dataValidate}
+	validate := &SMSValidator{SMS: s, Page: PageSMSValidate}
 	s.Authboss.Core.Router.Get("/2fa/sms/validate", s.Core.ErrorHandler.Wrap(validate.Get))
 	s.Authboss.Core.Router.Post("/2fa/sms/validate", s.Core.ErrorHandler.Wrap(validate.Post))
 
 	s.Authboss.Events.Before(authboss.EventAuth, s.BeforeAuth)
 
-	return s.Authboss.Core.ViewRenderer.Load(PageSMSValidate, PageSMSValidateSuccess)
+	return s.Authboss.Core.ViewRenderer.Load(
+		PageSMSConfirm,
+		PageSMSConfirmSuccess,
+		PageSMSRemove,
+		PageSMSRemoveSuccess,
+		PageSMSSetup,
+		PageSMSValidate,
+	)
 }
 
 // BeforeAuth stores the user's pid in a special temporary session variable
@@ -197,18 +204,18 @@ func (s *SMS) GetSetup(w http.ResponseWriter, r *http.Request) error {
 		return err
 	}
 
-	data := authboss.HTMLData{DataValidateMode: dataValidateSetup}
+	var data authboss.HTMLData
 	numberProvider, ok := abUser.(SMSNumberProvider)
 	if ok {
 		if val := numberProvider.GetSMSPhoneNumberSeed(); len(val) != 0 {
-			data[DataSMSPhoneNumber] = val
+			data = authboss.HTMLData{DataSMSPhoneNumber: val}
 		}
 	}
 
 	authboss.DelSession(w, SessionSMSSecret)
 	authboss.DelSession(w, SessionSMSNumber)
 
-	return s.Core.Responder.Respond(w, r, http.StatusOK, PageSMSValidate, data)
+	return s.Core.Responder.Respond(w, r, http.StatusOK, PageSMSSetup, data)
 }
 
 // PostSetup adds the phone number provided to the user's session and sends
@@ -220,7 +227,7 @@ func (s *SMS) PostSetup(w http.ResponseWriter, r *http.Request) error {
 	}
 	user := abUser.(User)
 
-	validator, err := s.Authboss.Config.Core.BodyReader.Read(PageSMSValidate, r)
+	validator, err := s.Authboss.Config.Core.BodyReader.Read(PageSMSSetup, r)
 	if err != nil {
 		return err
 	}
@@ -231,9 +238,8 @@ func (s *SMS) PostSetup(w http.ResponseWriter, r *http.Request) error {
 	if len(number) == 0 {
 		data := authboss.HTMLData{
 			authboss.DataValidation: map[string][]string{FormValuePhoneNumber: []string{"must provide a phone number"}},
-			DataValidateMode:        dataValidateSetup,
 		}
-		return s.Core.Responder.Respond(w, r, http.StatusOK, PageSMSValidate, data)
+		return s.Core.Responder.Respond(w, r, http.StatusOK, PageSMSSetup, data)
 	}
 
 	authboss.PutSession(w, SessionSMSNumber, number)
@@ -251,8 +257,7 @@ func (s *SMS) PostSetup(w http.ResponseWriter, r *http.Request) error {
 // Get shows an empty page typically, this allows us to prompt
 // a second time for the action.
 func (s *SMSValidator) Get(w http.ResponseWriter, r *http.Request) error {
-	data := authboss.HTMLData{DataValidateMode: s.Action}
-	return s.Core.Responder.Respond(w, r, http.StatusOK, PageSMSValidate, data)
+	return s.Core.Responder.Respond(w, r, http.StatusOK, s.Page, nil)
 }
 
 // Post receives a code in the body and validates it, if the code is
@@ -273,7 +278,7 @@ func (s *SMSValidator) Post(w http.ResponseWriter, r *http.Request) error {
 	}
 	user := abUser.(User)
 
-	validator, err := s.Authboss.Config.Core.BodyReader.Read(PageSMSValidate, r)
+	validator, err := s.Authboss.Config.Core.BodyReader.Read(s.Page, r)
 	if err != nil {
 		return err
 	}
@@ -283,7 +288,7 @@ func (s *SMSValidator) Post(w http.ResponseWriter, r *http.Request) error {
 	inputCode = smsCodeValues.GetCode()
 
 	// Only allow recovery codes on login/remove operations
-	if s.Action == dataValidate || s.Action == dataValidateRemove {
+	if s.Page == PageSMSValidate || s.Page == PageSMSRemove {
 		recoveryCode = smsCodeValues.GetRecoveryCode()
 	}
 
@@ -303,15 +308,15 @@ func (s *SMSValidator) sendCode(w http.ResponseWriter, r *http.Request, user Use
 
 	// Get the phone number, when we're confirming the phone number is not
 	// yet stored in the user but inside the session.
-	switch s.Action {
-	case dataValidateConfirm:
+	switch s.Page {
+	case PageSMSConfirm:
 		var ok bool
 		phoneNumber, ok = authboss.GetSession(r, SessionSMSNumber)
 		if !ok {
 			return errors.New("request failed, no sms number present in session")
 		}
 
-	case dataValidate, dataValidateRemove:
+	case PageSMSValidate, PageSMSRemove:
 		phoneNumber = user.GetSMSPhoneNumber()
 	}
 
@@ -319,16 +324,15 @@ func (s *SMSValidator) sendCode(w http.ResponseWriter, r *http.Request, user Use
 		return errors.Errorf("no phone number was available in PostSendCode for user %s", user.GetPID())
 	}
 
-	data := authboss.HTMLData{DataValidateMode: s.Action}
-
+	var data authboss.HTMLData
 	err := s.SendCodeToUser(w, r, user.GetPID(), phoneNumber)
 	if err == errSMSRateLimit {
-		data[authboss.DataErr] = "please wait a few moments before resending SMS code"
+		data = authboss.HTMLData{authboss.DataErr: "please wait a few moments before resending SMS code"}
 	} else if err != nil {
 		return err
 	}
 
-	return s.Core.Responder.Respond(w, r, http.StatusOK, PageSMSValidate, data)
+	return s.Core.Responder.Respond(w, r, http.StatusOK, s.Page, data)
 }
 
 func (s *SMSValidator) validateCode(w http.ResponseWriter, r *http.Request, user User, inputCode, recoveryCode string) error {
@@ -362,17 +366,14 @@ func (s *SMSValidator) validateCode(w http.ResponseWriter, r *http.Request, user
 		logger.Infof("user %s sms 2fa failure (wrong code)", user.GetPID())
 		data := authboss.HTMLData{
 			authboss.DataValidation: map[string][]string{FormValueCode: []string{"2fa code was invalid"}},
-			DataValidateMode:        s.Action,
 		}
-		return s.Authboss.Core.Responder.Respond(w, r, http.StatusOK, PageSMSValidate, data)
+		return s.Authboss.Core.Responder.Respond(w, r, http.StatusOK, s.Page, data)
 	}
 
-	data := authboss.HTMLData{
-		DataValidateMode: s.Action,
-	}
+	var data authboss.HTMLData
 
-	switch s.Action {
-	case dataValidateConfirm:
+	switch s.Page {
+	case PageSMSConfirm:
 		phoneNumber, ok := authboss.GetSession(r, SessionSMSNumber)
 		if !ok {
 			return errors.New("request failed, no sms number present in session")
@@ -399,8 +400,8 @@ func (s *SMSValidator) validateCode(w http.ResponseWriter, r *http.Request, user
 		authboss.DelSession(w, SessionSMSNumber)
 
 		logger.Infof("user %s enabled sms 2fa", user.GetPID())
-		data[twofactor.DataRecoveryCodes] = codes
-	case dataValidateRemove:
+		data = authboss.HTMLData{twofactor.DataRecoveryCodes: codes}
+	case PageSMSRemove:
 		user.PutSMSPhoneNumber("")
 		if err := s.Authboss.Config.Storage.Server.Save(r.Context(), user); err != nil {
 			return err
@@ -409,7 +410,7 @@ func (s *SMSValidator) validateCode(w http.ResponseWriter, r *http.Request, user
 		authboss.DelSession(w, authboss.Session2FA)
 
 		logger.Infof("user %s disabled sms 2fa", user.GetPID())
-	case dataValidate:
+	case PageSMSValidate:
 		authboss.PutSession(w, authboss.SessionKey, user.GetPID())
 		authboss.PutSession(w, authboss.Session2FA, "sms")
 
@@ -430,7 +431,7 @@ func (s *SMSValidator) validateCode(w http.ResponseWriter, r *http.Request, user
 		return errors.New("unknown action for sms validate")
 	}
 
-	return s.Authboss.Core.Responder.Respond(w, r, http.StatusOK, PageSMSValidateSuccess, data)
+	return s.Authboss.Core.Responder.Respond(w, r, http.StatusOK, s.Page+successSuffix, data)
 }
 
 // generateRandomCode for sms auth

@@ -90,11 +90,12 @@ type Config struct {
 		// for google authenticator.
 		TOTP2FAIssuer string
 
-		// TwoFactorRedirectOnUnauthed controls whether or not a user is redirected or given
-		// a 404 when they are unauthenticated. The two factor modules all use authboss.Middleware
-		// to protect their routes and this is the redirectToLogin parameter in that middleware
-		// that they pass through.
-		TwoFactorRedirectOnUnauthed bool
+		// RoutesRedirectOnUnauthed controls whether or not a user is redirected or given
+		// a 404 when they are unauthenticated and attempting to access a route that's
+		// login-protected inside Authboss itself. The otp/twofactor modules all use
+		// authboss.Middleware to protect their routes and this is the
+		// redirectToLogin parameter in that middleware that they pass through.
+		RoutesRedirectOnUnauthed bool
 	}
 
 	Mail struct {

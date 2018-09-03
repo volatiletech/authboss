@@ -268,13 +268,13 @@ func (h HTTPBodyReader) Read(page string, r *http.Request) (authboss.Validator, 
 			Token:             values[FormValueToken],
 			NewPassword:       values[FormValuePassword],
 		}, nil
-	case "totp2fa_validate":
+	case "totp2fa_confirm", "totp2fa_remove", "totp2fa_validate":
 		return TwoFA{
 			HTTPFormValidator: HTTPFormValidator{Values: values, Ruleset: rules, ConfirmFields: confirms},
 			Code:              values[FormValueCode],
 			RecoveryCode:      values[FormValueRecoveryCode],
 		}, nil
-	case "sms2fa_validate":
+	case "sms2fa_setup", "sms2fa_remove", "sms2fa_confirm", "sms2fa_validate":
 		return SMSTwoFA{
 			HTTPFormValidator: HTTPFormValidator{Values: values, Ruleset: rules, ConfirmFields: confirms},
 			Code:              values[FormValueCode],

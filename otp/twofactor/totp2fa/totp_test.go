@@ -197,11 +197,8 @@ func TestGetSetup(t *testing.T) {
 		t.Error("session totp secret should be cleared")
 	}
 
-	if h.responder.Page != PageTOTPValidate {
+	if h.responder.Page != PageTOTPSetup {
 		t.Error("page wrong:", h.responder.Page)
-	}
-	if got := h.responder.Data[DataValidateMode]; got != dataValidateSetup {
-		t.Error("data wrong:", got)
 	}
 }
 
@@ -282,11 +279,8 @@ func TestGetConfirm(t *testing.T) {
 		t.Error(err)
 	}
 
-	if h.responder.Page != PageTOTPValidate {
+	if h.responder.Page != PageTOTPConfirm {
 		t.Error("page wrong:", h.responder.Page)
-	}
-	if got := h.responder.Data[DataValidateMode]; got != dataValidateConfirm {
-		t.Error("data wrong:", got)
 	}
 	if got := h.responder.Data[DataTOTPSecret]; got != secret {
 		t.Error("data wrong:", got)
@@ -334,11 +328,8 @@ func TestPostConfirm(t *testing.T) {
 		t.Error("session totp secret not deleted")
 	}
 
-	if h.responder.Page != PageTOTPValidateSuccess {
+	if h.responder.Page != PageTOTPConfirmSuccess {
 		t.Error("page wrong:", h.responder.Page)
-	}
-	if got := h.responder.Data[DataValidateMode]; got != dataValidateConfirm {
-		t.Error("data wrong:", got)
 	}
 	if got := h.responder.Data[twofactor.DataRecoveryCodes].([]string); len(got) == 0 {
 		t.Error("data wrong:", got)
@@ -355,11 +346,8 @@ func TestGetRemove(t *testing.T) {
 		t.Error(err)
 	}
 
-	if h.responder.Page != PageTOTPValidate {
+	if h.responder.Page != PageTOTPRemove {
 		t.Error("page wrong:", h.responder.Page)
-	}
-	if got := h.responder.Data[DataValidateMode]; got != dataValidateRemove {
-		t.Error("data wrong:", got)
 	}
 }
 
@@ -386,11 +374,8 @@ func TestPostRemove(t *testing.T) {
 			t.Fatal(err)
 		}
 
-		if h.responder.Page != PageTOTPValidate {
+		if h.responder.Page != PageTOTPRemove {
 			t.Error("page wrong:", h.responder.Page)
-		}
-		if got := h.responder.Data[DataValidateMode]; got != dataValidateRemove {
-			t.Error("data wrong:", got)
 		}
 		if got := h.responder.Data[authboss.DataErr]; got != "totp 2fa not active" {
 			t.Error("data wrong:", got)
@@ -413,11 +398,8 @@ func TestPostRemove(t *testing.T) {
 			t.Error(err)
 		}
 
-		if h.responder.Page != PageTOTPValidate {
+		if h.responder.Page != PageTOTPRemove {
 			t.Error("page wrong:", h.responder.Page)
-		}
-		if got := h.responder.Data[DataValidateMode]; got != dataValidateRemove {
-			t.Error("data wrong:", got)
 		}
 		if got := h.responder.Data[authboss.DataValidation].(map[string][]string); got[FormValueCode][0] != "2fa code was invalid" {
 			t.Error("data wrong:", got)
@@ -445,11 +427,8 @@ func TestPostRemove(t *testing.T) {
 			t.Error(err)
 		}
 
-		if h.responder.Page != PageTOTPValidateSuccess {
+		if h.responder.Page != PageTOTPRemoveSuccess {
 			t.Error("page wrong:", h.responder.Page)
-		}
-		if got := h.responder.Data[DataValidateMode]; got != dataValidateRemove {
-			t.Error("data wrong:", got)
 		}
 
 		// Flush client state
@@ -473,9 +452,6 @@ func TestGetValidate(t *testing.T) {
 
 	if h.responder.Page != PageTOTPValidate {
 		t.Error("page wrong:", h.responder.Page)
-	}
-	if got := h.responder.Data[DataValidateMode]; got != dataValidate {
-		t.Error("data wrong:", got)
 	}
 }
 
@@ -507,9 +483,6 @@ func TestPostValidate(t *testing.T) {
 		if h.responder.Page != PageTOTPValidate {
 			t.Error("page wrong:", h.responder.Page)
 		}
-		if got := h.responder.Data[DataValidateMode]; got != dataValidate {
-			t.Error("data wrong:", got)
-		}
 		if got := h.responder.Data[authboss.DataErr]; got != "totp 2fa not active" {
 			t.Error("data wrong:", got)
 		}
@@ -532,9 +505,6 @@ func TestPostValidate(t *testing.T) {
 
 		if h.responder.Page != PageTOTPValidate {
 			t.Error("page wrong:", h.responder.Page)
-		}
-		if got := h.responder.Data[DataValidateMode]; got != dataValidate {
-			t.Error("data wrong:", got)
 		}
 		if got := h.responder.Data[authboss.DataValidation].(map[string][]string); got[FormValueCode][0] != "2fa code was invalid" {
 			t.Error("data wrong:", got)

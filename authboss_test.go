@@ -1,9 +1,7 @@
 package authboss
 
 import (
-	"database/sql"
-	"errors"
-	"io/ioutil"
+	"context"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -13,168 +11,214 @@ func TestAuthBossInit(t *testing.T) {
 	t.Parallel()
 
 	ab := New()
-	ab.LogWriter = ioutil.Discard
 	err := ab.Init()
 	if err != nil {
 		t.Error("Unexpected error:", err)
 	}
 }
 
-func TestAuthBossCurrentUser(t *testing.T) {
-	t.Parallel()
-
-	ab := New()
-	ab.LogWriter = ioutil.Discard
-	ab.Storer = mockStorer{"joe": Attributes{"email": "john@john.com", "password": "lies"}}
-	ab.SessionStoreMaker = func(_ http.ResponseWriter, _ *http.Request) ClientStorer {
-		return mockClientStore{SessionKey: "joe"}
-	}
-	ab.CookieStoreMaker = func(_ http.ResponseWriter, _ *http.Request) ClientStorer {
-		return mockClientStore{}
-	}
-
-	if err := ab.Init(); err != nil {
-		t.Error("Unexpected error:", err)
-	}
-
-	rec := httptest.NewRecorder()
-	req, _ := http.NewRequest("GET", "localhost", nil)
-
-	userStruct := ab.CurrentUserP(rec, req)
-	us := userStruct.(*mockUser)
-
-	if us.Email != "john@john.com" || us.Password != "lies" {
-		t.Error("Wrong user found!")
-	}
-}
-
-func TestAuthBossCurrentUserCallbacks(t *testing.T) {
-	t.Parallel()
-
-	ab := New()
-	ab.LogWriter = ioutil.Discard
-	ab.Storer = mockStorer{"joe": Attributes{"email": "john@john.com", "password": "lies"}}
-	ab.SessionStoreMaker = func(_ http.ResponseWriter, _ *http.Request) ClientStorer {
-		return mockClientStore{SessionKey: "joe"}
-	}
-	ab.CookieStoreMaker = func(_ http.ResponseWriter, _ *http.Request) ClientStorer {
-		return mockClientStore{}
-	}
-
-	if err := ab.Init(); err != nil {
-		t.Error("Unexpected error:", err)
-	}
-
-	rec := httptest.NewRecorder()
-	req, _ := http.NewRequest("GET", "localhost", nil)
-
-	afterGetUser := errors.New("afterGetUser")
-	beforeGetUser := errors.New("beforeGetUser")
-	beforeGetUserSession := errors.New("beforeGetUserSession")
-
-	ab.Callbacks.After(EventGetUser, func(*Context) error {
-		return afterGetUser
-	})
-	if _, err := ab.CurrentUser(rec, req); err != afterGetUser {
-		t.Error("Want:", afterGetUser, "Got:", err)
-	}
-
-	ab.Callbacks.Before(EventGetUser, func(*Context) (Interrupt, error) {
-		return InterruptNone, beforeGetUser
-	})
-	if _, err := ab.CurrentUser(rec, req); err != beforeGetUser {
-		t.Error("Want:", beforeGetUser, "Got:", err)
-	}
-
-	ab.Callbacks.Before(EventGetUserSession, func(*Context) (Interrupt, error) {
-		return InterruptNone, beforeGetUserSession
-	})
-	if _, err := ab.CurrentUser(rec, req); err != beforeGetUserSession {
-		t.Error("Want:", beforeGetUserSession, "Got:", err)
-	}
-}
-
 func TestAuthbossUpdatePassword(t *testing.T) {
 	t.Parallel()
 
+	user := &mockUser{}
+	storer := newMockServerStorer()
+
 	ab := New()
-	session := mockClientStore{}
-	cookies := mockClientStore{}
-	ab.SessionStoreMaker = func(_ http.ResponseWriter, _ *http.Request) ClientStorer {
-		return session
-	}
-	ab.CookieStoreMaker = func(_ http.ResponseWriter, _ *http.Request) ClientStorer {
-		return cookies
-	}
+	ab.Config.Storage.Server = storer
 
-	called := false
-	ab.Callbacks.After(EventPasswordReset, func(ctx *Context) error {
-		called = true
-		return nil
-	})
-
-	user1 := struct {
-		Password string
-	}{}
-	user2 := struct {
-		Password sql.NullString
-	}{}
-
-	r, _ := http.NewRequest("GET", "http://localhost", nil)
-
-	called = false
-	err := ab.UpdatePassword(nil, r, "newpassword", &user1, func() error { return nil })
-	if err != nil {
+	if err := ab.UpdatePassword(context.Background(), user, "hello world"); err != nil {
 		t.Error(err)
 	}
 
-	if len(user1.Password) == 0 {
-		t.Error("Password not updated")
-	}
-	if !called {
-		t.Error("Callbacks should have been called.")
-	}
-
-	called = false
-	err = ab.UpdatePassword(nil, r, "newpassword", &user2, func() error { return nil })
-	if err != nil {
-		t.Error(err)
-	}
-
-	if !user2.Password.Valid || len(user2.Password.String) == 0 {
-		t.Error("Password not updated")
-	}
-	if !called {
-		t.Error("Callbacks should have been called.")
-	}
-
-	called = false
-	oldPassword := user1.Password
-	err = ab.UpdatePassword(nil, r, "", &user1, func() error { return nil })
-	if err != nil {
-		t.Error(err)
-	}
-
-	if user1.Password != oldPassword {
-		t.Error("Password not updated")
-	}
-	if called {
-		t.Error("Callbacks should not have been called")
+	if len(user.Password) == 0 {
+		t.Error("password was not updated")
 	}
 }
 
-func TestAuthbossUpdatePasswordFail(t *testing.T) {
+type testRedirector struct {
+	Opts RedirectOptions
+}
+
+func (r *testRedirector) Redirect(w http.ResponseWriter, req *http.Request, ro RedirectOptions) error {
+	r.Opts = ro
+	if len(ro.RedirectPath) == 0 {
+		panic("no redirect path on redirect call")
+	}
+	http.Redirect(w, req, ro.RedirectPath, ro.Code)
+	return nil
+}
+
+func TestAuthbossMiddleware(t *testing.T) {
 	t.Parallel()
 
 	ab := New()
-
-	user1 := struct {
-		Password string
-	}{}
-
-	anErr := errors.New("AnError")
-	err := ab.UpdatePassword(nil, nil, "update", &user1, func() error { return anErr })
-	if err != anErr {
-		t.Error("Expected an specific error:", err)
+	ab.Core.Logger = mockLogger{}
+	ab.Storage.Server = &mockServerStorer{
+		Users: map[string]*mockUser{
+			"test@test.com": &mockUser{},
+		},
 	}
+
+	setupMore := func(mountPathed, redirect, allowHalfAuth, force2fa bool) (*httptest.ResponseRecorder, bool, bool) {
+		r := httptest.NewRequest("GET", "/super/secret", nil)
+		rec := httptest.NewRecorder()
+		w := ab.NewResponse(rec)
+
+		var err error
+		r, err = ab.LoadClientState(w, r)
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		var mid func(http.Handler) http.Handler
+		if !mountPathed {
+			mid = Middleware(ab, redirect, allowHalfAuth, force2fa)
+		} else {
+			mid = MountedMiddleware(ab, true, redirect, allowHalfAuth, force2fa)
+		}
+		var called, hadUser bool
+		server := mid(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			called = true
+			hadUser = r.Context().Value(CTXKeyUser) != nil
+			w.WriteHeader(http.StatusOK)
+		}))
+
+		server.ServeHTTP(w, r)
+
+		return rec, called, hadUser
+	}
+
+	t.Run("Accept", func(t *testing.T) {
+		ab.Storage.SessionState = mockClientStateReadWriter{
+			state: mockClientState{SessionKey: "test@test.com"},
+		}
+
+		_, called, hadUser := setupMore(false, false, false, false)
+
+		if !called {
+			t.Error("should have been called")
+		}
+		if !hadUser {
+			t.Error("should have had user")
+		}
+	})
+	t.Run("AcceptHalfAuth", func(t *testing.T) {
+		ab.Storage.SessionState = mockClientStateReadWriter{
+			state: mockClientState{SessionKey: "test@test.com", SessionHalfAuthKey: "true"},
+		}
+
+		_, called, hadUser := setupMore(false, false, false, false)
+
+		if !called {
+			t.Error("should have been called")
+		}
+		if !hadUser {
+			t.Error("should have had user")
+		}
+	})
+	t.Run("Accept2FA", func(t *testing.T) {
+		ab.Storage.SessionState = mockClientStateReadWriter{
+			state: mockClientState{SessionKey: "test@test.com", Session2FA: "sms"},
+		}
+
+		_, called, hadUser := setupMore(false, false, false, true)
+
+		if !called {
+			t.Error("should have been called")
+		}
+		if !hadUser {
+			t.Error("should have had user")
+		}
+	})
+	t.Run("Reject404", func(t *testing.T) {
+		ab.Storage.SessionState = mockClientStateReadWriter{}
+
+		rec, called, hadUser := setupMore(false, false, false, false)
+
+		if rec.Code != http.StatusNotFound {
+			t.Error("wrong code:", rec.Code)
+		}
+		if called {
+			t.Error("should not have been called")
+		}
+		if hadUser {
+			t.Error("should not have had user")
+		}
+	})
+	t.Run("RejectRedirect", func(t *testing.T) {
+		redir := &testRedirector{}
+		ab.Config.Core.Redirector = redir
+
+		ab.Storage.SessionState = mockClientStateReadWriter{}
+
+		_, called, hadUser := setupMore(false, true, false, false)
+
+		if redir.Opts.Code != http.StatusTemporaryRedirect {
+			t.Error("code was wrong:", redir.Opts.Code)
+		}
+		if redir.Opts.RedirectPath != "/auth/login?redir=%2Fsuper%2Fsecret" {
+			t.Error("redirect path was wrong:", redir.Opts.RedirectPath)
+		}
+		if called {
+			t.Error("should not have been called")
+		}
+		if hadUser {
+			t.Error("should not have had user")
+		}
+	})
+	t.Run("RejectMountpathedRedirect", func(t *testing.T) {
+		redir := &testRedirector{}
+		ab.Config.Core.Redirector = redir
+
+		ab.Storage.SessionState = mockClientStateReadWriter{}
+
+		_, called, hadUser := setupMore(true, true, false, false)
+
+		if redir.Opts.Code != http.StatusTemporaryRedirect {
+			t.Error("code was wrong:", redir.Opts.Code)
+		}
+		if redir.Opts.RedirectPath != "/auth/login?redir=%2Fauth%2Fsuper%2Fsecret" {
+			t.Error("redirect path was wrong:", redir.Opts.RedirectPath)
+		}
+		if called {
+			t.Error("should not have been called")
+		}
+		if hadUser {
+			t.Error("should not have had user")
+		}
+	})
+	t.Run("RejectHalfAuth", func(t *testing.T) {
+		ab.Storage.SessionState = mockClientStateReadWriter{
+			state: mockClientState{SessionKey: "test@test.com", SessionHalfAuthKey: "true"},
+		}
+
+		rec, called, hadUser := setupMore(false, false, true, false)
+
+		if rec.Code != http.StatusNotFound {
+			t.Error("wrong code:", rec.Code)
+		}
+		if called {
+			t.Error("should not have been called")
+		}
+		if hadUser {
+			t.Error("should not have had user")
+		}
+	})
+	t.Run("RejectNo2FA", func(t *testing.T) {
+		ab.Storage.SessionState = mockClientStateReadWriter{
+			state: mockClientState{SessionKey: "test@test.com"},
+		}
+
+		rec, called, hadUser := setupMore(false, false, true, true)
+
+		if rec.Code != http.StatusNotFound {
+			t.Error("wrong code:", rec.Code)
+		}
+		if called {
+			t.Error("should not have been called")
+		}
+		if hadUser {
+			t.Error("should not have had user")
+		}
+	})
 }

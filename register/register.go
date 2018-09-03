@@ -2,26 +2,20 @@
 package register
 
 import (
-	"errors"
+	"context"
 	"net/http"
+	"sort"
 
-	"golang.org/x/crypto/bcrypt"
+	"github.com/pkg/errors"
+
 	"github.com/volatiletech/authboss"
-	"github.com/volatiletech/authboss/internal/response"
+	"golang.org/x/crypto/bcrypt"
 )
 
+// Pages
 const (
-	tplRegister = "register.html.tpl"
+	PageRegister = "register"
 )
-
-// RegisterStorer must be implemented in order to satisfy the register module's
-// storage requirments.
-type RegisterStorer interface {
-	authboss.Storer
-	// Create is the same as put, except it refers to a non-existent key.  If the key is
-	// found simply return authboss.ErrUserFound
-	Create(key string, attr authboss.Attributes) error
-}
 
 func init() {
 	authboss.RegisterModule("register", &Register{})
@@ -30,127 +24,129 @@ func init() {
 // Register module.
 type Register struct {
 	*authboss.Authboss
-	templates response.Templates
 }
 
-// Initialize the module.
-func (r *Register) Initialize(ab *authboss.Authboss) (err error) {
+// Init the module.
+func (r *Register) Init(ab *authboss.Authboss) (err error) {
 	r.Authboss = ab
 
-	if r.Storer != nil {
-		if _, ok := r.Storer.(RegisterStorer); !ok {
-			return errors.New("register: RegisterStorer required for register functionality")
-		}
-	} else if r.StoreMaker == nil {
-		return errors.New("register: Need a RegisterStorer")
+	if _, ok := ab.Config.Storage.Server.(authboss.CreatingServerStorer); !ok {
+		return errors.New("register module activated but storer could not be upgraded to CreatingServerStorer")
 	}
 
-	if r.templates, err = response.LoadTemplates(r.Authboss, r.Layout, r.ViewsPath, tplRegister); err != nil {
+	if err := ab.Config.Core.ViewRenderer.Load(PageRegister); err != nil {
 		return err
 	}
+
+	sort.Strings(ab.Config.Modules.RegisterPreserveFields)
+
+	ab.Config.Core.Router.Get("/register", ab.Config.Core.ErrorHandler.Wrap(r.Get))
+	ab.Config.Core.Router.Post("/register", ab.Config.Core.ErrorHandler.Wrap(r.Post))
 
 	return nil
 }
 
-// Routes creates the routing table.
-func (r *Register) Routes() authboss.RouteTable {
-	return authboss.RouteTable{
-		"/register": r.registerHandler,
-	}
+// Get the register page
+func (r *Register) Get(w http.ResponseWriter, req *http.Request) error {
+	return r.Config.Core.Responder.Respond(w, req, http.StatusOK, PageRegister, nil)
 }
 
-// Storage returns storage requirements.
-func (r *Register) Storage() authboss.StorageOptions {
-	return authboss.StorageOptions{
-		r.PrimaryID:            authboss.String,
-		authboss.StorePassword: authboss.String,
-	}
-}
-
-func (reg *Register) registerHandler(ctx *authboss.Context, w http.ResponseWriter, r *http.Request) error {
-	switch r.Method {
-	case "GET":
-		primaryID := r.FormValue("primaryID")
-
-		data := authboss.HTMLData{
-			"primaryID":         reg.PrimaryID,
-			"primaryIDValue":    primaryID,
-			"primaryIDReadonly": len(primaryID) > 0,
-		}
-		return reg.templates.Render(ctx, w, r, tplRegister, data)
-	case "POST":
-		return reg.registerPostHandler(ctx, w, r)
-	}
-	return nil
-}
-
-func (reg *Register) registerPostHandler(ctx *authboss.Context, w http.ResponseWriter, r *http.Request) error {
-	key := r.FormValue(reg.PrimaryID)
-	password := r.FormValue(authboss.StorePassword)
-
-	validationErrs := authboss.Validate(r, reg.Policies, reg.ConfirmFields...)
-
-	if user, err := ctx.Storer.Get(key); err != nil && err != authboss.ErrUserNotFound {
-		return err
-	} else if user != nil {
-		validationErrs = append(validationErrs, authboss.FieldError{Name: reg.PrimaryID, Err: errors.New("Already in use")})
-	}
-
-	if len(validationErrs) != 0 {
-		data := authboss.HTMLData{
-			"primaryID":      reg.PrimaryID,
-			"primaryIDValue": key,
-			"errs":           validationErrs.Map(),
-		}
-
-		for _, f := range reg.PreserveFields {
-			data[f] = r.FormValue(f)
-		}
-
-		return reg.templates.Render(ctx, w, r, tplRegister, data)
-	}
-
-	attr, err := authboss.AttributesFromRequest(r) // Attributes from overriden forms
+// Post to the register page
+func (r *Register) Post(w http.ResponseWriter, req *http.Request) error {
+	logger := r.RequestLogger(req)
+	validatable, err := r.Core.BodyReader.Read(PageRegister, req)
 	if err != nil {
 		return err
 	}
 
-	pass, err := bcrypt.GenerateFromPassword([]byte(password), reg.BCryptCost)
+	var arbitrary map[string]string
+	var preserve map[string]string
+	if arb, ok := validatable.(authboss.ArbitraryValuer); ok {
+		arbitrary = arb.GetValues()
+		preserve = make(map[string]string)
+
+		for k, v := range arbitrary {
+			if hasString(r.Config.Modules.RegisterPreserveFields, k) {
+				preserve[k] = v
+			}
+		}
+	}
+
+	errs := validatable.Validate()
+	if errs != nil {
+		logger.Info("registration validation failed")
+		data := authboss.HTMLData{
+			authboss.DataValidation: authboss.ErrorMap(errs),
+		}
+		if preserve != nil {
+			data[authboss.DataPreserve] = preserve
+		}
+		return r.Config.Core.Responder.Respond(w, req, http.StatusOK, PageRegister, data)
+	}
+
+	// Get values from request
+	userVals := authboss.MustHaveUserValues(validatable)
+	pid, password := userVals.GetPID(), userVals.GetPassword()
+
+	// Put values into newly created user for storage
+	storer := authboss.EnsureCanCreate(r.Config.Storage.Server)
+	user := authboss.MustBeAuthable(storer.New(req.Context()))
+
+	pass, err := bcrypt.GenerateFromPassword([]byte(password), r.Config.Modules.BCryptCost)
 	if err != nil {
 		return err
 	}
 
-	attr[reg.PrimaryID] = key
-	attr[authboss.StorePassword] = string(pass)
-	ctx.User = attr
+	user.PutPID(pid)
+	user.PutPassword(string(pass))
 
-	if err := ctx.Storer.(RegisterStorer).Create(key, attr); err == authboss.ErrUserFound {
+	if arbUser, ok := user.(authboss.ArbitraryUser); ok && arbitrary != nil {
+		arbUser.PutArbitrary(arbitrary)
+	}
+
+	err = storer.Create(req.Context(), user)
+	switch {
+	case err == authboss.ErrUserFound:
+		logger.Infof("user %s attempted to re-register", pid)
+		errs = []error{errors.New("user already exists")}
 		data := authboss.HTMLData{
-			"primaryID":      reg.PrimaryID,
-			"primaryIDValue": key,
-			"errs":           map[string][]string{reg.PrimaryID: []string{"Already in use"}},
+			authboss.DataValidation: authboss.ErrorMap(errs),
 		}
-
-		for _, f := range reg.PreserveFields {
-			data[f] = r.FormValue(f)
+		if preserve != nil {
+			data[authboss.DataPreserve] = preserve
 		}
-
-		return reg.templates.Render(ctx, w, r, tplRegister, data)
-	} else if err != nil {
+		return r.Config.Core.Responder.Respond(w, req, http.StatusOK, PageRegister, data)
+	case err != nil:
 		return err
 	}
 
-	if err := reg.Callbacks.FireAfter(authboss.EventRegister, ctx); err != nil {
+	req = req.WithContext(context.WithValue(req.Context(), authboss.CTXKeyUser, user))
+	handled, err := r.Events.FireAfter(authboss.EventRegister, w, req)
+	if err != nil {
 		return err
-	}
-
-	if reg.IsLoaded("confirm") {
-		response.Redirect(ctx, w, r, reg.RegisterOKPath, "Account successfully created, please verify your e-mail address.", "", true)
+	} else if handled {
 		return nil
 	}
 
-	ctx.SessionStorer.Put(authboss.SessionKey, key)
-	response.Redirect(ctx, w, r, reg.RegisterOKPath, "Account successfully created, you are now logged in.", "", true)
+	// Log the user in, but only if the response wasn't handled previously by a module
+	// like confirm.
+	authboss.PutSession(w, authboss.SessionKey, pid)
 
-	return nil
+	logger.Infof("registered and logged in user %s", pid)
+	ro := authboss.RedirectOptions{
+		Code:         http.StatusTemporaryRedirect,
+		Success:      "Account successfully created, you are now logged in",
+		RedirectPath: r.Config.Paths.RegisterOK,
+	}
+	return r.Config.Core.Redirector.Redirect(w, req, ro)
+}
+
+// hasString checks to see if a sorted (ascending) array of strings contains a string
+func hasString(arr []string, s string) bool {
+	index := sort.SearchStrings(arr, s)
+	if index < 0 || index >= len(arr) {
+		return false
+	}
+
+	return arr[index] == s
 }

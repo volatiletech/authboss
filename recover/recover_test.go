@@ -2,12 +2,12 @@ package recover
 
 import (
 	"bytes"
-	"fmt"
-	"html/template"
-	"log"
+	"context"
+	"crypto/sha512"
+	"encoding/base64"
+	"errors"
 	"net/http"
 	"net/http/httptest"
-	"regexp"
 	"strings"
 	"testing"
 	"time"
@@ -17,518 +17,459 @@ import (
 )
 
 const (
-	testURLBase64Token = "MTIzNA=="
-	testStdBase64Token = "gdyb21LQTcIANtvYMT7QVQ=="
+	testSelector = `rnaGE8TDilrINHPxq/2xNU1FUTzsUSX8FvN5YzooyyWKk88fw1DjjbKBRGFtGew9OeZ+xeCC4mslfvQQMYspIg==`
+	testVerifier = `W1Mz30QhavVM4d8jKaFtxGBfb4GX+fOn7V0Pc1WeftgtyOtY5OX7sY9gIeY5CIY4n8LvfWy14W7/6rs2KO9pgA==`
+	testToken    = `w5OZ51E61Q6wsJOVr9o7KmyepP7Od5VBHQ1ADDUBkiGGMjKfnMFPjtvNpLjLKJqffw72KWZzNLj0Cs8wqywdEQ==`
 )
 
-func testSetup() (r *Recover, s *mocks.MockStorer, l *bytes.Buffer) {
-	s = mocks.NewMockStorer()
-	l = &bytes.Buffer{}
+func TestInit(t *testing.T) {
+	t.Parallel()
 
 	ab := authboss.New()
-	ab.Layout = template.Must(template.New("").Parse(`{{template "authboss" .}}`))
-	ab.LayoutHTMLEmail = template.Must(template.New("").Parse(`<strong>{{template "authboss" .}}</strong>`))
-	ab.LayoutTextEmail = template.Must(template.New("").Parse(`{{template "authboss" .}}`))
-	ab.Storer = s
-	ab.XSRFName = "xsrf"
-	ab.XSRFMaker = func(_ http.ResponseWriter, _ *http.Request) string {
-		return "xsrfvalue"
-	}
-	ab.PrimaryID = authboss.StoreUsername
-	ab.LogWriter = l
 
-	ab.Policies = []authboss.Validator{
-		authboss.Rules{
-			FieldName:       "username",
-			Required:        true,
-			MinLength:       2,
-			MaxLength:       4,
-			AllowWhitespace: false,
-		},
-		authboss.Rules{
-			FieldName:       "password",
-			Required:        true,
-			MinLength:       4,
-			MaxLength:       8,
-			AllowWhitespace: false,
-		},
+	router := &mocks.Router{}
+	renderer := &mocks.Renderer{}
+	mailRenderer := &mocks.Renderer{}
+	errHandler := &mocks.ErrorHandler{}
+	ab.Config.Core.Router = router
+	ab.Config.Core.ViewRenderer = renderer
+	ab.Config.Core.MailRenderer = mailRenderer
+	ab.Config.Core.ErrorHandler = errHandler
+
+	r := &Recover{}
+	if err := r.Init(ab); err != nil {
+		t.Fatal(err)
 	}
 
-	r = &Recover{}
-	if err := r.Initialize(ab); err != nil {
-		panic(err)
+	if err := renderer.HasLoadedViews(PageRecoverStart, PageRecoverEnd); err != nil {
+		t.Error(err)
+	}
+	if err := mailRenderer.HasLoadedViews(EmailRecoverHTML, EmailRecoverTxt); err != nil {
+		t.Error(err)
 	}
 
-	return r, s, l
+	if err := router.HasGets("/recover", "/recover/end"); err != nil {
+		t.Error(err)
+	}
+	if err := router.HasPosts("/recover", "/recover/end"); err != nil {
+		t.Error(err)
+	}
 }
 
-func testRequest(ab *authboss.Authboss, method string, postFormValues ...string) (*authboss.Context, *httptest.ResponseRecorder, *http.Request, authboss.ClientStorerErr) {
-	sessionStorer := mocks.NewMockClientStorer()
-	ctx := ab.NewContext()
-	r := mocks.MockRequest(method, postFormValues...)
-	ctx.SessionStorer = sessionStorer
+type testHarness struct {
+	recover *Recover
+	ab      *authboss.Authboss
 
-	return ctx, httptest.NewRecorder(), r, sessionStorer
+	bodyReader *mocks.BodyReader
+	mailer     *mocks.Emailer
+	redirector *mocks.Redirector
+	renderer   *mocks.Renderer
+	responder  *mocks.Responder
+	session    *mocks.ClientStateRW
+	storer     *mocks.ServerStorer
 }
 
-func TestRecover(t *testing.T) {
+func testSetup() *testHarness {
+	harness := &testHarness{}
+
+	harness.ab = authboss.New()
+	harness.bodyReader = &mocks.BodyReader{}
+	harness.mailer = &mocks.Emailer{}
+	harness.redirector = &mocks.Redirector{}
+	harness.renderer = &mocks.Renderer{}
+	harness.responder = &mocks.Responder{}
+	harness.session = mocks.NewClientRW()
+	harness.storer = mocks.NewServerStorer()
+
+	harness.ab.Paths.RecoverOK = "/recover/ok"
+
+	harness.ab.Config.Core.BodyReader = harness.bodyReader
+	harness.ab.Config.Core.Logger = mocks.Logger{}
+	harness.ab.Config.Core.Mailer = harness.mailer
+	harness.ab.Config.Core.Redirector = harness.redirector
+	harness.ab.Config.Core.MailRenderer = harness.renderer
+	harness.ab.Config.Core.Responder = harness.responder
+	harness.ab.Config.Storage.SessionState = harness.session
+	harness.ab.Config.Storage.Server = harness.storer
+
+	harness.recover = &Recover{harness.ab}
+
+	return harness
+}
+
+func TestStartGet(t *testing.T) {
 	t.Parallel()
 
-	r, _, _ := testSetup()
+	h := testSetup()
 
-	storage := r.Storage()
-	if storage[r.PrimaryID] != authboss.String {
-		t.Error("Expected storage KV:", r.PrimaryID, authboss.String)
-	}
-	if storage[authboss.StoreEmail] != authboss.String {
-		t.Error("Expected storage KV:", authboss.StoreEmail, authboss.String)
-	}
-	if storage[authboss.StorePassword] != authboss.String {
-		t.Error("Expected storage KV:", authboss.StorePassword, authboss.String)
-	}
-	if storage[StoreRecoverToken] != authboss.String {
-		t.Error("Expected storage KV:", StoreRecoverToken, authboss.String)
-	}
-	if storage[StoreRecoverTokenExpiry] != authboss.String {
-		t.Error("Expected storage KV:", StoreRecoverTokenExpiry, authboss.String)
-	}
+	r := mocks.Request("GET")
+	w := httptest.NewRecorder()
 
-	routes := r.Routes()
-	if routes["/recover"] == nil {
-		t.Error("Expected route '/recover' with handleFunc")
-	}
-	if routes["/recover/complete"] == nil {
-		t.Error("Expected route '/recover/complete' with handleFunc")
-	}
-}
-
-func TestRecover_startHandlerFunc_GET(t *testing.T) {
-	t.Parallel()
-
-	rec, _, _ := testSetup()
-	ctx, w, r, _ := testRequest(rec.Authboss, "GET")
-
-	if err := rec.startHandlerFunc(ctx, w, r); err != nil {
-		t.Error("Unexpected error:", err)
+	if err := h.recover.StartGet(w, r); err != nil {
+		t.Error(err)
 	}
 
 	if w.Code != http.StatusOK {
-		t.Error("Unexpected status:", w.Code)
+		t.Error("code was wrong:", w.Code)
 	}
-
-	body := w.Body.String()
-	if !strings.Contains(body, `<form action="recover"`) {
-		t.Error("Should have rendered a form")
+	if h.responder.Page != PageRecoverStart {
+		t.Error("page was wrong:", h.responder.Page)
 	}
-	if !strings.Contains(body, `name="`+rec.PrimaryID) {
-		t.Error("Form should contain the primary ID field")
-	}
-	if !strings.Contains(body, `name="confirm_`+rec.PrimaryID) {
-		t.Error("Form should contain the confirm primary ID field")
+	if h.responder.Data != nil {
+		t.Error("expected no data:", h.responder.Data)
 	}
 }
 
-func TestRecover_startHandlerFunc_POST_ValidationFails(t *testing.T) {
+func TestStartPostSuccess(t *testing.T) {
+	// no t.Parallel(), global var mangling
+
+	oldRecoverEmail := goRecoverEmail
+	goRecoverEmail = func(r *Recover, ctx context.Context, to, token string) {
+		r.SendRecoverEmail(ctx, to, token)
+	}
+
+	defer func() {
+		goRecoverEmail = oldRecoverEmail
+	}()
+
+	h := testSetup()
+
+	h.bodyReader.Return = &mocks.Values{
+		PID: "test@test.com",
+	}
+	h.storer.Users["test@test.com"] = &mocks.User{
+		Email:    "test@test.com",
+		Password: "i can't recall, doesn't seem like something bcrypted though",
+	}
+
+	r := mocks.Request("GET")
+	w := httptest.NewRecorder()
+
+	if err := h.recover.StartPost(w, r); err != nil {
+		t.Error(err)
+	}
+
+	if w.Code != http.StatusTemporaryRedirect {
+		t.Error("code was wrong:", w.Code)
+	}
+	if h.redirector.Options.RedirectPath != h.ab.Config.Paths.RecoverOK {
+		t.Error("page was wrong:", h.responder.Page)
+	}
+	if len(h.redirector.Options.Success) == 0 {
+		t.Error("expected a nice success message")
+	}
+
+	if h.mailer.Email.To[0] != "test@test.com" {
+		t.Error("e-mail to address is wrong:", h.mailer.Email.To)
+	}
+	if !strings.HasSuffix(h.mailer.Email.Subject, "Password Reset") {
+		t.Error("e-mail subject line is wrong:", h.mailer.Email.Subject)
+	}
+	if len(h.renderer.Data[DataRecoverURL].(string)) == 0 {
+		t.Errorf("the renderer's url in data was missing: %#v", h.renderer.Data)
+	}
+}
+
+func TestStartPostFailure(t *testing.T) {
 	t.Parallel()
 
-	rec, _, _ := testSetup()
-	ctx, w, r, _ := testRequest(rec.Authboss, "POST")
+	h := testSetup()
 
-	if err := rec.startHandlerFunc(ctx, w, r); err != nil {
-		t.Error("Unexpected error:", err)
+	h.bodyReader.Return = &mocks.Values{
+		PID: "test@test.com",
+	}
+
+	r := mocks.Request("GET")
+	w := httptest.NewRecorder()
+
+	if err := h.recover.StartPost(w, r); err != nil {
+		t.Error(err)
+	}
+
+	if w.Code != http.StatusTemporaryRedirect {
+		t.Error("code was wrong:", w.Code)
+	}
+	if h.redirector.Options.RedirectPath != h.ab.Config.Paths.RecoverOK {
+		t.Error("page was wrong:", h.responder.Page)
+	}
+	if len(h.redirector.Options.Success) == 0 {
+		t.Error("expected a nice success message")
+	}
+
+	if len(h.mailer.Email.To) != 0 {
+		t.Error("should not have sent an e-mail out!")
+	}
+}
+
+func TestEndGet(t *testing.T) {
+	t.Parallel()
+
+	h := testSetup()
+
+	h.bodyReader.Return = &mocks.Values{
+		Token: "abcd",
+	}
+
+	r := mocks.Request("GET")
+	w := httptest.NewRecorder()
+
+	if err := h.recover.EndGet(w, r); err != nil {
+		t.Error(err)
 	}
 
 	if w.Code != http.StatusOK {
-		t.Error("Unexpected status:", w.Code)
+		t.Error("code was wrong:", w.Code)
 	}
-
-	if !strings.Contains(w.Body.String(), "Cannot be blank") {
-		t.Error("Expected error about email being blank")
+	if h.responder.Page != PageRecoverEnd {
+		t.Error("page was wrong:", h.responder.Page)
 	}
-}
-
-func TestRecover_startHandlerFunc_POST_UserNotFound(t *testing.T) {
-	t.Parallel()
-
-	rec, _, _ := testSetup()
-	ctx, w, r, _ := testRequest(rec.Authboss, "POST", "username", "john", "confirm_username", "john")
-
-	err := rec.startHandlerFunc(ctx, w, r)
-	if err == nil {
-		t.Error("Expected error:", err)
-	}
-	rerr, ok := err.(authboss.ErrAndRedirect)
-	if !ok {
-		t.Error("Expected ErrAndRedirect error")
-	}
-
-	if rerr.Location != rec.RecoverOKPath {
-		t.Error("Unexpected location:", rerr.Location)
-	}
-
-	if rerr.FlashSuccess != recoverInitiateSuccessFlash {
-		t.Error("Unexpected success flash", rerr.FlashSuccess)
+	if h.responder.Data[DataRecoverToken].(string) != "abcd" {
+		t.Errorf("recovery token is wrong: %#v", h.responder.Data)
 	}
 }
 
-func TestRecover_startHandlerFunc_POST(t *testing.T) {
+func TestEndPostSuccess(t *testing.T) {
 	t.Parallel()
 
-	rec, storer, _ := testSetup()
+	h := testSetup()
 
-	storer.Users["john"] = authboss.Attributes{authboss.StoreUsername: "john", authboss.StoreEmail: "a@b.c"}
-
-	sentEmail := false
-	goRecoverEmail = func(_ *Recover, _ *authboss.Context, _, _ string) {
-		sentEmail = true
+	h.bodyReader.Return = &mocks.Values{
+		Token: testToken,
+	}
+	h.storer.Users["test@test.com"] = &mocks.User{
+		Email:              "test@test.com",
+		Password:           "to-overwrite",
+		RecoverSelector:    testSelector,
+		RecoverVerifier:    testVerifier,
+		RecoverTokenExpiry: time.Now().UTC().AddDate(0, 0, 1),
 	}
 
-	ctx, w, r, sessionStorer := testRequest(rec.Authboss, "POST", "username", "john", "confirm_username", "john")
+	r := mocks.Request("POST")
+	w := httptest.NewRecorder()
 
-	if err := rec.startHandlerFunc(ctx, w, r); err != nil {
-		t.Error("Unexpected error:", err)
+	if err := h.recover.EndPost(w, r); err != nil {
+		t.Error(err)
 	}
 
-	if !sentEmail {
-		t.Error("Expected email to have been sent")
+	if w.Code != http.StatusTemporaryRedirect {
+		t.Error("code was wrong:", w.Code)
 	}
-
-	if val, err := storer.Users["john"].StringErr(StoreRecoverToken); err != nil {
-		t.Error("Unexpected error:", err)
-	} else if len(val) <= 0 {
-		t.Error("Unexpected Recover Token to be set")
+	if p := h.redirector.Options.RedirectPath; p != h.ab.Paths.RecoverOK {
+		t.Error("path was wrong:", p)
 	}
-
-	if val, err := storer.Users["john"].DateTimeErr(StoreRecoverTokenExpiry); err != nil {
-		t.Error("Unexpected error:", err)
-	} else if !val.After(time.Now()) {
-		t.Error("Expected recovery token expiry to be greater than now")
+	if len(h.session.ClientValues[authboss.SessionKey]) != 0 {
+		t.Error("should not have logged in the user")
 	}
-
-	if w.Code != http.StatusFound {
-		t.Error("Unexpected status:", w.Code)
+	if !strings.Contains(h.redirector.Options.Success, "updated password") {
+		t.Error("should talk about recovering the password")
 	}
-
-	loc := w.Header().Get("Location")
-	if loc != rec.RecoverOKPath {
-		t.Error("Unexpected location:", loc)
-	}
-
-	if value, ok := sessionStorer.Get(authboss.FlashSuccessKey); !ok {
-		t.Error("Expected success flash message")
-	} else if value != recoverInitiateSuccessFlash {
-		t.Error("Unexpected success flash message")
+	if strings.Contains(h.redirector.Options.Success, "logged in") {
+		t.Error("should not talk about logging in")
 	}
 }
 
-func TestRecover_startHandlerFunc_OtherMethods(t *testing.T) {
+func TestEndPostSuccessLogin(t *testing.T) {
 	t.Parallel()
 
-	rec, _, _ := testSetup()
+	h := testSetup()
 
-	methods := []string{"HEAD", "PUT", "DELETE", "TRACE", "CONNECT"}
+	h.ab.Config.Modules.RecoverLoginAfterRecovery = true
+	h.bodyReader.Return = &mocks.Values{
+		Token: testToken,
+	}
+	h.storer.Users["test@test.com"] = &mocks.User{
+		Email:              "test@test.com",
+		Password:           "to-overwrite",
+		RecoverSelector:    testSelector,
+		RecoverVerifier:    testVerifier,
+		RecoverTokenExpiry: time.Now().UTC().AddDate(0, 0, 1),
+	}
 
-	for i, method := range methods {
-		_, w, r, _ := testRequest(rec.Authboss, method)
+	r := mocks.Request("POST")
+	w := httptest.NewRecorder()
 
-		if err := rec.startHandlerFunc(nil, w, r); err != nil {
-			t.Errorf("%d> Unexpected error: %s", i, err)
-		}
+	if err := h.recover.EndPost(h.ab.NewResponse(w), r); err != nil {
+		t.Error(err)
+	}
 
-		if http.StatusMethodNotAllowed != w.Code {
-			t.Errorf("%d> Expected status code %d, got %d", i, http.StatusMethodNotAllowed, w.Code)
-			continue
-		}
+	if w.Code != http.StatusTemporaryRedirect {
+		t.Error("code was wrong:", w.Code)
+	}
+	if p := h.redirector.Options.RedirectPath; p != h.ab.Paths.RecoverOK {
+		t.Error("path was wrong:", p)
+	}
+	if len(h.session.ClientValues[authboss.SessionKey]) == 0 {
+		t.Error("it should have logged in the user")
+	}
+	if !strings.Contains(h.redirector.Options.Success, "logged in") {
+		t.Error("should talk about logging in")
 	}
 }
 
-func TestRecover_newToken(t *testing.T) {
+func TestEndPostValidationFailure(t *testing.T) {
 	t.Parallel()
 
-	regexURL := regexp.MustCompile(`^(?:[A-Za-z0-9-_]{4})*(?:[A-Za-z0-9-_]{2}==|[A-Za-z0-9-_]{3}=)?$`)
-	regexSTD := regexp.MustCompile(`^(?:[A-Za-z0-9+/]{4})*(?:[A-Za-z0-9+/]{2}==|[A-Za-z0-9+/]{3}=)?$`)
+	h := testSetup()
 
-	encodedToken, encodedSum, _ := newToken()
-
-	if !regexURL.MatchString(encodedToken) {
-		t.Error("Expected encodedToken to be base64 encoded")
+	h.bodyReader.Return = &mocks.Values{
+		Errors: []error{errors.New("password is not sufficiently complex")},
+	}
+	h.storer.Users["test@test.com"] = &mocks.User{
+		Email:              "test@test.com",
+		Password:           "to-overwrite",
+		RecoverSelector:    testSelector,
+		RecoverVerifier:    testVerifier,
+		RecoverTokenExpiry: time.Now().UTC().AddDate(0, 0, 1),
 	}
 
-	if !regexSTD.MatchString(encodedSum) {
-		t.Error("Expected encodedSum to be base64 encoded")
-	}
-}
+	r := mocks.Request("POST")
+	w := httptest.NewRecorder()
 
-func TestRecover_sendRecoverMail_FailToSend(t *testing.T) {
-	t.Parallel()
-
-	r, _, logger := testSetup()
-
-	mailer := mocks.NewMockMailer()
-	mailer.SendErr = "failed to send"
-	r.Mailer = mailer
-
-	r.sendRecoverEmail(r.NewContext(), "", "")
-
-	if !strings.Contains(logger.String(), "failed to send") {
-		t.Error("Expected logged to have msg:", "failed to send")
-	}
-}
-
-func TestRecover_sendRecoverEmail(t *testing.T) {
-	t.Parallel()
-
-	r, _, _ := testSetup()
-
-	mailer := mocks.NewMockMailer()
-	r.EmailSubjectPrefix = "foo "
-	r.RootURL = "bar"
-	r.Mailer = mailer
-
-	r.sendRecoverEmail(r.NewContext(), "a@b.c", "abc=")
-	if len(mailer.Last.To) != 1 {
-		t.Error("Expected 1 to email")
-	}
-	if mailer.Last.To[0] != "a@b.c" {
-		t.Error("Unexpected to email:", mailer.Last.To[0])
-	}
-	if mailer.Last.Subject != "foo Password Reset" {
-		t.Error("Unexpected subject:", mailer.Last.Subject)
-	}
-
-	url := fmt.Sprintf("%s/recover/complete?token=abc%%3D", r.RootURL)
-	if !strings.Contains(mailer.Last.HTMLBody, url) {
-		t.Error("Expected HTMLBody to contain url:", url)
-	}
-	if !strings.Contains(mailer.Last.TextBody, url) {
-		t.Error("Expected TextBody to contain url:", url)
-	}
-}
-
-func TestRecover_completeHandlerFunc_GET_VerifyFails(t *testing.T) {
-	t.Parallel()
-
-	rec, storer, _ := testSetup()
-
-	ctx, w, r, _ := testRequest(rec.Authboss, "GET", "token", testURLBase64Token)
-
-	err := rec.completeHandlerFunc(ctx, w, r)
-	rerr, ok := err.(authboss.ErrAndRedirect)
-	if !ok {
-		t.Error("Expected ErrAndRedirect:", err)
-	}
-	if rerr.Location != "/" {
-		t.Error("Unexpected location:", rerr.Location)
-	}
-
-	var zeroTime time.Time
-	storer.Users["john"] = authboss.Attributes{StoreRecoverToken: testStdBase64Token, StoreRecoverTokenExpiry: zeroTime}
-
-	ctx, w, r, _ = testRequest(rec.Authboss, "GET", "token", testURLBase64Token)
-
-	err = rec.completeHandlerFunc(ctx, w, r)
-	rerr, ok = err.(authboss.ErrAndRedirect)
-	if !ok {
-		t.Error("Expected ErrAndRedirect")
-	}
-	if rerr.Location != "/recover" {
-		t.Error("Unexpected location:", rerr.Location)
-	}
-	if rerr.FlashError != recoverTokenExpiredFlash {
-		t.Error("Unexpcted flash error:", rerr.FlashError)
-	}
-}
-
-func TestRecover_completeHandlerFunc_GET(t *testing.T) {
-	t.Parallel()
-
-	rec, storer, _ := testSetup()
-
-	storer.Users["john"] = authboss.Attributes{StoreRecoverToken: testStdBase64Token, StoreRecoverTokenExpiry: time.Now().Add(1 * time.Hour)}
-
-	ctx, w, r, _ := testRequest(rec.Authboss, "GET", "token", testURLBase64Token)
-
-	if err := rec.completeHandlerFunc(ctx, w, r); err != nil {
-		t.Error("Unexpected error:", err)
+	if err := h.recover.EndPost(w, r); err != nil {
+		t.Error(err)
 	}
 
 	if w.Code != http.StatusOK {
-		t.Error("Unexpected status:", w.Code)
+		t.Error("code was wrong:", w.Code)
 	}
-
-	body := w.Body.String()
-	if !strings.Contains(body, `<form action="recover/complete"`) {
-		t.Error("Should have rendered a form")
+	if h.responder.Page != PageRecoverEnd {
+		t.Error("rendered the wrong page")
 	}
-	if !strings.Contains(body, `name="password"`) {
-		t.Error("Form should contain the password field")
+	if m, ok := h.responder.Data[authboss.DataValidation].(map[string][]string); !ok {
+		t.Error("expected validation errors")
+	} else if m[""][0] != "password is not sufficiently complex" {
+		t.Error("error message data was not correct:", m[""])
 	}
-	if !strings.Contains(body, `name="confirm_password"`) {
-		t.Error("Form should contain the confirm password field")
-	}
-	if !strings.Contains(body, `name="token"`) {
-		t.Error("Form should contain the token field")
+	if len(h.session.ClientValues[authboss.SessionKey]) != 0 {
+		t.Error("should not have logged in the user")
 	}
 }
 
-func TestRecover_completeHandlerFunc_POST_TokenMissing(t *testing.T) {
+func TestEndPostInvalidBase64(t *testing.T) {
 	t.Parallel()
 
-	rec, _, _ := testSetup()
-	ctx, w, r, _ := testRequest(rec.Authboss, "POST")
+	h := testSetup()
 
-	err := rec.completeHandlerFunc(ctx, w, r)
-	if err == nil || err.Error() != "Failed to retrieve client attribute: token" {
-		t.Error("Unexpected error:", err)
+	h.bodyReader.Return = &mocks.Values{
+		Token: "a",
 	}
 
+	r := mocks.Request("GET")
+	w := httptest.NewRecorder()
+
+	if err := h.recover.EndPost(w, r); err != nil {
+		t.Error(err)
+	}
+
+	invalidCheck(t, h, w)
 }
 
-func TestRecover_completeHandlerFunc_POST_ValidationFails(t *testing.T) {
+func TestEndPostExpiredToken(t *testing.T) {
 	t.Parallel()
 
-	rec, _, _ := testSetup()
-	ctx, w, r, _ := testRequest(rec.Authboss, "POST", "token", testURLBase64Token)
+	h := testSetup()
 
-	if err := rec.completeHandlerFunc(ctx, w, r); err != nil {
-		t.Error("Unexpected error:", err)
+	h.bodyReader.Return = &mocks.Values{
+		Token: testToken,
 	}
+	h.storer.Users["test@test.com"] = &mocks.User{
+		Email:              "test@test.com",
+		Password:           "to-overwrite",
+		RecoverSelector:    testSelector,
+		RecoverVerifier:    testVerifier,
+		RecoverTokenExpiry: time.Now().UTC().AddDate(0, 0, -1),
+	}
+
+	r := mocks.Request("GET")
+	w := httptest.NewRecorder()
+
+	if err := h.recover.EndPost(w, r); err != nil {
+		t.Error(err)
+	}
+
+	invalidCheck(t, h, w)
+}
+
+func TestEndPostUserNotExist(t *testing.T) {
+	t.Parallel()
+
+	h := testSetup()
+
+	h.bodyReader.Return = &mocks.Values{
+		Token: testToken,
+	}
+
+	r := mocks.Request("GET")
+	w := httptest.NewRecorder()
+
+	if err := h.recover.EndPost(w, r); err != nil {
+		t.Error(err)
+	}
+
+	invalidCheck(t, h, w)
+}
+
+func invalidCheck(t *testing.T, h *testHarness, w *httptest.ResponseRecorder) {
+	t.Helper()
 
 	if w.Code != http.StatusOK {
-		t.Error("Unexpected status:", w.Code)
+		t.Error("code was wrong:", w.Code)
 	}
-
-	if !strings.Contains(w.Body.String(), "Cannot be blank") {
-		t.Error("Expected error about password being blank")
+	if h.responder.Page != PageRecoverEnd {
+		t.Error("page was wrong:", h.responder.Page)
 	}
-}
-
-func TestRecover_completeHandlerFunc_POST_VerificationFails(t *testing.T) {
-	t.Parallel()
-
-	rec, _, _ := testSetup()
-	ctx, w, r, _ := testRequest(rec.Authboss, "POST", "token", testURLBase64Token, authboss.StorePassword, "abcd", "confirm_"+authboss.StorePassword, "abcd")
-
-	if err := rec.completeHandlerFunc(ctx, w, r); err == nil {
-		log.Println(w.Body.String())
-		t.Error("Expected error")
+	if h.responder.Data[authboss.DataValidation].(map[string][]string)[""][0] != "recovery token is invalid" {
+		t.Error("expected a vague error to mislead")
 	}
 }
 
-func TestRecover_completeHandlerFunc_POST(t *testing.T) {
+func TestGenerateRecoverCreds(t *testing.T) {
 	t.Parallel()
 
-	rec, storer, _ := testSetup()
-
-	storer.Users["john"] = authboss.Attributes{rec.PrimaryID: "john", StoreRecoverToken: testStdBase64Token, StoreRecoverTokenExpiry: time.Now().Add(1 * time.Hour), authboss.StorePassword: "asdf"}
-
-	cbCalled := false
-
-	rec.Callbacks = authboss.NewCallbacks()
-	rec.Callbacks.After(authboss.EventPasswordReset, func(_ *authboss.Context) error {
-		cbCalled = true
-		return nil
-	})
-
-	rec.Authboss.AllowLoginAfterResetPassword = false
-
-	ctx, w, r, sessionStorer := testRequest(rec.Authboss, "POST", "token", testURLBase64Token, authboss.StorePassword, "abcd", "confirm_"+authboss.StorePassword, "abcd")
-
-	if err := rec.completeHandlerFunc(ctx, w, r); err != nil {
-		t.Error("Unexpected error:", err)
-	}
-
-	var zeroTime time.Time
-
-	u := storer.Users["john"]
-	if password, ok := u.String(authboss.StorePassword); !ok || password == "asdf" {
-		t.Error("Expected password to have been reset")
-	}
-
-	if recToken, ok := u.String(StoreRecoverToken); !ok || recToken != "" {
-		t.Error("Expected recovery token to have been zeroed")
-	}
-
-	if reCExpiry, ok := u.DateTime(StoreRecoverTokenExpiry); !ok || !reCExpiry.Equal(zeroTime) {
-		t.Error("Expected recovery token expiry to have been zeroed")
-	}
-
-	if !cbCalled {
-		t.Error("Expected EventPasswordReset callback to have been fired")
-	}
-
-	if _, ok := sessionStorer.Get(authboss.SessionKey); ok {
-		t.Error("Should not have logged the user in since AllowInsecureLoginAfterConfirm is false.")
-	}
-
-	if w.Code != http.StatusFound {
-		t.Error("Unexpected status:", w.Code)
-	}
-
-	loc := w.Header().Get("Location")
-	if loc != rec.AuthLogoutOKPath {
-		t.Error("Unexpected location:", loc)
-	}
-}
-
-func Test_verifyToken_MissingToken(t *testing.T) {
-	t.Parallel()
-
-	testSetup()
-	r := mocks.MockRequest("GET")
-
-	if _, err := verifyToken(nil, r); err == nil {
-		t.Error("Expected error about missing token")
-	}
-}
-
-func Test_verifyToken_InvalidToken(t *testing.T) {
-	t.Parallel()
-
-	rec, storer, _ := testSetup()
-	storer.Users["a"] = authboss.Attributes{
-		StoreRecoverToken: testStdBase64Token,
-	}
-
-	ctx := rec.Authboss.NewContext()
-	req, _ := http.NewRequest("GET", "/?token=asdf", nil)
-	if _, err := verifyToken(ctx, req); err != authboss.ErrUserNotFound {
-		t.Error("Unexpected error:", err)
-	}
-}
-
-func Test_verifyToken_ExpiredToken(t *testing.T) {
-	t.Parallel()
-
-	rec, storer, _ := testSetup()
-	storer.Users["a"] = authboss.Attributes{
-		StoreRecoverToken:       testStdBase64Token,
-		StoreRecoverTokenExpiry: time.Now().Add(time.Duration(-24) * time.Hour),
-	}
-
-	ctx := rec.Authboss.NewContext()
-	req, _ := http.NewRequest("GET", "/?token="+testURLBase64Token, nil)
-	if _, err := verifyToken(ctx, req); err != errRecoveryTokenExpired {
-		t.Error("Unexpected error:", err)
-	}
-}
-
-func Test_verifyToken(t *testing.T) {
-	t.Parallel()
-
-	rec, storer, _ := testSetup()
-	storer.Users["a"] = authboss.Attributes{
-		StoreRecoverToken:       testStdBase64Token,
-		StoreRecoverTokenExpiry: time.Now().Add(time.Duration(24) * time.Hour),
-	}
-
-	ctx := rec.Authboss.NewContext()
-	req, _ := http.NewRequest("GET", "/?token="+testURLBase64Token, nil)
-	attrs, err := verifyToken(ctx, req)
+	selector, verifier, token, err := GenerateRecoverCreds()
 	if err != nil {
-		t.Error("Unexpected error:", err)
+		t.Error(err)
 	}
-	if attrs == nil {
-		t.Error("Unexpected nil attrs")
+
+	if verifier == selector {
+		t.Error("the verifier and selector should be different")
+	}
+
+	// base64 length: n = 64; 4*(64/3) = 85.3; round to nearest 4: 88
+	if len(verifier) != 88 {
+		t.Errorf("verifier length was wrong (%d): %s", len(verifier), verifier)
+	}
+
+	// base64 length: n = 64; 4*(64/3) = 85.3; round to nearest 4: 88
+	if len(selector) != 88 {
+		t.Errorf("selector length was wrong (%d): %s", len(selector), selector)
+	}
+
+	// base64 length: n = 64; 4*(64/3) = 85.33; round to nearest 4: 88
+	if len(token) != 88 {
+		t.Errorf("token length was wrong (%d): %s", len(token), token)
+	}
+
+	rawToken, err := base64.URLEncoding.DecodeString(token)
+	if err != nil {
+		t.Error(err)
+	}
+
+	rawSelector, err := base64.StdEncoding.DecodeString(selector)
+	if err != nil {
+		t.Error(err)
+	}
+	rawVerifier, err := base64.StdEncoding.DecodeString(verifier)
+	if err != nil {
+		t.Error(err)
+	}
+
+	checkSelector := sha512.Sum512(rawToken[:recoverTokenSplit])
+	if 0 != bytes.Compare(checkSelector[:], rawSelector) {
+		t.Error("expected selector to match")
+	}
+	checkVerifier := sha512.Sum512(rawToken[recoverTokenSplit:])
+	if 0 != bytes.Compare(checkVerifier[:], rawVerifier) {
+		t.Error("expected verifier to match")
 	}
 }

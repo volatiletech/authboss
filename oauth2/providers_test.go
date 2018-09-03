@@ -1,28 +1,28 @@
 package oauth2
 
 import (
+	"context"
 	"io/ioutil"
 	"net/http"
 	"strings"
 	"testing"
 	"time"
 
-	"golang.org/x/net/context"
 	"golang.org/x/oauth2"
-	"github.com/volatiletech/authboss"
 )
 
-func TestGoogle(t *testing.T) {
-	saveClientGet := clientGet
-	defer func() {
-		clientGet = saveClientGet
-	}()
-
+func init() {
+	// This has an extra parameter that the Google client wouldn't normally get, but it'll safely be
+	// ignored.
 	clientGet = func(_ *http.Client, url string) (*http.Response, error) {
 		return &http.Response{
-			Body: ioutil.NopCloser(strings.NewReader(`{"id":"id", "email":"email"}`)),
+			Body: ioutil.NopCloser(strings.NewReader(`{"id":"id", "email":"email", "name": "name"}`)),
 		}, nil
 	}
+}
+
+func TestGoogle(t *testing.T) {
+	t.Parallel()
 
 	cfg := *testProviders["google"].OAuth2Config
 	tok := &oauth2.Token{
@@ -32,30 +32,21 @@ func TestGoogle(t *testing.T) {
 		Expiry:       time.Now().Add(60 * time.Minute),
 	}
 
-	user, err := Google(context.TODO(), cfg, tok)
+	details, err := GoogleUserDetails(context.Background(), cfg, tok)
 	if err != nil {
 		t.Error(err)
 	}
 
-	if uid, ok := user[authboss.StoreOAuth2UID]; !ok || uid != "id" {
+	if uid, ok := details[OAuth2UID]; !ok || uid != "id" {
 		t.Error("UID wrong:", uid)
 	}
-	if email, ok := user[authboss.StoreEmail]; !ok || email != "email" {
+	if email, ok := details[OAuth2Email]; !ok || email != "email" {
 		t.Error("Email wrong:", email)
 	}
 }
 
 func TestFacebook(t *testing.T) {
-	saveClientGet := clientGet
-	defer func() {
-		clientGet = saveClientGet
-	}()
-
-	clientGet = func(_ *http.Client, url string) (*http.Response, error) {
-		return &http.Response{
-			Body: ioutil.NopCloser(strings.NewReader(`{"id":"id", "email":"email", "name":"name"}`)),
-		}, nil
-	}
+	t.Parallel()
 
 	cfg := *testProviders["facebook"].OAuth2Config
 	tok := &oauth2.Token{
@@ -65,18 +56,18 @@ func TestFacebook(t *testing.T) {
 		Expiry:       time.Now().Add(60 * time.Minute),
 	}
 
-	user, err := Facebook(context.TODO(), cfg, tok)
+	details, err := FacebookUserDetails(context.Background(), cfg, tok)
 	if err != nil {
 		t.Error(err)
 	}
 
-	if uid, ok := user[authboss.StoreOAuth2UID]; !ok || uid != "id" {
+	if uid, ok := details[OAuth2UID]; !ok || uid != "id" {
 		t.Error("UID wrong:", uid)
 	}
-	if email, ok := user[authboss.StoreEmail]; !ok || email != "email" {
+	if email, ok := details[OAuth2Email]; !ok || email != "email" {
 		t.Error("Email wrong:", email)
 	}
-	if name, ok := user["name"]; !ok || name != "name" {
+	if name, ok := details[OAuth2Name]; !ok || name != "name" {
 		t.Error("Name wrong:", name)
 	}
 }

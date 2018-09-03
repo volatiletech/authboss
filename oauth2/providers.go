@@ -1,12 +1,20 @@
 package oauth2
 
 import (
+	"context"
 	"encoding/json"
+	"io/ioutil"
 	"net/http"
 
-	"golang.org/x/net/context"
+	"github.com/pkg/errors"
 	"golang.org/x/oauth2"
-	"github.com/volatiletech/authboss"
+)
+
+// Constants for returning in the FindUserDetails call
+const (
+	OAuth2UID   = "uid"
+	OAuth2Email = "email"
+	OAuth2Name  = "name"
 )
 
 const (
@@ -22,8 +30,8 @@ type googleMeResponse struct {
 // testing
 var clientGet = (*http.Client).Get
 
-// Google is a callback appropriate for use with Google's OAuth2 configuration.
-func Google(ctx context.Context, cfg oauth2.Config, token *oauth2.Token) (authboss.Attributes, error) {
+// GoogleUserDetails can be used as a FindUserDetails function for an authboss.OAuth2Provider
+func GoogleUserDetails(ctx context.Context, cfg oauth2.Config, token *oauth2.Token) (map[string]string, error) {
 	client := cfg.Client(ctx, token)
 	resp, err := clientGet(client, googleInfoEndpoint)
 	if err != nil {
@@ -31,15 +39,19 @@ func Google(ctx context.Context, cfg oauth2.Config, token *oauth2.Token) (authbo
 	}
 
 	defer resp.Body.Close()
-	dec := json.NewDecoder(resp.Body)
-	var jsonResp googleMeResponse
-	if err = dec.Decode(&jsonResp); err != nil {
+	byt, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to read body from google oauth2 endpoint")
+	}
+
+	var response googleMeResponse
+	if err = json.Unmarshal(byt, &response); err != nil {
 		return nil, err
 	}
 
-	return authboss.Attributes{
-		authboss.StoreOAuth2UID: jsonResp.ID,
-		authboss.StoreEmail:     jsonResp.Email,
+	return map[string]string{
+		OAuth2UID:   response.ID,
+		OAuth2Email: response.Email,
 	}, nil
 }
 
@@ -49,8 +61,8 @@ type facebookMeResponse struct {
 	Name  string `json:"name"`
 }
 
-// Facebook is a callback appropriate for use with Facebook's OAuth2 configuration.
-func Facebook(ctx context.Context, cfg oauth2.Config, token *oauth2.Token) (authboss.Attributes, error) {
+// FacebookUserDetails can be used as a FindUserDetails function for an authboss.OAuth2Provider
+func FacebookUserDetails(ctx context.Context, cfg oauth2.Config, token *oauth2.Token) (map[string]string, error) {
 	client := cfg.Client(ctx, token)
 	resp, err := clientGet(client, facebookInfoEndpoint)
 	if err != nil {
@@ -58,15 +70,19 @@ func Facebook(ctx context.Context, cfg oauth2.Config, token *oauth2.Token) (auth
 	}
 
 	defer resp.Body.Close()
-	dec := json.NewDecoder(resp.Body)
-	var jsonResp facebookMeResponse
-	if err = dec.Decode(&jsonResp); err != nil {
-		return nil, err
+	byt, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to read body from facebook oauth2 endpoint")
 	}
 
-	return authboss.Attributes{
-		"name":                  jsonResp.Name,
-		authboss.StoreOAuth2UID: jsonResp.ID,
-		authboss.StoreEmail:     jsonResp.Email,
+	var response facebookMeResponse
+	if err = json.Unmarshal(byt, &response); err != nil {
+		return nil, errors.Wrap(err, "failed to parse json from facebook oauth2 endpoint")
+	}
+
+	return map[string]string{
+		OAuth2UID:   response.ID,
+		OAuth2Email: response.Email,
+		OAuth2Name:  response.Name,
 	}, nil
 }

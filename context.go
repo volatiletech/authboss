@@ -1,110 +1,162 @@
 package authboss
 
 import (
-	"errors"
+	"context"
 	"net/http"
-	"strings"
 )
 
-// FormValue constants
-var (
-	FormValueRedirect    = "redir"
-	FormValueOAuth2State = "state"
+type contextKey string
+
+// CTX Keys for authboss
+const (
+	CTXKeyPID  contextKey = "pid"
+	CTXKeyUser contextKey = "user"
+
+	CTXKeySessionState contextKey = "session"
+	CTXKeyCookieState  contextKey = "cookie"
+
+	// CTXKeyData is a context key for the accumulating
+	// map[string]interface{} (authboss.HTMLData) to pass to the
+	// renderer
+	CTXKeyData contextKey = "data"
+
+	// CTXKeyValues is to pass the data submitted from API request or form
+	// along in the context in case modules need it. The only module that needs
+	// user information currently is remember so only auth/oauth2 are currently
+	// going to use this.
+	CTXKeyValues contextKey = "values"
 )
 
-// Context provides context for module operations and callbacks. One obvious
-// need for context is a request's session store. It is not safe for use by
-// multiple goroutines.
-type Context struct {
-	*Authboss
-
-	SessionStorer ClientStorerErr
-	CookieStorer  ClientStorerErr
-	User          Attributes
-
-	// Values is a free-form key-value store to pass data to callbacks
-	Values map[string]string
+func (c contextKey) String() string {
+	return "authboss ctx key " + string(c)
 }
 
-// NewContext is exported for testing modules.
-func (a *Authboss) NewContext() *Context {
-	return &Context{
-		Authboss: a,
+// CurrentUserID retrieves the current user from the session.
+func (a *Authboss) CurrentUserID(r *http.Request) (string, error) {
+	if pid := r.Context().Value(CTXKeyPID); pid != nil {
+		return pid.(string), nil
 	}
+
+	pid, _ := GetSession(r, SessionKey)
+	return pid, nil
 }
 
-func (a *Authboss) InitContext(w http.ResponseWriter, r *http.Request) *Context {
-	ctx := a.NewContext()
-
-	if ctx.StoreMaker != nil {
-		ctx.Storer = ctx.StoreMaker(w, r)
-	}
-
-	if ctx.OAuth2StoreMaker != nil {
-		ctx.OAuth2Storer = ctx.OAuth2StoreMaker(w, r)
-	}
-
-	if ctx.LogWriteMaker != nil {
-		ctx.LogWriter = ctx.LogWriteMaker(w, r)
-	}
-
-	if ctx.MailMaker != nil {
-		ctx.Mailer = ctx.MailMaker(w, r)
-	}
-
-	ctx.SessionStorer = clientStoreWrapper{a.SessionStoreMaker(w, r)}
-	ctx.CookieStorer = clientStoreWrapper{a.CookieStoreMaker(w, r)}
-
-	return ctx
-}
-
-// LoadUser loads the user Attributes if they haven't already been loaded.
-func (c *Context) LoadUser(key string) error {
-	if c.User != nil {
-		return nil
-	}
-
-	var user interface{}
-	var err error
-
-	if index := strings.IndexByte(key, ';'); index > 0 {
-		user, err = c.OAuth2Storer.GetOAuth(key[:index], key[index+1:])
-	} else {
-		user, err = c.Storer.Get(key)
-	}
+// CurrentUserIDP retrieves the current user but panics if it's not available for
+// any reason.
+func (a *Authboss) CurrentUserIDP(r *http.Request) string {
+	i, err := a.CurrentUserID(r)
 	if err != nil {
-		return err
+		panic(err)
+	} else if len(i) == 0 {
+		panic(ErrUserNotFound)
 	}
 
-	c.User = Unbind(user)
-	return nil
+	return i
 }
 
-// LoadSessionUser loads the user from the session if the user has not already been
-// loaded.
-func (c *Context) LoadSessionUser() error {
-	if c.User != nil {
-		return nil
+// CurrentUser retrieves the current user from the session and the database.
+// Before the user is loaded from the database the context key is checked.
+// If the session doesn't have the user ID ErrUserNotFound will be returned.
+func (a *Authboss) CurrentUser(r *http.Request) (User, error) {
+	if user := r.Context().Value(CTXKeyUser); user != nil {
+		return user.(User), nil
 	}
 
-	key, ok := c.SessionStorer.Get(SessionKey)
-	if !ok {
-		return ErrUserNotFound
+	pid, err := a.CurrentUserID(r)
+	if err != nil {
+		return nil, err
+	} else if len(pid) == 0 {
+		return nil, ErrUserNotFound
 	}
 
-	return c.LoadUser(key)
+	return a.currentUser(r.Context(), pid)
 }
 
-// SaveUser saves the user Attributes.
-func (c *Context) SaveUser() error {
-	if c.User == nil {
-		return errors.New("User not initialized.")
+// CurrentUserP retrieves the current user but panics if it's not available for
+// any reason.
+func (a *Authboss) CurrentUserP(r *http.Request) User {
+	i, err := a.CurrentUser(r)
+	if err != nil {
+		panic(err)
+	} else if i == nil {
+		panic(ErrUserNotFound)
+	}
+	return i
+}
+
+func (a *Authboss) currentUser(ctx context.Context, pid string) (User, error) {
+	return a.Storage.Server.Load(ctx, pid)
+}
+
+// LoadCurrentUserID takes a pointer to a pointer to the request in order to
+// change the current method's request pointer itself to the new request that
+// contains the new context that has the pid in it.
+func (a *Authboss) LoadCurrentUserID(r **http.Request) (string, error) {
+	pid, err := a.CurrentUserID(*r)
+	if err != nil {
+		return "", err
 	}
 
-	key, ok := c.User.String(c.PrimaryID)
-	if !ok {
-		return errors.New("User improperly initialized, primary ID missing")
+	if len(pid) == 0 {
+		return "", nil
 	}
 
-	return c.Storer.Put(key, c.User)
+	ctx := context.WithValue((**r).Context(), CTXKeyPID, pid)
+	*r = (**r).WithContext(ctx)
+
+	return pid, nil
+}
+
+// LoadCurrentUserIDP loads the current user id and panics if it's not found
+func (a *Authboss) LoadCurrentUserIDP(r **http.Request) string {
+	pid, err := a.LoadCurrentUserID(r)
+	if err != nil {
+		panic(err)
+	} else if len(pid) == 0 {
+		panic(ErrUserNotFound)
+	}
+
+	return pid
+}
+
+// LoadCurrentUser takes a pointer to a pointer to the request in order to
+// change the current method's request pointer itself to the new request that
+// contains the new context that has the user in it. Calls LoadCurrentUserID
+// so the primary id is also put in the context.
+func (a *Authboss) LoadCurrentUser(r **http.Request) (User, error) {
+	if user := (*r).Context().Value(CTXKeyUser); user != nil {
+		return user.(User), nil
+	}
+
+	pid, err := a.LoadCurrentUserID(r)
+	if err != nil {
+		return nil, err
+	}
+
+	if len(pid) == 0 {
+		return nil, nil
+	}
+
+	ctx := (**r).Context()
+	user, err := a.currentUser(ctx, pid)
+	if err != nil {
+		return nil, err
+	}
+
+	ctx = context.WithValue(ctx, CTXKeyUser, user)
+	*r = (**r).WithContext(ctx)
+	return user, nil
+}
+
+// LoadCurrentUserP does the same as LoadCurrentUser but panics if
+// the current user is not found.
+func (a *Authboss) LoadCurrentUserP(r **http.Request) User {
+	user, err := a.LoadCurrentUser(r)
+	if err != nil {
+		panic(err)
+	} else if user == nil {
+		panic(ErrUserNotFound)
+	}
+
+	return user
 }

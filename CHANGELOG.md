@@ -3,14 +3,13 @@
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
-## [2.0.0-rc7] - 2018-08-31
+## [2.0.0] - 2018-09-03
 
 ### Added
 
 - Add sms2fa and totp2fa packages so users can use two factor authentication
 - Add twofactor package to enable 2fa recovery codes for sms2fa and totp2fa
-- Add OTP module so users can create one time passwords and use them to
-  log in.
+- Add OTP module so users can create one time passwords and use them to log in.
 - Add more documentation about how RegisterPreserveFields works so people
   don't have to chase the godocs to figure out how to implement it.
 

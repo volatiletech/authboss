@@ -267,7 +267,9 @@ func Middleware(ab *authboss.Authboss) func(http.Handler) http.Handler {
 				Failure:      "Your account has not been confirmed, please check your e-mail.",
 				RedirectPath: ab.Config.Paths.ConfirmNotOK,
 			}
-			ab.Config.Core.Redirector.Redirect(w, r, ro)
+			if err := ab.Config.Core.Redirector.Redirect(w, r, ro); err != nil {
+				logger.Errorf("error redirecting in confirm.Middleware: #%v", err)
+			}
 		})
 	}
 }

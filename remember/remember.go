@@ -19,10 +19,6 @@ const (
 	nNonceSize = 32
 )
 
-var (
-	errUserMissing = errors.New("user not loaded in callback")
-)
-
 func init() {
 	authboss.RegisterModule("remember", &Remember{})
 }

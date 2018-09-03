@@ -61,7 +61,7 @@ func TestResponder(t *testing.T) {
 		t.Error("code was wrong:", w.Code)
 	}
 
-	if got := w.HeaderMap.Get("Content-Type"); got != "application/json" {
+	if got := w.Result().Header.Get("Content-Type"); got != "application/json" {
 		t.Error("content type was wrong:", got)
 	}
 

@@ -6,8 +6,6 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/pkg/errors"
-
 	"github.com/volatiletech/authboss"
 )
 
@@ -16,10 +14,6 @@ const (
 	StoreAttemptNumber = "attempt_number"
 	StoreAttemptTime   = "attempt_time"
 	StoreLocked        = "locked"
-)
-
-var (
-	errUserMissing = errors.New("user not loaded in BeforeAuth callback")
 )
 
 func init() {
@@ -175,7 +169,9 @@ func Middleware(ab *authboss.Authboss) func(http.Handler) http.Handler {
 				Failure:      "Your account has been locked, please contact the administrator.",
 				RedirectPath: ab.Config.Paths.LockNotOK,
 			}
-			ab.Config.Core.Redirector.Redirect(w, r, ro)
+			if err := ab.Config.Core.Redirector.Redirect(w, r, ro); err != nil {
+				logger.Errorf("error redirecting in lock.Middleware: #%v", err)
+			}
 		})
 	}
 }

@@ -34,8 +34,6 @@ const (
 	PageRecoverEnd    = "recover_end"
 
 	recoverInitiateSuccessFlash = "An email has been sent to you with further instructions on how to reset your password."
-	recoverTokenExpiredFlash    = "Account recovery request has expired. Please try again."
-	recoverFailedErrorFlash     = "Account recovery has failed. Please contact tech support."
 
 	recoverTokenSize  = 64
 	recoverTokenSplit = recoverTokenSize / 2

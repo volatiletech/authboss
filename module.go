@@ -80,7 +80,7 @@ func (a *Authboss) loadModule(name string) error {
 		value.Elem().Set(modVal)
 	}
 
-	mod, ok := value.Interface().(Moduler)
+	mod := value.Interface().(Moduler)
 	a.loadedModules[name] = mod
 	return mod.Init(a)
 }

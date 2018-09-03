@@ -50,7 +50,9 @@ func TestRegisterGet(t *testing.T) {
 	ab.Config.Core.Responder = responder
 
 	a := &Register{ab}
-	a.Get(nil, nil)
+	if err := a.Get(nil, nil); err != nil {
+		t.Error(err)
+	}
 
 	if responder.Page != PageRegister {
 		t.Error("wanted login page, got:", responder.Page)

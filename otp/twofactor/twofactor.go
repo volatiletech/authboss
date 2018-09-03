@@ -48,13 +48,11 @@ type Recovery struct {
 
 // Setup the module to provide recovery regeneration routes
 func (rc *Recovery) Setup() error {
-	rc.Authboss.Core.ViewRenderer.Load(PageRecovery2FA)
-
 	middleware := authboss.MountedMiddleware(rc.Authboss, true, rc.Authboss.Config.Modules.RoutesRedirectOnUnauthed, true, false)
 	rc.Authboss.Core.Router.Get("/2fa/recovery/regen", middleware(rc.Authboss.Core.ErrorHandler.Wrap(rc.GetRegen)))
 	rc.Authboss.Core.Router.Post("/2fa/recovery/regen", middleware(rc.Authboss.Core.ErrorHandler.Wrap(rc.PostRegen)))
 
-	return nil
+	return rc.Authboss.Core.ViewRenderer.Load(PageRecovery2FA)
 }
 
 // GetRegen shows a button that enables a user to regen their codes

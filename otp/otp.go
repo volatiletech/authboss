@@ -137,7 +137,7 @@ func (o *OTP) LoginPost(w http.ResponseWriter, r *http.Request) error {
 		}
 	}
 
-	handled := false
+	var handled bool
 	if matchPassword < 0 {
 		handled, err = o.Authboss.Events.FireAfter(authboss.EventAuthFail, w, r)
 		if err != nil {

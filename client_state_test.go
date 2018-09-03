@@ -49,7 +49,7 @@ func TestStateResponseWriterDoubleWritePanic(t *testing.T) {
 		}
 	}()
 
-	w.putClientState()
+	_ = w.putClientState()
 }
 
 func TestStateResponseWriterLastSecondWriteHeader(t *testing.T) {

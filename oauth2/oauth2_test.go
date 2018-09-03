@@ -86,8 +86,6 @@ type testHarness struct {
 	oauth *OAuth2
 	ab    *authboss.Authboss
 
-	bodyReader *mocks.BodyReader
-	responder  *mocks.Responder
 	redirector *mocks.Redirector
 	session    *mocks.ClientStateRW
 	storer     *mocks.ServerStorer

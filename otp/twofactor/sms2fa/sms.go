@@ -55,7 +55,6 @@ const (
 )
 
 var (
-	errNoSMSEnabled   = errors.New("user does not have sms 2fa enabled")
 	errSMSRateLimit   = errors.New("user sms send rate-limited")
 	errBadPhoneNumber = errors.New("bad phone number provided")
 )
@@ -177,7 +176,7 @@ func (s *SMS) SendCodeToUser(w http.ResponseWriter, r *http.Request, pid, number
 		if err != nil {
 			return err
 		}
-		suppress = time.Now().UTC().Unix()-last < 10
+		suppress = time.Now().UTC().Unix()-last < smsRateLimitSeconds
 	}
 
 	if suppress {

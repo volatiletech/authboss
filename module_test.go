@@ -18,12 +18,7 @@ func init() {
 	RegisterModule(testModName, testMod)
 }
 
-type testModule struct {
-}
-
-func testHandler(w http.ResponseWriter, r *http.Request) {
-	w.Header().Set("testhandler", "test")
-}
+type testModule struct{}
 
 func (t *testModule) Init(a *Authboss) error { return nil }
 

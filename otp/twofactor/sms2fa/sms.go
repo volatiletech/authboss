@@ -3,6 +3,7 @@
 package sms2fa
 
 import (
+	"context"
 	"crypto/rand"
 	"crypto/subtle"
 	"io"
@@ -76,7 +77,7 @@ type SMSNumberProvider interface {
 
 // SMSSender sends SMS messages to a phone number
 type SMSSender interface {
-	Send(number, text string) error
+	Send(ctx context.Context, number, text string) error
 }
 
 // SMS implements time based one time passwords
@@ -188,7 +189,7 @@ func (s *SMS) SendCodeToUser(w http.ResponseWriter, r *http.Request, pid, number
 	authboss.PutSession(w, SessionSMSSecret, code)
 
 	logger.Infof("sending sms for %s to %s", pid, number)
-	if err := s.Sender.Send(number, code); err != nil {
+	if err := s.Sender.Send(r.Context(), number, code); err != nil {
 		logger.Infof("failed to send sms for %s to %s: %+v", pid, number, err)
 		return err
 	}

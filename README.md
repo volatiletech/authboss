@@ -3,6 +3,7 @@
 <!-- TOC -->
 
 - [Authboss](#authboss)
+- [New to v2?](#new-to-v2)
 - [Why use Authboss?](#why-use-authboss)
 - [Getting Started](#getting-started)
     - [App Requirements](#app-requirements)
@@ -34,6 +35,19 @@
     - [Remember Me](#remember-me)
     - [Locking Users](#locking-users)
     - [Expiring User Sessions](#expiring-user-sessions)
+    - [One Time Passwords](#one-time-passwords)
+    - [Two Factor Authentication](#two-factor-authentication)
+        - [Two-Factor Recovery](#two-factor-recovery)
+        - [Time-Based One Time Passwords 2FA (totp)](#time-based-one-time-passwords-2fa-totp)
+            - [Adding 2fa to a user](#adding-2fa-to-a-user)
+            - [Removing 2fa from a user](#removing-2fa-from-a-user)
+            - [Logging in with 2fa](#logging-in-with-2fa)
+            - [Using Recovery Codes](#using-recovery-codes)
+        - [Text Message 2FA (sms)](#text-message-2fa-sms)
+            - [Adding 2fa to a user](#adding-2fa-to-a-user-1)
+            - [Removing 2fa from a user](#removing-2fa-from-a-user-1)
+            - [Logging in with 2fa](#logging-in-with-2fa-1)
+            - [Using Recovery Codes](#using-recovery-codes-1)
     - [Rendering Views](#rendering-views)
         - [HTML Views](#html-views)
         - [JSON Views](#json-views)
@@ -55,6 +69,11 @@ to websites in general so that you can enable as many as you need, and leave the
 It makes it easy to plug in authentication to an application and get a lot of functionality
 for (hopefully) a smaller amount of integration effort.
 
+# New to v2?
+
+v1 -> v2 was a very big change. If you're looking to upgrade there is a general guide in
+[tov2.md](tov2.md) in this project.
+
 # Why use Authboss?
 
 Every time you'd like to start a new web project, you really want to get to the heart of what you're
@@ -62,8 +81,8 @@ trying to accomplish very quickly and it would be a sure bet to say one of the s
 about implementing and innovating on is not authentication. In fact it's very much the opposite: it's
 one of those things that you have to do and one of those things you loathe to do. Authboss is supposed
 to remove a lot of the tedium that comes with this, as well as a lot of the chances to make mistakes.
-This allows you to care about what you're intending to do, rather than on ancillary support systems
-to make it happen.
+This allows you to care about what you're intending to do, rather than care about ancillary support
+systems required to make what you're intending to do happen.
 
 Here are a few bullet point reasons you might like to try it out:
 
@@ -115,7 +134,6 @@ if err := ab.Init(); err != nil {
 // mux in this example is a chi router, but it could be anything that can route to
 // the Core.Router.
 mux.Mount("/authboss", http.StripPrefix("/authboss", ab.Config.Core.Router))
-
 ```
 
 For a more in-depth look you **definitely should** look at the authboss sample to see what a full 
@@ -153,17 +171,19 @@ all to function properly, please see [Middlewares](#middlewares) for more inform
 
 ### Configuration
 
-There are some required configuration variables that have no sane defaults:
+There are some required configuration variables that have no sane defaults and are particular
+to your app:
 
 * Config.Paths.Mount
 * Config.Paths.RootURL
 
 ### Storage and Core implementations
 
-Everything under Config.Storage and Config.Core are required. however you can optionally use default
-implementations from the [defaults package](https://github.com/volatiletech/authboss/defaults).
+Everything under Config.Storage and Config.Core are required and you must provide them,
+however you can optionally use default implementations from the
+[defaults package](https://github.com/volatiletech/authboss/defaults).
 This also provides an easy way to share implementations of certain stack pieces (like HTML Form Parsing).
-As you see in the example above these can be easily initialized with the `SetCore` method in that
+As you saw in the example above these can be easily initialized with the `SetCore` method in that
 package.
 
 The following is a list of storage interfaces, they must be provided by the implementer. Server is a
@@ -171,7 +191,7 @@ very involved implementation, please see the additional documentation below for 
 
 * Config.Storage.Server
 * Config.Storage.SessionState
-* Config.Storage.CookieState (only for remember me)
+* Config.Storage.CookieState (only for "remember me" functionality)
 
 The following is a list of the core pieces, these typically are abstracting the HTTP stack.
 Out of all of these you'll probably be mostly okay with the default implementations in the
@@ -208,7 +228,7 @@ interface is a flexible notion, because it can be upgraded to suit the needs of 
 
 Initially the User must only be able to Get/Set a `PID` or primary identifier. This allows the authboss
 modules to know how to refer to him in the database. The `ServerStorer` also makes use of this
-to save/retrieve users.
+to save/load users.
 
 As mentioned, it can be upgraded, for example suppose now we want to use the `confirm` module,
 in that case the e-mail address now becomes a requirement. So the `confirm` module will attempt
@@ -228,9 +248,15 @@ interface in the Config returns
 which can be validated. But much like the storer and user it can be upgraded to add different
 capabilities.
 
-Typically the way this will look as an implementation is to check the page being requested, switch on that to parse the body in whatever way (msgpack, json, url-encoded, doesn't matter), and produce
-a struct that has the ability to `Validate` it's data as well as functions to retrieve the data
-necessary for the particular valuer required by the module.
+A typical `BodyReader` (like the one in the defaults package) implementation checks the page being
+requested and switches on that to parse the body in whatever way
+(msgpack, json, url-encoded, doesn't matter), and produce a struct that has the ability to
+`Validate()` it's data as well as functions to retrieve the data necessary for the particular
+valuer required by the module.
+
+An example of an upgraded `Valuer` is the
+[UserValuer](https://godoc.org//github.com/volatiletech/authboss/#UserValuer)
+which stores and validates the PID and Password that a user has provided for the modules to use.
 
 Your body reader implementation does not need to implement all valuer types unless you're
 using a module that requires it. See the [Use Cases](#use-cases) documentation to know what the
@@ -247,8 +273,9 @@ documentation below, it will make much more sense.
 ### Paths
 
 Paths are the paths that should be redirected to or used in whatever circumstance they describe.
-Two special paths that are required are `Mount` and `RootURL`, without which certain authboss
-modules will not function correctly.
+Two special paths that are required are `Mount` and `RootURL` without which certain authboss
+modules will not function correctly. Most paths get defaulted to `/` such as after login success
+or when a user is locked out of their account.
 
 ### Modules
 
@@ -271,7 +298,7 @@ about what these are.
 These are the implementations of the HTTP stack for your app. How do responses render? How are
 they redirected? How are errors handled?
 
-For most of these there are default implementations implementations from the
+For most of these there are default implementations from the
 [defaults package](https://github.com/volatiletech/authboss/defaults) available, but not for all.
 See the package documentation for more information about what's available.
 
@@ -280,6 +307,9 @@ See the package documentation for more information about what's available.
 Each module can be turned on simply by importing it and the side-effects take care of the rest.
 Not all the capabilities of authboss are represented by a module, see [Use Cases](#use-cases)
 to view the supported use cases as well as how to use them in your app.
+
+**Note**: The two factor packages do not enable via side-effect import, see their documentation
+for more information.
 
 Name     | Import Path                               | Description
 ---------|-------------------------------------------|------------
@@ -292,6 +322,10 @@ OAuth2   | github.com/volatiletech/authboss/oauth2   | Provides oauth2 authentic
 Recover  | github.com/volatiletech/authboss/recover  | Allows for password resets via e-mail.
 Register | github.com/volatiletech/authboss/register | User-initiated account creation.
 Remember | github.com/volatiletech/authboss/remember | Persisting login sessions past session cookie expiry.
+OTP      | github.com/volatiletech/authboss/otp      | One time passwords for use instead of passwords.
+Remember | github.com/volatiletech/authboss/otp/twofactor | Regenerate recovery codes for 2fa.
+Remember | github.com/volatiletech/authboss/otp/twofactor/totp2fa | Use Google authenticator-like things for a second auth factor.
+Remember | github.com/volatiletech/authboss/otp/twofactor/sms2fa | Use a phone for a second auth factor.
 
 # Middlewares
 
@@ -308,6 +342,7 @@ use the middlewares if you use the module.
 
 Name | Requirement | Description
 ---- | ----------- | -----------
+[Middleware](https://godoc.org/github.com/volatiletech/authboss/#Middleware) | Recommended | Prevents unauthenticated users from accessing routes.
 [LoadClientStateMiddleware](https://godoc.org/github.com/volatiletech/authboss/#Authboss.LoadClientStateMiddleware) | **Required** | Enables cookie and session handling
 [ModuleListMiddleware](https://godoc.org/github.com/volatiletech/authboss/#Authboss.ModuleListMiddleware) | Optional | Inserts a loaded module list into the view data
 [confirm.Middleware](https://godoc.org/github.com/volatiletech/authboss/confirm/#Middleware) | Recommended with confirm | Ensures users are confirmed or rejects request
@@ -339,7 +374,7 @@ Updating a user's password is non-trivial for several reasons:
 
 In order to do this, we can use the
 [Authboss.UpdatePassword](https://godoc.org/github.com/volatiletech/authboss/#Authboss.UpdatePassword)
-method. This ensures the above facets are taken care of.
+method. This ensures the above facets are taken care of which the exception of the logging out part.
 
 If it's also desirable to have the user logged out, please use the following methods to erase
 all known sessions and cookies from the user.
@@ -364,6 +399,8 @@ Mailer        | _None_
 
 To enable this side-effect import the auth module, and ensure that the requirements above are met.
 It's very likely that you'd also want to enable the logout module in addition to this.
+
+Direct a user to `GET /login` to have them enter their credentials and log in.
 
 ## User Auth via OAuth2
 
@@ -414,17 +451,18 @@ themselves, which can be done using the confirm module.
 
 The complicated part in implementing registrations are around the `RegisterPreserveFields`. This is to
 help in the case where a user fills out many fields, and then say enters a password
-which doesn't mean minimum requirements and it fails during validation. These preserve fields should
+which doesn't meet minimum requirements and it fails during validation. These preserve fields should
 stop the user from having to type in all that data again (it's a whitelist). This **must** be used
 in conjuction with `ArbitraryValuer` and although it's not a hard requirement `ArbitraryUser`
 should be used otherwise the arbitrary values cannot be stored in the database.
 
-When the register module sees arbitrary data from an `ArbitraryValuer`, it loads the data key
-`authboss.DataPreserve = preserve` into the data for rendering registration failures.
-This means the values will be accessible in the templates by using `.preserve.field_name`.
-Preserve may be empty or nil so use `{{with ...}}` to make sure you don't have template errors.
+When the register module sees arbitrary data from an `ArbitraryValuer`, it sets the data key
+`authboss.DataPreserve` with a `map[string]string` in the data for when registration fails.
+This means the (whitelisted) values entered by the user previously will be accessible in the
+templates by using `.preserve.field_name`. Preserve may be empty or nil so use
+`{{with ...}}` to make sure you don't have template errors.
 
-There is additional go documentation on the `RegisterPreserveFields` config option as well as
+There is additional Godoc documentation on the `RegisterPreserveFields` config option as well as
 the `ArbitraryUser` and `ArbitraryValuer` interfaces themselves.
 
 ## Confirming Registrations
@@ -446,8 +484,8 @@ Confirming registrations via e-mail can be done with this module (whether or not
 module).
 
 A hook on register kicks off the start of a confirmation which sends an e-mail with a token for the user.
-When the user re-visits the page, the `BodyReader` must read the token and return a type that can
-return the token.
+When the user re-visits the page, the `BodyReader` must read the token and return a type that returns
+the token.
 
 Confirmations carry two values in the database to prevent a timing attack. The selector and the
 verifier, always make sure in the ConfirmingServerStorer you're searching by the selector and
@@ -508,9 +546,11 @@ in most databases this will require a separate table, though you could implement
 or something as well.
 
 A user who is logged in via Remember tokens is also considered "half-authed" which is a session
-key that you can query to check to see if a user should have full rights to more sensitive data,
-if they are half-authed and they want to change their user details for example you may want to
-force them to go to the login screen and put in their password to get a full auth first.
+key (`authboss.SessionHalfAuthKey`) that you can query to check to see if a user should have
+full rights to more sensitive data, if they are half-authed and they want to change their user
+details for example you may want to force them to go to the login screen and put in their
+password to get a full auth first. The `authboss.Middleware` has a boolean flag to `forceFullAuth`
+which prevents half-authed users from using that route.
 
 ## Locking Users
 
@@ -527,7 +567,7 @@ User          | [LockableUser](https://godoc.org/github.com/volatiletech/authbos
 Values        | _None_
 Mailer        | _None_
 
-Lock ensures that a user's account becomes locked if authentication (both auth and oauth2) are
+Lock ensures that a user's account becomes locked if authentication (both auth, oauth2, otp) are
 failed enough times.
 
 The middleware protects resources from locked users, without it, there is no point to this module.
@@ -551,9 +591,206 @@ Mailer        | _None_
 Expire simply uses sessions to track when the last action of a user is, if that action is longer
 than configured then the session is deleted and the user removed from the request context.
 
-This middleware should at a high level to ensure that "activity" is logged properly, as well as any
-middlewares down the chain do not attempt to do anything with the user before it's removed from the
-request context.
+This middleware should be inserted at a high level (closer to the request) in the middleware chain
+to ensure that "activity" is logged properly, as well as any middlewares down the chain do not
+attempt to do anything with the user before it's removed from the request context.
+
+## One Time Passwords
+
+| Info and Requirements |          |
+| --------------------- | -------- |
+Module        | otp
+Pages         | otp, otpadd, otpclear
+Routes        | /otp/login, /otp/add, /otp/clear
+Emails        | _None_
+Middlewares   | [LoadClientStateMiddleware](https://godoc.org/github.com/volatiletech/authboss/#Authboss.LoadClientStateMiddleware)
+ClientStorage | Session and Cookie
+ServerStorer  | [ServerStorer](https://godoc.org/github.com/volatiletech/authboss/#ServerStorer)
+User          | [otp.User](https://godoc.org/github.com/volatiletech/authboss/otp/#User)
+Values        | [UserValuer](https://godoc.org/github.com/volatiletech/authboss/#UserValuer)
+Mailer        | _None_
+
+One time passwords can be useful if users require a backup password in case they lose theirs,
+or they're logging in on an untrusted computer. This module allows users to add one time passwords,
+clear them, or log in with them.
+
+Logging in with a one time password instead of a password is identical to having logged in normally
+with their typical password with the exception that the one time passwords are consumed immediately
+upon use and cannot be used again.
+
+`otp` should not be confused with two factor authentication. Although 2fa also uses one-time passwords
+the `otp` module has nothing to do with it and is strictly a mechanism for logging in with an alternative
+to a user's regular password.
+
+## Two Factor Authentication
+
+2FA in Authboss is implemented in a few separate modules: twofactor, totp2fa and sms2fa.
+
+You should use two factor authentication in your application if you want additional security beyond
+that of just simple passwords. Each 2fa module supports a different mechanism for verifying a second
+factor of authentication from a user.
+
+### Two-Factor Recovery
+
+| Info and Requirements |          |
+| --------------------- | -------- |
+Module        | twofactor
+Pages         | recovery2fa
+Routes        | /2fa/recovery/regen
+Emails        | _None_
+Middlewares   | [LoadClientStateMiddleware](https://godoc.org/github.com/volatiletech/authboss/#Authboss.LoadClientStateMiddleware)
+ClientStorage | Session
+ServerStorer  | [ServerStorer](https://godoc.org/github.com/volatiletech/authboss/#ServerStorer)
+User          | [twofactor.User](https://godoc.org/github.com/volatiletech/authboss/otp/twofactor/#User)
+Values        | _None_
+Mailer        | _None_
+
+**Note:** Unlike most modules in Authboss you must construct a `twofactor.Recovery` and call `.Setup()`
+on it to enable this module. See the sample to see how to do this. This may be changed in the future.
+
+Package twofactor is all about the common functionality of providing backup codes for two factor
+mechanisms. Instead of each module implementing backup codes on it's own, common functionality has
+been put here including a route to regenerate backup codes.
+
+Backup codes are useful in case people lose access to their second factor for authentication. This happens
+when users lose their phones for example. When this occurs, they can use one of their backup-codes.
+
+Backup codes are one-time use, they are bcrypted for security, and they only allow bypassing the 2fa
+authentication part, they cannot be used in lieu of a user's password, for that sort of recovery see
+the `otp` module.
+
+### Time-Based One Time Passwords 2FA (totp)
+
+| Info and Requirements |          |
+| --------------------- | -------- |
+Module        | totp2fa
+Pages         | totp2fa_{setup,confirm,remove,validate}, totp2fa_{confirm,remove}_success
+Routes        | /2fa/totp/{setup,confirm,qr,remove,validate}
+Emails        | _None_
+Middlewares   | [LoadClientStateMiddleware](https://godoc.org/github.com/volatiletech/authboss/#Authboss.LoadClientStateMiddleware)
+ClientStorage | Session **(SECURE!)**
+ServerStorer  | [ServerStorer](https://godoc.org/github.com/volatiletech/authboss/#ServerStorer)
+User          | [totp2fa.User](https://godoc.org/github.com/volatiletech/authboss/otp/twofactor/totp2fa/#User)
+Values        | [TOTPCodeValuer](https://godoc.org/github.com/volatiletech/authboss/otp/twofactor/totp2fa/#TOTPCodeValuer)
+Mailer        | _None_
+
+**Note:** Unlike most modules in Authboss you must construct a `totp2fa.TOTP` and call `.Setup()`
+on it to enable this module. See the sample to see how to do this This may be changed in the future.
+
+**Note:** To allow users to regenerate their backup codes, you must also use the `twofactor` module.
+
+**Note:** Routes are protected by `authboss.Middleware` so only logged in users can access them.
+You can configure whether unauthenticated users should be redirected to log in or are 404'd using
+the `authboss.Config.Modules.RoutesRedirectOnUnathed` configuration flag.
+
+#### Adding 2fa to a user
+
+When a logged in user would like to add 2fa to their account direct them `GET /2fa/totp/setup`, the `GET`
+on this page does virtually nothing so you don't have to use it, just `POST` immediately to have
+a smoother flow for the user. **This puts the 2fa secret in their session temporarily meaning you must
+have proper secure sessions for this to be secure.**
+
+They will be redirected to `GET /2fa/totp/confirm` where the data will show `totp2fa.DataTOTPSecret`,
+this is the key that user's should enter into their Google Authenticator or similar app. Once they've
+added it they need to send a `POST /2fa/totp/confirm` with a correct code which removes the 2fa secret
+from their session and permanently adds it to their `totp2fa.User` and 2fa is now enabled for them.
+The data from the `POST` will contain a key `twofactor.DataRecoveryCodes` that contains an array
+of recovery codes for the user.
+
+If you wish to show the user a QR code, `GET /2fa/totp/qr` at any time during or after totp2fa setup
+will return a 200x200 png QR code that they can scan.
+
+#### Removing 2fa from a user
+
+A user begins by going to `GET /2fa/totp/remove` and enters a code which posts to `POST /2fa/totp/remove`
+and if it's correct they're shown a success page and 2fa is removed from them, if not they get
+validation errors.
+
+#### Logging in with 2fa
+
+When a user goes to log in, the `totp` module checks the user after they log in for the presence of
+a totp2fa secret, if there is one it does not give them a logged in session value immediately and
+redirects them to `GET /2fa/totp/validate` where they must enter a correct code to `POST /2fa/totp/validate`
+if the code is correct they're logged in normally as well as they get the session value
+`authboss.Session2FA` set to `"totp"` to prove that they've authenticated with two factors.
+
+#### Using Recovery Codes
+
+Both when logging in and removing totp2fa from an account, a recovery code may be used instead. They can
+`POST` to the same url, they simply send a different form field. The recovery code is consumed on use
+and may not be used again.
+
+### Text Message 2FA (sms)
+
+Package sms2fa uses sms shared secrets as a means to authenticate a user with a second factor:
+their phone number.
+
+| Info and Requirements |          |
+| --------------------- | -------- |
+Module        | sms2fa
+Pages         | sms2fa_{setup,confirm,remove,validate}, sms2fa_{confirm,remove}_success
+Routes        | /2fa/{setup,confirm,remove,validate}
+Emails        | _None_
+Middlewares   | [LoadClientStateMiddleware](https://godoc.org/github.com/volatiletech/authboss/#Authboss.LoadClientStateMiddleware)
+ClientStorage | Session (**SECURE!**)
+ServerStorer  | [ServerStorer](https://godoc.org/github.com/volatiletech/authboss/#ServerStorer)
+User          | [sms2fa.User](https://godoc.org/github.com/volatiletech/authboss/otp/twofactor/sms2fa/#User), [sms2fa.SMSNumberProvider](https://godoc.org/github.com/volatiletech/authboss/otp/twofactor/sms2fa/#SMSNumberProvider)
+Values        | [SMSValuer](https://godoc.org/github.com/volatiletech/authboss/otp/twofactor/sms2fa/#SMSValuer), [SMSPhoneNumberValuer](https://godoc.org/github.com/volatiletech/authboss/otp/twofactor/sms2fa/#SMSPhoneNumberValuer)
+Mailer        | _None_
+
+**Note:** Unlike most modules in Authboss you must construct a `sms2fa.SMS` and call `.Setup()`
+on it to enable this module. See the sample to see how to do this. This may be changed in the future.
+
+**Note:** To allow users to regenerate their backup codes, you must also use the `twofactor` module.
+
+**Note:** Routes are protected by `authboss.Middleware` so only logged in users can access them.
+You can configure whether unauthenticated users should be redirected to log in or are 404'd using
+the `authboss.Config.Modules.RoutesRedirectOnUnathed` configuration flag.
+
+**Note:** sms2fa always stores the code it's expecting in the user's session therefore **you must
+have secure sessions or the code itself is not secure!**
+
+**Note:** sms2fa pages all send codes via sms on `POST` when no data code is given. This is also how
+users can resend the code in case they did not get it (for example a second
+`POST /2fa/sms/{confirm,remove}` with no form-fields filled in will end up resending the code).
+
+**Note:** Sending sms codes is rate-limited to 1 sms/10 sec for that user, this is controlled by placing
+a timestamp in their session to prevent abuse.
+
+#### Adding 2fa to a user
+
+When a logged in user would like to add 2fa to their account direct them `GET /2fa/sms/setup` where
+they must enter a phone number. If the logged in user also implements `sms2fa.SMSNumberProvider` then
+this interface will be used to retrieve a phone number (if it exists) from the user and put it in
+`sms2fa.DataSMSPhoneNumber` so that the user interface can populate it for the user, making it convenient
+to re-use an already saved phone number inside the user.
+
+Once they `POST /2fa/sms/setup` with a phone number, the `sms2fa.Sender` interface will be
+invoked to send the SMS code to the user and they will be redirected to `GET /2fa/sms/confirm` where
+they enter the code they received which does a `POST /2fa/sms/confirm` to store the phone number
+they were confirming permanently on their user using `sms2fa.User` which enables sms2fa for them.
+The data from the `POST` will contain a key `twofactor.DataRecoveryCodes` that contains an array
+of recovery codes for the user.
+
+#### Removing 2fa from a user
+
+A user begins by going to `GET /2fa/sms/remove`. This page does nothing on it's own. In order to
+begin the process `POST /2fa/sms/remove` with no data (or a recovery code to skip needing the sms code)
+to send the sms code to the user. Then they can `POST /2fa/sms/remove` again with the correct code
+to have it permanently removed.
+
+#### Logging in with 2fa
+
+When a user goes to log in, the `sms` module checks the user after they log in for the presence of
+a sms2fa phone number, if there is one it does not give them a logged in session value but instead
+sends an SMS code to their configured number and and redirects them to `GET /2fa/sms/validate`
+where they must enter a correct code to `POST /2fa/totp/validate`. If the code is correct they're
+logged in normally as well as they get the session value `authboss.Session2FA` set to `"sms"` to prove
+that they've authenticated with two factors.
+
+#### Using Recovery Codes
+
+Same as totp2fa above.
 
 ## Rendering Views
 
@@ -576,7 +813,9 @@ system into that interface.
 ### JSON Views
 
 If you're building an API that's mostly backed by a javascript front-end, then you'll probably
-want to use a renderer that returns JSON. There is a simple json renderer available in the [defaults package](https://github.com/volatiletech/authboss/defaults) package if you wish to use that.
+want to use a renderer that converts the data to JSON. There is a simple json renderer available in
+the [defaults package](https://github.com/volatiletech/authboss/defaults) package if you wish to
+use that.
 
 ### Data
 

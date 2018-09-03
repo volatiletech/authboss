@@ -67,9 +67,9 @@ which wraps the responsewriter with a new one that has the ability to manage cli
 In the ClientStateReadWriter interface (the one you now implement to handle sessions and cookies)
 you now return a ClientState interface (basically a map of values) that represents a snapshot of the
 state of the client when the request was initially read, this ensures that code will use the context
-for value passing and not the session as an added bonus. But basically caches the client state
-values for the remainder of the request.
+for value passing through the middleware stack and not the session as an added bonus.
+Essentially this ClientState caches the values for the remainder of the request.
 
-Events are written to the ResponseWriter and eventually the `WriteState` method is called and give
-the old state and the events that occurred during request processing, asks for a new state to be
-written out to the responsewriter's headers.
+Events are written to the ResponseWriter and eventually the `WriteState` method is called and is
+given the old state and the events that occurred during request processing, asks for a new state
+to be written out to the responsewriter's headers.

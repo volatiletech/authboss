@@ -22,8 +22,7 @@ type BodyReader interface {
 	Read(page string, r *http.Request) (Validator, error)
 }
 
-// UserValuer gets a string from a map-like data structure
-// Typically a decoded JSON or form auth request
+// UserValuer allows us to pull out the PID and Password from the request.
 type UserValuer interface {
 	Validator
 

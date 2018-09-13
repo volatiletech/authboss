@@ -3,6 +3,18 @@
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
+## Unreleased
+
+### Added
+
+- Add Config option to defaults.HTTPRedirector to allow it to coerce redirect
+  response codes to http.StatusOK to help make more regular APIs.
+
+### Changed
+
+- defaults.HTTPRedirector now always responds with a "status": "success"
+  when responding to an API unless there's a failure.
+
 ## [2.0.0] - 2018-09-03
 
 ### Added

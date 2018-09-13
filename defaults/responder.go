@@ -49,6 +49,10 @@ type Redirector struct {
 
 	// FormValueName for the redirection
 	FormValueName string
+
+	// CoerceRedirectTo200 forces http.StatusTemporaryRedirect and
+	// and http.StatusPermanentRedirect to http.StatusOK
+	CorceRedirectTo200 bool
 }
 
 // NewRedirector constructor
@@ -75,9 +79,9 @@ func (r Redirector) redirectAPI(w http.ResponseWriter, req *http.Request, ro aut
 		path = redir
 	}
 
-	var status, message string
+	var status = "success"
+	var message string
 	if len(ro.Success) != 0 {
-		status = "success"
 		message = ro.Success
 	}
 	if len(ro.Failure) != 0 {
@@ -89,8 +93,8 @@ func (r Redirector) redirectAPI(w http.ResponseWriter, req *http.Request, ro aut
 		"location": path,
 	}
 
-	if len(status) != 0 {
-		data["status"] = status
+	data["status"] = status
+	if len(message) != 0 {
 		data["message"] = message
 	}
 
@@ -104,7 +108,11 @@ func (r Redirector) redirectAPI(w http.ResponseWriter, req *http.Request, ro aut
 	}
 
 	if ro.Code != 0 {
-		w.WriteHeader(ro.Code)
+		if r.CorceRedirectTo200 && (ro.Code == http.StatusTemporaryRedirect || ro.Code == http.StatusPermanentRedirect) {
+			w.WriteHeader(http.StatusOK)
+		} else {
+			w.WriteHeader(ro.Code)
+		}
 	}
 	_, err = w.Write(body)
 	return err

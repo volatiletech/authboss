@@ -143,8 +143,7 @@ var goConfirmEmail = func(c *Confirm, ctx context.Context, to, token string) {
 func (c *Confirm) SendConfirmEmail(ctx context.Context, to, token string) {
 	logger := c.Authboss.Logger(ctx)
 
-	p := path.Join(c.Config.Paths.Mount, "confirm")
-	url := fmt.Sprintf("%s%s?%s=%s", c.Paths.RootURL, p, url.QueryEscape(FormValueConfirm), url.QueryEscape(token))
+	mailURL := c.mailURL(token)
 
 	email := authboss.Email{
 		To:       []string{to},
@@ -156,7 +155,7 @@ func (c *Confirm) SendConfirmEmail(ctx context.Context, to, token string) {
 	logger.Infof("sending confirm e-mail to: %s", to)
 
 	ro := authboss.EmailResponseOptions{
-		Data:         authboss.NewHTMLData(DataConfirmURL, url),
+		Data:         authboss.NewHTMLData(DataConfirmURL, mailURL),
 		HTMLTemplate: EmailConfirmHTML,
 		TextTemplate: EmailConfirmTxt,
 	}
@@ -232,6 +231,17 @@ func (c *Confirm) Get(w http.ResponseWriter, r *http.Request) error {
 		RedirectPath: c.Authboss.Config.Paths.ConfirmOK,
 	}
 	return c.Authboss.Config.Core.Redirector.Redirect(w, r, ro)
+}
+
+func (c *Confirm) mailURL(token string) string {
+	query := url.Values{FormValueConfirm: []string{token}}
+
+	if len(c.Config.Mail.RootURL) != 0 {
+		return fmt.Sprintf("%s?%s", c.Config.Mail.RootURL+"/confirm", query.Encode())
+	}
+
+	p := path.Join(c.Config.Paths.Mount, "confirm")
+	return fmt.Sprintf("%s%s?%s", c.Config.Paths.RootURL, p, query.Encode())
 }
 
 func (c *Confirm) invalidToken(w http.ResponseWriter, r *http.Request) error {

@@ -131,9 +131,8 @@ var goRecoverEmail = func(r *Recover, ctx context.Context, to, encodedToken stri
 // in an escaped URL to the templates.
 func (r *Recover) SendRecoverEmail(ctx context.Context, to, encodedToken string) {
 	logger := r.Authboss.Logger(ctx)
-	p := path.Join(r.Authboss.Config.Paths.Mount, "recover/end")
-	query := url.Values{FormValueToken: []string{encodedToken}}
-	url := fmt.Sprintf("%s%s?%s", r.Authboss.Config.Paths.RootURL, p, query.Encode())
+
+	mailURL := r.mailURL(encodedToken)
 
 	email := authboss.Email{
 		To:       []string{to},
@@ -146,7 +145,7 @@ func (r *Recover) SendRecoverEmail(ctx context.Context, to, encodedToken string)
 		HTMLTemplate: EmailRecoverHTML,
 		TextTemplate: EmailRecoverTxt,
 		Data: authboss.HTMLData{
-			DataRecoverURL: url,
+			DataRecoverURL: mailURL,
 		},
 	}
 
@@ -269,6 +268,17 @@ func (r *Recover) invalidToken(page string, w http.ResponseWriter, req *http.Req
 	errors := []error{errors.New("recovery token is invalid")}
 	data := authboss.HTMLData{authboss.DataValidation: authboss.ErrorMap(errors)}
 	return r.Authboss.Core.Responder.Respond(w, req, http.StatusOK, PageRecoverEnd, data)
+}
+
+func (r *Recover) mailURL(token string) string {
+	query := url.Values{FormValueToken: []string{token}}
+
+	if len(r.Config.Mail.RootURL) != 0 {
+		return fmt.Sprintf("%s?%s", r.Config.Mail.RootURL+"/recover/end", query.Encode())
+	}
+
+	p := path.Join(r.Config.Paths.Mount, "recover/end")
+	return fmt.Sprintf("%s%s?%s", r.Config.Paths.RootURL, p, query.Encode())
 }
 
 // GenerateRecoverCreds generates pieces needed for user recovery

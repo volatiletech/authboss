@@ -409,6 +409,26 @@ func TestEndPostUserNotExist(t *testing.T) {
 	invalidCheck(t, h, w)
 }
 
+func TestMailURL(t *testing.T) {
+	t.Parallel()
+
+	h := testSetup()
+	h.ab.Config.Paths.RootURL = "https://api.test.com:6343"
+	h.ab.Config.Paths.Mount = "/v1/auth"
+
+	want := "https://api.test.com:6343/v1/auth/recover/end?token=abc"
+	if got := h.recover.mailURL("abc"); got != want {
+		t.Error("want:", want, "got:", got)
+	}
+
+	h.ab.Config.Mail.RootURL = "https://test.com:3333/testauth"
+
+	want = "https://test.com:3333/testauth/recover/end?token=abc"
+	if got := h.recover.mailURL("abc"); got != want {
+		t.Error("want:", want, "got:", got)
+	}
+}
+
 func invalidCheck(t *testing.T, h *testHarness, w *httptest.ResponseRecorder) {
 	t.Helper()
 

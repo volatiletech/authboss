@@ -365,6 +365,26 @@ func TestMiddlewareDisallow(t *testing.T) {
 	}
 }
 
+func TestMailURL(t *testing.T) {
+	t.Parallel()
+
+	h := testSetup()
+	h.ab.Config.Paths.RootURL = "https://api.test.com:6343"
+	h.ab.Config.Paths.Mount = "/v1/auth"
+
+	want := "https://api.test.com:6343/v1/auth/confirm?cnf=abc"
+	if got := h.confirm.mailURL("abc"); got != want {
+		t.Error("want:", want, "got:", got)
+	}
+
+	h.ab.Config.Mail.RootURL = "https://test.com:3333/testauth"
+
+	want = "https://test.com:3333/testauth/confirm?cnf=abc"
+	if got := h.confirm.mailURL("abc"); got != want {
+		t.Error("want:", want, "got:", got)
+	}
+}
+
 func TestGenerateRecoverCreds(t *testing.T) {
 	t.Parallel()
 

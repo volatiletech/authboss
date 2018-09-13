@@ -11,6 +11,7 @@ type Config struct {
 	Paths struct {
 		// Mount is the path to mount authboss's routes at (eg /auth).
 		Mount string
+
 		// NotAuthorized is the default URL to kick users back to when
 		// they attempt an action that requires them to be logged in and they're not auth'd
 		NotAuthorized string
@@ -99,6 +100,13 @@ type Config struct {
 	}
 
 	Mail struct {
+		// RootURL is a full path to an application that is hosting a front-end
+		// Typically using a combination of Paths.RootURL and Paths.Mount
+		// MailRoot will be assembled if not set.
+		// Typically looks something like: https://our-front-end.com/authenication
+		// No trailing slash
+		RootURL string
+
 		// From is the email address authboss e-mails come from.
 		From string
 		// FromName is the name authboss e-mails come from.

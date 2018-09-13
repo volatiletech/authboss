@@ -55,7 +55,14 @@ func (c *Confirm) Init(ab *authboss.Authboss) (err error) {
 		return err
 	}
 
-	c.Authboss.Config.Core.Router.Get("/confirm", c.Authboss.Config.Core.ErrorHandler.Wrap(c.Get))
+	var callbackMethod func(string, http.Handler)
+	switch c.Config.Modules.ConfirmMethod {
+	case http.MethodGet:
+		callbackMethod = c.Authboss.Config.Core.Router.Get
+	case http.MethodPost:
+		callbackMethod = c.Authboss.Config.Core.Router.Post
+	}
+	callbackMethod("/confirm", c.Authboss.Config.Core.ErrorHandler.Wrap(c.Get))
 
 	c.Events.Before(authboss.EventAuth, c.PreventAuth)
 	c.Events.After(authboss.EventRegister, c.StartConfirmationWeb)

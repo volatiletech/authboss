@@ -12,6 +12,8 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 - Add Config option for MailRoot. This is a URL that overrides the typical
   URL building using Root/MountPath that recover and confirm do to enable
   creating mail links to a different location than where the API is hosted.
+- Add a configuration option that allows confirm to change the method type
+  it expects since in an API setting a GET is strange as there is body details.
 
 ### Changed
 

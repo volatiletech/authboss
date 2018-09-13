@@ -1,6 +1,7 @@
 package authboss
 
 import (
+	"net/http"
 	"time"
 
 	"golang.org/x/crypto/bcrypt"
@@ -49,6 +50,12 @@ type Config struct {
 	Modules struct {
 		// BCryptCost is the cost of the bcrypt password hashing function.
 		BCryptCost int
+
+		// ConfirmMethod controls which http method confirm expects. This is because
+		// typically this is a GET request since it's a link from an e-mail, but in
+		// api-like cases it needs to be able to be a post since there's data that
+		// must be sent to it.
+		ConfirmMethod string
 
 		// ExpireAfter controls the time an account is idle before being logged out
 		// by the ExpireMiddleware.
@@ -183,6 +190,7 @@ func (c *Config) Defaults() {
 	c.Paths.RootURL = "http://localhost:8080"
 
 	c.Modules.BCryptCost = bcrypt.DefaultCost
+	c.Modules.ConfirmMethod = http.MethodGet
 	c.Modules.ExpireAfter = time.Hour
 	c.Modules.LockAfter = 3
 	c.Modules.LockWindow = 5 * time.Minute

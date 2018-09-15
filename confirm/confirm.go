@@ -96,8 +96,8 @@ func (c *Confirm) PreventAuth(w http.ResponseWriter, r *http.Request, handled bo
 	return true, c.Authboss.Config.Core.Redirector.Redirect(w, r, ro)
 }
 
-// StartConfirmationWeb hijacks a request and forces a user to be confirmed first
-// it's assumed that the current user is loaded into the request context.
+// StartConfirmationWeb hijacks a request and forces a user to be confirmed
+// first it's assumed that the current user is loaded into the request context.
 func (c *Confirm) StartConfirmationWeb(w http.ResponseWriter, r *http.Request, handled bool) (bool, error) {
 	user, err := c.Authboss.CurrentUser(r)
 	if err != nil {
@@ -117,8 +117,8 @@ func (c *Confirm) StartConfirmationWeb(w http.ResponseWriter, r *http.Request, h
 	return true, c.Authboss.Config.Core.Redirector.Redirect(w, r, ro)
 }
 
-// StartConfirmation begins confirmation on a user by setting them to require confirmation
-// via a created token, and optionally sending them an e-mail.
+// StartConfirmation begins confirmation on a user by setting them to require
+// confirmation via a created token, and optionally sending them an e-mail.
 func (c *Confirm) StartConfirmation(ctx context.Context, user authboss.ConfirmableUser, sendEmail bool) error {
 	logger := c.Authboss.Logger(ctx)
 
@@ -260,12 +260,13 @@ func (c *Confirm) invalidToken(w http.ResponseWriter, r *http.Request) error {
 	return c.Authboss.Config.Core.Redirector.Redirect(w, r, ro)
 }
 
-// Middleware ensures that a user is confirmed, or else it will intercept the request
-// and send them to the confirm page, this will load the user if he's not been loaded
-// yet from the session.
+// Middleware ensures that a user is confirmed, or else it will intercept the
+// request and send them to the confirm page, this will load the user if he's
+// not been loaded yet from the session.
 //
-// Panics if the user was not able to be loaded in order to allow a panic handler to show
-// a nice error page, also panics if it failed to redirect for whatever reason.
+// Panics if the user was not able to be loaded in order to allow a panic
+// handler to show a nice error page, also panics if it failed to redirect
+// for whatever reason.
 func Middleware(ab *authboss.Authboss) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -291,9 +292,11 @@ func Middleware(ab *authboss.Authboss) func(http.Handler) http.Handler {
 	}
 }
 
-// GenerateConfirmCreds generates pieces needed for user confirmy
-// selector: hash of the first half of a 64 byte value (to be stored in the database and used in SELECT query)
-// verifier: hash of the second half of a 64 byte value (to be stored in database but never used in SELECT query)
+// GenerateConfirmCreds generates pieces needed for user confirm
+// selector: hash of the first half of a 64 byte value
+// (to be stored in the database and used in SELECT query)
+// verifier: hash of the second half of a 64 byte value
+// (to be stored in database but never used in SELECT query)
 // token: the user-facing base64 encoded selector+verifier
 func GenerateConfirmCreds() (selector, verifier, token string, err error) {
 	rawToken := make([]byte, confirmTokenSize)

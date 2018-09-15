@@ -20,15 +20,15 @@ const (
 // - XSRF handling (template data)
 // - Assembling template data from various sources
 //
-// Authboss controller methods (like the one called in response to POST /auth/login)
-// will call this method to write a response to the user.
+// Authboss controller methods (like the one called in response to
+// POST /auth/login) will call this method to write a response to the user.
 type HTTPResponder interface {
 	Respond(w http.ResponseWriter, r *http.Request, code int, templateName string, data HTMLData) error
 }
 
-// HTTPRedirector redirects http requests to a different url (must handle both json and html)
-// When an authboss controller wants to redirect a user to a different path, it will use
-// this interface.
+// HTTPRedirector redirects http requests to a different url (must handle
+// both json and html) When an authboss controller wants to redirect a user to
+// a different path, it will use this interface.
 type HTTPRedirector interface {
 	Redirect(w http.ResponseWriter, r *http.Request, ro RedirectOptions) error
 }
@@ -46,8 +46,8 @@ type RedirectOptions struct {
 
 	// When a request should redirect a user somewhere on completion, these
 	// should be set. RedirectURL tells it where to go. And optionally set
-	// FollowRedirParam to override the RedirectURL if the form parameter defined
-	// by FormValueRedirect is passed in the request.
+	// FollowRedirParam to override the RedirectURL if the form parameter
+	// defined by FormValueRedirect is passed in the request.
 	//
 	// Redirecting works differently whether it's an API request or not.
 	// If it's an API request, then it will leave the URL in a "redirect"
@@ -63,7 +63,8 @@ type EmailResponseOptions struct {
 	TextTemplate string
 }
 
-// Email renders the e-mail templates for the given email and sends it using the mailer.
+// Email renders the e-mail templates for the given email and
+// sends it using the mailer.
 func (a *Authboss) Email(ctx context.Context, email Email, ro EmailResponseOptions) error {
 	if len(ro.HTMLTemplate) != 0 {
 		htmlBody, _, err := a.Core.MailRenderer.Render(ctx, ro.HTMLTemplate, ro.Data)

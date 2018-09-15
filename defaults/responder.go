@@ -17,7 +17,8 @@ func NewResponder(renderer authboss.Renderer) *Responder {
 }
 
 // Respond to an HTTP request. It's main job is to merge data that comes in from
-// various middlewares via the context with the data sent by the controller and render that.
+// various middlewares via the context with the data sent by the controller and
+// render that.
 func (r *Responder) Respond(w http.ResponseWriter, req *http.Request, code int, page string, data authboss.HTMLData) error {
 	ctxData := req.Context().Value(authboss.CTXKeyData)
 	if ctxData != nil {

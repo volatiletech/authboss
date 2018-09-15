@@ -30,7 +30,8 @@ type googleMeResponse struct {
 // testing
 var clientGet = (*http.Client).Get
 
-// GoogleUserDetails can be used as a FindUserDetails function for an authboss.OAuth2Provider
+// GoogleUserDetails can be used as a FindUserDetails function
+// for an authboss.OAuth2Provider
 func GoogleUserDetails(ctx context.Context, cfg oauth2.Config, token *oauth2.Token) (map[string]string, error) {
 	client := cfg.Client(ctx, token)
 	resp, err := clientGet(client, googleInfoEndpoint)
@@ -61,7 +62,8 @@ type facebookMeResponse struct {
 	Name  string `json:"name"`
 }
 
-// FacebookUserDetails can be used as a FindUserDetails function for an authboss.OAuth2Provider
+// FacebookUserDetails can be used as a FindUserDetails function
+// for an authboss.OAuth2Provider
 func FacebookUserDetails(ctx context.Context, cfg oauth2.Config, token *oauth2.Token) (map[string]string, error) {
 	client := cfg.Client(ctx, token)
 	resp, err := clientGet(client, facebookInfoEndpoint)

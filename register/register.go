@@ -128,8 +128,8 @@ func (r *Register) Post(w http.ResponseWriter, req *http.Request) error {
 		return nil
 	}
 
-	// Log the user in, but only if the response wasn't handled previously by a module
-	// like confirm.
+	// Log the user in, but only if the response wasn't handled previously
+	// by a module like confirm.
 	authboss.PutSession(w, authboss.SessionKey, pid)
 
 	logger.Infof("registered and logged in user %s", pid)
@@ -141,7 +141,8 @@ func (r *Register) Post(w http.ResponseWriter, req *http.Request) error {
 	return r.Config.Core.Redirector.Redirect(w, req, ro)
 }
 
-// hasString checks to see if a sorted (ascending) array of strings contains a string
+// hasString checks to see if a sorted (ascending) array of
+// strings contains a string
 func hasString(arr []string, s string) bool {
 	index := sort.SearchStrings(arr, s)
 	if index < 0 || index >= len(arr) {

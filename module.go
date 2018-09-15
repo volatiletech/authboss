@@ -51,13 +51,13 @@ func (a *Authboss) IsLoaded(mod string) bool {
 }
 
 // loadModule loads a particular module. It uses reflection to create a new
-// instance of the module type. The original value is copied, but not deep copied
-// so care should be taken to make sure most initialization happens inside the Initialize()
-// method of the module.
+// instance of the module type. The original value is copied, but not deep
+// copied so care should be taken to make sure most initialization happens
+// inside the Initialize() method of the module.
 //
-// This method exists so many copies of authboss can be loaded and initialized at the same time
-// if we didn't use this, then the registeredModules instances of the modules would end up used
-// by the first instance of authboss.
+// This method exists so many copies of authboss can be loaded and initialized
+// at the same time if we didn't use this, then the registeredModules
+// instances of the modules would end up used by the first instance of authboss.
 func (a *Authboss) loadModule(name string) error {
 	module, ok := registeredModules[name]
 	if !ok {
@@ -87,15 +87,15 @@ func (a *Authboss) loadModule(name string) error {
 
 // ModuleListMiddleware puts a map in the data that can be used
 // to provide the renderer with information about which pieces of the
-// views to show. The bool is extraneous, as presence in the map is the indication
-// of wether or not the module is loaded.
+// views to show. The bool is extraneous, as presence in the map is
+// the indication of wether or not the module is loaded.
 // Data looks like:
 // map[modulename] = true
 //
 // oauth2 providers are also listed here using the syntax:
 // oauth2.google for an example. Be careful since this doesn't actually mean
-// that the oauth2 module has been loaded so you should do a conditional that checks
-// for both.
+// that the oauth2 module has been loaded so you should do a conditional
+// that checks for both.
 func ModuleListMiddleware(ab *Authboss) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {

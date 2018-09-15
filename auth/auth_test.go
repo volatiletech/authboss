@@ -339,7 +339,8 @@ func TestAuthPostUserNotFound(t *testing.T) {
 	resp := httptest.NewRecorder()
 	w := harness.ab.NewResponse(resp)
 
-	// This event is really the only thing that separates "user not found" from "bad password"
+	// This event is really the only thing that separates "user not found"
+	// from "bad password"
 	var afterCalled bool
 	harness.ab.Events.After(authboss.EventAuthFail, func(w http.ResponseWriter, r *http.Request, handled bool) (bool, error) {
 		afterCalled = true

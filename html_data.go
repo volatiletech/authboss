@@ -32,8 +32,8 @@ const (
 	// keyed by the field name, and the value is the field value.
 	DataPreserve = "preserve"
 	// DataModules contains a map[string]bool of which modules are loaded
-	// The bool is largely extraneous and can be ignored, if the module is loaded
-	// it will be present in the map, if not it will be missing.
+	// The bool is largely extraneous and can be ignored, if the module is
+	// loaded it will be present in the map, if not it will be missing.
 	DataModules = "modules"
 )
 
@@ -41,7 +41,8 @@ const (
 type HTMLData map[string]interface{}
 
 // NewHTMLData creates HTMLData from key-value pairs. The input is a key-value
-// slice, where odd elements are keys, and the following even element is their value.
+// slice, where odd elements are keys, and the following even element
+// is their value.
 func NewHTMLData(data ...interface{}) HTMLData {
 	if len(data)%2 != 0 {
 		panic("it should be a key value list of arguments.")
@@ -71,7 +72,8 @@ func (h HTMLData) Merge(other HTMLData) HTMLData {
 }
 
 // MergeKV adds extra key-values to the HTMLData. The input is a key-value
-// slice, where odd elements are keys, and the following even element is their value.
+// slice, where odd elements are keys, and the following even element
+// is their value.
 func (h HTMLData) MergeKV(data ...interface{}) HTMLData {
 	if len(data)%2 != 0 {
 		panic("It should be a key value list of arguments.")

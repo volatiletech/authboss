@@ -266,7 +266,8 @@ func (s *ServerStorer) SaveOAuth2(ctx context.Context, user authboss.OAuth2User)
 	u := user.(*User)
 
 	pid := authboss.MakeOAuth2PID(u.OAuth2Provider, u.OAuth2UID)
-	// Since we don't have to differentiate between insert/update in a map, we just overwrite
+	// Since we don't have to differentiate between
+	// insert/update in a map, we just overwrite
 	s.Users[pid] = u
 	return nil
 }
@@ -329,7 +330,8 @@ func (s *ServerStorer) UseRememberToken(ctx context.Context, givenKey, token str
 	return authboss.ErrTokenNotFound
 }
 
-// FailStorer is used for testing module initialize functions that recover more than the base storer
+// FailStorer is used for testing module initialize functions that
+// recover more than the base storer
 type FailStorer struct {
 	User
 }

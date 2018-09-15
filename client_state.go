@@ -13,13 +13,15 @@ const (
 	// the remember module. This serves as a way to force full authentication
 	// by denying half-authed users acccess to sensitive areas.
 	SessionHalfAuthKey = "halfauth"
-	// SessionLastAction is the session key to retrieve the last action of a user.
+	// SessionLastAction is the session key to retrieve the
+	// last action of a user.
 	SessionLastAction = "last_action"
 	// Session2FA is set when a user has been authenticated with a second factor
 	Session2FA = "twofactor"
 	// SessionOAuth2State is the xsrf protection key for oauth.
 	SessionOAuth2State = "oauth2_state"
-	// SessionOAuth2Params is the additional settings for oauth like redirection/remember.
+	// SessionOAuth2Params is the additional settings for oauth
+	// like redirection/remember.
 	SessionOAuth2Params = "oauth2_params"
 
 	// CookieRemember is used for cookies and form input names.
@@ -94,8 +96,9 @@ type ClientStateResponseWriter struct {
 	sessionStateEvents []ClientStateEvent
 }
 
-// LoadClientStateMiddleware wraps all requests with the ClientStateResponseWriter
-// as well as loading the current client state into the context for use.
+// LoadClientStateMiddleware wraps all requests with the
+// ClientStateResponseWriter as well as loading the current client
+// state into the context for use.
 func (a *Authboss) LoadClientStateMiddleware(h http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		writer := a.NewResponse(w)
@@ -121,8 +124,8 @@ func (a *Authboss) NewResponse(w http.ResponseWriter) *ClientStateResponseWriter
 	}
 }
 
-// LoadClientState loads the state from sessions and cookies into the ResponseWriter
-// for later use.
+// LoadClientState loads the state from sessions and cookies
+// into the ResponseWriter for later use.
 func (a *Authboss) LoadClientState(w http.ResponseWriter, r *http.Request) (*http.Request, error) {
 	if a.Storage.SessionState != nil {
 		state, err := a.Storage.SessionState.ReadState(r)

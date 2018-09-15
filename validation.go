@@ -9,8 +9,8 @@ const (
 	ConfirmPrefix = "confirm_"
 )
 
-// Validator takes a form name and a set of inputs and returns any validation errors
-// for the inputs.
+// Validator takes a form name and a set of inputs and returns any
+// validation errors for the inputs.
 type Validator interface {
 	// Validate makes the type validate itself and return
 	// a list of validation errors.
@@ -26,8 +26,8 @@ type FieldError interface {
 	Err() error
 }
 
-// ErrorMap is a shortcut to change []error into ErrorList and call Map on it since
-// this is a common operation.
+// ErrorMap is a shortcut to change []error into ErrorList and call Map on it
+// since this is a common operation.
 func ErrorMap(e []error) map[string][]string {
 	return ErrorList(e).Map()
 }

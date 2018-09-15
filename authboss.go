@@ -53,12 +53,14 @@ func (a *Authboss) Init(modulesToLoad ...string) error {
 }
 
 // UpdatePassword updates the password field of a user using the same semantics
-// that register/auth do to create and verify passwords. It saves this using the storer.
+// that register/auth do to create and verify passwords. It saves this using
+// the storer.
 //
-// In addition to that, it also invalidates any remember me tokens, if the storer supports
-// that kind of operation.
+// In addition to that, it also invalidates any remember me tokens, if the
+// storer supports that kind of operation.
 //
-// If it's also desirable to log the user out, use: authboss.DelKnown(Session|Cookie)
+// If it's also desirable to log the user out, use:
+// authboss.DelKnown(Session|Cookie)
 func (a *Authboss) UpdatePassword(ctx context.Context, user AuthableUser, newPassword string) error {
 	pass, err := bcrypt.GenerateFromPassword([]byte(newPassword), a.Config.Modules.BCryptCost)
 	if err != nil {

@@ -14,16 +14,18 @@ type Config struct {
 		Mount string
 
 		// NotAuthorized is the default URL to kick users back to when
-		// they attempt an action that requires them to be logged in and they're not auth'd
+		// they attempt an action that requires them to be logged in and
+		// they're not auth'd
 		NotAuthorized string
 
 		// AuthLoginOK is the redirect path after a successful authentication.
 		AuthLoginOK string
 
-		// ConfirmOK once a user has confirmed their account, where should they go
+		// ConfirmOK once a user has confirmed their account
+		// this says where they should go
 		ConfirmOK string
-		// ConfirmNotOK is used by the middleware, when a user is still supposed to
-		// confirm their account, this is where they should be redirected to.
+		// ConfirmNotOK is used by the middleware, when a user is still supposed
+		// to confirm their account, this is where they should be redirected to.
 		ConfirmNotOK string
 
 		// LockNotOK is a path to go to when the user fails
@@ -34,7 +36,8 @@ type Config struct {
 
 		// OAuth2LoginOK is the redirect path after a successful oauth2 login
 		OAuth2LoginOK string
-		// OAuth2LoginNotOK is the redirect path after an unsuccessful oauth2 login
+		// OAuth2LoginNotOK is the redirect path after
+		// an unsuccessful oauth2 login
 		OAuth2LoginNotOK string
 
 		// RecoverOK is the redirect path after a successful recovery of a password.
@@ -43,7 +46,9 @@ type Config struct {
 		// RegisterOK is the redirect path after a successful registration.
 		RegisterOK string
 
-		// RootURL is the scheme+host+port of the web application (eg https://www.happiness.com:8080) for url generation. No trailing slash.
+		// RootURL is the scheme+host+port of the web application
+		// (eg https://www.happiness.com:8080) for url generation.
+		// No trailing slash.
 		RootURL string
 	}
 
@@ -51,14 +56,14 @@ type Config struct {
 		// BCryptCost is the cost of the bcrypt password hashing function.
 		BCryptCost int
 
-		// ConfirmMethod controls which http method confirm expects. This is because
-		// typically this is a GET request since it's a link from an e-mail, but in
-		// api-like cases it needs to be able to be a post since there's data that
-		// must be sent to it.
+		// ConfirmMethod controls which http method confirm expects.
+		// This is because typically this is a GET request since it's a link
+		// from an e-mail, but in api-like cases it needs to be able to be a
+		// post since there's data that must be sent to it.
 		ConfirmMethod string
 
-		// ExpireAfter controls the time an account is idle before being logged out
-		// by the ExpireMiddleware.
+		// ExpireAfter controls the time an account is idle before being
+		// logged out by the ExpireMiddleware.
 		ExpireAfter time.Duration
 
 		// LockAfter this many tries.
@@ -68,41 +73,48 @@ type Config struct {
 		// LockDuration is how long an account is locked for.
 		LockDuration time.Duration
 
-		// LogoutMethod is the method the logout route should use (default should be DELETE)
+		// LogoutMethod is the method the logout route should use
+		// (default should be DELETE)
 		LogoutMethod string
 
-		// RegisterPreserveFields are fields used with registration that are to be rendered when
-		// post fails in a normal way (for example validation errors), they will be passed
-		// back in the data of the response under the key DataPreserve which will be a map[string]string.
+		// RegisterPreserveFields are fields used with registration that are
+		// to be rendered when post fails in a normal way
+		// (for example validation errors), they will be passed back in the
+		// data of the response under the key DataPreserve which
+		// will be a map[string]string.
 		//
-		// All fields that are to be preserved must be able to be returned by the ArbitraryValuer.GetValues()
+		// All fields that are to be preserved must be able to be returned by
+		// the ArbitraryValuer.GetValues()
 		//
-		// This means in order to have a field named "address" you would need to have that returned by
-		// the ArbitraryValuer.GetValues() method and then it would be available to be whitelisted by this
+		// This means in order to have a field named "address" you would need
+		// to have that returned by the ArbitraryValuer.GetValues() method and
+		// then it would be available to be whitelisted by this
 		// configuration variable.
 		RegisterPreserveFields []string
 
-		// RecoverTokenDuration controls how long a token sent via email for password
-		// recovery is valid for.
+		// RecoverTokenDuration controls how long a token sent via
+		// email for password recovery is valid for.
 		RecoverTokenDuration time.Duration
-		// RecoverLoginAfterRecovery says for the recovery module after a user has successfully
-		// recovered the password, are they simply logged in, or are they redirected to
-		// the login page with an "updated password" message.
+		// RecoverLoginAfterRecovery says for the recovery module after a
+		// user has successfully recovered the password, are they simply
+		// logged in, or are they redirected to the login page with an
+		// "updated password" message.
 		RecoverLoginAfterRecovery bool
 
 		// OAuth2Providers lists all providers that can be used. See
 		// OAuthProvider documentation for more details.
 		OAuth2Providers map[string]OAuth2Provider
 
-		// TOTP2FAIssuer is the issuer that appears in the url when scanning a qr code
-		// for google authenticator.
+		// TOTP2FAIssuer is the issuer that appears in the url when scanning
+		// a qr code for google authenticator.
 		TOTP2FAIssuer string
 
-		// RoutesRedirectOnUnauthed controls whether or not a user is redirected or given
-		// a 404 when they are unauthenticated and attempting to access a route that's
-		// login-protected inside Authboss itself. The otp/twofactor modules all use
-		// authboss.Middleware to protect their routes and this is the
-		// redirectToLogin parameter in that middleware that they pass through.
+		// RoutesRedirectOnUnauthed controls whether or not a user is redirected
+		// or given a 404 when they are unauthenticated and attempting to access
+		// a route that's login-protected inside Authboss itself.
+		// The otp/twofactor modules all use authboss.Middleware to protect
+		// their routes and this is the redirectToLogin parameter in that
+		// middleware that they pass through.
 		RoutesRedirectOnUnauthed bool
 	}
 
@@ -110,8 +122,8 @@ type Config struct {
 		// RootURL is a full path to an application that is hosting a front-end
 		// Typically using a combination of Paths.RootURL and Paths.Mount
 		// MailRoot will be assembled if not set.
-		// Typically looks something like: https://our-front-end.com/authenication
-		// No trailing slash
+		// Typically looks like: https://our-front-end.com/authenication
+		// No trailing slash.
 		RootURL string
 
 		// From is the email address authboss e-mails come from.
@@ -124,12 +136,13 @@ type Config struct {
 	}
 
 	Storage struct {
-		// Storer is the interface through which Authboss accesses the web apps database
-		// for user operations.
+		// Storer is the interface through which Authboss accesses the web apps
+		// database for user operations.
 		Server ServerStorer
 
 		// CookieState must be defined to provide an interface capapable of
-		// storing cookies for the given response, and reading them from the request.
+		// storing cookies for the given response, and reading them from the
+		// request.
 		CookieState ClientStateReadWriter
 		// SessionState must be defined to provide an interface capable of
 		// storing session-only values for the given response, and reading them
@@ -150,12 +163,12 @@ type Config struct {
 		// http request.
 		Responder HTTPResponder
 
-		// Redirector can redirect a response, similar to Responder but responsible
-		// only for redirection.
+		// Redirector can redirect a response, similar to Responder but
+		// responsible only for redirection.
 		Redirector HTTPRedirector
 
-		// BodyReader reads validatable data from the body of a request to be able
-		// to get data from the user's client.
+		// BodyReader reads validatable data from the body of a request to
+		// be able to get data from the user's client.
 		BodyReader BodyReader
 
 		// ViewRenderer loads the templates for the application.

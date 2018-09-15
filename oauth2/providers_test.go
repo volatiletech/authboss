@@ -12,8 +12,8 @@ import (
 )
 
 func init() {
-	// This has an extra parameter that the Google client wouldn't normally get, but it'll safely be
-	// ignored.
+	// This has an extra parameter that the Google client wouldn't normally
+	// get, but it'll safely be ignored.
 	clientGet = func(_ *http.Client, url string) (*http.Response, error) {
 		return &http.Response{
 			Body: ioutil.NopCloser(strings.NewReader(`{"id":"id", "email":"email", "name": "name"}`)),

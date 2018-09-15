@@ -196,7 +196,8 @@ func TestRegisterPostValidationFailure(t *testing.T) {
 
 	h := testSetup()
 
-	// Ensure the below is sorted, the sort normally happens in Init() that we don't call
+	// Ensure the below is sorted, the sort normally happens in Init()
+	// that we don't call
 	h.ab.Modules.RegisterPreserveFields = []string{"another", "email"}
 	h.bodyReader.Return = mocks.ArbValues{
 		Values: map[string]string{
@@ -249,7 +250,8 @@ func TestRegisterPostUserExists(t *testing.T) {
 
 	h := testSetup()
 
-	// Ensure the below is sorted, the sort normally happens in Init() that we don't call
+	// Ensure the below is sorted, the sort normally happens in Init()
+	// that we don't call
 	h.ab.Modules.RegisterPreserveFields = []string{"another", "email"}
 	h.storer.Users["test@test.com"] = &mocks.User{}
 	h.bodyReader.Return = mocks.ArbValues{

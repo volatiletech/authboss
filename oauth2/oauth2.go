@@ -5,28 +5,31 @@
 // The general flow looks like this:
 //   1. User goes to Start handler and has his session packed with goodies
 //      then redirects to the OAuth service.
-//   2. OAuth service returns to OAuthCallback which extracts state and parameters
-//      and generally checks that everything is ok. It uses the token received to
-//      get an access token from the oauth2 library
-//   3. Calls the OAuth2Provider.FindUserDetails which should return the user's details
-//      in a generic form.
-//   4. Passes the user details into the OAuth2ServerStorer.NewFromOAuth2 in order
-//      to create a user object we can work with.
+//   2. OAuth service returns to OAuthCallback which extracts state and
+//      parameters and generally checks that everything is ok. It uses the
+//      token received to get an access token from the oauth2 library
+//   3. Calls the OAuth2Provider.FindUserDetails which should return the user's
+//      details in a generic form.
+//   4. Passes the user details into the OAuth2ServerStorer.NewFromOAuth2 in
+//      order to create a user object we can work with.
 //   5. Saves the user in the database, logs them in, redirects.
 //
 // In order to do this there are a number of parts:
-//   1. The configuration of a provider (handled by authboss.Config.Modules.OAuth2Providers)
-//   2. The flow of redirection of client, parameter passing etc (handled by this package)
-//   3. The HTTP call to the service once a token has been retrieved to get user details
-//      (handled by OAuth2Provider.FindUserDetails)
-//   4. The creation of a user from the user details returned from the FindUserDetails
-//      (authboss.OAuth2ServerStorer)
+//   1. The configuration of a provider
+//      (handled by authboss.Config.Modules.OAuth2Providers).
+//   2. The flow of redirection of client, parameter passing etc
+//      (handled by this package)
+//   3. The HTTP call to the service once a token has been retrieved to
+//      get user details (handled by OAuth2Provider.FindUserDetails)
+//   4. The creation of a user from the user details returned from the
+//      FindUserDetails (authboss.OAuth2ServerStorer)
 //
-// Of these parts, the responsibility of the authboss library consumer is on 1, 3, and 4.
-// Configuration of providers that should be used is totally up to the consumer. The FindUserDetails
-// function is typically up to the user, but we have some basic ones included in this package too.
-// The creation of users from the FindUserDetail's map[string]string return is handled as part
-// of the implementation of the OAuth2ServerStorer.
+// Of these parts, the responsibility of the authboss library consumer
+// is on 1, 3, and 4. Configuration of providers that should be used is totally
+// up to the consumer. The FindUserDetails function is typically up to the
+// user, but we have some basic ones included in this package too.
+// The creation of users from the FindUserDetail's map[string]string return
+// is handled as part of the implementation of the OAuth2ServerStorer.
 package oauth2
 
 import (
@@ -73,7 +76,8 @@ func (o *OAuth2) Init(ab *authboss.Authboss) error {
 	o.Authboss = ab
 
 	// Do annoying sorting on keys so we can have predictible
-	// route registration (both for consistency inside the router but also for tests -_-)
+	// route registration (both for consistency inside the router but
+	// also for tests -_-)
 	var keys []string
 	for k := range o.Authboss.Config.Modules.OAuth2Providers {
 		keys = append(keys, k)

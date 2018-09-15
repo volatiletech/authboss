@@ -155,8 +155,8 @@ func (r *Recover) SendRecoverEmail(ctx context.Context, to, encodedToken string)
 	}
 }
 
-// EndGet shows a password recovery form, and it should have the token that the user
-// brought in the query parameters in it on submission.
+// EndGet shows a password recovery form, and it should have the token that
+// the user brought in the query parameters in it on submission.
 func (r *Recover) EndGet(w http.ResponseWriter, req *http.Request) error {
 	validatable, err := r.Authboss.Core.BodyReader.Read(PageRecoverMiddle, req)
 	if err != nil {
@@ -282,8 +282,10 @@ func (r *Recover) mailURL(token string) string {
 }
 
 // GenerateRecoverCreds generates pieces needed for user recovery
-// selector: hash of the first half of a 64 byte value (to be stored in the database and used in SELECT query)
-// verifier: hash of the second half of a 64 byte value (to be stored in database but never used in SELECT query)
+// selector: hash of the first half of a 64 byte value
+// (to be stored in the database and used in SELECT query)
+// verifier: hash of the second half of a 64 byte value
+// (to be stored in database but never used in SELECT query)
 // token: the user-facing base64 encoded selector+verifier
 func GenerateRecoverCreds() (selector, verifier, token string, err error) {
 	rawToken := make([]byte, recoverTokenSize)

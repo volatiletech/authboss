@@ -20,7 +20,8 @@ type User interface {
 
 	// GetRecoveryCodes retrieves a CSV string of bcrypt'd recovery codes
 	GetRecoveryCodes() string
-	// PutRecoveryCodes uses a single string to store many bcrypt'd recovery codes
+	// PutRecoveryCodes uses a single string to store many
+	// bcrypt'd recovery codes
 	PutRecoveryCodes(codes string)
 }
 
@@ -147,8 +148,8 @@ func BCryptRecoveryCodes(codes []string) ([]string, error) {
 	return cryptedCodes, nil
 }
 
-// UseRecoveryCode deletes the code that was used from the string slice and returns it
-// the bool is true if a code was used
+// UseRecoveryCode deletes the code that was used from the string slice and
+// returns it, the bool is true if a code was used
 func UseRecoveryCode(codes []string, inputCode string) ([]string, bool) {
 	input := []byte(inputCode)
 	use := -1

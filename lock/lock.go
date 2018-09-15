@@ -148,9 +148,10 @@ func (l *Lock) Unlock(ctx context.Context, key string) error {
 	return l.Authboss.Config.Storage.Server.Save(ctx, lu)
 }
 
-// Middleware ensures that a user is not locked, or else it will intercept the request
-// and send them to the configured LockNotOK page, this will load the user if he's not been loaded
-// yet from the session. And panics if it cannot load the user.
+// Middleware ensures that a user is not locked, or else it will intercept
+// the request and send them to the configured LockNotOK page, this will load
+// the user if he's not been loaded yet from the session. And panics if it
+// cannot load the user.
 func Middleware(ab *authboss.Authboss) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {

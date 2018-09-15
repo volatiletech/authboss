@@ -14,12 +14,13 @@ import (
 )
 
 var (
-	// ErrUserFound should be returned from Create (see ConfirmUser) when the primaryID
-	// of the record is found.
+	// ErrUserFound should be returned from Create (see ConfirmUser)
+	// when the primaryID of the record is found.
 	ErrUserFound = errors.New("user found")
 	// ErrUserNotFound should be returned from Get when the record is not found.
 	ErrUserNotFound = errors.New("user not found")
-	// ErrTokenNotFound should be returned from UseToken when the record is not found.
+	// ErrTokenNotFound should be returned from UseToken when the
+	// record is not found.
 	ErrTokenNotFound = errors.New("token not found")
 )
 
@@ -56,23 +57,24 @@ type OAuth2ServerStorer interface {
 	// of details returned from OAuth2Provider.FindUserDetails
 	// A more in-depth explanation is that once we've got an access token
 	// for the service in question (say a service that rhymes with book)
-	// the FindUserDetails function does an http request to a known endpoint that
-	// provides details about the user, those details are captured in a generic
-	// way as map[string]string and passed into this function to be turned
-	// into a real user.
+	// the FindUserDetails function does an http request to a known endpoint
+	// that provides details about the user, those details are captured in a
+	// generic way as map[string]string and passed into this function to be
+	// turned into a real user.
 	//
 	// It's possible that the user exists in the database already, and so
 	// an attempt should be made to look that user up using the details.
 	// Any details that have changed should be updated. Do not save the user
-	// since that will be done by a later call to OAuth2ServerStorer.SaveOAuth2()
+	// since that will be done later by OAuth2ServerStorer.SaveOAuth2()
 	NewFromOAuth2(ctx context.Context, provider string, details map[string]string) (OAuth2User, error)
 
-	// SaveOAuth2 has different semantics from the typical ServerStorer.Save, in this case
-	// we want to insert a user if they do not exist. The difference must be made clear because
-	// in the non-oauth2 case, we know exactly when we want to Create vs Update. However
-	// since we're simply trying to persist a user that may have been in our database, but if not
-	// should already be (since you can think of the operation as a caching of what's on the oauth2 provider's
-	// servers).
+	// SaveOAuth2 has different semantics from the typical ServerStorer.Save,
+	// in this case we want to insert a user if they do not exist.
+	// The difference must be made clear because in the non-oauth2 case,
+	// we know exactly when we want to Create vs Update. However since we're
+	// simply trying to persist a user that may have been in our database,
+	// but if not should already be (since you can think of the operation as
+	// a caching of what's on the oauth2 provider's servers).
 	SaveOAuth2(ctx context.Context, user OAuth2User) error
 }
 
@@ -117,7 +119,8 @@ func EnsureCanCreate(storer ServerStorer) CreatingServerStorer {
 	return s
 }
 
-// EnsureCanConfirm makes sure the server storer supports confirm-lookup operations
+// EnsureCanConfirm makes sure the server storer supports
+// confirm-lookup operations
 func EnsureCanConfirm(storer ServerStorer) ConfirmingServerStorer {
 	s, ok := storer.(ConfirmingServerStorer)
 	if !ok {
@@ -127,7 +130,8 @@ func EnsureCanConfirm(storer ServerStorer) ConfirmingServerStorer {
 	return s
 }
 
-// EnsureCanRecover makes sure the server storer supports confirm-lookup operations
+// EnsureCanRecover makes sure the server storer supports
+// confirm-lookup operations
 func EnsureCanRecover(storer ServerStorer) RecoveringServerStorer {
 	s, ok := storer.(RecoveringServerStorer)
 	if !ok {
@@ -147,7 +151,8 @@ func EnsureCanRemember(storer ServerStorer) RememberingServerStorer {
 	return s
 }
 
-// EnsureCanOAuth2 makes sure the server storer supports oauth2 creation and lookup
+// EnsureCanOAuth2 makes sure the server storer supports
+// oauth2 creation and lookup
 func EnsureCanOAuth2(storer ServerStorer) OAuth2ServerStorer {
 	s, ok := storer.(OAuth2ServerStorer)
 	if !ok {

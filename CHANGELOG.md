@@ -20,6 +20,12 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 - defaults.HTTPRedirector now always responds with a "status": "success"
   when responding to an API unless there's a failure.
 
+### Fixed
+
+- Fix LoadCurrentUser error handling, it was swallowing errors when users were
+  not logged in, changed to be consistent, now returns ErrUserNotFound just like
+  CurrentUser.
+
 ## [2.0.0] - 2018-09-03
 
 ### Added

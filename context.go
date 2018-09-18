@@ -131,10 +131,8 @@ func (a *Authboss) LoadCurrentUser(r **http.Request) (User, error) {
 	pid, err := a.LoadCurrentUserID(r)
 	if err != nil {
 		return nil, err
-	}
-
-	if len(pid) == 0 {
-		return nil, nil
+	} else if len(pid) == 0 {
+		return nil, ErrUserNotFound
 	}
 
 	ctx := (**r).Context()

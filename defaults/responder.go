@@ -2,6 +2,7 @@ package defaults
 
 import (
 	"net/http"
+	"strings"
 
 	"github.com/volatiletech/authboss"
 )
@@ -41,7 +42,7 @@ func (r *Responder) Respond(w http.ResponseWriter, req *http.Request, code int, 
 }
 
 func isAPIRequest(r *http.Request) bool {
-	return r.Header.Get("Content-Type") == "application/json"
+	return strings.HasPrefix(r.Header.Get("Content-Type"), "application/json")
 }
 
 // Redirector for http requests

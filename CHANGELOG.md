@@ -22,6 +22,8 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 ### Fixed
 
+- Fix a bug where content-types like 'application/json;charset=utf-8' would
+  not trigger api responses in the default responder.
 - Fix LoadCurrentUser error handling, it was swallowing errors when users were
   not logged in, changed to be consistent, now returns ErrUserNotFound just like
   CurrentUser.

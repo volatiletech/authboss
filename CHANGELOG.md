@@ -19,6 +19,9 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 - defaults.HTTPRedirector now always responds with a "status": "success"
   when responding to an API unless there's a failure.
+- defaults.JSONRenderer now renders a "status": "success" or "status": "failure"
+  based on the presence of known failure keys (configurable, defaults to
+  standard Authboss HTMLData errors).
 
 ### Fixed
 

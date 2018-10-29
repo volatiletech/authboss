@@ -30,6 +30,9 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 - Fix LoadCurrentUser error handling, it was swallowing errors when users were
   not logged in, changed to be consistent, now returns ErrUserNotFound just like
   CurrentUser.
+- Fix a bug where EventAuth and EventAuthFailure were not being fired in the
+  2fa modules which would stop users from becoming locked on 2fa failures
+  or logging in without being confirmed.
 
 ## [2.0.0] - 2018-09-03
 

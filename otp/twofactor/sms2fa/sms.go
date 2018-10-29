@@ -363,6 +363,13 @@ func (s *SMSValidator) validateCode(w http.ResponseWriter, r *http.Request, user
 	}
 
 	if !verified {
+		handled, err := s.Authboss.Events.FireAfter(authboss.EventAuthFail, w, r)
+		if err != nil {
+			return err
+		} else if handled {
+			return nil
+		}
+
 		logger.Infof("user %s sms 2fa failure (wrong code)", user.GetPID())
 		data := authboss.HTMLData{
 			authboss.DataValidation: map[string][]string{FormValueCode: []string{"2fa code was invalid"}},
@@ -419,6 +426,13 @@ func (s *SMSValidator) validateCode(w http.ResponseWriter, r *http.Request, user
 		authboss.DelSession(w, SessionSMSSecret)
 
 		logger.Infof("user %s sms 2fa success", user.GetPID())
+
+		handled, err := s.Authboss.Events.FireAfter(authboss.EventAuth, w, r)
+		if err != nil {
+			return err
+		} else if handled {
+			return nil
+		}
 
 		ro := authboss.RedirectOptions{
 			Code:             http.StatusTemporaryRedirect,

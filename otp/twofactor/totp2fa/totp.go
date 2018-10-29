@@ -318,6 +318,13 @@ func (t *TOTP) PostValidate(w http.ResponseWriter, r *http.Request) error {
 	case err != nil:
 		return err
 	case !ok:
+		handled, err := t.Authboss.Events.FireAfter(authboss.EventAuthFail, w, r)
+		if err != nil {
+			return err
+		} else if handled {
+			return nil
+		}
+
 		logger.Infof("user %s totp 2fa failure (wrong code)", user.GetPID())
 		data := authboss.HTMLData{
 			authboss.DataValidation: map[string][]string{FormValueCode: []string{"2fa code was invalid"}},
@@ -333,6 +340,13 @@ func (t *TOTP) PostValidate(w http.ResponseWriter, r *http.Request) error {
 	authboss.DelSession(w, SessionTOTPSecret)
 
 	logger.Infof("user %s totp 2fa success", user.GetPID())
+
+	handled, err := t.Authboss.Events.FireAfter(authboss.EventAuth, w, r)
+	if err != nil {
+		return err
+	} else if handled {
+		return nil
+	}
 
 	ro := authboss.RedirectOptions{
 		Code:             http.StatusTemporaryRedirect,

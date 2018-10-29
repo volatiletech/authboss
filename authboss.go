@@ -144,12 +144,12 @@ func MountedMiddleware(ab *Authboss, mountPathed, redirectToLogin, forceFullAuth
 				return
 			}
 
-			if u, err := ab.LoadCurrentUser(&r); err != nil {
+			if _, err := ab.LoadCurrentUser(&r); err == ErrUserNotFound {
+				fail(w, r)
+				return
+			} else if err != nil {
 				log.Errorf("error fetching current user: %+v", err)
 				w.WriteHeader(http.StatusInternalServerError)
-				return
-			} else if u == nil {
-				fail(w, r)
 				return
 			} else {
 				next.ServeHTTP(w, r)

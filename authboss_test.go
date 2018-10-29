@@ -5,6 +5,8 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"testing"
+
+	"github.com/davecgh/go-spew/spew"
 )
 
 func TestAuthBossInit(t *testing.T) {
@@ -134,6 +136,8 @@ func TestAuthbossMiddleware(t *testing.T) {
 		ab.Storage.SessionState = mockClientStateReadWriter{}
 
 		rec, called, hadUser := setupMore(false, false, false, false)
+
+		spew.Dump(ab.Storage)
 
 		if rec.Code != http.StatusNotFound {
 			t.Error("wrong code:", rec.Code)

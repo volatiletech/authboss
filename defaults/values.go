@@ -190,6 +190,8 @@ func NewHTTPBodyReader(readJSON, useUsernameNotEmail bool) *HTTPBodyReader {
 			"confirm":       {Rules{FieldName: FormValueConfirm, Required: true}},
 			"recover_start": {pidRules},
 			"recover_end":   {passwordRule},
+
+			"twofactor_verify_end": {Rules{FieldName: FormValueToken, Required: true}},
 		},
 		Confirms: map[string][]string{
 			"register":    {FormValuePassword, authboss.ConfirmPrefix + FormValuePassword},
@@ -267,6 +269,12 @@ func (h HTTPBodyReader) Read(page string, r *http.Request) (authboss.Validator, 
 			HTTPFormValidator: HTTPFormValidator{Values: values, Ruleset: rules, ConfirmFields: confirms},
 			Token:             values[FormValueToken],
 			NewPassword:       values[FormValuePassword],
+		}, nil
+	case "twofactor_verify_end":
+		// Reuse ConfirmValues here, it's the same values we need
+		return ConfirmValues{
+			HTTPFormValidator: HTTPFormValidator{Values: values, Ruleset: rules, ConfirmFields: confirms},
+			Token:             values[FormValueToken],
 		}, nil
 	case "totp2fa_confirm", "totp2fa_remove", "totp2fa_validate":
 		return TwoFA{

@@ -97,17 +97,35 @@ func (s *SMS) Setup() error {
 		return errors.New("must have SMS.Sender set")
 	}
 
-	middleware := authboss.MountedMiddleware(s.Authboss, true, s.Authboss.Config.Modules.RoutesRedirectOnUnauthed, false, false)
-	s.Authboss.Core.Router.Get("/2fa/sms/setup", middleware(s.Core.ErrorHandler.Wrap(s.GetSetup)))
-	s.Authboss.Core.Router.Post("/2fa/sms/setup", middleware(s.Core.ErrorHandler.Wrap(s.PostSetup)))
+	abmw := authboss.MountedMiddleware(s.Authboss, true, s.Authboss.Config.Modules.RoutesRedirectOnUnauthed, false, false)
+
+	var middleware, verified func(func(w http.ResponseWriter, r *http.Request) error) http.Handler
+	middleware = func(handler func(http.ResponseWriter, *http.Request) error) http.Handler {
+		return abmw(s.Core.ErrorHandler.Wrap(handler))
+	}
+
+	if s.Authboss.Config.Modules.TwoFactorEmailAuthRequired {
+		emailVerify, err := twofactor.SetupEmailVerify(s.Authboss, "totp", "/2fa/totp/setup")
+		if err != nil {
+			return err
+		}
+		verified = func(handler func(http.ResponseWriter, *http.Request) error) http.Handler {
+			return abmw(emailVerify.Wrap(s.Core.ErrorHandler.Wrap(handler)))
+		}
+	} else {
+		verified = middleware
+	}
+
+	s.Authboss.Core.Router.Get("/2fa/sms/setup", verified(s.GetSetup))
+	s.Authboss.Core.Router.Post("/2fa/sms/setup", verified(s.PostSetup))
 
 	confirm := &SMSValidator{SMS: s, Page: PageSMSConfirm}
-	s.Authboss.Core.Router.Get("/2fa/sms/confirm", middleware(s.Core.ErrorHandler.Wrap(confirm.Get)))
-	s.Authboss.Core.Router.Post("/2fa/sms/confirm", middleware(s.Core.ErrorHandler.Wrap(confirm.Post)))
+	s.Authboss.Core.Router.Get("/2fa/sms/confirm", verified(confirm.Get))
+	s.Authboss.Core.Router.Post("/2fa/sms/confirm", verified(confirm.Post))
 
 	remove := &SMSValidator{SMS: s, Page: PageSMSRemove}
-	s.Authboss.Core.Router.Get("/2fa/sms/remove", middleware(s.Core.ErrorHandler.Wrap(remove.Get)))
-	s.Authboss.Core.Router.Post("/2fa/sms/remove", middleware(s.Core.ErrorHandler.Wrap(remove.Post)))
+	s.Authboss.Core.Router.Get("/2fa/sms/remove", middleware(remove.Get))
+	s.Authboss.Core.Router.Post("/2fa/sms/remove", middleware(remove.Post))
 
 	validate := &SMSValidator{SMS: s, Page: PageSMSValidate}
 	s.Authboss.Core.Router.Get("/2fa/sms/validate", s.Core.ErrorHandler.Wrap(validate.Get))

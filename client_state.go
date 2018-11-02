@@ -18,6 +18,13 @@ const (
 	SessionLastAction = "last_action"
 	// Session2FA is set when a user has been authenticated with a second factor
 	Session2FA = "twofactor"
+	// Session2FAAuthToken is a random token set in the session to be verified
+	// by e-mail.
+	Session2FAAuthToken = "twofactor_auth_token"
+	// Session2FAAuthed is in the session (and set to "true") when the user
+	// has successfully verified the token sent via e-mail in the two factor
+	// e-mail authentication process.
+	Session2FAAuthed = "twofactor_authed"
 	// SessionOAuth2State is the xsrf protection key for oauth.
 	SessionOAuth2State = "oauth2_state"
 	// SessionOAuth2Params is the additional settings for oauth

@@ -66,17 +66,35 @@ type TOTP struct {
 
 // Setup the module
 func (t *TOTP) Setup() error {
-	middleware := authboss.MountedMiddleware(t.Authboss, true, t.Authboss.Config.Modules.RoutesRedirectOnUnauthed, true, false)
-	t.Authboss.Core.Router.Get("/2fa/totp/setup", middleware(t.Core.ErrorHandler.Wrap(t.GetSetup)))
-	t.Authboss.Core.Router.Post("/2fa/totp/setup", middleware(t.Core.ErrorHandler.Wrap(t.PostSetup)))
+	abmw := authboss.MountedMiddleware(t.Authboss, true, t.Authboss.Config.Modules.RoutesRedirectOnUnauthed, true, false)
 
-	t.Authboss.Core.Router.Get("/2fa/totp/qr", middleware(t.Core.ErrorHandler.Wrap(t.GetQRCode)))
+	var middleware, verified func(func(w http.ResponseWriter, r *http.Request) error) http.Handler
+	middleware = func(handler func(http.ResponseWriter, *http.Request) error) http.Handler {
+		return abmw(t.Core.ErrorHandler.Wrap(handler))
+	}
 
-	t.Authboss.Core.Router.Get("/2fa/totp/confirm", middleware(t.Core.ErrorHandler.Wrap(t.GetConfirm)))
-	t.Authboss.Core.Router.Post("/2fa/totp/confirm", middleware(t.Core.ErrorHandler.Wrap(t.PostConfirm)))
+	if t.Authboss.Config.Modules.TwoFactorEmailAuthRequired {
+		emailVerify, err := twofactor.SetupEmailVerify(t.Authboss, "totp", "/2fa/totp/setup")
+		if err != nil {
+			return err
+		}
+		verified = func(handler func(http.ResponseWriter, *http.Request) error) http.Handler {
+			return abmw(emailVerify.Wrap(t.Core.ErrorHandler.Wrap(handler)))
+		}
+	} else {
+		verified = middleware
+	}
 
-	t.Authboss.Core.Router.Get("/2fa/totp/remove", middleware(t.Core.ErrorHandler.Wrap(t.GetRemove)))
-	t.Authboss.Core.Router.Post("/2fa/totp/remove", middleware(t.Core.ErrorHandler.Wrap(t.PostRemove)))
+	t.Authboss.Core.Router.Get("/2fa/totp/setup", verified(t.GetSetup))
+	t.Authboss.Core.Router.Post("/2fa/totp/setup", verified(t.PostSetup))
+
+	t.Authboss.Core.Router.Get("/2fa/totp/qr", verified(t.GetQRCode))
+
+	t.Authboss.Core.Router.Get("/2fa/totp/confirm", verified(t.GetConfirm))
+	t.Authboss.Core.Router.Post("/2fa/totp/confirm", verified(t.PostConfirm))
+
+	t.Authboss.Core.Router.Get("/2fa/totp/remove", middleware(t.GetRemove))
+	t.Authboss.Core.Router.Post("/2fa/totp/remove", middleware(t.PostRemove))
 
 	t.Authboss.Core.Router.Get("/2fa/totp/validate", t.Core.ErrorHandler.Wrap(t.GetValidate))
 	t.Authboss.Core.Router.Post("/2fa/totp/validate", t.Core.ErrorHandler.Wrap(t.PostValidate))

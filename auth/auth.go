@@ -40,9 +40,9 @@ func (a *Auth) Init(ab *authboss.Authboss) (err error) {
 
 // LoginGet simply displays the login form
 func (a *Auth) LoginGet(w http.ResponseWriter, r *http.Request) error {
-	var data authboss.HTMLData
+	data := authboss.HTMLData{}
 	if redir := r.URL.Query().Get(authboss.FormValueRedirect); len(redir) != 0 {
-		data = authboss.HTMLData{authboss.FormValueRedirect: redir}
+		data[authboss.FormValueRedirect] = redir
 	}
 	return a.Core.Responder.Respond(w, r, http.StatusOK, PageLogin, data)
 }

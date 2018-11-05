@@ -70,7 +70,10 @@ func (e EmailVerify) GetStart(w http.ResponseWriter, r *http.Request) error {
 
 	user := cu.(User)
 
-	data := authboss.HTMLData{"email": user.GetEmail()}
+	data := authboss.HTMLData{
+		DataVerifyEmail: user.GetEmail(),
+		DataVerifyURL:   path.Join(e.Authboss.Paths.Mount, "2fa", e.TwofactorKind, "email/verify"),
+	}
 	return e.Authboss.Core.Responder.Respond(w, r, http.StatusOK, PageVerify2FA, data)
 }
 

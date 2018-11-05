@@ -8,6 +8,7 @@ import (
 	"crypto/subtle"
 	"io"
 	"net/http"
+	"path"
 	"strconv"
 	"strings"
 	"time"
@@ -105,7 +106,8 @@ func (s *SMS) Setup() error {
 	}
 
 	if s.Authboss.Config.Modules.TwoFactorEmailAuthRequired {
-		emailVerify, err := twofactor.SetupEmailVerify(s.Authboss, "sms", "/2fa/sms/setup")
+		setupPath := path.Join(s.Authboss.Paths.Mount, "/2fa/sms/setup")
+		emailVerify, err := twofactor.SetupEmailVerify(s.Authboss, "sms", setupPath)
 		if err != nil {
 			return err
 		}

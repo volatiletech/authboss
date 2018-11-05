@@ -10,6 +10,11 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 - Add e-mail confirmation before 2fa setup feature
 - Add config value TwoFactorEmailAuthRequired
 
+### Fixed
+
+- Fix a bug in remember where a user would get half-authed even though they
+  were logged in depending on middleware ordering.
+
 ### Deprecated
 
 - Deprecate the config field ConfirmMethod in favor of MailRouteMethod. See

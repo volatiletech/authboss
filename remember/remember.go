@@ -69,7 +69,8 @@ func (r *Remember) RememberAfterAuth(w http.ResponseWriter, req *http.Request, h
 func Middleware(ab *authboss.Authboss) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			if r.Context().Value(authboss.CTXKeyPID) == nil && r.Context().Value(authboss.CTXKeyUser) == nil {
+			// Safely can ignore error here
+			if id, _ := ab.CurrentUserID(r); len(id) == 0 {
 				if err := Authenticate(ab, w, &r); err != nil {
 					logger := ab.RequestLogger(r)
 					logger.Errorf("failed to authenticate user via remember me: %+v", err)

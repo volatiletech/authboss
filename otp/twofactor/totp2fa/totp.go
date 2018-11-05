@@ -9,6 +9,7 @@ import (
 	"io"
 	"net/http"
 	"net/url"
+	"path"
 
 	"github.com/pkg/errors"
 	"github.com/pquerna/otp"
@@ -74,7 +75,8 @@ func (t *TOTP) Setup() error {
 	}
 
 	if t.Authboss.Config.Modules.TwoFactorEmailAuthRequired {
-		emailVerify, err := twofactor.SetupEmailVerify(t.Authboss, "totp", "/2fa/totp/setup")
+		setupPath := path.Join(t.Authboss.Paths.Mount, "/2fa/totp/setup")
+		emailVerify, err := twofactor.SetupEmailVerify(t.Authboss, "totp", setupPath)
 		if err != nil {
 			return err
 		}

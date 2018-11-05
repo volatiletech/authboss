@@ -25,6 +25,7 @@ const (
 	DataRecoveryCode     = "recovery_code"
 	DataRecoveryCodes    = "recovery_codes"
 	DataNumRecoveryCodes = "n_recovery_codes"
+	DataVerifyEmail      = "email"
 	DataVerifyURL        = "url"
 )
 

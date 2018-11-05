@@ -32,6 +32,8 @@ func (c contextKey) String() string {
 }
 
 // CurrentUserID retrieves the current user from the session.
+// TODO(aarondl): This method never returns an error, one day we'll change
+// the function signature.
 func (a *Authboss) CurrentUserID(r *http.Request) (string, error) {
 	if pid := r.Context().Value(CTXKeyPID); pid != nil {
 		return pid.(string), nil

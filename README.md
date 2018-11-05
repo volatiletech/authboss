@@ -1,60 +1,5 @@
 <img src="http://i.imgur.com/fPIgqLg.jpg"/>
 
-<!-- TOC -->
-
-- [Authboss](#authboss)
-- [New to v2?](#new-to-v2)
-- [Why use Authboss?](#why-use-authboss)
-- [Getting Started](#getting-started)
-    - [App Requirements](#app-requirements)
-        - [CSRF Protection](#csrf-protection)
-        - [Request Throttling](#request-throttling)
-    - [Integration Requirements](#integration-requirements)
-        - [Middleware](#middleware)
-        - [Configuration](#configuration)
-        - [Storage and Core implementations](#storage-and-core-implementations)
-        - [ServerStorer implementation](#serverstorer-implementation)
-        - [User implementation](#user-implementation)
-        - [Values implementation](#values-implementation)
-    - [Config](#config)
-        - [Paths](#paths)
-        - [Modules](#modules)
-        - [Mail](#mail)
-        - [Storage](#storage)
-        - [Core](#core)
-- [Available Modules](#available-modules)
-- [Middlewares](#middlewares)
-- [Use Cases](#use-cases)
-    - [Get Current User](#get-current-user)
-    - [Reset Password](#reset-password)
-    - [User Auth via Password](#user-auth-via-password)
-    - [User Auth via OAuth2](#user-auth-via-oauth2)
-    - [User Registration](#user-registration)
-    - [Confirming Registrations](#confirming-registrations)
-    - [Password Recovery](#password-recovery)
-    - [Remember Me](#remember-me)
-    - [Locking Users](#locking-users)
-    - [Expiring User Sessions](#expiring-user-sessions)
-    - [One Time Passwords](#one-time-passwords)
-    - [Two Factor Authentication](#two-factor-authentication)
-        - [Two-Factor Recovery](#two-factor-recovery)
-        - [Time-Based One Time Passwords 2FA (totp)](#time-based-one-time-passwords-2fa-totp)
-            - [Adding 2fa to a user](#adding-2fa-to-a-user)
-            - [Removing 2fa from a user](#removing-2fa-from-a-user)
-            - [Logging in with 2fa](#logging-in-with-2fa)
-            - [Using Recovery Codes](#using-recovery-codes)
-        - [Text Message 2FA (sms)](#text-message-2fa-sms)
-            - [Adding 2fa to a user](#adding-2fa-to-a-user-1)
-            - [Removing 2fa from a user](#removing-2fa-from-a-user-1)
-            - [Logging in with 2fa](#logging-in-with-2fa-1)
-            - [Using Recovery Codes](#using-recovery-codes-1)
-    - [Rendering Views](#rendering-views)
-        - [HTML Views](#html-views)
-        - [JSON Views](#json-views)
-        - [Data](#data)
-
-<!-- /TOC -->
-
 # Authboss
 
 [![GoDoc](https://godoc.org/github.com/volatiletech/authboss?status.svg)](https://godoc.org/github.com/volatiletech/authboss)
@@ -89,6 +34,64 @@ Here are a few bullet point reasons you might like to try it out:
 * Saves you time (Authboss integration time should be less than re-implementation time)
 * Saves you mistakes (at least using Authboss, people can bug fix as a collective and all benefit)
 * Should integrate with or without any web framework
+
+# Readme Table of Contents
+<!-- TOC -->
+
+- [Authboss](#authboss)
+- [New to v2?](#new-to-v2)
+- [Why use Authboss?](#why-use-authboss)
+- [Readme Table of Contents](#readme-table-of-contents)
+- [Getting Started](#getting-started)
+    - [App Requirements](#app-requirements)
+        - [CSRF Protection](#csrf-protection)
+        - [Request Throttling](#request-throttling)
+    - [Integration Requirements](#integration-requirements)
+        - [Middleware](#middleware)
+        - [Configuration](#configuration)
+        - [Storage and Core implementations](#storage-and-core-implementations)
+        - [ServerStorer implementation](#serverstorer-implementation)
+        - [User implementation](#user-implementation)
+        - [Values implementation](#values-implementation)
+    - [Config](#config)
+        - [Paths](#paths)
+        - [Modules](#modules)
+        - [Mail](#mail)
+        - [Storage](#storage)
+        - [Core](#core)
+- [Available Modules](#available-modules)
+- [Middlewares](#middlewares)
+- [Use Cases](#use-cases)
+    - [Get Current User](#get-current-user)
+    - [Reset Password](#reset-password)
+    - [User Auth via Password](#user-auth-via-password)
+    - [User Auth via OAuth2](#user-auth-via-oauth2)
+    - [User Registration](#user-registration)
+    - [Confirming Registrations](#confirming-registrations)
+    - [Password Recovery](#password-recovery)
+    - [Remember Me](#remember-me)
+    - [Locking Users](#locking-users)
+    - [Expiring User Sessions](#expiring-user-sessions)
+    - [One Time Passwords](#one-time-passwords)
+    - [Two Factor Authentication](#two-factor-authentication)
+        - [Two-Factor Recovery](#two-factor-recovery)
+        - [Two-Factor Setup E-mail Authorization](#two-factor-setup-e-mail-authorization)
+        - [Time-Based One Time Passwords 2FA (totp)](#time-based-one-time-passwords-2fa-totp)
+            - [Adding 2fa to a user](#adding-2fa-to-a-user)
+            - [Removing 2fa from a user](#removing-2fa-from-a-user)
+            - [Logging in with 2fa](#logging-in-with-2fa)
+            - [Using Recovery Codes](#using-recovery-codes)
+        - [Text Message 2FA (sms)](#text-message-2fa-sms)
+            - [Adding 2fa to a user](#adding-2fa-to-a-user-1)
+            - [Removing 2fa from a user](#removing-2fa-from-a-user-1)
+            - [Logging in with 2fa](#logging-in-with-2fa-1)
+            - [Using Recovery Codes](#using-recovery-codes-1)
+    - [Rendering Views](#rendering-views)
+        - [HTML Views](#html-views)
+        - [JSON Views](#json-views)
+        - [Data](#data)
+
+<!-- /TOC -->
 
 # Getting Started
 
@@ -658,6 +661,39 @@ when users lose their phones for example. When this occurs, they can use one of 
 Backup codes are one-time use, they are bcrypted for security, and they only allow bypassing the 2fa
 authentication part, they cannot be used in lieu of a user's password, for that sort of recovery see
 the `otp` module.
+
+### Two-Factor Setup E-mail Authorization
+
+| Info and Requirements |          |
+| --------------------- | -------- |
+Module        | twofactor
+Pages         | twofactor_verify
+Routes        | /2fa/recovery/regen
+Emails        | twofactor_verify_email_html, twofactor_verify_email_txt
+Middlewares   | [LoadClientStateMiddleware](https://godoc.org/github.com/volatiletech/authboss/#Authboss.LoadClientStateMiddleware)
+ClientStorage | Session
+ServerStorer  | [ServerStorer](https://godoc.org/github.com/volatiletech/authboss/#ServerStorer)
+User          | [twofactor.User](https://godoc.org/github.com/volatiletech/authboss/otp/twofactor/#User)
+Values        | [twofactor.EmailVerifyTokenValuer](https://godoc.org/github.com/volatiletech/authboss/otp/twofactor/#EmailVerifyTokenValuer)
+Mailer        | Required
+
+To enable this feature simply turn on
+`authboss.Config.Modules.TwoFactorEmailAuthRequired` and new routes and
+middlewares will be installed when you set up one of the 2fa modules.
+
+When enabled, the routes for setting up 2fa on an account are protected by a
+middleware that will redirect to `/2fa/{totp,sms}/email/verify` where
+Page `twofactor_verify` is displayed. The user is prompted to authorize the
+addition of 2fa to their account. The data for this page contains `email` and
+a `url` for the POST. The url is required because this page is shared between
+all 2fa types.
+
+Once they POST to the url, a token is stored in their session and an e-mail is
+sent with that token. When they click the link that goes to
+`/2fa/{totp,sms}/email/verify/end` with a token in the query string the session
+token is verified and exchanged for a value that says they're verified and
+lastly it redirects them to the setup URL for the type of 2fa they were
+attempting to setup.
 
 ### Time-Based One Time Passwords 2FA (totp)
 

@@ -105,7 +105,7 @@ func (s *SMS) Setup() error {
 	}
 
 	if s.Authboss.Config.Modules.TwoFactorEmailAuthRequired {
-		emailVerify, err := twofactor.SetupEmailVerify(s.Authboss, "totp", "/2fa/totp/setup")
+		emailVerify, err := twofactor.SetupEmailVerify(s.Authboss, "sms", "/2fa/sms/setup")
 		if err != nil {
 			return err
 		}

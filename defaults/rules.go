@@ -56,7 +56,7 @@ func (r Rules) Errors(toValidate string) authboss.ErrorList {
 	if upper < r.MinUpper {
 		errs = append(errs, FieldError{r.FieldName, errors.New(r.upperErr())})
 	}
-	if upper < r.MinLower {
+	if lower < r.MinLower {
 		errs = append(errs, FieldError{r.FieldName, errors.New(r.lowerErr())})
 	}
 	if numeric < r.MinNumeric {

@@ -49,6 +49,11 @@ func TestRules_Errors(t *testing.T) {
 			"email: Must be between 3 and 5 characters",
 		},
 		{
+			Rules{FieldName: "email", MinUpper: 2, MinLower: 1},
+			"AA",
+			"email: Must contain at least 1 lowercase letter",
+		},
+		{
 			Rules{FieldName: "email", MinLetters: 5},
 			"13345",
 			"email: Must contain at least 5 letters",

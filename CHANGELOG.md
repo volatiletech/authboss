@@ -14,6 +14,8 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 - Fix a bug where GET /login would panic when no FormValueRedirect is
   provided. (thanks @rarguelloF)
+- Fix a bug where lowercase password requirements in the default rules
+  implementation were not being checked correctly (thanks @rarguelloF)
 - Fix a bug in remember where a user would get half-authed even though they
   were logged in depending on middleware ordering.
 

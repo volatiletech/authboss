@@ -95,8 +95,8 @@ func (t *TOTP) Setup() error {
 	t.Authboss.Core.Router.Get("/2fa/totp/confirm", verified(t.GetConfirm))
 	t.Authboss.Core.Router.Post("/2fa/totp/confirm", verified(t.PostConfirm))
 
-	t.Authboss.Core.Router.Get("/2fa/totp/remove", middleware(t.GetRemove))
-	t.Authboss.Core.Router.Post("/2fa/totp/remove", middleware(t.PostRemove))
+	t.Authboss.Core.Router.Get("/2fa/totp/remove", verified(t.GetRemove))
+	t.Authboss.Core.Router.Post("/2fa/totp/remove", verified(t.PostRemove))
 
 	t.Authboss.Core.Router.Get("/2fa/totp/validate", t.Core.ErrorHandler.Wrap(t.GetValidate))
 	t.Authboss.Core.Router.Post("/2fa/totp/validate", t.Core.ErrorHandler.Wrap(t.PostValidate))

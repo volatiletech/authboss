@@ -126,8 +126,8 @@ func (s *SMS) Setup() error {
 	s.Authboss.Core.Router.Post("/2fa/sms/confirm", verified(confirm.Post))
 
 	remove := &SMSValidator{SMS: s, Page: PageSMSRemove}
-	s.Authboss.Core.Router.Get("/2fa/sms/remove", middleware(remove.Get))
-	s.Authboss.Core.Router.Post("/2fa/sms/remove", middleware(remove.Post))
+	s.Authboss.Core.Router.Get("/2fa/sms/remove", verified(remove.Get))
+	s.Authboss.Core.Router.Post("/2fa/sms/remove", verified(remove.Post))
 
 	validate := &SMSValidator{SMS: s, Page: PageSMSValidate}
 	s.Authboss.Core.Router.Get("/2fa/sms/validate", s.Core.ErrorHandler.Wrap(validate.Get))

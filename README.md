@@ -290,7 +290,7 @@ Mail sending related options.
 ### Storage
 
 These are the implementations of how storage on the server and the client are done in your
-app. There are no default implementations for these at this time. See the Godoc for more information
+app. There are no default implementations for these at this time. See the [Godoc](https://godoc.org/github.com/volatiletech/authboss) for more information
 about what these are.
 
 ### Core
@@ -462,7 +462,7 @@ This means the (whitelisted) values entered by the user previously will be acces
 templates by using `.preserve.field_name`. Preserve may be empty or nil so use
 `{{with ...}}` to make sure you don't have template errors.
 
-There is additional Godoc documentation on the `RegisterPreserveFields` config option as well as
+There is additional [Godoc documentation](https://godoc.org/github.com/volatiletech/authboss#Config) on the `RegisterPreserveFields` config option as well as
 the `ArbitraryUser` and `ArbitraryValuer` interfaces themselves.
 
 ## Confirming Registrations

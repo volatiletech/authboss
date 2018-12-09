@@ -181,7 +181,7 @@ to your app:
 
 Everything under Config.Storage and Config.Core are required and you must provide them,
 however you can optionally use default implementations from the
-[defaults package](https://github.com/volatiletech/authboss/defaults).
+[defaults package](https://github.com/volatiletech/authboss/tree/master/defaults).
 This also provides an easy way to share implementations of certain stack pieces (like HTML Form Parsing).
 As you saw in the example above these can be easily initialized with the `SetCore` method in that
 package.

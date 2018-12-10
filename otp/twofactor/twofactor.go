@@ -30,7 +30,7 @@ const (
 )
 
 const (
-	alphabet             = "abcdefghijklmnopqrstuvwxyz0123456789"
+	alphabet             = "abcdefghijkmnopqrstuvwxyz0123456789"
 	recoveryCodeLength   = 10
 	verifyEmailTokenSize = 16
 )

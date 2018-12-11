@@ -5,8 +5,6 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"testing"
-
-	"github.com/davecgh/go-spew/spew"
 )
 
 func TestAuthBossInit(t *testing.T) {
@@ -137,9 +135,41 @@ func TestAuthbossMiddleware(t *testing.T) {
 
 		rec, called, hadUser := setupMore(false, false, false, false)
 
-		spew.Dump(ab.Storage)
-
 		if rec.Code != http.StatusNotFound {
+			t.Error("wrong code:", rec.Code)
+		}
+		if called {
+			t.Error("should not have been called")
+		}
+		if hadUser {
+			t.Error("should not have had user")
+		}
+	})
+	t.Run("Reject401", func(t *testing.T) {
+		ab.Storage.SessionState = mockClientStateReadWriter{}
+
+		r := httptest.NewRequest("GET", "/super/secret", nil)
+		rec := httptest.NewRecorder()
+		w := ab.NewResponse(rec)
+
+		var err error
+		r, err = ab.LoadClientState(w, r)
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		var mid func(http.Handler) http.Handler
+		mid = Middleware2(ab, RequireNone, RespondUnauthorized)
+		var called, hadUser bool
+		server := mid(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			called = true
+			hadUser = r.Context().Value(CTXKeyUser) != nil
+			w.WriteHeader(http.StatusOK)
+		}))
+
+		server.ServeHTTP(w, r)
+
+		if rec.Code != http.StatusUnauthorized {
 			t.Error("wrong code:", rec.Code)
 		}
 		if called {

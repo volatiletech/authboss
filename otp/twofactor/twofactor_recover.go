@@ -18,7 +18,13 @@ type Recovery struct {
 
 // Setup the module to provide recovery regeneration routes
 func (rc *Recovery) Setup() error {
-	middleware := authboss.MountedMiddleware(rc.Authboss, true, rc.Authboss.Config.Modules.RoutesRedirectOnUnauthed, true, false)
+	var unauthedResponse authboss.MWRespondOnFailure
+	if rc.Config.Modules.ResponseOnUnauthed != 0 {
+		unauthedResponse = rc.Config.Modules.ResponseOnUnauthed
+	} else if rc.Config.Modules.RoutesRedirectOnUnauthed {
+		unauthedResponse = authboss.RespondRedirect
+	}
+	middleware := authboss.MountedMiddleware2(rc.Authboss, true, authboss.RequireFullAuth, unauthedResponse)
 	rc.Authboss.Core.Router.Get("/2fa/recovery/regen", middleware(rc.Authboss.Core.ErrorHandler.Wrap(rc.GetRegen)))
 	rc.Authboss.Core.Router.Post("/2fa/recovery/regen", middleware(rc.Authboss.Core.ErrorHandler.Wrap(rc.PostRegen)))
 

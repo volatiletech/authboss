@@ -98,7 +98,13 @@ func (s *SMS) Setup() error {
 		return errors.New("must have SMS.Sender set")
 	}
 
-	abmw := authboss.MountedMiddleware(s.Authboss, true, s.Authboss.Config.Modules.RoutesRedirectOnUnauthed, false, false)
+	var unauthedResponse authboss.MWRespondOnFailure
+	if s.Config.Modules.ResponseOnUnauthed != 0 {
+		unauthedResponse = s.Config.Modules.ResponseOnUnauthed
+	} else if s.Config.Modules.RoutesRedirectOnUnauthed {
+		unauthedResponse = authboss.RespondRedirect
+	}
+	abmw := authboss.MountedMiddleware2(s.Authboss, true, authboss.RequireFullAuth, unauthedResponse)
 
 	var middleware, verified func(func(w http.ResponseWriter, r *http.Request) error) http.Handler
 	middleware = func(handler func(http.ResponseWriter, *http.Request) error) http.Handler {

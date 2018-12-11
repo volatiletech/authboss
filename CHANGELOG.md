@@ -17,6 +17,9 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 - Add e-mail confirmation before 2fa setup feature
 - Add config value TwoFactorEmailAuthRequired
+- Add a more flexible way of adding behaviors and requirements to
+  authboss.Middleware. This API is at authboss.Middleware2 temporarily
+  until we can make a breaking change.
 
 ### Fixed
 
@@ -31,6 +34,10 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 - Deprecate the config field ConfirmMethod in favor of MailRouteMethod. See
   documentation for these config fields to understand how to use them now.
+- Deprecate Middleware/MountedMiddleware for Middleware2 and MountedMiddleware2
+  as these new APIs are more flexible. When v3 hits (Mounted)Middleware2 will
+  become just (Mounted)Middleware.
+- Deprecate RoutesRedirectOnUnauthed in favor of ResponseOnUnauthed
 
 ## [2.1.0] - 2018-10-28
 

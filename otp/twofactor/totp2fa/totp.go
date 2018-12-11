@@ -67,7 +67,13 @@ type TOTP struct {
 
 // Setup the module
 func (t *TOTP) Setup() error {
-	abmw := authboss.MountedMiddleware(t.Authboss, true, t.Authboss.Config.Modules.RoutesRedirectOnUnauthed, true, false)
+	var unauthedResponse authboss.MWRespondOnFailure
+	if t.Config.Modules.ResponseOnUnauthed != 0 {
+		unauthedResponse = t.Config.Modules.ResponseOnUnauthed
+	} else if t.Config.Modules.RoutesRedirectOnUnauthed {
+		unauthedResponse = authboss.RespondRedirect
+	}
+	abmw := authboss.MountedMiddleware2(t.Authboss, true, authboss.RequireFullAuth, unauthedResponse)
 
 	var middleware, verified func(func(w http.ResponseWriter, r *http.Request) error) http.Handler
 	middleware = func(handler func(http.ResponseWriter, *http.Request) error) http.Handler {

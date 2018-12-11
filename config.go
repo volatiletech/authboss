@@ -96,7 +96,7 @@ type Config struct {
 		//
 		// This configuration setting deprecates ConfirmMethod.
 		// If ConfirmMethod is set to the default value (GET) then
-		// MailRouteMethod is used. If ConfirMethod is not the default value
+		// MailRouteMethod is used. If ConfirmMethod is not the default value
 		// then it is used until Authboss v3 when only MailRouteMethod will be
 		// used.
 		MailRouteMethod string
@@ -138,6 +138,7 @@ type Config struct {
 		// a qr code for google authenticator.
 		TOTP2FAIssuer string
 
+		// DEPRECATED: See ResponseOnUnauthed
 		// RoutesRedirectOnUnauthed controls whether or not a user is redirected
 		// or given a 404 when they are unauthenticated and attempting to access
 		// a route that's login-protected inside Authboss itself.
@@ -145,6 +146,17 @@ type Config struct {
 		// their routes and this is the redirectToLogin parameter in that
 		// middleware that they pass through.
 		RoutesRedirectOnUnauthed bool
+
+		// ResponseOnUnauthed controls how a user is responded to when
+		// attempting to access a route that's login-protected inside Authboss
+		// itself. The otp/twofactor modules all use authboss.Middleware2 to
+		// protect their routes and this is the failResponse parameter in that
+		// middleware that they pass through.
+		//
+		// This deprecates RoutesRedirectOnUnauthed. If RoutesRedirectOnUnauthed
+		// is true, the value of this will be set to RespondRedirect until
+		// authboss v3.
+		ResponseOnUnauthed MWRespondOnFailure
 	}
 
 	Mail struct {

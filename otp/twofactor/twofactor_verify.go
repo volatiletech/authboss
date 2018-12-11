@@ -38,7 +38,13 @@ func SetupEmailVerify(ab *authboss.Authboss, twofactorKind, setupURL string) (Em
 		TwofactorSetupURL: setupURL,
 	}
 
-	middleware := authboss.MountedMiddleware(ab, true, ab.Config.Modules.RoutesRedirectOnUnauthed, true, false)
+	var unauthedResponse authboss.MWRespondOnFailure
+	if ab.Config.Modules.ResponseOnUnauthed != 0 {
+		unauthedResponse = ab.Config.Modules.ResponseOnUnauthed
+	} else if ab.Config.Modules.RoutesRedirectOnUnauthed {
+		unauthedResponse = authboss.RespondRedirect
+	}
+	middleware := authboss.MountedMiddleware2(ab, true, authboss.RequireFullAuth, unauthedResponse)
 	e.Authboss.Core.Router.Get("/2fa/"+twofactorKind+"/email/verify", middleware(ab.Core.ErrorHandler.Wrap(e.GetStart)))
 	e.Authboss.Core.Router.Post("/2fa/"+twofactorKind+"/email/verify", middleware(ab.Core.ErrorHandler.Wrap(e.PostStart)))
 

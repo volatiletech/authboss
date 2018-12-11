@@ -5,6 +5,14 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 ## [Unreleased]
 
+### Security
+
+- Fix a bug with the 2fa code where a client that failed to log in to a user
+  account got SessionTOTPPendingPID set to that user's pid. That user's pid
+  was used as lookup for verify() method in totp/sms methods before current
+  user was looked at meaning the logged in user could remove 2fa from the
+  other user's account because of the lookup order.
+
 ### Added
 
 - Add e-mail confirmation before 2fa setup feature

@@ -283,19 +283,21 @@ func (s *SMSValidator) Get(w http.ResponseWriter, r *http.Request) error {
 // Post receives a code in the body and validates it, if the code is
 // missing then it sends the code to the user (rate-limited).
 func (s *SMSValidator) Post(w http.ResponseWriter, r *http.Request) error {
-	var abUser authboss.User
-	var err error
-
 	// Get the user, they're either logged in and CurrentUser works, or they're
 	// in the middle of logging in and SMSPendingPID is set.
-	if pid, ok := authboss.GetSession(r, SessionSMSPendingPID); ok && len(pid) != 0 {
-		abUser, err = s.Authboss.Config.Storage.Server.Load(r.Context(), pid)
-	} else {
-		abUser, err = s.CurrentUser(r)
+	// Ensure we always look up CurrentUser first or session persistence
+	// attacks can be performed.
+	abUser, err := s.Authboss.CurrentUser(r)
+	if err == authboss.ErrUserNotFound {
+		pid, ok := authboss.GetSession(r, SessionSMSPendingPID)
+		if ok && len(pid) != 0 {
+			abUser, err = s.Authboss.Config.Storage.Server.Load(r.Context(), pid)
+		}
 	}
 	if err != nil {
 		return err
 	}
+
 	user := abUser.(User)
 
 	validator, err := s.Authboss.Config.Core.BodyReader.Read(s.Page, r)

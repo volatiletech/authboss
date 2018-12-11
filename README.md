@@ -681,12 +681,12 @@ To enable this feature simply turn on
 `authboss.Config.Modules.TwoFactorEmailAuthRequired` and new routes and
 middlewares will be installed when you set up one of the 2fa modules.
 
-When enabled, the routes for setting up and removing 2fa on an account are
-protected by a middleware that will redirect to `/2fa/{totp,sms}/email/verify`
-where Page `twofactor_verify` is displayed. The user is prompted to authorize
-the addition of 2fa to their account. The data for this page contains `email`
-and a `url` for the POST. The url is required because this page is shared
-between all 2fa types.
+When enabled, the routes for setting up 2fa on an account are protected by a
+middleware that will redirect to `/2fa/{totp,sms}/email/verify` where
+Page `twofactor_verify` is displayed. The user is prompted to authorize the
+addition of 2fa to their account. The data for this page contains `email` and
+a `url` for the POST. The url is required because this page is shared between
+all 2fa types.
 
 Once they POST to the url, a token is stored in their session and an e-mail is
 sent with that token. When they click the link that goes to

@@ -174,7 +174,7 @@ func TestEmailVerifyPostStart(t *testing.T) {
 		t.Error("subject wrong:", mail.Subject)
 	}
 
-	urlRgx := regexp.MustCompile(`^http://localhost:8080/auth/2fa/totp/email/verify/end\?token=[_a-zA-Z0-9=%]+$`)
+	urlRgx := regexp.MustCompile(`^http://localhost:8080/auth/2fa/totp/email/verify/end\?token=[\-_a-zA-Z0-9=%]+$`)
 
 	data := h.renderer.Data
 	if !urlRgx.MatchString(data[DataVerifyURL].(string)) {

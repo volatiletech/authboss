@@ -359,13 +359,16 @@ func (t *TOTP) PostValidate(w http.ResponseWriter, r *http.Request) error {
 
 func (t *TOTP) validate(r *http.Request) (User, bool, error) {
 	logger := t.RequestLogger(r)
-	var abUser authboss.User
-	var err error
 
-	if pid, ok := authboss.GetSession(r, SessionTOTPPendingPID); ok && len(pid) != 0 {
-		abUser, err = t.Authboss.Config.Storage.Server.Load(r.Context(), pid)
-	} else {
-		abUser, err = t.CurrentUser(r)
+	// Look up CurrentUser first, otherwise session persistence can allow
+	// a previous login attempt's user to be recalled here by a logged in
+	// user for 2fa removal and verification.
+	abUser, err := t.CurrentUser(r)
+	if err == authboss.ErrUserNotFound {
+		pid, ok := authboss.GetSession(r, SessionTOTPPendingPID)
+		if ok && len(pid) != 0 {
+			abUser, err = t.Authboss.Config.Storage.Server.Load(r.Context(), pid)
+		}
 	}
 	if err != nil {
 		return nil, false, err

@@ -3,6 +3,16 @@
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
+## [2.1.1] - 2018-12-10
+
+### Security
+
+- Fix a bug with the 2fa code where a client that failed to log in to a user
+  account got SessionTOTPPendingPID set to that user's pid. That user's pid
+  was used as lookup for verify() method in totp/sms methods before current
+  user was looked at meaning the logged in user could remove 2fa from the
+  other user's account because of the lookup order.
+
 ## [2.1.0] - 2018-10-28
 
 ### Added

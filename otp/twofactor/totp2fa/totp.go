@@ -345,6 +345,7 @@ func (t *TOTP) PostValidate(w http.ResponseWriter, r *http.Request) error {
 	case err != nil:
 		return err
 	case !ok:
+		r = r.WithContext(context.WithValue(r.Context(), authboss.CTXKeyUser, user))
 		handled, err := t.Authboss.Events.FireAfter(authboss.EventAuthFail, w, r)
 		if err != nil {
 			return err

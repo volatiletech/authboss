@@ -391,6 +391,7 @@ func (s *SMSValidator) validateCode(w http.ResponseWriter, r *http.Request, user
 	}
 
 	if !verified {
+		r = r.WithContext(context.WithValue(r.Context(), authboss.CTXKeyUser, user))
 		handled, err := s.Authboss.Events.FireAfter(authboss.EventAuthFail, w, r)
 		if err != nil {
 			return err

@@ -455,6 +455,7 @@ func (s *SMSValidator) validateCode(w http.ResponseWriter, r *http.Request, user
 
 		logger.Infof("user %s sms 2fa success", user.GetPID())
 
+		r = r.WithContext(context.WithValue(r.Context(), authboss.CTXKeyUser, user))
 		handled, err := s.Authboss.Events.FireAfter(authboss.EventAuth, w, r)
 		if err != nil {
 			return err

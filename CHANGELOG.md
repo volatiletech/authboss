@@ -29,6 +29,9 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
   implementation were not being checked correctly (thanks @rarguelloF)
 - Fix a bug in remember where a user would get half-authed even though they
   were logged in depending on middleware ordering.
+- Fix a bug where if you were using lock/remember modules with 2fa they
+  would fail since the events didn't contain the current user in the context
+  as the auth module delivers them.
 
 ### Deprecated
 

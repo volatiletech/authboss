@@ -4,6 +4,7 @@ package totp2fa
 
 import (
 	"bytes"
+	"context"
 	"fmt"
 	"image/png"
 	"io"
@@ -367,6 +368,7 @@ func (t *TOTP) PostValidate(w http.ResponseWriter, r *http.Request) error {
 
 	logger.Infof("user %s totp 2fa success", user.GetPID())
 
+	r = r.WithContext(context.WithValue(r.Context(), authboss.CTXKeyUser, user))
 	handled, err := t.Authboss.Events.FireAfter(authboss.EventAuth, w, r)
 	if err != nil {
 		return err

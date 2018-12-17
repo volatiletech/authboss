@@ -174,6 +174,13 @@ func (o *OTP) LoginPost(w http.ResponseWriter, r *http.Request) error {
 		return nil
 	}
 
+	handled, err = o.Events.FireBefore(authboss.EventAuthHijack, w, r)
+	if err != nil {
+		return err
+	} else if handled {
+		return nil
+	}
+
 	logger.Infof("user %s logged in via otp", pid)
 	authboss.PutSession(w, authboss.SessionKey, pid)
 	authboss.DelSession(w, authboss.SessionHalfAuthKey)

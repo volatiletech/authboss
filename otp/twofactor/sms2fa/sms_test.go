@@ -110,13 +110,13 @@ func (h *testHarness) setSession(key, value string) {
 	h.session.ClientValues[key] = value
 }
 
-func TestBeforeAuth(t *testing.T) {
+func TestHijackAuth(t *testing.T) {
 	t.Parallel()
 
 	t.Run("Handled", func(t *testing.T) {
 		harness := testSetup()
 
-		handled, err := harness.sms.BeforeAuth(nil, nil, true)
+		handled, err := harness.sms.HijackAuth(nil, nil, true)
 		if handled {
 			t.Error("should not be handled")
 		}
@@ -135,7 +135,7 @@ func TestBeforeAuth(t *testing.T) {
 		harness.putUserInCtx(user, &r)
 
 		harness.loadClientState(w, &r)
-		handled, err := harness.sms.BeforeAuth(w, r, false)
+		handled, err := harness.sms.HijackAuth(w, r, false)
 		if handled {
 			t.Error("should not be handled")
 		}
@@ -147,7 +147,7 @@ func TestBeforeAuth(t *testing.T) {
 	t.Run("Ok", func(t *testing.T) {
 		harness := testSetup()
 
-		handled, err := harness.sms.BeforeAuth(nil, nil, true)
+		handled, err := harness.sms.HijackAuth(nil, nil, true)
 		if handled {
 			t.Error("should not be handled")
 		}
@@ -162,7 +162,7 @@ func TestBeforeAuth(t *testing.T) {
 		harness.putUserInCtx(user, &r)
 		harness.loadClientState(w, &r)
 
-		handled, err = harness.sms.BeforeAuth(w, r, false)
+		handled, err = harness.sms.HijackAuth(w, r, false)
 		if !handled {
 			t.Error("should be handled")
 		}

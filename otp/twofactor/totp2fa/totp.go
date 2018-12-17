@@ -108,7 +108,7 @@ func (t *TOTP) Setup() error {
 	t.Authboss.Core.Router.Get("/2fa/totp/validate", t.Core.ErrorHandler.Wrap(t.GetValidate))
 	t.Authboss.Core.Router.Post("/2fa/totp/validate", t.Core.ErrorHandler.Wrap(t.PostValidate))
 
-	t.Authboss.Events.Before(authboss.EventAuth, t.BeforeAuth)
+	t.Authboss.Events.Before(authboss.EventAuthHijack, t.HijackAuth)
 
 	return t.Authboss.Core.ViewRenderer.Load(
 		PageTOTPSetup,
@@ -120,9 +120,9 @@ func (t *TOTP) Setup() error {
 	)
 }
 
-// BeforeAuth stores the user's pid in a special temporary session variable
+// HijackAuth stores the user's pid in a special temporary session variable
 // and redirects them to the validation endpoint.
-func (t *TOTP) BeforeAuth(w http.ResponseWriter, r *http.Request, handled bool) (bool, error) {
+func (t *TOTP) HijackAuth(w http.ResponseWriter, r *http.Request, handled bool) (bool, error) {
 	if handled {
 		return false, nil
 	}

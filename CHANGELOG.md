@@ -32,6 +32,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 - Fix a bug where if you were using lock/remember modules with 2fa they
   would fail since the events didn't contain the current user in the context
   as the auth module delivers them.
+- Fix a bug with 2fa where a locked account could get a double response
 
 ### Deprecated
 

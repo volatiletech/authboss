@@ -13,6 +13,13 @@ type Event int
 const (
 	EventRegister Event = iota
 	EventAuth
+	// EventAuthHijack is used to steal the authentication process after a
+	// successful auth but before any session variable has been put in.
+	// Most useful for defining an additional step for authentication
+	// (like 2fa). It needs to be separate to EventAuth because other modules
+	// do checks that would also interrupt event handlers with an authentication
+	// failure so there's an ordering problem.
+	EventAuthHijack
 	EventOAuth2
 	EventAuthFail
 	EventOAuth2Fail

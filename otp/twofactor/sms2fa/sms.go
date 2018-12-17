@@ -139,7 +139,7 @@ func (s *SMS) Setup() error {
 	s.Authboss.Core.Router.Get("/2fa/sms/validate", s.Core.ErrorHandler.Wrap(validate.Get))
 	s.Authboss.Core.Router.Post("/2fa/sms/validate", s.Core.ErrorHandler.Wrap(validate.Post))
 
-	s.Authboss.Events.Before(authboss.EventAuth, s.BeforeAuth)
+	s.Authboss.Events.Before(authboss.EventAuthHijack, s.HijackAuth)
 
 	return s.Authboss.Core.ViewRenderer.Load(
 		PageSMSConfirm,
@@ -151,9 +151,9 @@ func (s *SMS) Setup() error {
 	)
 }
 
-// BeforeAuth stores the user's pid in a special temporary session variable
+// HijackAuth stores the user's pid in a special temporary session variable
 // and redirects them to the validation endpoint.
-func (s *SMS) BeforeAuth(w http.ResponseWriter, r *http.Request, handled bool) (bool, error) {
+func (s *SMS) HijackAuth(w http.ResponseWriter, r *http.Request, handled bool) (bool, error) {
 	if handled {
 		return false, nil
 	}

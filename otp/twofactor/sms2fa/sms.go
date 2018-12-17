@@ -8,6 +8,7 @@ import (
 	"crypto/subtle"
 	"io"
 	"net/http"
+	"path"
 	"strconv"
 	"strings"
 	"time"
@@ -97,23 +98,48 @@ func (s *SMS) Setup() error {
 		return errors.New("must have SMS.Sender set")
 	}
 
-	middleware := authboss.MountedMiddleware(s.Authboss, true, s.Authboss.Config.Modules.RoutesRedirectOnUnauthed, false, false)
-	s.Authboss.Core.Router.Get("/2fa/sms/setup", middleware(s.Core.ErrorHandler.Wrap(s.GetSetup)))
-	s.Authboss.Core.Router.Post("/2fa/sms/setup", middleware(s.Core.ErrorHandler.Wrap(s.PostSetup)))
+	var unauthedResponse authboss.MWRespondOnFailure
+	if s.Config.Modules.ResponseOnUnauthed != 0 {
+		unauthedResponse = s.Config.Modules.ResponseOnUnauthed
+	} else if s.Config.Modules.RoutesRedirectOnUnauthed {
+		unauthedResponse = authboss.RespondRedirect
+	}
+	abmw := authboss.MountedMiddleware2(s.Authboss, true, authboss.RequireFullAuth, unauthedResponse)
+
+	var middleware, verified func(func(w http.ResponseWriter, r *http.Request) error) http.Handler
+	middleware = func(handler func(http.ResponseWriter, *http.Request) error) http.Handler {
+		return abmw(s.Core.ErrorHandler.Wrap(handler))
+	}
+
+	if s.Authboss.Config.Modules.TwoFactorEmailAuthRequired {
+		setupPath := path.Join(s.Authboss.Paths.Mount, "/2fa/sms/setup")
+		emailVerify, err := twofactor.SetupEmailVerify(s.Authboss, "sms", setupPath)
+		if err != nil {
+			return err
+		}
+		verified = func(handler func(http.ResponseWriter, *http.Request) error) http.Handler {
+			return abmw(emailVerify.Wrap(s.Core.ErrorHandler.Wrap(handler)))
+		}
+	} else {
+		verified = middleware
+	}
+
+	s.Authboss.Core.Router.Get("/2fa/sms/setup", verified(s.GetSetup))
+	s.Authboss.Core.Router.Post("/2fa/sms/setup", verified(s.PostSetup))
 
 	confirm := &SMSValidator{SMS: s, Page: PageSMSConfirm}
-	s.Authboss.Core.Router.Get("/2fa/sms/confirm", middleware(s.Core.ErrorHandler.Wrap(confirm.Get)))
-	s.Authboss.Core.Router.Post("/2fa/sms/confirm", middleware(s.Core.ErrorHandler.Wrap(confirm.Post)))
+	s.Authboss.Core.Router.Get("/2fa/sms/confirm", verified(confirm.Get))
+	s.Authboss.Core.Router.Post("/2fa/sms/confirm", verified(confirm.Post))
 
 	remove := &SMSValidator{SMS: s, Page: PageSMSRemove}
-	s.Authboss.Core.Router.Get("/2fa/sms/remove", middleware(s.Core.ErrorHandler.Wrap(remove.Get)))
-	s.Authboss.Core.Router.Post("/2fa/sms/remove", middleware(s.Core.ErrorHandler.Wrap(remove.Post)))
+	s.Authboss.Core.Router.Get("/2fa/sms/remove", middleware(remove.Get))
+	s.Authboss.Core.Router.Post("/2fa/sms/remove", middleware(remove.Post))
 
 	validate := &SMSValidator{SMS: s, Page: PageSMSValidate}
 	s.Authboss.Core.Router.Get("/2fa/sms/validate", s.Core.ErrorHandler.Wrap(validate.Get))
 	s.Authboss.Core.Router.Post("/2fa/sms/validate", s.Core.ErrorHandler.Wrap(validate.Post))
 
-	s.Authboss.Events.Before(authboss.EventAuth, s.BeforeAuth)
+	s.Authboss.Events.Before(authboss.EventAuthHijack, s.HijackAuth)
 
 	return s.Authboss.Core.ViewRenderer.Load(
 		PageSMSConfirm,
@@ -125,9 +151,9 @@ func (s *SMS) Setup() error {
 	)
 }
 
-// BeforeAuth stores the user's pid in a special temporary session variable
+// HijackAuth stores the user's pid in a special temporary session variable
 // and redirects them to the validation endpoint.
-func (s *SMS) BeforeAuth(w http.ResponseWriter, r *http.Request, handled bool) (bool, error) {
+func (s *SMS) HijackAuth(w http.ResponseWriter, r *http.Request, handled bool) (bool, error) {
 	if handled {
 		return false, nil
 	}
@@ -365,6 +391,7 @@ func (s *SMSValidator) validateCode(w http.ResponseWriter, r *http.Request, user
 	}
 
 	if !verified {
+		r = r.WithContext(context.WithValue(r.Context(), authboss.CTXKeyUser, user))
 		handled, err := s.Authboss.Events.FireAfter(authboss.EventAuthFail, w, r)
 		if err != nil {
 			return err
@@ -429,6 +456,7 @@ func (s *SMSValidator) validateCode(w http.ResponseWriter, r *http.Request, user
 
 		logger.Infof("user %s sms 2fa success", user.GetPID())
 
+		r = r.WithContext(context.WithValue(r.Context(), authboss.CTXKeyUser, user))
 		handled, err := s.Authboss.Events.FireAfter(authboss.EventAuth, w, r)
 		if err != nil {
 			return err

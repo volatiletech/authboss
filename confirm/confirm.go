@@ -56,7 +56,11 @@ func (c *Confirm) Init(ab *authboss.Authboss) (err error) {
 	}
 
 	var callbackMethod func(string, http.Handler)
-	switch c.Config.Modules.ConfirmMethod {
+	methodConfig := c.Config.Modules.ConfirmMethod
+	if methodConfig == http.MethodGet {
+		methodConfig = c.Config.Modules.MailRouteMethod
+	}
+	switch methodConfig {
 	case http.MethodGet:
 		callbackMethod = c.Authboss.Config.Core.Router.Get
 	case http.MethodPost:

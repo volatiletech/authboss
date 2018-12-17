@@ -27,6 +27,10 @@ func (JSONRenderer) Load(names ...string) error {
 
 // Render the data
 func (j JSONRenderer) Render(ctx context.Context, page string, data authboss.HTMLData) (output []byte, contentType string, err error) {
+	if data == nil {
+		return []byte(`{"status":"success"}`), "application/json", nil
+	}
+
 	if _, hasStatus := data["status"]; !hasStatus {
 		failures := j.Failures
 		if len(failures) == 0 {

@@ -47,7 +47,7 @@ func TestAuthGet(t *testing.T) {
 
 	a := &Auth{ab}
 
-	r := mocks.Request("POST")
+	r := mocks.Request("GET")
 	r.URL.RawQuery = "redir=/redirectpage"
 	if err := a.LoginGet(nil, r); err != nil {
 		t.Error(err)

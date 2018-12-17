@@ -75,7 +75,13 @@ func (o *OTP) Init(ab *authboss.Authboss) (err error) {
 	o.Authboss.Config.Core.Router.Get("/otp/login", o.Authboss.Core.ErrorHandler.Wrap(o.LoginGet))
 	o.Authboss.Config.Core.Router.Post("/otp/login", o.Authboss.Core.ErrorHandler.Wrap(o.LoginPost))
 
-	middleware := authboss.MountedMiddleware(ab, true, ab.Config.Modules.RoutesRedirectOnUnauthed, false, false)
+	var unauthedResponse authboss.MWRespondOnFailure
+	if ab.Config.Modules.ResponseOnUnauthed != 0 {
+		unauthedResponse = ab.Config.Modules.ResponseOnUnauthed
+	} else if ab.Config.Modules.RoutesRedirectOnUnauthed {
+		unauthedResponse = authboss.RespondRedirect
+	}
+	middleware := authboss.MountedMiddleware2(ab, true, authboss.RequireNone, unauthedResponse)
 	o.Authboss.Config.Core.Router.Get("/otp/add", middleware(o.Authboss.Core.ErrorHandler.Wrap(o.AddGet)))
 	o.Authboss.Config.Core.Router.Post("/otp/add", middleware(o.Authboss.Core.ErrorHandler.Wrap(o.AddPost)))
 
@@ -162,6 +168,13 @@ func (o *OTP) LoginPost(w http.ResponseWriter, r *http.Request) error {
 	r = r.WithContext(context.WithValue(r.Context(), authboss.CTXKeyValues, validatable))
 
 	handled, err = o.Events.FireBefore(authboss.EventAuth, w, r)
+	if err != nil {
+		return err
+	} else if handled {
+		return nil
+	}
+
+	handled, err = o.Events.FireBefore(authboss.EventAuthHijack, w, r)
 	if err != nil {
 		return err
 	} else if handled {

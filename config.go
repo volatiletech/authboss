@@ -40,7 +40,8 @@ type Config struct {
 		// an unsuccessful oauth2 login
 		OAuth2LoginNotOK string
 
-		// RecoverOK is the redirect path after a successful recovery of a password.
+		// RecoverOK is the redirect path after a successful recovery of a
+		// password.
 		RecoverOK string
 
 		// RegisterOK is the redirect path after a successful registration.
@@ -50,12 +51,20 @@ type Config struct {
 		// (eg https://www.happiness.com:8080) for url generation.
 		// No trailing slash.
 		RootURL string
+
+		// TwoFactorEmailAuthNotOK is where a user is redirected when
+		// the user attempts to add 2fa to their account without verifying
+		// their e-mail OR when they've completed the first step towards
+		// verification and need to check their e-mail to proceed.
+		TwoFactorEmailAuthNotOK string
 	}
 
 	Modules struct {
 		// BCryptCost is the cost of the bcrypt password hashing function.
 		BCryptCost int
 
+		// ConfirmMethod IS DEPRECATED! See MailRouteMethod instead.
+		//
 		// ConfirmMethod controls which http method confirm expects.
 		// This is because typically this is a GET request since it's a link
 		// from an e-mail, but in api-like cases it needs to be able to be a
@@ -76,6 +85,21 @@ type Config struct {
 		// LogoutMethod is the method the logout route should use
 		// (default should be DELETE)
 		LogoutMethod string
+
+		// MailRouteMethod is used to set the type of request that's used for
+		// routes that require a token from an e-mail link's query string.
+		// This is things like confirm and two factor e-mail auth.
+		//
+		// You should probably set this to POST if you are building an API
+		// so that the user goes to the frontend with their link & token
+		// and the front-end calls the API with the token in a POST JSON body.
+		//
+		// This configuration setting deprecates ConfirmMethod.
+		// If ConfirmMethod is set to the default value (GET) then
+		// MailRouteMethod is used. If ConfirmMethod is not the default value
+		// then it is used until Authboss v3 when only MailRouteMethod will be
+		// used.
+		MailRouteMethod string
 
 		// RegisterPreserveFields are fields used with registration that are
 		// to be rendered when post fails in a normal way
@@ -105,10 +129,16 @@ type Config struct {
 		// OAuthProvider documentation for more details.
 		OAuth2Providers map[string]OAuth2Provider
 
+		// TwoFactorEmailAuthRequired forces users to first confirm they have
+		// access to their e-mail with the current device by clicking a link
+		// and confirming a token stored in the session.
+		TwoFactorEmailAuthRequired bool
+
 		// TOTP2FAIssuer is the issuer that appears in the url when scanning
 		// a qr code for google authenticator.
 		TOTP2FAIssuer string
 
+		// DEPRECATED: See ResponseOnUnauthed
 		// RoutesRedirectOnUnauthed controls whether or not a user is redirected
 		// or given a 404 when they are unauthenticated and attempting to access
 		// a route that's login-protected inside Authboss itself.
@@ -116,6 +146,17 @@ type Config struct {
 		// their routes and this is the redirectToLogin parameter in that
 		// middleware that they pass through.
 		RoutesRedirectOnUnauthed bool
+
+		// ResponseOnUnauthed controls how a user is responded to when
+		// attempting to access a route that's login-protected inside Authboss
+		// itself. The otp/twofactor modules all use authboss.Middleware2 to
+		// protect their routes and this is the failResponse parameter in that
+		// middleware that they pass through.
+		//
+		// This deprecates RoutesRedirectOnUnauthed. If RoutesRedirectOnUnauthed
+		// is true, the value of this will be set to RespondRedirect until
+		// authboss v3.
+		ResponseOnUnauthed MWRespondOnFailure
 	}
 
 	Mail struct {
@@ -201,6 +242,7 @@ func (c *Config) Defaults() {
 	c.Paths.RecoverOK = "/"
 	c.Paths.RegisterOK = "/"
 	c.Paths.RootURL = "http://localhost:8080"
+	c.Paths.TwoFactorEmailAuthNotOK = "/"
 
 	c.Modules.BCryptCost = bcrypt.DefaultCost
 	c.Modules.ConfirmMethod = http.MethodGet
@@ -209,6 +251,7 @@ func (c *Config) Defaults() {
 	c.Modules.LockWindow = 5 * time.Minute
 	c.Modules.LockDuration = 12 * time.Hour
 	c.Modules.LogoutMethod = "DELETE"
+	c.Modules.MailRouteMethod = http.MethodGet
 	c.Modules.RecoverLoginAfterRecovery = false
 	c.Modules.RecoverTokenDuration = 24 * time.Hour
 }

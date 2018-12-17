@@ -3,6 +3,38 @@
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
+## [2.2.0] - 2018-12-16
+
+### Added
+
+- Add e-mail confirmation before 2fa setup feature
+- Add config value TwoFactorEmailAuthRequired
+- Add a more flexible way of adding behaviors and requirements to
+  authboss.Middleware. This API is at authboss.Middleware2 temporarily
+  until we can make a breaking change.
+
+### Fixed
+
+- Fix a bug where GET /login would panic when no FormValueRedirect is
+  provided. (thanks @rarguelloF)
+- Fix a bug where lowercase password requirements in the default rules
+  implementation were not being checked correctly (thanks @rarguelloF)
+- Fix a bug in remember where a user would get half-authed even though they
+  were logged in depending on middleware ordering.
+- Fix a bug where if you were using lock/remember modules with 2fa they
+  would fail since the events didn't contain the current user in the context
+  as the auth module delivers them.
+- Fix a bug with 2fa where a locked account could get a double response
+
+### Deprecated
+
+- Deprecate the config field ConfirmMethod in favor of MailRouteMethod. See
+  documentation for these config fields to understand how to use them now.
+- Deprecate Middleware/MountedMiddleware for Middleware2 and MountedMiddleware2
+  as these new APIs are more flexible. When v3 hits (Mounted)Middleware2 will
+  become just (Mounted)Middleware.
+- Deprecate RoutesRedirectOnUnauthed in favor of ResponseOnUnauthed
+
 ## [2.1.1] - 2018-12-10
 
 ### Security

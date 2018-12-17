@@ -82,38 +82,96 @@ func (a *Authboss) UpdatePassword(ctx context.Context, user AuthableUser, newPas
 	return rmStorer.DelRememberTokens(ctx, user.GetPID())
 }
 
-// Middleware prevents someone from accessing a route that should be
-// only allowed for users who are logged in.
-// It allows the user through if they are logged in (SessionKey).
+// MWRequirements are user requirements for authboss.Middleware
+// in order to access the routes in protects. Requirements is a bit-set integer
+// to be able to easily combine requirements like so:
 //
-// If redirectToLogin is true, the user will be redirected to the
-// login page, otherwise they will get a 404.
-// The redirect goes to: mountPath/login, this means it's expected that
-// the auth module is loaded if this is set to true.
-//
-// If forceFullAuth is true then half-authed users (SessionHalfAuth)
-// are not allowed through, otherwise a half-authed user will be allowed through.
-//
-// If force2fa is true, then users must have been logged in
-// with 2fa (Session2FA) otherwise they will not be allowed through.
+//   authboss.RequireFullAuth | authboss.Require2FA
+type MWRequirements int
+
+// MWRespondOnFailure tells authboss.Middleware how to respond to
+// a failure to meet the requirements.
+type MWRespondOnFailure int
+
+// Middleware requirements
+const (
+	RequireNone MWRequirements = 0x00
+	// RequireFullAuth means half-authed users will also be rejected
+	RequireFullAuth MWRequirements = 0x01
+	// Require2FA means that users who have not authed with 2fa will
+	// be rejected.
+	Require2FA MWRequirements = 0x02
+)
+
+// Middleware response types
+const (
+	// RespondNotFound does not allow users who are not logged in to know a
+	// route exists by responding with a 404.
+	RespondNotFound MWRespondOnFailure = iota
+	// RespondRedirect redirects users to the login page
+	RespondRedirect
+	// RespondUnauthorized provides a 401, this allows users to know the page
+	// exists unlike the 404 option.
+	RespondUnauthorized
+)
+
+// Middleware is deprecated. See Middleware2.
 func Middleware(ab *Authboss, redirectToLogin bool, forceFullAuth bool, force2fa bool) func(http.Handler) http.Handler {
 	return MountedMiddleware(ab, false, redirectToLogin, forceFullAuth, force2fa)
 }
 
-// MountedMiddleware hides an option from typical users in "mountPathed".
+// MountedMiddleware is deprecated. See MountedMiddleware2.
+func MountedMiddleware(ab *Authboss, mountPathed, redirectToLogin, forceFullAuth, force2fa bool) func(http.Handler) http.Handler {
+	var reqs MWRequirements
+	failResponse := RespondNotFound
+	if forceFullAuth {
+		reqs |= RequireFullAuth
+	}
+	if force2fa {
+		reqs |= Require2FA
+	}
+	if redirectToLogin {
+		failResponse = RespondRedirect
+	}
+	return MountedMiddleware2(ab, mountPathed, reqs, failResponse)
+}
+
+// Middleware2 prevents someone from accessing a route that should be
+// only allowed for users who are logged in.
+// It allows the user through if they are logged in (SessionKey is present in
+// the session).
+//
+// requirements are set by logical or'ing together requirements. eg:
+//
+//   authboss.RequireFullAuth | authboss.Require2FA
+//
+// failureResponse is how the middleware rejects the users that don't meet
+// the criteria. This should be chosen from the MWRespondOnFailure constants.
+func Middleware2(ab *Authboss, requirements MWRequirements, failureResponse MWRespondOnFailure) func(http.Handler) http.Handler {
+	return MountedMiddleware2(ab, false, requirements, failureResponse)
+}
+
+// MountedMiddleware2 hides an option from typical users in "mountPathed".
 // Normal routes should never need this only authboss routes (since they
 // are behind mountPath typically). This method is exported only for use
 // by Authboss modules, normal users should use Middleware instead.
 //
 // If mountPathed is true, then before redirecting to a URL it will add
 // the mountpath to the front of it.
-func MountedMiddleware(ab *Authboss, mountPathed, redirectToLogin, forceFullAuth, force2fa bool) func(http.Handler) http.Handler {
+func MountedMiddleware2(ab *Authboss, mountPathed bool, reqs MWRequirements, failResponse MWRespondOnFailure) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			log := ab.RequestLogger(r)
 
 			fail := func(w http.ResponseWriter, r *http.Request) {
-				if redirectToLogin {
+				switch failResponse {
+				case RespondNotFound:
+					log.Infof("not found for unauthorized user at: %s", r.URL.Path)
+					w.WriteHeader(http.StatusNotFound)
+				case RespondUnauthorized:
+					log.Infof("unauthorized for unauthorized user at: %s", r.URL.Path)
+					w.WriteHeader(http.StatusUnauthorized)
+				case RespondRedirect:
 					log.Infof("redirecting unauthorized user to login from: %s", r.URL.Path)
 					vals := make(url.Values)
 
@@ -134,12 +192,9 @@ func MountedMiddleware(ab *Authboss, mountPathed, redirectToLogin, forceFullAuth
 					}
 					return
 				}
-
-				log.Infof("not found for unauthorized user at: %s", r.URL.Path)
-				w.WriteHeader(http.StatusNotFound)
 			}
 
-			if forceFullAuth && !IsFullyAuthed(r) || force2fa && !IsTwoFactored(r) {
+			if hasBit(reqs, RequireFullAuth) && !IsFullyAuthed(r) || hasBit(reqs, Require2FA) && !IsTwoFactored(r) {
 				fail(w, r)
 				return
 			}
@@ -156,4 +211,8 @@ func MountedMiddleware(ab *Authboss, mountPathed, redirectToLogin, forceFullAuth
 			}
 		})
 	}
+}
+
+func hasBit(reqs, req MWRequirements) bool {
+	return reqs&req == req
 }

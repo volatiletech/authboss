@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"net/http"
+	"strings"
 )
 
 const (
@@ -45,11 +46,21 @@ type ClientStateEventKind int
 
 // ClientStateEvent kinds
 const (
+	// ClientStateEventPut means you should put the key-value pair into the
+	// client state.
 	ClientStateEventPut ClientStateEventKind = iota
+	// ClientStateEventPut means you should delete the key-value pair from the
+	// client state.
 	ClientStateEventDel
+	// ClientStateEventDelAll means you should delete EVERY key-value pair from
+	// the client state - though a whitelist of keys that should not be deleted
+	// may be passed through as a comma separated list of keys in
+	// the ClientStateEvent.Key field.
+	ClientStateEventDelAll
 )
 
 // ClientStateEvent are the different events that can be recorded during
+// a request.
 type ClientStateEvent struct {
 	Kind  ClientStateEventKind
 	Key   string
@@ -247,8 +258,21 @@ func IsTwoFactored(r *http.Request) bool {
 	return has2fa
 }
 
-// DelKnownSession deletes all known session variables, effectively
-// logging a user out.
+// DelAllSession deletes all variables in the session except for those on
+// the whitelist.
+//
+// The whitelist is typically provided directly from the authboss config.
+//
+// This is the best way to ensure the session is cleaned up after use for
+// a given user. An example is when a user is expired or logged out this method
+// is called.
+func DelAllSession(w http.ResponseWriter, whitelist []string) {
+	delAllState(w, CTXKeySessionState, whitelist)
+}
+
+// DelKnownSession is deprecated. See DelAllSession for an alternative.
+// DelKnownSession deletes all known session variables,
+// effectively logging a user out.
 func DelKnownSession(w http.ResponseWriter) {
 	DelSession(w, SessionKey)
 	DelSession(w, SessionHalfAuthKey)
@@ -297,6 +321,10 @@ func putState(w http.ResponseWriter, CTXKey contextKey, key, val string) {
 
 func delState(w http.ResponseWriter, CTXKey contextKey, key string) {
 	setState(w, CTXKey, ClientStateEventDel, key, "")
+}
+
+func delAllState(w http.ResponseWriter, CTXKey contextKey, whitelist []string) {
+	setState(w, CTXKey, ClientStateEventDelAll, strings.Join(whitelist, ","), "")
 }
 
 func setState(w http.ResponseWriter, ctxKey contextKey, op ClientStateEventKind, key, val string) {

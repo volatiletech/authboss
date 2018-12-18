@@ -49,6 +49,7 @@ func (l *Logout) Logout(w http.ResponseWriter, r *http.Request) error {
 		logger.Info("user (unknown) logged out")
 	}
 
+	authboss.DelAllSession(w, l.Config.Storage.SessionStateWhitelistKeys)
 	authboss.DelKnownSession(w)
 	authboss.DelKnownCookie(w)
 

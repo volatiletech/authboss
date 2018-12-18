@@ -3,6 +3,23 @@
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Added
+
+- DelAllSession is a new method called both by Expire and Logout (in addition
+  to still calling DelKnownSession etc. as they do now) to ensure that
+  conforming implementations of ClientStateReadWriter's delete all keys
+  in the session.
+- Config.Storage.SessionWhitelistKeys has been added in order to allow users
+  to persist session variables past logout/expire.
+
+### Deprecated
+
+- Deprecated DelKnownSession for DelAllSession. DelAllSession should be
+  implemented by existing ClientStateReadWriters in order to prevent session
+  values from leaking to a different user post-logout/expire.
+
 ## [2.2.0] - 2018-12-16
 
 ### Added

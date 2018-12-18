@@ -189,6 +189,12 @@ type Config struct {
 		// storing session-only values for the given response, and reading them
 		// from the request.
 		SessionState ClientStateReadWriter
+
+		// SessionStateWhitelistKeys are set to preserve keys in the session
+		// when authboss.DelAllSession is called. A correct implementation
+		// of ClientStateReadWriter will delete ALL session key-value pairs
+		// unless that key is whitelisted here.
+		SessionStateWhitelistKeys []string
 	}
 
 	Core struct {

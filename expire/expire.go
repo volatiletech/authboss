@@ -47,8 +47,9 @@ func refreshExpiry(w http.ResponseWriter) {
 }
 
 type expireMiddleware struct {
-	expireAfter time.Duration
-	next        http.Handler
+	expireAfter      time.Duration
+	next             http.Handler
+	sessionWhitelist []string
 }
 
 // Middleware ensures that the user's expiry information is kept up-to-date
@@ -58,7 +59,11 @@ type expireMiddleware struct {
 // at the same time.
 func Middleware(ab *authboss.Authboss) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
-		return expireMiddleware{ab.Config.Modules.ExpireAfter, next}
+		return expireMiddleware{
+			expireAfter:      ab.Config.Modules.ExpireAfter,
+			next:             next,
+			sessionWhitelist: ab.Config.Storage.SessionStateWhitelistKeys,
+		}
 	}
 }
 
@@ -68,6 +73,7 @@ func (m expireMiddleware) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	if _, ok := authboss.GetSession(r, authboss.SessionKey); ok {
 		ttl := timeToExpiry(r, m.expireAfter)
 		if ttl == 0 {
+			authboss.DelAllSession(w, m.sessionWhitelist)
 			authboss.DelSession(w, authboss.SessionKey)
 			authboss.DelSession(w, authboss.SessionLastAction)
 			ctx := context.WithValue(r.Context(), authboss.CTXKeyPID, nil)

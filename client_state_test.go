@@ -160,6 +160,23 @@ func TestFlashClearer(t *testing.T) {
 	}
 }
 
+func TestDelAllSession(t *testing.T) {
+	t.Parallel()
+
+	csrw := &ClientStateResponseWriter{}
+
+	DelAllSession(csrw, []string{"notthisone", "orthis"})
+
+	if len(csrw.sessionStateEvents) != 1 {
+		t.Error("should have one delete all")
+	}
+	if ev := csrw.sessionStateEvents[0]; ev.Kind != ClientStateEventDelAll {
+		t.Error("it should be a delete all event:", ev.Kind)
+	} else if ev.Key != "notthisone,orthis" {
+		t.Error("the whitelist should be passed through as CSV:", ev.Key)
+	}
+}
+
 func TestDelKnown(t *testing.T) {
 	t.Parallel()
 

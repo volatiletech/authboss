@@ -382,8 +382,10 @@ method. This ensures the above facets are taken care of which the exception of t
 If it's also desirable to have the user logged out, please use the following methods to erase
 all known sessions and cookies from the user.
 
-* [authboss.DelKnownSession](https://godoc.org//github.com/volatiletech/authboss/#DelKnownSession)
+* [authboss.DelAllSession](https://godoc.org//github.com/volatiletech/authboss/#DelAllSession)
 * [authboss.DelKnownCookie](https://godoc.org//github.com/volatiletech/authboss/#DelKnownCookie)
+
+*Note: DelKnownSession has been deprecated for security reasons*
 
 ## User Auth via Password
 

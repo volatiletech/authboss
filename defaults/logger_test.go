@@ -18,7 +18,7 @@ func TestLogger(t *testing.T) {
 	logger.Error("world")
 
 	rgxTimestamp := `[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}Z`
-	rgx := regexp.MustCompile(rgxTimestamp + ` \[INFO\]: hello\n` + rgxTimestamp + ` \[EROR\]: world\n`)
+	rgx := regexp.MustCompile(rgxTimestamp + ` \[INFO\]: hello\n` + rgxTimestamp + ` \[ERROR\]: world\n`)
 	if !rgx.Match(b.Bytes()) {
 		t.Errorf("output from log file did not match regex:\n%s\n%v", b.String(), b.Bytes())
 		spew.Dump(b.Bytes())

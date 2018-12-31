@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 ### Added
 
+- ClientStateResponseWriter now supports the http.Hijacker interface if the
+  underlying ResponseWriter does (thanks @tobias-kuendig)
 - DelAllSession is a new method called both by Expire and Logout (in addition
   to still calling DelKnownSession etc. as they do now) to ensure that
   conforming implementations of ClientStateReadWriter's delete all keys

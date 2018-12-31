@@ -191,6 +191,16 @@ func (c ClientStateResponseWriter) Header() http.Header {
 	return c.ResponseWriter.Header()
 }
 
+// Hijack implements the http.Hijacker interface by calling the 
+// underlying implementation if available.
+func (c ClientStateResponseWriter) Hijack() (net.Conn, *bufio.ReadWriter, error) {
+	h, ok := c.ResponseWriter.(http.Hijacker)
+	if ok {
+		return h.Hijack()
+	}
+	return nil, nil, errors.New("authboss: underlying ResponseWriter does not support hijacking")
+}
+
 // Write ensures that the client state is written before any writes
 // to the body occur (before header flush to http client)
 func (c *ClientStateResponseWriter) Write(b []byte) (int, error) {

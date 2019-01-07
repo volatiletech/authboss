@@ -382,8 +382,8 @@ method. This ensures the above facets are taken care of which the exception of t
 If it's also desirable to have the user logged out, please use the following methods to erase
 all known sessions and cookies from the user.
 
-* [authboss.DelKnownSession](https://godoc.org//github.com/volatiletech/authboss/#DelKnownSession)
-* [authboss.DelKnownCookie](https://godoc.org//github.com/volatiletech/authboss/#DelKnownCookie)
+* [authboss.DelKnownSession](https://godoc.org/github.com/volatiletech/authboss/#DelKnownSession)
+* [authboss.DelKnownCookie](https://godoc.org/github.com/volatiletech/authboss/#DelKnownCookie)
 
 ## User Auth via Password
 
@@ -430,9 +430,9 @@ These parameters are returned in `map[string]string` form and passed into the `O
 
 Please see the following documentation for more details:
 
-* [Package docs for oauth2](https://godoc.org//github.com/volatiletech/authboss/oauth2/)
-* [authboss.OAuth2Provider](https://godoc.org//github.com/volatiletech/authboss/#OAuth2Provider)
-* [authboss.OAuth2ServerStorer](https://godoc.org//github.com/volatiletech/authboss/#OAuth2ServerStorer)
+* [Package docs for oauth2](https://godoc.org/github.com/volatiletech/authboss/oauth2/)
+* [authboss.OAuth2Provider](https://godoc.org/github.com/volatiletech/authboss/#OAuth2Provider)
+* [authboss.OAuth2ServerStorer](https://godoc.org/github.com/volatiletech/authboss/#OAuth2ServerStorer)
 
 ## User Registration
 

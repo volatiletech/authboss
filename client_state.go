@@ -1,8 +1,11 @@
 package authboss
 
 import (
+	"bufio"
 	"context"
+	"errors"
 	"fmt"
+	"net"
 	"net/http"
 	"strings"
 )

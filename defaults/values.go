@@ -49,6 +49,12 @@ func (u UserValues) GetValues() map[string]string {
 	return u.Arbitrary
 }
 
+// GetShouldRemember checks the form values for
+func (u UserValues) GetShouldRemember() bool {
+	rm, ok := u.Values[authboss.CookieRemember]
+	return ok && rm == "true"
+}
+
 // ConfirmValues retrieves values on the confirm page.
 type ConfirmValues struct {
 	HTTPFormValidator

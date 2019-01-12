@@ -11,7 +11,6 @@ import (
 	"net/http"
 
 	"github.com/pkg/errors"
-
 	"github.com/volatiletech/authboss"
 )
 
@@ -44,7 +43,7 @@ func (r *Remember) RememberAfterAuth(w http.ResponseWriter, req *http.Request, h
 	rmIntf := req.Context().Value(authboss.CTXKeyValues)
 	if rmIntf == nil {
 		return false, nil
-	} else if rm, ok := rmIntf.(authboss.RememberValuer); ok && !rm.GetShouldRemember() {
+	} else if rm, ok := rmIntf.(authboss.RememberValuer); !ok || !rm.GetShouldRemember() {
 		return false, nil
 	}
 

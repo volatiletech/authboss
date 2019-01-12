@@ -16,6 +16,11 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 - Config.Storage.SessionWhitelistKeys has been added in order to allow users
   to persist session variables past logout/expire.
 
+### Fixed
+
+- Fix bug with missing imports (thanks @frederikhors)
+- Fix bug with inverted remember me checkbox logic
+
 ### Deprecated
 
 - Deprecated DelKnownSession for DelAllSession. DelAllSession should be

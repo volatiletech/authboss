@@ -6,7 +6,7 @@ import (
 	"testing"
 
 	"github.com/volatiletech/authboss"
-	"github.com/volatiletech/authboss/internal/mocks"
+	"github.com/volatiletech/authboss/mocks"
 )
 
 func TestAuthInit(t *testing.T) {

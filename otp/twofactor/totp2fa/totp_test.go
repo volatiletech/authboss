@@ -13,7 +13,7 @@ import (
 
 	"github.com/pquerna/otp/totp"
 	"github.com/volatiletech/authboss"
-	"github.com/volatiletech/authboss/internal/mocks"
+	"github.com/volatiletech/authboss/mocks"
 )
 
 func TestTOTPSetup(t *testing.T) {

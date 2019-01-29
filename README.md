@@ -97,7 +97,7 @@ Here are a few bullet point reasons you might like to try it out:
 
 To get started with Authboss in the simplest way, is to simply create a Config, populate it
 with the things that are required, and start implementing [use cases](#use-cases). The use
-cases describe what's required to be able to be able to use a particular piece of functionality,
+cases describe what's required to be able to use a particular piece of functionality,
 or the best practice when implementing a piece of functionality. Please note the
 [app requirements](#app-requirements) for your application as well
 [integration requirements](#integration-requirements) that follow.

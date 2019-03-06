@@ -20,6 +20,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 - Fix bug with missing imports (thanks @frederikhors)
 - Fix bug with inverted remember me checkbox logic
+- Fix validation not happening when user commences recovery
 
 ### Deprecated
 

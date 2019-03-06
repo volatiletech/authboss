@@ -84,6 +84,12 @@ func (r *Recover) StartPost(w http.ResponseWriter, req *http.Request) error {
 		return err
 	}
 
+	if errs := validatable.Validate(); errs != nil {
+		logger.Info("recover validation failed")
+		data := authboss.HTMLData{authboss.DataValidation: authboss.ErrorMap(errs)}
+		return r.Authboss.Core.Responder.Respond(w, req, http.StatusOK, PageRecoverStart, data)
+	}
+
 	recoverVals := authboss.MustHaveRecoverStartValues(validatable)
 
 	user, err := r.Authboss.Storage.Server.Load(req.Context(), recoverVals.GetPID())

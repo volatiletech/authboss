@@ -314,21 +314,21 @@ to view the supported use cases as well as how to use them in your app.
 **Note**: The two factor packages do not enable via side-effect import, see their documentation
 for more information.
 
-Name     | Import Path                               | Description
----------|-------------------------------------------|------------
-Auth     | github.com/volatiletech/authboss/auth     | Database password authentication for users.
-Confirm  | github.com/volatiletech/authboss/confirm  | Prevents login before e-mail verification.
-Expire   | github.com/volatiletech/authboss/expire   | Expires a user's login
-Lock     | github.com/volatiletech/authboss/lock     | Locks user accounts after authentication failures.
-Logout   | github.com/volatiletech/authboss/logout   | Destroys user sessions for auth/oauth2.
-OAuth2   | github.com/volatiletech/authboss/oauth2   | Provides oauth2 authentication for users.
-Recover  | github.com/volatiletech/authboss/recover  | Allows for password resets via e-mail.
-Register | github.com/volatiletech/authboss/register | User-initiated account creation.
-Remember | github.com/volatiletech/authboss/remember | Persisting login sessions past session cookie expiry.
-OTP      | github.com/volatiletech/authboss/otp      | One time passwords for use instead of passwords.
-Remember | github.com/volatiletech/authboss/otp/twofactor | Regenerate recovery codes for 2fa.
-Remember | github.com/volatiletech/authboss/otp/twofactor/totp2fa | Use Google authenticator-like things for a second auth factor.
-Remember | github.com/volatiletech/authboss/otp/twofactor/sms2fa | Use a phone for a second auth factor.
+Name      | Import Path                               | Description
+----------|-------------------------------------------|------------
+Auth      | github.com/volatiletech/authboss/auth     | Database password authentication for users.
+Confirm   | github.com/volatiletech/authboss/confirm  | Prevents login before e-mail verification.
+Expire    | github.com/volatiletech/authboss/expire   | Expires a user's login
+Lock      | github.com/volatiletech/authboss/lock     | Locks user accounts after authentication failures.
+Logout    | github.com/volatiletech/authboss/logout   | Destroys user sessions for auth/oauth2.
+OAuth2    | github.com/volatiletech/authboss/oauth2   | Provides oauth2 authentication for users.
+Recover   | github.com/volatiletech/authboss/recover  | Allows for password resets via e-mail.
+Register  | github.com/volatiletech/authboss/register | User-initiated account creation.
+Remember  | github.com/volatiletech/authboss/remember | Persisting login sessions past session cookie expiry.
+OTP       | github.com/volatiletech/authboss/otp      | One time passwords for use instead of passwords.
+Twofactor | github.com/volatiletech/authboss/otp/twofactor | Regenerate recovery codes for 2fa.
+Totp2fa   | github.com/volatiletech/authboss/otp/twofactor/totp2fa | Use Google authenticator-like things for a second auth factor.
+Sms2fa    | github.com/volatiletech/authboss/otp/twofactor/sms2fa | Use a phone for a second auth factor.
 
 # Middlewares
 

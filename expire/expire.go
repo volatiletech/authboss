@@ -11,6 +11,19 @@ import (
 
 var nowTime = time.Now
 
+// Setup the expire module
+//
+// This installs a hook into the login process so that the
+// LastAction is recorded immediately.
+func Setup(ab *authboss.Authboss) error {
+	ab.Events.After(authboss.EventAuth, func(w http.ResponseWriter, r *http.Request, handled bool) (bool, error) {
+		refreshExpiry(w)
+		return false, nil
+	})
+
+	return nil
+}
+
 // TimeToExpiry returns zero if the user session is expired else the time
 // until expiry. Takes in the allowed idle duration.
 func TimeToExpiry(r *http.Request, expireAfter time.Duration) time.Duration {

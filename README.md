@@ -593,6 +593,9 @@ User          | [User](https://godoc.org/github.com/volatiletech/authboss/#User)
 Values        | _None_
 Mailer        | _None_
 
+**Note:** Unlike most modules in Authboss you must call `expire.Setup()`
+to enable this module. See the sample to see how to do this. This may be changed in the future.
+
 Expire simply uses sessions to track when the last action of a user is, if that action is longer
 than configured then the session is deleted and the user removed from the request context.
 

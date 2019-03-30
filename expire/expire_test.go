@@ -11,6 +11,31 @@ import (
 	"github.com/volatiletech/authboss/mocks"
 )
 
+func TestExpireSetup(t *testing.T) {
+	ab := authboss.New()
+
+	clientRW := mocks.NewClientRW()
+	ab.Storage.SessionState = clientRW
+
+	Setup(ab)
+
+	w := httptest.NewRecorder()
+	wr := ab.NewResponse(w)
+
+	handled, err := ab.Events.FireAfter(authboss.EventAuth, wr, nil)
+	if handled {
+		t.Error("it should not handle the event")
+	}
+	if err != nil {
+		t.Error(err)
+	}
+
+	wr.WriteHeader(http.StatusOK)
+	if _, ok := clientRW.ClientValues[authboss.SessionLastAction]; !ok {
+		t.Error("last action should have been set")
+	}
+}
+
 func TestExpireIsExpired(t *testing.T) {
 	ab := authboss.New()
 

@@ -3,7 +3,7 @@
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [2.3.0] - 2019-03-30
 
 ### Added
 
@@ -20,6 +20,8 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 ### Fixed
 
+- Fix bug where user's expiration time did not start until their first
+  request after login.
 - Fix bug where expired users could perform one request past their expiration
 - Fix bug with missing imports (thanks @frederikhors)
 - Fix bug with inverted remember me checkbox logic

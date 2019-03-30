@@ -72,12 +72,27 @@ func Middleware(ab *authboss.Authboss) func(http.Handler) http.Handler {
 func (m expireMiddleware) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	if _, ok := authboss.GetSession(r, authboss.SessionKey); ok {
 		ttl := timeToExpiry(r, m.expireAfter)
+
 		if ttl == 0 {
 			authboss.DelAllSession(w, m.sessionWhitelist)
 			authboss.DelSession(w, authboss.SessionKey)
 			authboss.DelSession(w, authboss.SessionLastAction)
 			ctx := context.WithValue(r.Context(), authboss.CTXKeyPID, nil)
 			ctx = context.WithValue(ctx, authboss.CTXKeyUser, nil)
+
+			ctxState := r.Context().Value(authboss.CTXKeySessionState)
+			if ctxState != nil {
+				state := ctxState.(authboss.ClientState)
+				whitelist := make(map[string]struct{})
+
+				for _, w := range m.sessionWhitelist {
+					whitelist[w] = struct{}{}
+				}
+
+				newState := stateHider{cs: state, whitelist: whitelist}
+				ctx = context.WithValue(ctx, authboss.CTXKeySessionState, newState)
+			}
+
 			r = r.WithContext(ctx)
 		} else {
 			refreshExpiry(w)
@@ -85,4 +100,18 @@ func (m expireMiddleware) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 
 	m.next.ServeHTTP(w, r)
+}
+
+type stateHider struct {
+	whitelist map[string]struct{}
+	cs        authboss.ClientState
+}
+
+func (k stateHider) Get(s string) (string, bool) {
+	_, ok := k.whitelist[s]
+	if !ok {
+		return "", false
+	}
+
+	return k.cs.Get(s)
 }

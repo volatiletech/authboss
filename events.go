@@ -28,6 +28,7 @@ const (
 	EventGetUser
 	EventGetUserSession
 	EventPasswordReset
+	EventLockUser
 )
 
 // EventHandler reacts to events that are fired by Authboss controllers.

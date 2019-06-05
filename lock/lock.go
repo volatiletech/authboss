@@ -106,6 +106,13 @@ func (l *Lock) AfterAuthFail(w http.ResponseWriter, r *http.Request, handled boo
 		return false, nil
 	}
 
+	handled, err = l.Authboss.Events.FireAfter(authboss.EventLockUser, w, r)
+	if err != nil {
+		return true, err
+	} else if handled {
+		return true, nil
+	}
+
 	ro := authboss.RedirectOptions{
 		Code:         http.StatusTemporaryRedirect,
 		Failure:      "Your account has been locked, please contact the administrator.",

@@ -10,7 +10,7 @@ import (
 	"time"
 
 	"github.com/pkg/errors"
-	"github.com/volatiletech/authboss"
+	"github.com/raven-chen/authboss"
 )
 
 // User represents all possible fields a authboss User may have

@@ -6,7 +6,7 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/volatiletech/authboss"
+	"github.com/raven-chen/authboss"
 )
 
 // Storage key constants

@@ -2,7 +2,7 @@
 
 # Authboss
 
-[![GoDoc](https://godoc.org/github.com/volatiletech/authboss?status.svg)](https://godoc.org/github.com/volatiletech/authboss)
+[![GoDoc](https://godoc.org/github.com/raven-chen/authboss?status.svg)](https://godoc.org/github.com/raven-chen/authboss)
 [![Build Status](https://circleci.com/gh/volatiletech/authboss.svg?style=shield&circle-token=:circle-token)](https://circleci.com/gh/volatiletech/authboss)
 [![Coverage Status](https://coveralls.io/repos/volatiletech/authboss/badge.svg?branch=master)](https://coveralls.io/r/volatiletech/authboss?branch=master)
 [![Mail](https://img.shields.io/badge/mail%20list-authboss-lightgrey.svg)](https://groups.google.com/a/volatile.tech/forum/#!forum/authboss)
@@ -107,7 +107,7 @@ Of course the standard practice of fetching the library is just the beginning:
 ```bash
 # Get the latest, keep in mind you should be vendoring with dep or using vgo at this point
 # To ensure versions don't get messed up underneath you
-go get -u github.com/volatiletech/authboss
+go get -u github.com/raven-chen/authboss
 ```
 
 Here's a bit of starter code that was stolen from the sample.
@@ -122,7 +122,7 @@ ab.Config.Storage.CookieState = myCookieImplementation
 ab.Config.Paths.Mount = "/authboss"
 ab.Config.Paths.RootURL = "https://www.example.com/"
 
-// This is using the renderer from: github.com/volatiletech/authboss
+// This is using the renderer from: github.com/raven-chen/authboss
 ab.Config.Core.ViewRenderer = abrenderer.New("/auth")
 // Probably want a MailRenderer here too.
 
@@ -139,10 +139,10 @@ if err := ab.Init(); err != nil {
 mux.Mount("/authboss", http.StripPrefix("/authboss", ab.Config.Core.Router))
 ```
 
-For a more in-depth look you **definitely should** look at the authboss sample to see what a full 
+For a more in-depth look you **definitely should** look at the authboss sample to see what a full
 implementation looks like. This will probably help you more than any of this documentation.
 
-[https://github.com/volatiletech/authboss-sample](https://github.com/volatiletech/authboss-sample)
+[https://github.com/raven-chen/authboss-sample](https://github.com/raven-chen/authboss-sample)
 
 ## App Requirements
 
@@ -184,7 +184,7 @@ to your app:
 
 Everything under Config.Storage and Config.Core are required and you must provide them,
 however you can optionally use default implementations from the
-[defaults package](https://github.com/volatiletech/authboss/tree/master/defaults).
+[defaults package](https://github.com/raven-chen/authboss/tree/master/defaults).
 This also provides an easy way to share implementations of certain stack pieces (like HTML Form Parsing).
 As you saw in the example above these can be easily initialized with the `SetCore` method in that
 package.
@@ -213,11 +213,11 @@ and the MailRenderer. For more information please see the use case [Rendering Vi
 
 ### ServerStorer implementation
 
-The [ServerStorer](https://godoc.org//github.com/volatiletech/authboss/#ServerStorer) is
+The [ServerStorer](https://godoc.org//github.com/raven-chen/authboss/#ServerStorer) is
 meant to be upgraded to add capabilities depending on what modules you'd like to use.
 It starts out by only knowing how to save and load users, but the `remember` module as an example
 needs to be able to find users by remember me tokens, so it upgrades to a
-[RememberingServerStorer](https://godoc.org/github.com/volatiletech/authboss/#RememberingServerStorer)
+[RememberingServerStorer](https://godoc.org/github.com/raven-chen/authboss/#RememberingServerStorer)
 which adds these abilities.
 
 Your `ServerStorer` implementation does not need to implement all these additional interfaces
@@ -226,7 +226,7 @@ unless you're using a module that requires it. See the [Use Cases](#use-cases) d
 ### User implementation
 
 Users in Authboss are represented by the
-[User interface](https://godoc.org//github.com/volatiletech/authboss/#User). The user
+[User interface](https://godoc.org//github.com/raven-chen/authboss/#User). The user
 interface is a flexible notion, because it can be upgraded to suit the needs of the various modules.
 
 Initially the User must only be able to Get/Set a `PID` or primary identifier. This allows the authboss
@@ -236,7 +236,7 @@ to save/load users.
 As mentioned, it can be upgraded, for example suppose now we want to use the `confirm` module,
 in that case the e-mail address now becomes a requirement. So the `confirm` module will attempt
 to upgrade the user (and panic if it fails) to a
-[ConfirmableUser](https://godoc.org//github.com/volatiletech/authboss/#ConfirmableUser)
+[ConfirmableUser](https://godoc.org//github.com/raven-chen/authboss/#ConfirmableUser)
 which supports retrieving and setting of confirm tokens, e-mail addresses, and a confirmed state.
 
 Your `User` implementation does not need to implement all these additional user interfaces unless you're
@@ -245,9 +245,9 @@ requirements are.
 
 ### Values implementation
 
-The [BodyReader](https://godoc.org//github.com/volatiletech/authboss/#BodyReader)
+The [BodyReader](https://godoc.org//github.com/raven-chen/authboss/#BodyReader)
 interface in the Config returns
-[Validator](https://godoc.org//github.com/volatiletech/authboss/#Validator) implementations
+[Validator](https://godoc.org//github.com/raven-chen/authboss/#Validator) implementations
 which can be validated. But much like the storer and user it can be upgraded to add different
 capabilities.
 
@@ -258,7 +258,7 @@ requested and switches on that to parse the body in whatever way
 valuer required by the module.
 
 An example of an upgraded `Valuer` is the
-[UserValuer](https://godoc.org//github.com/volatiletech/authboss/#UserValuer)
+[UserValuer](https://godoc.org//github.com/raven-chen/authboss/#UserValuer)
 which stores and validates the PID and Password that a user has provided for the modules to use.
 
 Your body reader implementation does not need to implement all valuer types unless you're
@@ -271,7 +271,7 @@ The config struct is an important part of Authboss. It's the key to making Authb
 want with the implementations you want. Please look at it's code definition as you read the
 documentation below, it will make much more sense.
 
-[Config Struct Documentation](https://godoc.org/github.com/volatiletech/authboss/#Config)
+[Config Struct Documentation](https://godoc.org/github.com/raven-chen/authboss/#Config)
 
 ### Paths
 
@@ -293,7 +293,7 @@ Mail sending related options.
 ### Storage
 
 These are the implementations of how storage on the server and the client are done in your
-app. There are no default implementations for these at this time. See the [Godoc](https://godoc.org/github.com/volatiletech/authboss) for more information
+app. There are no default implementations for these at this time. See the [Godoc](https://godoc.org/github.com/raven-chen/authboss) for more information
 about what these are.
 
 ### Core
@@ -302,7 +302,7 @@ These are the implementations of the HTTP stack for your app. How do responses r
 they redirected? How are errors handled?
 
 For most of these there are default implementations from the
-[defaults package](https://github.com/volatiletech/authboss/defaults) available, but not for all.
+[defaults package](https://github.com/raven-chen/authboss/defaults) available, but not for all.
 See the package documentation for more information about what's available.
 
 # Available Modules
@@ -316,19 +316,19 @@ for more information.
 
 Name      | Import Path                               | Description
 ----------|-------------------------------------------|------------
-Auth      | github.com/volatiletech/authboss/auth     | Database password authentication for users.
-Confirm   | github.com/volatiletech/authboss/confirm  | Prevents login before e-mail verification.
-Expire    | github.com/volatiletech/authboss/expire   | Expires a user's login
-Lock      | github.com/volatiletech/authboss/lock     | Locks user accounts after authentication failures.
-Logout    | github.com/volatiletech/authboss/logout   | Destroys user sessions for auth/oauth2.
-OAuth2    | github.com/volatiletech/authboss/oauth2   | Provides oauth2 authentication for users.
-Recover   | github.com/volatiletech/authboss/recover  | Allows for password resets via e-mail.
-Register  | github.com/volatiletech/authboss/register | User-initiated account creation.
-Remember  | github.com/volatiletech/authboss/remember | Persisting login sessions past session cookie expiry.
-OTP       | github.com/volatiletech/authboss/otp      | One time passwords for use instead of passwords.
-Twofactor | github.com/volatiletech/authboss/otp/twofactor | Regenerate recovery codes for 2fa.
-Totp2fa   | github.com/volatiletech/authboss/otp/twofactor/totp2fa | Use Google authenticator-like things for a second auth factor.
-Sms2fa    | github.com/volatiletech/authboss/otp/twofactor/sms2fa | Use a phone for a second auth factor.
+Auth      | github.com/raven-chen/authboss/auth     | Database password authentication for users.
+Confirm   | github.com/raven-chen/authboss/confirm  | Prevents login before e-mail verification.
+Expire    | github.com/raven-chen/authboss/expire   | Expires a user's login
+Lock      | github.com/raven-chen/authboss/lock     | Locks user accounts after authentication failures.
+Logout    | github.com/raven-chen/authboss/logout   | Destroys user sessions for auth/oauth2.
+OAuth2    | github.com/raven-chen/authboss/oauth2   | Provides oauth2 authentication for users.
+Recover   | github.com/raven-chen/authboss/recover  | Allows for password resets via e-mail.
+Register  | github.com/raven-chen/authboss/register | User-initiated account creation.
+Remember  | github.com/raven-chen/authboss/remember | Persisting login sessions past session cookie expiry.
+OTP       | github.com/raven-chen/authboss/otp      | One time passwords for use instead of passwords.
+Twofactor | github.com/raven-chen/authboss/otp/twofactor | Regenerate recovery codes for 2fa.
+Totp2fa   | github.com/raven-chen/authboss/otp/twofactor/totp2fa | Use Google authenticator-like things for a second auth factor.
+Sms2fa    | github.com/raven-chen/authboss/otp/twofactor/sms2fa | Use a phone for a second auth factor.
 
 # Middlewares
 
@@ -345,13 +345,13 @@ use the middlewares if you use the module.
 
 Name | Requirement | Description
 ---- | ----------- | -----------
-[Middleware](https://godoc.org/github.com/volatiletech/authboss/#Middleware) | Recommended | Prevents unauthenticated users from accessing routes.
-[LoadClientStateMiddleware](https://godoc.org/github.com/volatiletech/authboss/#Authboss.LoadClientStateMiddleware) | **Required** | Enables cookie and session handling
-[ModuleListMiddleware](https://godoc.org/github.com/volatiletech/authboss/#Authboss.ModuleListMiddleware) | Optional | Inserts a loaded module list into the view data
-[confirm.Middleware](https://godoc.org/github.com/volatiletech/authboss/confirm/#Middleware) | Recommended with confirm | Ensures users are confirmed or rejects request
-[expire.Middleware](https://godoc.org/github.com/volatiletech/authboss/expire/#Middleware) | **Required** with expire | Expires user sessions after an inactive period
-[lock.Middleware](https://godoc.org/github.com/volatiletech/authboss/lock/#Middleware) | Recommended with lock | Rejects requests from locked users
-[remember.Middleware](https://godoc.org/github.com/volatiletech/authboss/remember/#Middleware) | Recommended with remember | Logs a user in from a remember cookie
+[Middleware](https://godoc.org/github.com/raven-chen/authboss/#Middleware) | Recommended | Prevents unauthenticated users from accessing routes.
+[LoadClientStateMiddleware](https://godoc.org/github.com/raven-chen/authboss/#Authboss.LoadClientStateMiddleware) | **Required** | Enables cookie and session handling
+[ModuleListMiddleware](https://godoc.org/github.com/raven-chen/authboss/#Authboss.ModuleListMiddleware) | Optional | Inserts a loaded module list into the view data
+[confirm.Middleware](https://godoc.org/github.com/raven-chen/authboss/confirm/#Middleware) | Recommended with confirm | Ensures users are confirmed or rejects request
+[expire.Middleware](https://godoc.org/github.com/raven-chen/authboss/expire/#Middleware) | **Required** with expire | Expires user sessions after an inactive period
+[lock.Middleware](https://godoc.org/github.com/raven-chen/authboss/lock/#Middleware) | Recommended with lock | Rejects requests from locked users
+[remember.Middleware](https://godoc.org/github.com/raven-chen/authboss/remember/#Middleware) | Recommended with remember | Logs a user in from a remember cookie
 
 
 # Use Cases
@@ -359,12 +359,12 @@ Name | Requirement | Description
 ## Get Current User
 
 CurrentUser can be retrieved by calling
-[Authboss.CurrentUser](https://godoc.org/github.com/volatiletech/authboss/#Authboss.CurrentUser)
+[Authboss.CurrentUser](https://godoc.org/github.com/raven-chen/authboss/#Authboss.CurrentUser)
 but a pre-requisite is that
-[Authboss.LoadClientState](https://godoc.org/github.com/volatiletech/authboss/#Authboss.LoadClientState)
+[Authboss.LoadClientState](https://godoc.org/github.com/raven-chen/authboss/#Authboss.LoadClientState)
 has been called first to load the client state into the request context.
 This is typically achieved by using the
-[Authboss.LoadClientStateMiddleware](https://godoc.org/github.com/volatiletech/authboss/#Authboss.LoadClientStateMiddleware), but can
+[Authboss.LoadClientStateMiddleware](https://godoc.org/github.com/raven-chen/authboss/#Authboss.LoadClientStateMiddleware), but can
 be done manually as well.
 
 ## Reset Password
@@ -376,14 +376,14 @@ Updating a user's password is non-trivial for several reasons:
 1. Optionally the user should be logged out (**not taken care of by UpdatePassword**)
 
 In order to do this, we can use the
-[Authboss.UpdatePassword](https://godoc.org/github.com/volatiletech/authboss/#Authboss.UpdatePassword)
+[Authboss.UpdatePassword](https://godoc.org/github.com/raven-chen/authboss/#Authboss.UpdatePassword)
 method. This ensures the above facets are taken care of which the exception of the logging out part.
 
 If it's also desirable to have the user logged out, please use the following methods to erase
 all known sessions and cookies from the user.
 
-* [authboss.DelKnownSession](https://godoc.org/github.com/volatiletech/authboss/#DelKnownSession)
-* [authboss.DelKnownCookie](https://godoc.org/github.com/volatiletech/authboss/#DelKnownCookie)
+* [authboss.DelKnownSession](https://godoc.org/github.com/raven-chen/authboss/#DelKnownSession)
+* [authboss.DelKnownCookie](https://godoc.org/github.com/raven-chen/authboss/#DelKnownCookie)
 
 *Note: DelKnownSession has been deprecated for security reasons*
 
@@ -395,11 +395,11 @@ Module        | auth
 Pages         | login
 Routes        | /login
 Emails        | _None_
-Middlewares   | [LoadClientStateMiddleware](https://godoc.org/github.com/volatiletech/authboss/#Authboss.LoadClientStateMiddleware)
+Middlewares   | [LoadClientStateMiddleware](https://godoc.org/github.com/raven-chen/authboss/#Authboss.LoadClientStateMiddleware)
 ClientStorage | Session and Cookie
-ServerStorer  | [ServerStorer](https://godoc.org/github.com/volatiletech/authboss/#ServerStorer)
-User          | [AuthableUser](https://godoc.org/github.com/volatiletech/authboss/#AuthableUser)
-Values        | [UserValuer](https://godoc.org/github.com/volatiletech/authboss/#UserValuer)
+ServerStorer  | [ServerStorer](https://godoc.org/github.com/raven-chen/authboss/#ServerStorer)
+User          | [AuthableUser](https://godoc.org/github.com/raven-chen/authboss/#AuthableUser)
+Values        | [UserValuer](https://godoc.org/github.com/raven-chen/authboss/#UserValuer)
 Mailer        | _None_
 
 To enable this side-effect import the auth module, and ensure that the requirements above are met.
@@ -415,10 +415,10 @@ Module        | oauth2
 Pages         | _None_
 Routes        | /oauth2/{provider}, /oauth2/callback/{provider}
 Emails        | _None_
-Middlewares   | [LoadClientStateMiddleware](https://godoc.org/github.com/volatiletech/authboss/#Authboss.LoadClientStateMiddleware)
+Middlewares   | [LoadClientStateMiddleware](https://godoc.org/github.com/raven-chen/authboss/#Authboss.LoadClientStateMiddleware)
 ClientStorage | Session
-ServerStorer  | [OAuth2ServerStorer](https://godoc.org/github.com/volatiletech/authboss/#OAuth2ServerStorer)
-User          | [OAuth2User](https://godoc.org/github.com/volatiletech/authboss/#OAuth2User)
+ServerStorer  | [OAuth2ServerStorer](https://godoc.org/github.com/raven-chen/authboss/#OAuth2ServerStorer)
+User          | [OAuth2User](https://godoc.org/github.com/raven-chen/authboss/#OAuth2User)
 Values        | _None_
 Mailer        | _None_
 
@@ -432,9 +432,9 @@ These parameters are returned in `map[string]string` form and passed into the `O
 
 Please see the following documentation for more details:
 
-* [Package docs for oauth2](https://godoc.org/github.com/volatiletech/authboss/oauth2/)
-* [authboss.OAuth2Provider](https://godoc.org/github.com/volatiletech/authboss/#OAuth2Provider)
-* [authboss.OAuth2ServerStorer](https://godoc.org/github.com/volatiletech/authboss/#OAuth2ServerStorer)
+* [Package docs for oauth2](https://godoc.org/github.com/raven-chen/authboss/oauth2/)
+* [authboss.OAuth2Provider](https://godoc.org/github.com/raven-chen/authboss/#OAuth2Provider)
+* [authboss.OAuth2ServerStorer](https://godoc.org/github.com/raven-chen/authboss/#OAuth2ServerStorer)
 
 ## User Registration
 
@@ -444,11 +444,11 @@ Module        | register
 Pages         | register
 Routes        | /register
 Emails        | _None_
-Middlewares   | [LoadClientStateMiddleware](https://godoc.org/github.com/volatiletech/authboss/#Authboss.LoadClientStateMiddleware)
+Middlewares   | [LoadClientStateMiddleware](https://godoc.org/github.com/raven-chen/authboss/#Authboss.LoadClientStateMiddleware)
 ClientStorage | Session
-ServerStorer  | [CreatingServerStorer](https://godoc.org/github.com/volatiletech/authboss/#CreatingServerStorer)
-User          | [AuthableUser](https://godoc.org/github.com/volatiletech/authboss/#AuthableUser), optionally [ArbitraryUser](https://godoc.org/github.com/volatiletech/authboss/#ArbitraryUser)
-Values        | [UserValuer](https://godoc.org/github.com/volatiletech/authboss/#UserValuer), optionally also [ArbitraryValuer](https://godoc.org/github.com/volatiletech/authboss/#ArbitraryValuer)
+ServerStorer  | [CreatingServerStorer](https://godoc.org/github.com/raven-chen/authboss/#CreatingServerStorer)
+User          | [AuthableUser](https://godoc.org/github.com/raven-chen/authboss/#AuthableUser), optionally [ArbitraryUser](https://godoc.org/github.com/raven-chen/authboss/#ArbitraryUser)
+Values        | [UserValuer](https://godoc.org/github.com/raven-chen/authboss/#UserValuer), optionally also [ArbitraryValuer](https://godoc.org/github.com/raven-chen/authboss/#ArbitraryValuer)
 Mailer        | _None_
 
 Users can self-register for a service using this module. You may optionally want them to confirm
@@ -467,7 +467,7 @@ This means the (whitelisted) values entered by the user previously will be acces
 templates by using `.preserve.field_name`. Preserve may be empty or nil so use
 `{{with ...}}` to make sure you don't have template errors.
 
-There is additional [Godoc documentation](https://godoc.org/github.com/volatiletech/authboss#Config) on the `RegisterPreserveFields` config option as well as
+There is additional [Godoc documentation](https://godoc.org/github.com/raven-chen/authboss#Config) on the `RegisterPreserveFields` config option as well as
 the `ArbitraryUser` and `ArbitraryValuer` interfaces themselves.
 
 ## Confirming Registrations
@@ -478,11 +478,11 @@ Module        | confirm
 Pages         | confirm
 Routes        | /confirm
 Emails        | confirm_html, confirm_txt
-Middlewares   | [LoadClientStateMiddleware](https://godoc.org/github.com/volatiletech/authboss/#Authboss.LoadClientStateMiddleware), [confirm.Middleware](https://godoc.org/github.com/volatiletech/authboss/confirm/#Middleware)
+Middlewares   | [LoadClientStateMiddleware](https://godoc.org/github.com/raven-chen/authboss/#Authboss.LoadClientStateMiddleware), [confirm.Middleware](https://godoc.org/github.com/raven-chen/authboss/confirm/#Middleware)
 ClientStorage | Session
-ServerStorer  | [ConfirmingServerStorer](https://godoc.org/github.com/volatiletech/authboss/#ConfirmingServerStorer)
-User          | [ConfirmableUser](https://godoc.org/github.com/volatiletech/authboss/#ConfirmableUser)
-Values        | [ConfirmValuer](https://godoc.org/github.com/volatiletech/authboss/#ConfirmValuer)
+ServerStorer  | [ConfirmingServerStorer](https://godoc.org/github.com/raven-chen/authboss/#ConfirmingServerStorer)
+User          | [ConfirmableUser](https://godoc.org/github.com/raven-chen/authboss/#ConfirmableUser)
+Values        | [ConfirmValuer](https://godoc.org/github.com/raven-chen/authboss/#ConfirmValuer)
 Mailer        | Required
 
 Confirming registrations via e-mail can be done with this module (whether or not done via the register
@@ -504,11 +504,11 @@ Module        | recover
 Pages         | recover_start, recover_middle (not used for renders, only values), recover_end
 Routes        | /recover, /recover/end
 Emails        | recover_html, recover_txt
-Middlewares   | [LoadClientStateMiddleware](https://godoc.org/github.com/volatiletech/authboss/#Authboss.LoadClientStateMiddleware)
+Middlewares   | [LoadClientStateMiddleware](https://godoc.org/github.com/raven-chen/authboss/#Authboss.LoadClientStateMiddleware)
 ClientStorage | Session
-ServerStorer  | [RecoveringServerStorer](https://godoc.org/github.com/volatiletech/authboss/#RecoveringServerStorer)
-User          | [RecoverableUser](https://godoc.org/github.com/volatiletech/authboss/#RecoverableUser)
-Values        | [RecoverStartValuer](https://godoc.org/github.com/volatiletech/authboss/#RecoverStartValuer), [RecoverMiddleValuer](https://godoc.org/github.com/volatiletech/authboss/#RecoverMiddleValuer), [RecoverEndValuer](https://godoc.org/github.com/volatiletech/authboss/#RecoverEndValuer)
+ServerStorer  | [RecoveringServerStorer](https://godoc.org/github.com/raven-chen/authboss/#RecoveringServerStorer)
+User          | [RecoverableUser](https://godoc.org/github.com/raven-chen/authboss/#RecoverableUser)
+Values        | [RecoverStartValuer](https://godoc.org/github.com/raven-chen/authboss/#RecoverStartValuer), [RecoverMiddleValuer](https://godoc.org/github.com/raven-chen/authboss/#RecoverMiddleValuer), [RecoverEndValuer](https://godoc.org/github.com/raven-chen/authboss/#RecoverEndValuer)
 Mailer        | Required
 
 The flow for password recovery is that the user is initially shown a page that wants their `PID` to
@@ -534,11 +534,11 @@ Pages         | _None_
 Routes        | _None_
 Emails        | _None_
 Middlewares   | LoadClientStateMiddleware,
-Middlewares   | [LoadClientStateMiddleware](https://godoc.org/github.com/volatiletech/authboss/#Authboss.LoadClientStateMiddleware), [remember.Middleware](https://godoc.org/github.com/volatiletech/authboss/remember/#Middleware)
+Middlewares   | [LoadClientStateMiddleware](https://godoc.org/github.com/raven-chen/authboss/#Authboss.LoadClientStateMiddleware), [remember.Middleware](https://godoc.org/github.com/raven-chen/authboss/remember/#Middleware)
 ClientStorage | Session, Cookies
-ServerStorer  | [RememberingServerStorer](https://godoc.org/github.com/volatiletech/authboss/#RememberingServerStorer)
+ServerStorer  | [RememberingServerStorer](https://godoc.org/github.com/raven-chen/authboss/#RememberingServerStorer)
 User          | User
-Values        | [RememberValuer](https://godoc.org/github.com/volatiletech/authboss/#RememberValuer) (not a Validator)
+Values        | [RememberValuer](https://godoc.org/github.com/raven-chen/authboss/#RememberValuer) (not a Validator)
 Mailer        | _None_
 
 Remember uses cookie storage to log in users without a session via the `remember.Middleware`.
@@ -565,10 +565,10 @@ Module        | lock
 Pages         | _None_
 Routes        | _None_
 Emails        | _None_
-Middlewares   | [LoadClientStateMiddleware](https://godoc.org/github.com/volatiletech/authboss/#Authboss.LoadClientStateMiddleware), [lock.Middleware](https://godoc.org/github.com/volatiletech/authboss/lock/#Middleware)
+Middlewares   | [LoadClientStateMiddleware](https://godoc.org/github.com/raven-chen/authboss/#Authboss.LoadClientStateMiddleware), [lock.Middleware](https://godoc.org/github.com/raven-chen/authboss/lock/#Middleware)
 ClientStorage | Session
-ServerStorer  | [ServerStorer](https://godoc.org/github.com/volatiletech/authboss/#ServerStorer)
-User          | [LockableUser](https://godoc.org/github.com/volatiletech/authboss/#LockableUser)
+ServerStorer  | [ServerStorer](https://godoc.org/github.com/raven-chen/authboss/#ServerStorer)
+User          | [LockableUser](https://godoc.org/github.com/raven-chen/authboss/#LockableUser)
 Values        | _None_
 Mailer        | _None_
 
@@ -586,10 +586,10 @@ Module        | expire
 Pages         | _None_
 Routes        | _None_
 Emails        | _None_
-Middlewares   | [LoadClientStateMiddleware](https://godoc.org/github.com/volatiletech/authboss/#Authboss.LoadClientStateMiddleware), [expire.Middleware](https://godoc.org/github.com/volatiletech/authboss/expire/#Middleware)
+Middlewares   | [LoadClientStateMiddleware](https://godoc.org/github.com/raven-chen/authboss/#Authboss.LoadClientStateMiddleware), [expire.Middleware](https://godoc.org/github.com/raven-chen/authboss/expire/#Middleware)
 ClientStorage | Session
 ServerStorer  | _None_
-User          | [User](https://godoc.org/github.com/volatiletech/authboss/#User)
+User          | [User](https://godoc.org/github.com/raven-chen/authboss/#User)
 Values        | _None_
 Mailer        | _None_
 
@@ -611,11 +611,11 @@ Module        | otp
 Pages         | otp, otpadd, otpclear
 Routes        | /otp/login, /otp/add, /otp/clear
 Emails        | _None_
-Middlewares   | [LoadClientStateMiddleware](https://godoc.org/github.com/volatiletech/authboss/#Authboss.LoadClientStateMiddleware)
+Middlewares   | [LoadClientStateMiddleware](https://godoc.org/github.com/raven-chen/authboss/#Authboss.LoadClientStateMiddleware)
 ClientStorage | Session and Cookie
-ServerStorer  | [ServerStorer](https://godoc.org/github.com/volatiletech/authboss/#ServerStorer)
-User          | [otp.User](https://godoc.org/github.com/volatiletech/authboss/otp/#User)
-Values        | [UserValuer](https://godoc.org/github.com/volatiletech/authboss/#UserValuer)
+ServerStorer  | [ServerStorer](https://godoc.org/github.com/raven-chen/authboss/#ServerStorer)
+User          | [otp.User](https://godoc.org/github.com/raven-chen/authboss/otp/#User)
+Values        | [UserValuer](https://godoc.org/github.com/raven-chen/authboss/#UserValuer)
 Mailer        | _None_
 
 One time passwords can be useful if users require a backup password in case they lose theirs,
@@ -646,10 +646,10 @@ Module        | twofactor
 Pages         | recovery2fa
 Routes        | /2fa/recovery/regen
 Emails        | _None_
-Middlewares   | [LoadClientStateMiddleware](https://godoc.org/github.com/volatiletech/authboss/#Authboss.LoadClientStateMiddleware)
+Middlewares   | [LoadClientStateMiddleware](https://godoc.org/github.com/raven-chen/authboss/#Authboss.LoadClientStateMiddleware)
 ClientStorage | Session
-ServerStorer  | [ServerStorer](https://godoc.org/github.com/volatiletech/authboss/#ServerStorer)
-User          | [twofactor.User](https://godoc.org/github.com/volatiletech/authboss/otp/twofactor/#User)
+ServerStorer  | [ServerStorer](https://godoc.org/github.com/raven-chen/authboss/#ServerStorer)
+User          | [twofactor.User](https://godoc.org/github.com/raven-chen/authboss/otp/twofactor/#User)
 Values        | _None_
 Mailer        | _None_
 
@@ -675,11 +675,11 @@ Module        | twofactor
 Pages         | twofactor_verify
 Routes        | /2fa/recovery/regen
 Emails        | twofactor_verify_email_html, twofactor_verify_email_txt
-Middlewares   | [LoadClientStateMiddleware](https://godoc.org/github.com/volatiletech/authboss/#Authboss.LoadClientStateMiddleware)
+Middlewares   | [LoadClientStateMiddleware](https://godoc.org/github.com/raven-chen/authboss/#Authboss.LoadClientStateMiddleware)
 ClientStorage | Session
-ServerStorer  | [ServerStorer](https://godoc.org/github.com/volatiletech/authboss/#ServerStorer)
-User          | [twofactor.User](https://godoc.org/github.com/volatiletech/authboss/otp/twofactor/#User)
-Values        | [twofactor.EmailVerifyTokenValuer](https://godoc.org/github.com/volatiletech/authboss/otp/twofactor/#EmailVerifyTokenValuer)
+ServerStorer  | [ServerStorer](https://godoc.org/github.com/raven-chen/authboss/#ServerStorer)
+User          | [twofactor.User](https://godoc.org/github.com/raven-chen/authboss/otp/twofactor/#User)
+Values        | [twofactor.EmailVerifyTokenValuer](https://godoc.org/github.com/raven-chen/authboss/otp/twofactor/#EmailVerifyTokenValuer)
 Mailer        | Required
 
 To enable this feature simply turn on
@@ -708,11 +708,11 @@ Module        | totp2fa
 Pages         | totp2fa_{setup,confirm,remove,validate}, totp2fa_{confirm,remove}_success
 Routes        | /2fa/totp/{setup,confirm,qr,remove,validate}
 Emails        | _None_
-Middlewares   | [LoadClientStateMiddleware](https://godoc.org/github.com/volatiletech/authboss/#Authboss.LoadClientStateMiddleware)
+Middlewares   | [LoadClientStateMiddleware](https://godoc.org/github.com/raven-chen/authboss/#Authboss.LoadClientStateMiddleware)
 ClientStorage | Session **(SECURE!)**
-ServerStorer  | [ServerStorer](https://godoc.org/github.com/volatiletech/authboss/#ServerStorer)
-User          | [totp2fa.User](https://godoc.org/github.com/volatiletech/authboss/otp/twofactor/totp2fa/#User)
-Values        | [TOTPCodeValuer](https://godoc.org/github.com/volatiletech/authboss/otp/twofactor/totp2fa/#TOTPCodeValuer)
+ServerStorer  | [ServerStorer](https://godoc.org/github.com/raven-chen/authboss/#ServerStorer)
+User          | [totp2fa.User](https://godoc.org/github.com/raven-chen/authboss/otp/twofactor/totp2fa/#User)
+Values        | [TOTPCodeValuer](https://godoc.org/github.com/raven-chen/authboss/otp/twofactor/totp2fa/#TOTPCodeValuer)
 Mailer        | _None_
 
 **Note:** Unlike most modules in Authboss you must construct a `totp2fa.TOTP` and call `.Setup()`
@@ -772,11 +772,11 @@ Module        | sms2fa
 Pages         | sms2fa_{setup,confirm,remove,validate}, sms2fa_{confirm,remove}_success
 Routes        | /2fa/{setup,confirm,remove,validate}
 Emails        | _None_
-Middlewares   | [LoadClientStateMiddleware](https://godoc.org/github.com/volatiletech/authboss/#Authboss.LoadClientStateMiddleware)
+Middlewares   | [LoadClientStateMiddleware](https://godoc.org/github.com/raven-chen/authboss/#Authboss.LoadClientStateMiddleware)
 ClientStorage | Session (**SECURE!**)
-ServerStorer  | [ServerStorer](https://godoc.org/github.com/volatiletech/authboss/#ServerStorer)
-User          | [sms2fa.User](https://godoc.org/github.com/volatiletech/authboss/otp/twofactor/sms2fa/#User), [sms2fa.SMSNumberProvider](https://godoc.org/github.com/volatiletech/authboss/otp/twofactor/sms2fa/#SMSNumberProvider)
-Values        | [SMSValuer](https://godoc.org/github.com/volatiletech/authboss/otp/twofactor/sms2fa/#SMSValuer), [SMSPhoneNumberValuer](https://godoc.org/github.com/volatiletech/authboss/otp/twofactor/sms2fa/#SMSPhoneNumberValuer)
+ServerStorer  | [ServerStorer](https://godoc.org/github.com/raven-chen/authboss/#ServerStorer)
+User          | [sms2fa.User](https://godoc.org/github.com/raven-chen/authboss/otp/twofactor/sms2fa/#User), [sms2fa.SMSNumberProvider](https://godoc.org/github.com/raven-chen/authboss/otp/twofactor/sms2fa/#SMSNumberProvider)
+Values        | [SMSValuer](https://godoc.org/github.com/raven-chen/authboss/otp/twofactor/sms2fa/#SMSValuer), [SMSPhoneNumberValuer](https://godoc.org/github.com/raven-chen/authboss/otp/twofactor/sms2fa/#SMSPhoneNumberValuer)
 Mailer        | _None_
 
 **Note:** Unlike most modules in Authboss you must construct a `sms2fa.SMS` and call `.Setup()`
@@ -835,7 +835,7 @@ Same as totp2fa above.
 
 ## Rendering Views
 
-The authboss rendering system is simple. It's defined by one interface: [Renderer](https://godoc.org/github.com/volatiletech/authboss/#Renderer)
+The authboss rendering system is simple. It's defined by one interface: [Renderer](https://godoc.org/github.com/raven-chen/authboss/#Renderer)
 
 The renderer knows how to load templates, and how to render them with some data and that's it.
 So let's examine the most common view types that you might want to use.
@@ -847,7 +847,7 @@ this becomes a small wrapper on top of your rendering setup. For example if you'
 then you could just use `template.New()` inside the `Load()` method and store that somewhere and
 call `template.Execute()` in the `Render()` method.
 
-There is also a very basic renderer: [Authboss Renderer](https://github.com/volatiletech/authboss-renderer) which has some very ugly built in views
+There is also a very basic renderer: [Authboss Renderer](https://github.com/raven-chen/authboss-renderer) which has some very ugly built in views
 and the ability to override them with your own if you don't want to integrate your own rendering
 system into that interface.
 
@@ -855,7 +855,7 @@ system into that interface.
 
 If you're building an API that's mostly backed by a javascript front-end, then you'll probably
 want to use a renderer that converts the data to JSON. There is a simple json renderer available in
-the [defaults package](https://github.com/volatiletech/authboss/defaults) package if you wish to
+the [defaults package](https://github.com/raven-chen/authboss/defaults) package if you wish to
 use that.
 
 ### Data
@@ -863,10 +863,10 @@ use that.
 The most important part about this interface is the data that you have to render.
 There are several keys that are used throughout authboss that you'll want to render in your views.
 
-They're in the file [html_data.go](https://github.com/volatiletech/authboss/blob/master/html_data.go)
+They're in the file [html_data.go](https://github.com/raven-chen/authboss/blob/master/html_data.go)
 and are constants prefixed with `Data`. See the documentation in that file for more information on
 which keys exist and what they contain.
 
-The default [responder](https://godoc.org/github.com/volatiletech/authboss/defaults/#Responder)
+The default [responder](https://godoc.org/github.com/raven-chen/authboss/defaults/#Responder)
 also happens to collect data from the Request context, and hence this is a great place to inject
 data you'd like to render (for example data for your html layout, or csrf tokens).

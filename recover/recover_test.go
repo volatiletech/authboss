@@ -12,8 +12,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/volatiletech/authboss"
-	"github.com/volatiletech/authboss/mocks"
+	"github.com/raven-chen/authboss"
+	"github.com/raven-chen/authboss/mocks"
 )
 
 const (

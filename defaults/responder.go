@@ -4,7 +4,7 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/volatiletech/authboss"
+	"github.com/raven-chen/authboss"
 )
 
 // Responder helps respond to http requests

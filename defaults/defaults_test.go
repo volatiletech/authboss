@@ -3,7 +3,7 @@ package defaults
 import (
 	"testing"
 
-	"github.com/volatiletech/authboss"
+	"github.com/raven-chen/authboss"
 )
 
 func TestSetCore(t *testing.T) {

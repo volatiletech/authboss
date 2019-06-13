@@ -9,7 +9,7 @@ import (
 	"net/smtp"
 	"testing"
 
-	"github.com/volatiletech/authboss"
+	"github.com/raven-chen/authboss"
 )
 
 var (

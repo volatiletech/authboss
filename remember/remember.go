@@ -11,7 +11,7 @@ import (
 	"net/http"
 
 	"github.com/pkg/errors"
-	"github.com/volatiletech/authboss"
+	"github.com/raven-chen/authboss"
 )
 
 const (

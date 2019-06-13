@@ -11,7 +11,7 @@ import (
 	"time"
 
 	"github.com/pkg/errors"
-	"github.com/volatiletech/authboss"
+	"github.com/raven-chen/authboss"
 )
 
 // NewSMTPMailer creates an SMTP Mailer to send emails with.

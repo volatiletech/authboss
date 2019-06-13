@@ -9,11 +9,11 @@ import (
 
 	"golang.org/x/crypto/bcrypt"
 
-	"github.com/volatiletech/authboss/otp/twofactor"
+	"github.com/raven-chen/authboss/otp/twofactor"
 
 	"github.com/pquerna/otp/totp"
-	"github.com/volatiletech/authboss"
-	"github.com/volatiletech/authboss/mocks"
+	"github.com/raven-chen/authboss"
+	"github.com/raven-chen/authboss/mocks"
 )
 
 func TestTOTPSetup(t *testing.T) {

@@ -6,7 +6,7 @@ import (
 	"unicode"
 
 	"github.com/pkg/errors"
-	"github.com/volatiletech/authboss"
+	"github.com/raven-chen/authboss"
 )
 
 var blankRegex = regexp.MustCompile(`^\s*$`)

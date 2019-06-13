@@ -128,7 +128,8 @@ func (a *Authboss) LoadClientStateMiddleware(h http.Handler) http.Handler {
 			logger := a.RequestLogger(r)
 			logger.Errorf("failed to load client state %+v", err)
 
-			w.WriteHeader(http.StatusInternalServerError)
+			DelAllSession(w, []string{})
+			http.Redirect(w, r, a.Paths.LogoutOK, http.StatusUnauthorized)
 			return
 		}
 
@@ -205,7 +206,7 @@ func (c ClientStateResponseWriter) Header() http.Header {
 	return c.ResponseWriter.Header()
 }
 
-// Hijack implements the http.Hijacker interface by calling the 
+// Hijack implements the http.Hijacker interface by calling the
 // underlying implementation if available.
 func (c ClientStateResponseWriter) Hijack() (net.Conn, *bufio.ReadWriter, error) {
 	h, ok := c.ResponseWriter.(http.Hijacker)

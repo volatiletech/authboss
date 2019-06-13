@@ -128,6 +128,15 @@ func (a *Authboss) LoadClientStateMiddleware(h http.Handler) http.Handler {
 			logger := a.RequestLogger(r)
 			logger.Errorf("failed to load client state %+v", err)
 
+			// Clean cookie when its invalid
+			cookie := http.Cookie{
+				Name:     a.Config.Storage.CookieName,
+				Value:    "",
+				Path:     "/",
+				MaxAge:   -1,
+				HttpOnly: true,
+			}
+			http.SetCookie(writer.ResponseWriter, &cookie)
 			DelAllSession(writer, []string{})
 			http.Redirect(writer.ResponseWriter, r, a.Paths.LogoutOK, http.StatusSeeOther)
 			return

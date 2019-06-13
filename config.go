@@ -177,6 +177,9 @@ type Config struct {
 	}
 
 	Storage struct {
+		// CookieName used to clean cookie when it is invalid.
+		CookieName string
+
 		// Storer is the interface through which Authboss accesses the web apps
 		// database for user operations.
 		Server ServerStorer

@@ -108,7 +108,7 @@ func (l *Lock) AfterAuthFail(w http.ResponseWriter, r *http.Request, handled boo
 
 	handled, err = l.Authboss.Events.FireAfter(authboss.EventLockUser, w, r)
 	if err != nil {
-		return true, err
+		return false, err
 	} else if handled {
 		return true, nil
 	}

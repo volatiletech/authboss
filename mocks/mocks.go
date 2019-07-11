@@ -415,6 +415,8 @@ func (c *ClientStateRW) WriteState(w http.ResponseWriter, cstate authboss.Client
 			c.ClientValues[e.Key] = e.Value
 		case authboss.ClientStateEventDel:
 			delete(c.ClientValues, e.Key)
+		case authboss.ClientStateEventDelAll:
+			c.ClientValues = make(map[string]string)
 		}
 	}
 

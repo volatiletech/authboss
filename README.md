@@ -1,41 +1,12 @@
-<img src="http://i.imgur.com/fPIgqLg.jpg"/>
+# V1 IS DEPRECATED, DO NOT USE, SEE V2
 
 Authboss
 ========
-
-[![GoDoc](https://godoc.org/github.com/volatiletech/authboss?status.svg)](https://godoc.org/github.com/volatiletech/authboss)
-[![Build Status](https://circleci.com/gh/volatiletech/authboss.svg?style=shield&circle-token=:circle-token)](https://circleci.com/gh/volatiletech/authboss)
-[![Coverage Status](https://coveralls.io/repos/volatiletech/authboss/badge.svg?branch=master)](https://coveralls.io/r/volatiletech/authboss?branch=master)
-[![Mail](https://img.shields.io/badge/mail%20list-authboss-lightgrey.svg)](https://groups.google.com/a/volatile.tech/forum/#!forum/authboss)
 
 Authboss is a modular authentication system for the web. It tries to remove as much boilerplate and "hard things" as possible so that
 each time you start a new web project in Go, you can plug it in, configure, and start building your app without having to build an
 authentication system each time. This reduces the potential for mistakes since authentication is not exactly trivial and should hopefully
 be generic enough to be plugged into all sorts of different web applications.
-
-Note on Roadmap (v2)
-========
-
-It's been a long time since Authboss has been released, and there have been a lot of developments in Go as well as the community
-and package management we'd like to take advantage of. There are several large refactorings that we think will make authboss
-much cleaner and as a result easier to maintain as well (and maybe get some higher test coverage). So with that we're beginning
-the v2 effort. Here's some of the things you can expect in terms of features and areas of concentration:
-
-- JWT style auth for JS-based pages
-- Cleaner separation of view from logic
-- Storer rewrite
-- Go 1.7 context usage
-
-As far as the project goes this is how it will be managed:
-
-- The current master HEAD will be available as v1.0.0
-- No new features will be put in v1 branch, only critical bugfixes (life support only)
-- v1 will be removed 6 months after the release of v2
-
-Currently done:
-
-- Main interfaces have been mostly completed
-- Gopkg.in is abandoned as a versioning mechanism
 
 Modules
 ========

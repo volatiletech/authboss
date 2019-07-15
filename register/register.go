@@ -5,9 +5,9 @@ import (
 	"errors"
 	"net/http"
 
-	"golang.org/x/crypto/bcrypt"
 	"github.com/volatiletech/authboss"
 	"github.com/volatiletech/authboss/internal/response"
+	"golang.org/x/crypto/bcrypt"
 )
 
 const (
@@ -122,6 +122,12 @@ func (reg *Register) registerPostHandler(ctx *authboss.Context, w http.ResponseW
 
 	attr[reg.PrimaryID] = key
 	attr[authboss.StorePassword] = string(pass)
+	for i, cnf := range reg.Config.ConfirmFields {
+		// Delete all odd numbered (confirming fields) attributes
+		if i%2 == 1 {
+			delete(attr, cnf)
+		}
+	}
 	ctx.User = attr
 
 	if err := ctx.Storer.(RegisterStorer).Create(key, attr); err == authboss.ErrUserFound {

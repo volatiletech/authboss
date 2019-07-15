@@ -138,6 +138,12 @@ func TestRegisterPostSuccess(t *testing.T) {
 		t.Error(err)
 	}
 
+	// As per v1.2.0 confirm.afterRegister() callback calls ctx.SaveUser() on directly passed ctx.User
+	// Which results in exposing "confirm_password" field with plaintext password to Storer
+	if pass, ok := ctx.User.String(authboss.ConfirmPrefix + authboss.StorePassword); ok {
+		t.Errorf("Confirm password was not removed: %s", pass)
+	}
+
 	if w.Code != http.StatusFound {
 		t.Error("It should have written a redirect:", w.Code)
 	}

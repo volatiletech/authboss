@@ -5,6 +5,11 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 ## [Unreleased]
 
+### Added
+
+- Logout events (Before & After) for deletion of a users session
+  (thanks @abelkuruvilla)
+
 ### Changed
 
 - Calls to Email() will now merge ctx data from the passed in ctx so it's

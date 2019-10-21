@@ -49,9 +49,24 @@ func (l *Logout) Logout(w http.ResponseWriter, r *http.Request) error {
 		logger.Info("user (unknown) logged out")
 	}
 
+	var handled bool
+	handled, err = l.Events.FireBefore(authboss.EventLogout, w, r)
+	if err != nil {
+		return err
+	} else if handled {
+		return nil
+	}
+
 	authboss.DelAllSession(w, l.Config.Storage.SessionStateWhitelistKeys)
 	authboss.DelKnownSession(w)
 	authboss.DelKnownCookie(w)
+
+	handled, err = l.Authboss.Events.FireAfter(authboss.EventLogout, w, r)
+	if err != nil {
+		return err
+	} else if handled {
+		return nil
+	}
 
 	ro := authboss.RedirectOptions{
 		Code:         http.StatusTemporaryRedirect,

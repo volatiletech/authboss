@@ -3,6 +3,17 @@
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Changed
+
+- Calls to Email() will now merge ctx data from the passed in ctx so it's
+  available in the template, just like calls to Render() (thanks @Gys)
+
+### Fixed
+
+- Fix one of the mocks that were no longer in sync with an interface
+
 ## [2.3.0] - 2019-03-30
 
 ### Added

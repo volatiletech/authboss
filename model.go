@@ -42,7 +42,7 @@ type LoginRequest struct {
 	Subject string `json:"subject,omitempty"`
 
 	// client
-	Client *Client `json:"client,omitempty"`
+	Client *ClientInfo `json:"client,omitempty"`
 
 	// oidc context
 	OidcContext *OpenIDConnectContext `json:"oidc_context,omitempty"`
@@ -92,7 +92,7 @@ type ConsentRequest struct {
 	Subject string `json:"subject,omitempty"`
 
 	// client
-	Client *Client `json:"client,omitempty"`
+	Client *ClientInfo `json:"client,omitempty"`
 
 	// oidc context
 	OidcContext *OpenIDConnectContext `json:"oidc_context,omitempty"`
@@ -113,7 +113,7 @@ type LogoutRequest struct {
 	Subject string `json:"subject,omitempty"`
 }
 
-type Client struct {
+type ClientInfo struct {
 
 	// AllowedCORSOrigins are one or more URLs (scheme://host[:port]) which are allowed to make CORS requests
 	// to the /oauth/token endpoint. If this array is empty, the sever's CORS origin configuration (`CORS_ALLOWED_ORIGINS`)

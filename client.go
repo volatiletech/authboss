@@ -1,4 +1,4 @@
-package hconsentor
+package hconsenter
 
 import (
 	"bytes"

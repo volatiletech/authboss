@@ -9,13 +9,20 @@ import (
 	"time"
 )
 
+type flow string
 const (
-	BASEPATH = "/oauth2/auth/requests/"
-	ACCEPT   = "/accept"
-	REJECT   = "/reject"
-	LOGIN    = "login"
-	CONSENT  = "consent"
-	LOGOUT   = "logout"
+	login   flow  = "login"
+	consent flow  = "consent"
+	logout   flow = "logout"
+	PathGetLogin  = "/oauth2/auth/requests/login"
+	PathAcceptLogin  = "/oauth2/auth/requests/login/accept"
+	PathRejectLogin  = "/oauth2/auth/requests/login/reject"
+	PathGetConsent  = "/oauth2/auth/requests/consent"
+	PathAcceptConsent  = "/oauth2/auth/requests/consent/accept"
+	PathRejectConsent  = "/oauth2/auth/requests/consent/reject"
+	PathGetLogout  = "/oauth2/auth/requests/logout"
+	PathAcceptLogout  = "/oauth2/auth/requests/logout/accept"
+	PathRejectLogout  = "/oauth2/auth/requests/logout/reject"
 )
 
 func NewClient(hydraURL string, timeout time.Duration) *HClient {
@@ -41,21 +48,21 @@ type HClient struct {
 
 func (c *HClient) GetLogin(challenge string) (LoginRequest, error) {
 	var res LoginRequest
-	url := c.makeURL(BASEPATH+LOGIN, LOGIN, challenge)
+	url := c.makeURL(PathGetLogin, login, challenge)
 	err := c.getJSON(url, &res)
 	return res, err
 }
 
 func (c *HClient) AcceptLogin(challenge string, body map[string]interface{}) (RequestHandlerResponse, error) {
 	var res RequestHandlerResponse
-	url := c.makeURL(BASEPATH+LOGIN+ACCEPT, LOGIN, challenge)
+	url := c.makeURL(PathAcceptLogin, login, challenge)
 	err := c.putJSON(url, body, &res)
 	return res, err
 }
 
 func (c *HClient) RejectLogin(challenge string, body map[string]interface{}) (RequestHandlerResponse, error) {
 	var res RequestHandlerResponse
-	url := c.makeURL(BASEPATH+LOGIN+REJECT, LOGIN, challenge)
+	url := c.makeURL(PathRejectLogin, login, challenge)
 	err := c.putJSON(url, body, &res)
 
 	return res, err
@@ -63,7 +70,7 @@ func (c *HClient) RejectLogin(challenge string, body map[string]interface{}) (Re
 
 func (c *HClient) GetConsent(challenge string) (ConsentRequest, error) {
 	var res ConsentRequest
-	url := c.makeURL(BASEPATH+CONSENT, CONSENT, challenge)
+	url := c.makeURL(PathGetConsent, consent, challenge)
 	err := c.getJSON(url, &res)
 
 	return res, err
@@ -71,7 +78,7 @@ func (c *HClient) GetConsent(challenge string) (ConsentRequest, error) {
 
 func (c *HClient) AcceptConsent(challenge string, body map[string]interface{}) (RequestHandlerResponse, error) {
 	var res RequestHandlerResponse
-	url := c.makeURL(BASEPATH+CONSENT+ACCEPT, CONSENT, challenge)
+	url := c.makeURL(PathAcceptConsent, consent, challenge)
 	err := c.putJSON(url, body, &res)
 
 	return res, err
@@ -79,7 +86,7 @@ func (c *HClient) AcceptConsent(challenge string, body map[string]interface{}) (
 
 func (c *HClient) RejectConsent(challenge string, body map[string]interface{}) (RequestHandlerResponse, error) {
 	var res RequestHandlerResponse
-	url := c.makeURL(BASEPATH+CONSENT+REJECT, CONSENT, challenge)
+	url := c.makeURL(PathRejectConsent, consent, challenge)
 	err := c.putJSON(url, body, &res)
 
 	return res, err
@@ -87,7 +94,7 @@ func (c *HClient) RejectConsent(challenge string, body map[string]interface{}) (
 
 func (c *HClient) GetLogout(challenge string) (LogoutRequest, error) {
 	var res LogoutRequest
-	url := c.makeURL(BASEPATH+LOGOUT, LOGOUT, challenge)
+	url := c.makeURL(PathGetLogout, logout, challenge)
 	err := c.getJSON(url, &res)
 
 	return res, err
@@ -95,7 +102,7 @@ func (c *HClient) GetLogout(challenge string) (LogoutRequest, error) {
 
 func (c *HClient) AcceptLogout(challenge string) (RequestHandlerResponse, error) {
 	var res RequestHandlerResponse
-	url := c.makeURL(BASEPATH+LOGOUT+ACCEPT, LOGOUT, challenge)
+	url := c.makeURL(PathAcceptLogout, logout, challenge)
 	err := c.putJSON(url, nil, &res)
 
 	return res, err
@@ -103,7 +110,7 @@ func (c *HClient) AcceptLogout(challenge string) (RequestHandlerResponse, error)
 
 func (c *HClient) RejectLogout(challenge string) (RequestHandlerResponse, error) {
 	var res RequestHandlerResponse
-	url := c.makeURL(BASEPATH+LOGOUT+REJECT, LOGOUT, challenge)
+	url := c.makeURL(PathRejectLogout, logout, challenge)
 	err := c.putJSON(url, nil, &res)
 
 	return res, err
@@ -137,7 +144,7 @@ func (c *HClient) putJSON(url string, body interface{}, target interface{}) erro
 	return json.NewDecoder(res.Body).Decode(target)
 }
 
-func (c *HClient) makeURL(path, flow, challenge string) string {
+func (c *HClient) makeURL(path string , f flow, challenge string) string {
 	p, err := url.Parse(path)
 	if err != nil {
 		panic(err)
@@ -146,7 +153,7 @@ func (c *HClient) makeURL(path, flow, challenge string) string {
 	u := c.baseURL.ResolveReference(p)
 
 	q := u.Query()
-	q.Set(flow+"_challenge", challenge)
+	q.Set(string(f)+"_challenge", challenge)
 	u.RawQuery = q.Encode()
 
 	return u.String()

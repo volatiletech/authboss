@@ -1,6 +1,6 @@
-# hydra-consent-flow-client
+# hConsenter
 
-Minimalist go client for hydra consent flow. Essentially it provides typed wrappers for the following paths. Response models are sourced from ory sdk.
+Minimalist go client for hydra login consent flow. Essentially it provides typed wrappers for the following paths. Response models are sourced from ory sdk.
 
 ```go
   PathGetLogin  = "/oauth2/auth/requests/login" // LoginRequest

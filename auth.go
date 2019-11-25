@@ -278,6 +278,7 @@ func (a *HydraConsent) LogoutGet(w http.ResponseWriter, r *http.Request) error {
 	return nil
 }
 
+// TODO: original source code sourced from logout module
 func (a *HydraConsent) LogoutPost(w http.ResponseWriter, r *http.Request) error {
 	userLogout := true // TODO: source from form
 	if !userLogout {

@@ -27,12 +27,7 @@ type HydraConsent struct {
 	hClient *hconsenter.Client
 }
 
-var (
-	CTXKeyChallenge = "challenge" // TODO: populate?
-)
-
 // Init module
-// TODO: oath events?
 func (a *HydraConsent) Init(ab *authboss.Authboss) (err error) {
 	a.Authboss = ab
 
@@ -44,15 +39,17 @@ func (a *HydraConsent) Init(ab *authboss.Authboss) (err error) {
 	a.Authboss.Config.Core.Router.Post("/login", a.Authboss.Core.ErrorHandler.Wrap(a.LoginPost))
 	a.Authboss.Config.Core.Router.Get("/consent", a.Authboss.Core.ErrorHandler.Wrap(a.ConsentGet))
 	a.Authboss.Config.Core.Router.Post("/consent", a.Authboss.Core.ErrorHandler.Wrap(a.ConsentPost))
+	// TODO: a.Authboss.Config.Core.Router.Get("/logout", a.Authboss.Core.ErrorHandler.Wrap(a.LogoutGet))
+	a.Authboss.Config.Core.Router.Post("/logout", a.Authboss.Core.ErrorHandler.Wrap(a.LoginPost))
 
-	a.hClient = hconsenter.NewClient("", 30*time.Second) // TODO: ENV
+	a.hClient = hconsenter.NewClient("TODO: Hydra Client URL", 30*time.Second)
 
-	// TODO: reject post loginRequestOnFailEvent for hydra
+	ab.Events.After(authboss.EventAuthFail, func(w http.ResponseWriter, r *http.Request, handled bool) (bool, error) {
+		// TODO: reject post loginRequestOnFailEvent for hydra after user fails x # of times ?
+		return true, nil
+	})
+
 	ab.Events.After(authboss.EventAuth, func(w http.ResponseWriter, r *http.Request, handled bool) (bool, error) {
-		// user, err := model.GetUser(ab, &r)
-		// if err != nil {
-		// 	return false, err
-		// }
 
 		// TODO: how should this play with remember module?
 		body := map[string]interface{}{
@@ -61,7 +58,7 @@ func (a *HydraConsent) Init(ab *authboss.Authboss) (err error) {
 			"remember_for": 3600,
 		}
 
-		ch := r.Context().Value(CTXKeyChallenge).(string)
+		ch := r.Context().Value(ChallengeKey).(string)
 		res, err := a.hClient.AcceptLogin(ch, body)
 		if err != nil {
 			// TODO:
@@ -73,44 +70,70 @@ func (a *HydraConsent) Init(ab *authboss.Authboss) (err error) {
 	return nil
 }
 
-// TODO: enable 'auto-consent' flow so user doesn't have to consent if app is 1st
 func (a *HydraConsent) ConsentGet(w http.ResponseWriter, r *http.Request) error {
 	ch := r.URL.Query().Get("consent_challenge")
 	if ch == "" {
 		return nil
 	}
 
-	// TODO:
-	// if skip
-	// else render consent views
-
 	getRes, err := a.hClient.GetConsent(ch)
 	if err != nil {
 		// TODO:
 	}
 
-	// TODO: don't think 'every' app needs those in session, should verify ory docs and make sure this isn't any hack,
-	// but I think just build session interface on user obj should work
-	// if user, err := model.GetUser(ab, &r); err == nil {
-	// 	accessToken = AccessToken{
-	// 		Role: user.Role,
-	// 	}
-	// 	idToken = IDToken{
-	// 		Name:  user.Name,
-	// 		Email: user.Email,
-	// 		Role:  user.Role,
-	// 	}
-	// }
-	// 	"session": map[string]interface{}{
-	// 		"access_token": accessToken,
-	// 		"id_token":     idToken,
-	// 	},
+	noConsent := true // TODO env ?
+	if getRes.Skip || noConsent {
 
-	// TODO: review mappings
+		//  TODO: it would be nice if we could add an event here for people to attach to
+		body := map[string]interface{}{
+			"grant_scope":                 getRes.RequestedScope,
+			"grant_access_token_audience": getRes.RequestedAudience,
+			"session":                     map[string]interface{}{}, // TODO:
+		}
+
+		accRes, err := a.hClient.AcceptConsent(ch, body)
+		if err != nil {
+			// TODO:
+		}
+
+		http.Redirect(w, r, accRes.RedirectTo, http.StatusFound)
+		return nil
+	}
+
+	// If authentication can't be skipped must show the consent ui
+	r = r.WithContext(context.WithValue(r.Context(), ChallengeKey, ch))
+	if d, ok := r.Context().Value(authboss.CTXKeyData).(authboss.HTMLData); ok {
+		r = r.WithContext(context.WithValue(r.Context(), authboss.CTXKeyData, d.MergeKV(ChallengeKey, ch)))
+	}
+
+	return nil
+}
+
+func (a *HydraConsent) ConsentPost(w http.ResponseWriter, r *http.Request) error {
+	ch := "" // TODO source
+	deny := true
+	if deny {
+		res, err := a.hClient.RejectConsent(ch, map[string]interface{}{"error": "access_denied", "error_description": "The resource owner denied the request"})
+		if err != nil {
+
+		}
+		http.Redirect(w, r, res.RedirectTo, http.StatusFound)
+		return nil
+	}
+
+	grantScope := []string{}
+
+	res, err := a.hClient.GetConsent(ch)
+	if err != nil {
+		// TODO:
+	}
 
 	body := map[string]interface{}{
-		"grant_scope":                 getRes.RequestedScope,
-		"grant_access_token_audience": getRes.RequestedAudience,
+		"grant_scope":                 grantScope,
+		"grant_access_token_audience": res.RequestedAudience,
+		"session":                     map[string]interface{}{}, // TODO:
+		"remember":                    true,                     // TODO:
+		"remember_for":                3600,
 	}
 
 	accRes, err := a.hClient.AcceptConsent(ch, body)
@@ -119,16 +142,13 @@ func (a *HydraConsent) ConsentGet(w http.ResponseWriter, r *http.Request) error 
 	}
 
 	http.Redirect(w, r, accRes.RedirectTo, http.StatusFound)
-	return nil
-}
 
-func (a *HydraConsent) ConsentPost(w http.ResponseWriter, r *http.Request) error {
 	return nil
 }
 
 // LoginGet checks if the user needs the challenge form (un authenticated)
 func (a *HydraConsent) LoginGet(w http.ResponseWriter, r *http.Request) error {
-	ch := r.URL.Query().Get("consent_challenge")
+	ch := r.URL.Query().Get("login_challenge")
 	if ch == "" {
 		return nil
 	}
@@ -139,6 +159,9 @@ func (a *HydraConsent) LoginGet(w http.ResponseWriter, r *http.Request) error {
 	}
 
 	if res.Skip {
+		/* TODO:
+		- would be nice to add an event 'LoginSkip' here for users to create a callback for
+		*/
 		body := map[string]interface{}{
 			"subject": res.Subject,
 		}
@@ -150,41 +173,17 @@ func (a *HydraConsent) LoginGet(w http.ResponseWriter, r *http.Request) error {
 		return nil
 	}
 
+	// If authentication can't be skipped must show the login ui
 	r = r.WithContext(context.WithValue(r.Context(), ChallengeKey, ch))
 
 	if d, ok := r.Context().Value(authboss.CTXKeyData).(authboss.HTMLData); ok {
-		r = r.WithContext(context.WithValue(r.Context(), authboss.CTXKeyData, d.MergeKV("challenge", ch)))
+		r = r.WithContext(context.WithValue(r.Context(), authboss.CTXKeyData, d.MergeKV(ChallengeKey, ch)))
 	}
 
 	return nil
 }
 
-/*
-TODO: Create logout based on logout module and this merged
-// 'accepts' logout
-
-func LogoutMiddleware(ab *authboss.Authboss) Middleware {
-	return func(handler http.Handler) http.Handler {
-		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			if r.URL.Path == "/logout" && r.Method == http.MethodGet {
-				if ch := r.URL.Query().Get("logout_challenge"); ch != "" {
-					getLogoutRequest(ch)
-					res := acceptLogoutRequest(ch)
-					ab.Paths.LogoutOK = res.RedirectTo
-				}
-			}
-
-			handler.ServeHTTP(w, r)
-		})
-	}
-}
-*/
-
-// TODO: merge from middleware
-// r = r.WithContext(context.WithValue(r.Context(), CTXKeyChallenge, r.FormValue("challenge")))
-// TODO: reject loginRequestOnFailEvent for hydra
-// LoginPost attempts to validate the credentials passed in
-// to log in a user.
+// TODO: Sourced from auth login, maybe just import that to avoid dupe?
 func (a *HydraConsent) LoginPost(w http.ResponseWriter, r *http.Request) error {
 	logger := a.RequestLogger(r)
 
@@ -258,4 +257,22 @@ func (a *HydraConsent) LoginPost(w http.ResponseWriter, r *http.Request) error {
 		FollowRedirParam: true,
 	}
 	return a.Authboss.Core.Redirector.Redirect(w, r, ro)
+}
+
+// TODO: add get logout flow and prompt user for logout option
+func (a *HydraConsent) Logout(w http.ResponseWriter, r *http.Request) error {
+	ch := r.URL.Query().Get("challenge")
+	if ch == "" {
+		return nil
+	}
+	res, err := a.hClient.GetLogout(ch)
+	if err != nil {
+		// TODO:
+	}
+	res2, err := a.hClient.AcceptLogout(ch)
+	if err != nil {
+
+	}
+	http.Redirect(w, r, res2.RedirectTo, http.StatusFound)
+	return nil
 }

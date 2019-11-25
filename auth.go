@@ -4,6 +4,7 @@ package hydraconsent
 import (
 	"context"
 	"net/http"
+	"os"
 	"time"
 
 	hconsenter "github.com/Ashtonian/hConsenter"
@@ -14,6 +15,8 @@ import (
 const (
 	// PageLogin is for identifying the login page for parsing & validation
 	PageLogin    = "login"
+	PageConsent  = "consent"
+	PageLogout   = "logout"
 	ChallengeKey = "challenge"
 )
 
@@ -34,15 +37,22 @@ func (a *HydraConsent) Init(ab *authboss.Authboss) (err error) {
 	if err = a.Authboss.Config.Core.ViewRenderer.Load(PageLogin); err != nil {
 		return err
 	}
+	if err = a.Authboss.Config.Core.ViewRenderer.Load(PageLogout); err != nil {
+		return err
+	}
+	if err = a.Authboss.Config.Core.ViewRenderer.Load(PageConsent); err != nil {
+		return err
+	}
 
 	a.Authboss.Config.Core.Router.Get("/login", a.Authboss.Core.ErrorHandler.Wrap(a.LoginGet))
 	a.Authboss.Config.Core.Router.Post("/login", a.Authboss.Core.ErrorHandler.Wrap(a.LoginPost))
 	a.Authboss.Config.Core.Router.Get("/consent", a.Authboss.Core.ErrorHandler.Wrap(a.ConsentGet))
 	a.Authboss.Config.Core.Router.Post("/consent", a.Authboss.Core.ErrorHandler.Wrap(a.ConsentPost))
-	// TODO: a.Authboss.Config.Core.Router.Get("/logout", a.Authboss.Core.ErrorHandler.Wrap(a.LogoutGet))
+	a.Authboss.Config.Core.Router.Get("/logout", a.Authboss.Core.ErrorHandler.Wrap(a.LogoutGet))
 	a.Authboss.Config.Core.Router.Post("/logout", a.Authboss.Core.ErrorHandler.Wrap(a.LoginPost))
 
-	a.hClient = hconsenter.NewClient("TODO: Hydra Client URL", 30*time.Second)
+	hydraURL := os.Getenv("HYDRA_ADMIN_URL")
+	a.hClient = hconsenter.NewClient(hydraURL, 30*time.Second)
 
 	ab.Events.After(authboss.EventAuthFail, func(w http.ResponseWriter, r *http.Request, handled bool) (bool, error) {
 		// TODO: reject post loginRequestOnFailEvent for hydra after user fails x # of times ?
@@ -50,18 +60,22 @@ func (a *HydraConsent) Init(ab *authboss.Authboss) (err error) {
 	})
 
 	ab.Events.After(authboss.EventAuth, func(w http.ResponseWriter, r *http.Request, handled bool) (bool, error) {
+		usr, err := ab.CurrentUserID(r)
+		if err != nil {
+			return false, err
+		}
 
 		// TODO: how should this play with remember module?
 		body := map[string]interface{}{
-			"subject":      "TODO", // TODO: PID  user.GetEmail(),
-			"remember":     true,   //
+			"subject":      usr,
+			"remember":     true,
 			"remember_for": 3600,
 		}
 
 		ch := r.Context().Value(ChallengeKey).(string)
 		res, err := a.hClient.AcceptLogin(ch, body)
 		if err != nil {
-			// TODO:
+			return false, err
 		}
 		http.Redirect(w, r, res.RedirectTo, http.StatusFound)
 
@@ -78,7 +92,7 @@ func (a *HydraConsent) ConsentGet(w http.ResponseWriter, r *http.Request) error 
 
 	getRes, err := a.hClient.GetConsent(ch)
 	if err != nil {
-		// TODO:
+		return err
 	}
 
 	noConsent := true // TODO env ?
@@ -93,7 +107,7 @@ func (a *HydraConsent) ConsentGet(w http.ResponseWriter, r *http.Request) error 
 
 		accRes, err := a.hClient.AcceptConsent(ch, body)
 		if err != nil {
-			// TODO:
+			return err
 		}
 
 		http.Redirect(w, r, accRes.RedirectTo, http.StatusFound)
@@ -115,7 +129,7 @@ func (a *HydraConsent) ConsentPost(w http.ResponseWriter, r *http.Request) error
 	if deny {
 		res, err := a.hClient.RejectConsent(ch, map[string]interface{}{"error": "access_denied", "error_description": "The resource owner denied the request"})
 		if err != nil {
-
+			return err
 		}
 		http.Redirect(w, r, res.RedirectTo, http.StatusFound)
 		return nil
@@ -125,7 +139,7 @@ func (a *HydraConsent) ConsentPost(w http.ResponseWriter, r *http.Request) error
 
 	res, err := a.hClient.GetConsent(ch)
 	if err != nil {
-		// TODO:
+		return err
 	}
 
 	body := map[string]interface{}{
@@ -138,7 +152,7 @@ func (a *HydraConsent) ConsentPost(w http.ResponseWriter, r *http.Request) error
 
 	accRes, err := a.hClient.AcceptConsent(ch, body)
 	if err != nil {
-		// TODO:
+		return err
 	}
 
 	http.Redirect(w, r, accRes.RedirectTo, http.StatusFound)
@@ -155,7 +169,7 @@ func (a *HydraConsent) LoginGet(w http.ResponseWriter, r *http.Request) error {
 
 	res, err := a.hClient.GetLogin(ch)
 	if err != nil {
-		// TODO:
+		return err
 	}
 
 	if res.Skip {
@@ -167,7 +181,7 @@ func (a *HydraConsent) LoginGet(w http.ResponseWriter, r *http.Request) error {
 		}
 		res, err := a.hClient.AcceptLogin(ch, body)
 		if err != nil {
-			// TODO:
+			return err
 		}
 		http.Redirect(w, r, res.RedirectTo, http.StatusFound)
 		return nil
@@ -260,19 +274,47 @@ func (a *HydraConsent) LoginPost(w http.ResponseWriter, r *http.Request) error {
 }
 
 // TODO: add get logout flow and prompt user for logout option
-func (a *HydraConsent) Logout(w http.ResponseWriter, r *http.Request) error {
+func (a *HydraConsent) LogoutGet(w http.ResponseWriter, r *http.Request) error {
+	return nil
+}
+
+func (a *HydraConsent) LogoutPost(w http.ResponseWriter, r *http.Request) error {
+	userLogout := true // TODO: source from form
+	if !userLogout {
+		// user doesn't want to logout redirect ?
+	}
+
+	logger := a.RequestLogger(r)
+
+	user, err := a.CurrentUser(r)
+	if err == nil && user != nil {
+		logger.Infof("user %s logged out", user.GetPID())
+	} else {
+		logger.Info("user (unknown) logged out")
+	}
+
+	authboss.DelAllSession(w, a.Config.Storage.SessionStateWhitelistKeys)
+	authboss.DelKnownSession(w)
+	authboss.DelKnownCookie(w)
+
 	ch := r.URL.Query().Get("challenge")
 	if ch == "" {
 		return nil
 	}
-	res, err := a.hClient.GetLogout(ch)
-	if err != nil {
-		// TODO:
+
+	_, err2 := a.hClient.GetLogout(ch)
+	if err2 != nil {
+		return err2
 	}
 	res2, err := a.hClient.AcceptLogout(ch)
 	if err != nil {
-
+		return err
 	}
-	http.Redirect(w, r, res2.RedirectTo, http.StatusFound)
-	return nil
+
+	ro := authboss.RedirectOptions{
+		Code:         http.StatusTemporaryRedirect,
+		RedirectPath: res2.RedirectTo, // a.Authboss.Paths.LogoutOK,
+		Success:      "You have been logged out",
+	}
+	return a.Authboss.Core.Redirector.Redirect(w, r, ro)
 }

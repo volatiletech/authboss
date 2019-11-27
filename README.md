@@ -3,6 +3,6 @@ An authboss-hydra-consent module to utilize [Authboss](https://github.com/volati
 
 The following can be passed as environment variables:
 
-| Name              | Description            | Default |
-|-------------------|------------------------|---------|
-| `HYDRA_ADMIN_URL` | e.g. http://hydra:4445 | _none_  |
+| Name              | Description            | Default               |
+|-------------------|------------------------|-----------------------|
+| `HYDRA_ADMIN_URL` | e.g. http://hydra:4445 | http://localhost:4445 |

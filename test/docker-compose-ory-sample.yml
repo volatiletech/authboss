@@ -18,13 +18,13 @@ services:
     ports:
       - "4444:4444" # Public port
       - "4445:4445" # Admin port
-      - "5555:5555" # Port for hydra token user
+      # - "5555:5555" # Port for hydra token user
     command: serve all --dangerous-force-http
     environment:
       - URLS_SELF_ISSUER=http://127.0.0.1:4444
-      - URLS_CONSENT=http://127.0.0.1:3000/consent
-      - URLS_LOGIN=http://127.0.0.1:3000/login
-      - URLS_LOGOUT=http://127.0.0.1:3000/logout
+      - URLS_CONSENT=http://127.0.0.1:3000/auth/consent
+      - URLS_LOGIN=http://127.0.0.1:3000/auth/login
+      - URLS_LOGOUT=http://127.0.0.1:3000/auth/logout
       - DSN=memory
       - SECRETS_SYSTEM=youReallyNeedToChangeThis
       - OIDC_SUBJECT_TYPES_SUPPORTED=public,pairwise
@@ -34,13 +34,13 @@ services:
     depends_on:
       - hydra-migrate
 
-  consent:
-    image: oryd/hydra-login-consent-node:v1.0.0-rc.10
-    environment:
-      - HYDRA_ADMIN_URL=http://hydra:4445
-    ports:
-      - "3000:3000"
-    restart: unless-stopped
+  # consent:
+  #   image: oryd/hydra-login-consent-node:v1.0.0-rc.10
+  #   environment:
+  #     - HYDRA_ADMIN_URL=http://hydra:4445
+  #   ports:
+  #     - "3000:3000"
+  #   restart: unless-stopped
 
   postgresd:
     image: postgres:9.6

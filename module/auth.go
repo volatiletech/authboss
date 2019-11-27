@@ -52,6 +52,9 @@ func (a *HydraConsent) Init(ab *authboss.Authboss) (err error) {
 	a.Authboss.Config.Core.Router.Post("/logout", a.Authboss.Core.ErrorHandler.Wrap(a.LoginPost))
 
 	hydraURL := os.Getenv("HYDRA_ADMIN_URL")
+	if hydraURL == "" {
+		hydraURL = "http://localhost:4445"
+	}
 	a.hClient = hconsenter.NewClient(hydraURL, 30*time.Second)
 
 	ab.Events.After(authboss.EventAuthFail, func(w http.ResponseWriter, r *http.Request, handled bool) (bool, error) {
@@ -77,6 +80,12 @@ func (a *HydraConsent) Init(ab *authboss.Authboss) (err error) {
 		if err != nil {
 			return false, err
 		}
+		ro := authboss.RedirectOptions{
+			Code:             http.StatusTemporaryRedirect,
+			RedirectPath:     a.Authboss.Paths.AuthLoginOK,
+			FollowRedirParam: true,
+		}
+		return a.Authboss.Core.Redirector.Redirect(w, r, ro)
 		http.Redirect(w, r, res.RedirectTo, http.StatusFound)
 
 		return true, nil
@@ -186,15 +195,15 @@ func (a *HydraConsent) LoginGet(w http.ResponseWriter, r *http.Request) error {
 		http.Redirect(w, r, res.RedirectTo, http.StatusFound)
 		return nil
 	}
-
+	// r = r.WithContext(context.WithValue(r.Context(), ChallengeKey, ch))
+	// d, ok := r.Context().Value(authboss.CTXKeyData).(authboss.HTMLData)
+	// if ok {
+	// 	r = r.WithContext(context.WithValue(r.Context(), authboss.CTXKeyData, d.MergeKV(ChallengeKey, ch)))
+	// }
+	data := authboss.HTMLData{}
 	// If authentication can't be skipped must show the login ui
-	r = r.WithContext(context.WithValue(r.Context(), ChallengeKey, ch))
+	return a.Core.Responder.Respond(w, r, http.StatusOK, PageLogin, data)
 
-	if d, ok := r.Context().Value(authboss.CTXKeyData).(authboss.HTMLData); ok {
-		r = r.WithContext(context.WithValue(r.Context(), authboss.CTXKeyData, d.MergeKV(ChallengeKey, ch)))
-	}
-
-	return nil
 }
 
 // TODO: Sourced from auth login, maybe just import that to avoid dupe?

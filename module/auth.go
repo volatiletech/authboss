@@ -3,6 +3,7 @@ package hydraconsent
 
 import (
 	"context"
+	"fmt"
 	"net/http"
 	"os"
 	"time"
@@ -12,6 +13,7 @@ import (
 	"golang.org/x/crypto/bcrypt"
 )
 
+// TODO: document oauth2 and openID reserved scopes/session keys, potentially type them via an additional module
 const (
 	// PageLogin is for identifying the login page for parsing & validation
 	PageLogin    = "login"
@@ -75,19 +77,16 @@ func (a *HydraConsent) Init(ab *authboss.Authboss) (err error) {
 			"remember_for": 3600,
 		}
 
-		ch := r.Context().Value(ChallengeKey).(string)
+		ch, ok := r.Context().Value(ChallengeKey).(string)
+		if !ok {
+			return false, fmt.Errorf("Missing challenge key %s from context post login event", ChallengeKey)
+		}
 		res, err := a.hClient.AcceptLogin(ch, body)
 		if err != nil {
 			return false, err
 		}
-		ro := authboss.RedirectOptions{
-			Code:             http.StatusTemporaryRedirect,
-			RedirectPath:     a.Authboss.Paths.AuthLoginOK,
-			FollowRedirParam: true,
-		}
-		return a.Authboss.Core.Redirector.Redirect(w, r, ro)
-		http.Redirect(w, r, res.RedirectTo, http.StatusFound)
 
+		http.Redirect(w, r, res.RedirectTo, http.StatusFound)
 		return true, nil
 	})
 	return nil
@@ -104,7 +103,7 @@ func (a *HydraConsent) ConsentGet(w http.ResponseWriter, r *http.Request) error 
 		return err
 	}
 
-	noConsent := true // TODO env ?
+	noConsent := false // TODO env skip consent url and check requested uri
 	if getRes.Skip || noConsent {
 
 		//  TODO: it would be nice if we could add an event here for people to attach to
@@ -123,13 +122,17 @@ func (a *HydraConsent) ConsentGet(w http.ResponseWriter, r *http.Request) error 
 		return nil
 	}
 
-	// If authentication can't be skipped must show the consent ui
+	// add challenge key to context
 	r = r.WithContext(context.WithValue(r.Context(), ChallengeKey, ch))
-	if d, ok := r.Context().Value(authboss.CTXKeyData).(authboss.HTMLData); ok {
-		r = r.WithContext(context.WithValue(r.Context(), authboss.CTXKeyData, d.MergeKV(ChallengeKey, ch)))
+
+	// add challenge key to view data
+	data, ok := r.Context().Value(authboss.CTXKeyData).(authboss.HTMLData)
+	if ok {
+		r = r.WithContext(context.WithValue(r.Context(), authboss.CTXKeyData, data.MergeKV(ChallengeKey, ch)))
 	}
 
-	return nil
+	// If authentication can't be skipped must show the consent ui
+	return a.Core.Responder.Respond(w, r, http.StatusOK, PageConsent, data)
 }
 
 func (a *HydraConsent) ConsentPost(w http.ResponseWriter, r *http.Request) error {
@@ -195,12 +198,16 @@ func (a *HydraConsent) LoginGet(w http.ResponseWriter, r *http.Request) error {
 		http.Redirect(w, r, res.RedirectTo, http.StatusFound)
 		return nil
 	}
-	// r = r.WithContext(context.WithValue(r.Context(), ChallengeKey, ch))
-	// d, ok := r.Context().Value(authboss.CTXKeyData).(authboss.HTMLData)
-	// if ok {
-	// 	r = r.WithContext(context.WithValue(r.Context(), authboss.CTXKeyData, d.MergeKV(ChallengeKey, ch)))
-	// }
-	data := authboss.HTMLData{}
+
+	// add challenge key to context
+	r = r.WithContext(context.WithValue(r.Context(), ChallengeKey, ch))
+
+	// add challenge key to view data
+	data, ok := r.Context().Value(authboss.CTXKeyData).(authboss.HTMLData)
+	if ok {
+		r = r.WithContext(context.WithValue(r.Context(), authboss.CTXKeyData, data.MergeKV(ChallengeKey, ch)))
+	}
+
 	// If authentication can't be skipped must show the login ui
 	return a.Core.Responder.Respond(w, r, http.StatusOK, PageLogin, data)
 
@@ -228,6 +235,7 @@ func (a *HydraConsent) LoginPost(w http.ResponseWriter, r *http.Request) error {
 	} else if err != nil {
 		return err
 	}
+
 	authUser := authboss.MustBeAuthable(pidUser)
 	password := authUser.GetPassword()
 
@@ -249,6 +257,15 @@ func (a *HydraConsent) LoginPost(w http.ResponseWriter, r *http.Request) error {
 	}
 
 	r = r.WithContext(context.WithValue(r.Context(), authboss.CTXKeyValues, validatable))
+
+	// Add challenge to context
+	ch := r.FormValue(ChallengeKey)
+	r = r.WithContext(context.WithValue(r.Context(), ChallengeKey, ch))
+	// add challenge key to view data
+	data, ok := r.Context().Value(authboss.CTXKeyData).(authboss.HTMLData)
+	if ok {
+		r = r.WithContext(context.WithValue(r.Context(), authboss.CTXKeyData, data.MergeKV(ChallengeKey, ch)))
+	}
 
 	handled, err = a.Events.FireBefore(authboss.EventAuth, w, r)
 	if err != nil {

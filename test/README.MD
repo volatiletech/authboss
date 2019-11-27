@@ -41,3 +41,5 @@ hydra token user \
     --port 5555 \
     --scope openid,offline
 ```
+
+Visit http://localhost:5555 and start login flow

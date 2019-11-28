@@ -4,6 +4,6 @@
 	{{with .redir}}<input type="hidden" name="redir" value="{{.}}" />{{end}}
     {{with .challenge}}<input type="hidden" name="challenge" value="{{.}}" />{{end}}
     Do you wish to logout?
-    <button type="submit" value="yes">Yes</button>
-    <button type="submit" value="deny">No</button>
+    <button type="submit" name="shouldLogout" value="true">Yes</button>
+    <button type="submit" name="shouldLogout" value="false">No</button>
 </form>

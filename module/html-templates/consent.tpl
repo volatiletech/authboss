@@ -2,7 +2,7 @@
     {{with .error}}{{.}}<br />{{end}}
 	{{with .csrf_token}}<input type="hidden" name="csrf_token" value="{{.}}" />{{end}}
     {{with .challenge}}<input type="hidden" name="challenge" value="{{.}}" />{{end}}
-    {{with .client}} {{client.client_name || client.client_id}}  wants access resources on your behalf and to:{{end}}
+    {{with .client}} {{.client_name }} {{.client_id}}  wants access resources on your behalf and to:{{end}}
     {{with .requested_scope}} {{end}}
 
     {{with .client}}

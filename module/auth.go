@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"net/http"
 	"os"
+	"strconv"
 	"time"
 
 	hconsenter "github.com/Ashtonian/hConsenter"
@@ -13,6 +14,48 @@ import (
 	"github.com/volatiletech/authboss"
 	"golang.org/x/crypto/bcrypt"
 )
+
+type ConsentValuer interface {
+	authboss.Validator
+
+	GetScopes() []string
+}
+
+func MustHaveConsent(v authboss.Validator) ConsentValuer {
+	if u, ok := v.(ConsentValuer); ok {
+		return u
+	}
+
+	panic(fmt.Sprintf("bodyreader returned a type that could not be upgraded to ConsentValuer: %T", v))
+}
+
+type ChallengeValuer interface {
+	authboss.Validator
+
+	GetChallenge() string
+}
+
+func MustHaveChallenge(v authboss.Validator) ChallengeValuer {
+	if u, ok := v.(ChallengeValuer); ok {
+		return u
+	}
+
+	panic(fmt.Sprintf("bodyreader returned a type that could not be upgraded to ChallengeValuer: %T", v))
+}
+
+type LogoutValuer interface {
+	authboss.Validator
+
+	GetShouldLogout() bool
+}
+
+func MustHaveLougout(v authboss.Validator) LogoutValuer {
+	if u, ok := v.(LogoutValuer); ok {
+		return u
+	}
+
+	panic(fmt.Sprintf("bodyreader returned a type that could not be upgraded to LogoutValuer: %T", v))
+}
 
 // TODO: document oauth2 and openID reserved scopes/session keys, potentially type them via an additional module
 // TODO: sync scope formulas /get + /post consent/login
@@ -32,20 +75,6 @@ func init() {
 type HydraConsent struct {
 	*authboss.Authboss
 	hClient *hconsenter.Client
-}
-
-type ChallengeValuer interface {
-	authboss.Validator
-
-	GetChallenge() string
-}
-
-func MustHaveChallenge(v authboss.Validator) ChallengeValuer {
-	if u, ok := v.(ChallengeValuer); ok {
-		return u
-	}
-
-	panic(fmt.Sprintf("bodyreader returned a type that could not be upgraded to ChallengeValuer: %T", v))
 }
 
 // Init module
@@ -92,8 +121,10 @@ func (a *HydraConsent) Init(ab *authboss.Authboss) (err error) {
 		}
 
 		// Add challenge to context
-		challengeForm := MustHaveChallenge(validatable)
-		ch := challengeForm.GetChallenge()
+		// TODO: Builtin valuer
+		// challengeForm := MustHaveChallenge(validatable)
+		// ch := challengeForm.GetChallenge()
+		ch := r.FormValue("challenge")
 		r = r.WithContext(context.WithValue(r.Context(), ChallengeKey, ch))
 
 		// add challenge key to view data
@@ -114,20 +145,28 @@ func (a *HydraConsent) Init(ab *authboss.Authboss) (err error) {
 			"remember":     rememberMe,
 			"remember_for": 3600, // TODO: env
 		}
-
 		res, err := a.hClient.AcceptLogin(ch, body)
 		if err != nil {
 			return false, err
 		}
+		// http.Redirect(w, r, res.RedirectTo, http.StatusFound)
+		ro := authboss.RedirectOptions{
+			Code:             http.StatusFound,
+			RedirectPath:     res.RedirectTo,
+			FollowRedirParam: true,
+		}
+		err = a.Authboss.Core.Redirector.Redirect(w, r, ro)
+		return true, err
 
-		http.Redirect(w, r, res.RedirectTo, http.StatusFound)
-		return true, nil
+		// return true, nil
 	})
 	return nil
 }
 
 func toMap(clientInfo *hconsenter.ClientInfo) map[string]interface{} {
 	client := map[string]interface{}{}
+	client["id"] = clientInfo.ClientID
+	client["contacts"] = clientInfo.Contacts
 	client["client_uri"] = clientInfo.ClientURI
 	client["logo_uri"] = clientInfo.LogoURI
 	client["metadata"] = clientInfo.Metadata
@@ -149,6 +188,7 @@ func (a *HydraConsent) ConsentGet(w http.ResponseWriter, r *http.Request) error 
 	if err != nil {
 		return err
 	}
+	spew.Dump("ctx", getRes.Context, "acr", getRes.ACR, "scopereq", getRes.RequestedScope, "scopeaud")
 
 	noConsent := false // TODO env skip consent url and check requested uri
 	if getRes.Skip || noConsent {
@@ -184,7 +224,6 @@ func (a *HydraConsent) ConsentGet(w http.ResponseWriter, r *http.Request) error 
 	data = data.MergeKV("subject", getRes.Subject)
 	client := toMap(getRes.Client)
 	data = data.MergeKV("client", client)
-	spew.Dump(data)
 
 	if ok {
 		r = r.WithContext(context.WithValue(r.Context(), authboss.CTXKeyData, data))
@@ -194,33 +233,29 @@ func (a *HydraConsent) ConsentGet(w http.ResponseWriter, r *http.Request) error 
 	return a.Core.Responder.Respond(w, r, http.StatusOK, PageConsent, data)
 }
 
-type ConsentValuer interface {
-	authboss.Validator
-
-	GetScopes() []string
-}
-
-func MustHaveConsent(v authboss.Validator) ConsentValuer {
-	if u, ok := v.(ConsentValuer); ok {
-		return u
-	}
-
-	panic(fmt.Sprintf("bodyreader returned a type that could not be upgraded to e: %T", v))
-}
-
 func (a *HydraConsent) ConsentPost(w http.ResponseWriter, r *http.Request) error {
-	validatable, err := a.Authboss.Core.BodyReader.Read(PageConsent, r)
+	// validatable, err := a.Authboss.Core.BodyReader.Read(PageConsent, r)
+	// if err != nil {
+	// 	return err
+	// }
+
+	ch := r.FormValue("challenge")
+	grantedScopes := r.Form["grant_scope"]
+	isAllowedRaw := r.FormValue("is_allowed")
+	isAllowed, err := strconv.ParseBool(isAllowedRaw)
+	requestedAudience := r.Form["requested_audience"]
+
 	if err != nil {
 		return err
 	}
+	// TODO: built in valuer
+	// consentForm := MustHaveConsent(validatable)
+	// challengeForm := MustHaveChallenge(validatable)
 
-	consentForm := MustHaveConsent(validatable)
-	challengeForm := MustHaveChallenge(validatable)
+	// ch := challengeForm.GetChallenge()
+	// grantedScopes := consentForm.GetScopes()
 
-	ch := challengeForm.GetChallenge()
-	grantedScopes := consentForm.GetScopes()
-
-	if len(grantedScopes) < 1 {
+	if !isAllowed {
 		res, err := a.hClient.RejectConsent(ch, map[string]interface{}{"error": "access_denied", "error_description": "The resource owner denied the request"})
 		if err != nil {
 			return err
@@ -229,24 +264,28 @@ func (a *HydraConsent) ConsentPost(w http.ResponseWriter, r *http.Request) error
 		return nil
 	}
 
-	res, err := a.hClient.GetConsent(ch)
+	// verify consent ch
+	_, err = a.hClient.GetConsent(ch)
 	if err != nil {
 		return err
 	}
+	rememberMeRaw := r.FormValue("remember_me")
+	rememberMe, _ := strconv.ParseBool(rememberMeRaw)
 
-	rememberMe := false
-	if u, ok := validatable.(authboss.RememberValuer); ok {
-		rememberMe = u.GetShouldRemember()
-	}
+	// rememberMe := false // TODO: || res.rememberMe
+	// if u, ok := validatable.(authboss.RememberValuer); ok {
+	// 	rememberMe = u.GetShouldRemember()
+	// }
 
 	body := map[string]interface{}{
 		"grant_scope":                 grantedScopes,
-		"grant_access_token_audience": res.RequestedAudience,
+		"grant_access_token_audience": requestedAudience,        // TODO: res.RequestedAudience
 		"session":                     map[string]interface{}{}, // TODO:
 		"remember":                    rememberMe,
 		"remember_for":                3600, // TODO: envme
 	}
 
+	spew.Dump("BODY", body)
 	accRes, err := a.hClient.AcceptConsent(ch, body)
 	if err != nil {
 		return err
@@ -410,30 +449,25 @@ func (a *HydraConsent) LogoutGet(w http.ResponseWriter, r *http.Request) error {
 	return nil
 }
 
-type LogoutValuer interface {
-	authboss.Validator
-
-	GetShouldLogout() bool
-}
-
-func MustHaveLougout(v authboss.Validator) LogoutValuer {
-	if u, ok := v.(LogoutValuer); ok {
-		return u
-	}
-
-	panic(fmt.Sprintf("bodyreader returned a type that could not be upgraded to LogoutValuer: %T", v))
-}
-
 // TODO: original source code sourced from logout module
 func (a *HydraConsent) LogoutPost(w http.ResponseWriter, r *http.Request) error {
-	validatable, err := a.Authboss.Core.BodyReader.Read(PageLogout, r)
+	// TODO: built in valuer
+	// validatable, err := a.Authboss.Core.BodyReader.Read(PageLogout, r)
+	// if err != nil {
+	// 	return err
+	// }
+	// challengeForm := MustHaveChallenge(validatable)
+	// ch := challengeForm.GetChallenge()
+	// logoutForm := MustHaveLougout(validatable)
+	// userLogout := logoutForm.GetShouldLogout()
+
+	ch := r.FormValue("challenge")
+	shouldLogoutRaw := r.FormValue("should_logout")
+	userLogout, err := strconv.ParseBool(shouldLogoutRaw)
 	if err != nil {
-		return err
+		return fmt.Errorf("couldn't convert should_logout to bool")
 	}
-	challengeForm := MustHaveChallenge(validatable)
-	ch := challengeForm.GetChallenge()
-	logoutForm := MustHaveLougout(validatable)
-	userLogout := logoutForm.GetShouldLogout()
+
 	if !userLogout {
 		res, err := a.hClient.RejectLogout(ch)
 		if err != nil {
@@ -459,6 +493,12 @@ func (a *HydraConsent) LogoutPost(w http.ResponseWriter, r *http.Request) error 
 	authboss.DelAllSession(w, a.Config.Storage.SessionStateWhitelistKeys)
 	authboss.DelKnownSession(w)
 	authboss.DelKnownCookie(w)
+
+	// verify challenge
+	_, err = a.hClient.GetLogout(ch)
+	if err != nil {
+		return err
+	}
 
 	res2, err := a.hClient.AcceptLogout(ch)
 	if err != nil {

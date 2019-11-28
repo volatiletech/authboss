@@ -64,13 +64,6 @@ const (
 func setupAuthboss() {
 	ab.Config.Paths.RootURL = "http://localhost:3000"
 
-	if !*flagAPI {
-		// Prevent us from having to use Javascript in our basic HTML
-		// to create a delete method, but don't override this default for the API
-		// version
-		ab.Config.Modules.LogoutMethod = "GET"
-	}
-
 	// Set up our server, session and cookie storage mechanisms.
 	// These are all from this package since the burden is on the
 	// implementer for these.
@@ -131,6 +124,9 @@ func setupAuthboss() {
 		},
 		Whitelist: map[string][]string{
 			"register": []string{"email", "name", "password"},
+			"consent":  []string{"challenge"},
+			"login":    []string{"challenge"},
+			"logout":   []string{"challenge"},
 		},
 	}
 

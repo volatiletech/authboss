@@ -3,6 +3,7 @@ package hconsenter
 import (
 	"bytes"
 	"encoding/json"
+	"fmt"
 	"io"
 	"net/http"
 	"net/url"
@@ -122,6 +123,9 @@ func (c *Client) getJSON(url string, target interface{}) error {
 	if err != nil {
 		return err
 	}
+	if res.StatusCode >= http.StatusBadRequest && res.StatusCode < http.StatusInternalServerError {
+		return fmt.Errorf("%v: %s", res.StatusCode, res.Status)
+	}
 	defer res.Body.Close()
 
 	return json.NewDecoder(res.Body).Decode(target)
@@ -137,9 +141,11 @@ func (c *Client) putJSON(url string, body interface{}, target interface{}) error
 
 	res, err := c.client.Do(req)
 	if err != nil {
-		panic(err)
+		return err
 	}
-
+	if res.StatusCode >= http.StatusBadRequest && res.StatusCode < http.StatusInternalServerError {
+		return fmt.Errorf("%v: %s", res.StatusCode, res.Status)
+	}
 	defer res.Body.Close()
 
 	return json.NewDecoder(res.Body).Decode(target)

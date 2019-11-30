@@ -14,5 +14,5 @@ TODO:
 - [ ] add test coverage
 - [ ] consider other module interaction and compatibility (2fa, remember,oauth)
 - [ ] conform to module documentation
-- [ ] add openid module that supports `GET` and `POST` for `/user-info` as per spec
-- [ ] add openid helpers and interfaces for documenting common or reserved claims
+- [ ] add openid module that supports `GET` and `POST` for `/userinfo` as per spec
+- [ ] add openid helpers and interfaces for documenting [standard](https://openid.net/specs/openid-connect-core-1_0.html#StandardClaims) or reserved claims

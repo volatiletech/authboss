@@ -1,5 +1,5 @@
-// Package hydraconsent implements the hydra user consent flow
-package hydraconsent
+// Package hydra implements the hydra user consent flow
+package hydra
 
 import (
 	"context"
@@ -7,10 +7,10 @@ import (
 	"net/http"
 	"os"
 	"strconv"
+	"strings"
 	"time"
 
-	"github.com/ashtonian/authboss-hydra-consent/module/hconsenter"
-	"github.com/davecgh/go-spew/spew"
+	"github.com/ashtonian/authboss/hydra/hconsenter"
 	"github.com/volatiletech/authboss"
 	"golang.org/x/crypto/bcrypt"
 )
@@ -19,6 +19,8 @@ type ConsentValuer interface {
 	authboss.Validator
 
 	GetScopes() []string
+	GetIsAllowed() bool
+	GetRequestedAudience() []string
 }
 
 func MustHaveConsent(v authboss.Validator) ConsentValuer {
@@ -57,8 +59,13 @@ func MustHaveLougout(v authboss.Validator) LogoutValuer {
 	panic(fmt.Sprintf("bodyreader returned a type that could not be upgraded to LogoutValuer: %T", v))
 }
 
+type SessionableUser interface {
+	authboss.User
+
+	GetSession() (session map[string]interface{})
+}
+
 // TODO: document oauth2 and openID reserved scopes/session keys, potentially type them via an additional module
-// TODO: sync scope formulas /get + /post consent/login
 const (
 	// PageLogin is for identifying the login page for parsing & validation
 	PageLogin    = "login"
@@ -74,12 +81,16 @@ func init() {
 // HydraConsent module
 type HydraConsent struct {
 	*authboss.Authboss
-	hClient *hconsenter.Client
+	hClient                   *hconsenter.Client
+	rememberMe                int
+	ignoreConsent             map[string]bool
+	overrideRequestedAudience bool
 }
 
 // Init module
 func (a *HydraConsent) Init(ab *authboss.Authboss) (err error) {
 	a.Authboss = ab
+	a.rememberMe = 3600
 
 	if err = a.Authboss.Config.Core.ViewRenderer.Load(PageLogin); err != nil {
 		return err
@@ -98,6 +109,15 @@ func (a *HydraConsent) Init(ab *authboss.Authboss) (err error) {
 	a.Authboss.Config.Core.Router.Get("/logout", a.Authboss.Core.ErrorHandler.Wrap(a.LogoutGet))
 	a.Authboss.Config.Core.Router.Post("/logout", a.Authboss.Core.ErrorHandler.Wrap(a.LoginPost))
 
+	overrideRaw := os.Getenv("OVERRIDE_REQUESTED_AUDIENCE")
+	override, _ := strconv.ParseBool(overrideRaw)
+	a.overrideRequestedAudience = override
+
+	whiteList := os.Getenv("CONSENT_WHITELIST")
+	a.ignoreConsent = map[string]bool{}
+	for _, k := range strings.Split(whiteList, ",") {
+		a.ignoreConsent[k] = true
+	}
 	hydraURL := os.Getenv("HYDRA_ADMIN_URL")
 	if hydraURL == "" {
 		hydraURL = "http://localhost:4445"
@@ -121,10 +141,8 @@ func (a *HydraConsent) Init(ab *authboss.Authboss) (err error) {
 		}
 
 		// Add challenge to context
-		// TODO: Builtin valuer
-		// challengeForm := MustHaveChallenge(validatable)
-		// ch := challengeForm.GetChallenge()
-		ch := r.FormValue("challenge")
+		challengeForm := MustHaveChallenge(validatable)
+		ch := challengeForm.GetChallenge()
 		r = r.WithContext(context.WithValue(r.Context(), ChallengeKey, ch))
 
 		// add challenge key to view data
@@ -143,7 +161,7 @@ func (a *HydraConsent) Init(ab *authboss.Authboss) (err error) {
 		body := map[string]interface{}{
 			"subject":      usr,
 			"remember":     rememberMe,
-			"remember_for": 3600, // TODO: env
+			"remember_for": a.rememberMe,
 		}
 		res, err := a.hClient.AcceptLogin(ch, body)
 		if err != nil {
@@ -158,7 +176,6 @@ func (a *HydraConsent) Init(ab *authboss.Authboss) (err error) {
 		err = a.Authboss.Core.Redirector.Redirect(w, r, ro)
 		return true, err
 
-		// return true, nil
 	})
 	return nil
 }
@@ -188,16 +205,30 @@ func (a *HydraConsent) ConsentGet(w http.ResponseWriter, r *http.Request) error 
 	if err != nil {
 		return err
 	}
-	spew.Dump("ctx", getRes.Context, "acr", getRes.ACR, "scopereq", getRes.RequestedScope, "scopeaud")
 
-	noConsent := false // TODO env skip consent url and check requested uri
+	v, found := a.ignoreConsent[getRes.RequestURL]
+	noConsent := false || a.ignoreConsent["*"]
+	if found && v {
+		noConsent = true
+	}
+
+	usr, err := a.LoadCurrentUser(&r)
+	if err != nil {
+		return err
+	}
+
+	session := map[string]interface{}{}
+	sessionable, ok := usr.(SessionableUser)
+	if ok {
+		session = sessionable.GetSession()
+	}
 	if getRes.Skip || noConsent {
 
 		//  TODO: it would be nice if we could add an event here for people to attach to
 		body := map[string]interface{}{
 			"grant_scope":                 getRes.RequestedScope,
 			"grant_access_token_audience": getRes.RequestedAudience,
-			"session":                     map[string]interface{}{}, // TODO:
+			"session":                     session,
 		}
 
 		accRes, err := a.hClient.AcceptConsent(ch, body)
@@ -234,26 +265,16 @@ func (a *HydraConsent) ConsentGet(w http.ResponseWriter, r *http.Request) error 
 }
 
 func (a *HydraConsent) ConsentPost(w http.ResponseWriter, r *http.Request) error {
-	// validatable, err := a.Authboss.Core.BodyReader.Read(PageConsent, r)
-	// if err != nil {
-	// 	return err
-	// }
-
-	ch := r.FormValue("challenge")
-	grantedScopes := r.Form["grant_scope"]
-	isAllowedRaw := r.FormValue("is_allowed")
-	isAllowed, err := strconv.ParseBool(isAllowedRaw)
-	requestedAudience := r.Form["requested_audience"]
-
+	validatable, err := a.Authboss.Core.BodyReader.Read(PageConsent, r)
 	if err != nil {
 		return err
 	}
-	// TODO: built in valuer
-	// consentForm := MustHaveConsent(validatable)
-	// challengeForm := MustHaveChallenge(validatable)
 
-	// ch := challengeForm.GetChallenge()
-	// grantedScopes := consentForm.GetScopes()
+	consentForm := MustHaveConsent(validatable)
+	challengeForm := MustHaveChallenge(validatable)
+	ch := challengeForm.GetChallenge()
+	grantedScopes := consentForm.GetScopes()
+	isAllowed := consentForm.GetIsAllowed()
 
 	if !isAllowed {
 		res, err := a.hClient.RejectConsent(ch, map[string]interface{}{"error": "access_denied", "error_description": "The resource owner denied the request"})
@@ -265,27 +286,41 @@ func (a *HydraConsent) ConsentPost(w http.ResponseWriter, r *http.Request) error
 	}
 
 	// verify consent ch
-	_, err = a.hClient.GetConsent(ch)
+	res, err := a.hClient.GetConsent(ch)
 	if err != nil {
 		return err
 	}
-	rememberMeRaw := r.FormValue("remember_me")
-	rememberMe, _ := strconv.ParseBool(rememberMeRaw)
+	requestedAudience := res.RequestedAudience
 
-	// rememberMe := false // TODO: || res.rememberMe
-	// if u, ok := validatable.(authboss.RememberValuer); ok {
-	// 	rememberMe = u.GetShouldRemember()
-	// }
+	if a.overrideRequestedAudience {
+		requestedAudience = consentForm.GetRequestedAudience()
+
+	}
+
+	rememberMe := false
+	if u, ok := validatable.(authboss.RememberValuer); ok {
+		rememberMe = u.GetShouldRemember()
+	}
+
+	usr, err := a.LoadCurrentUser(&r)
+	if err != nil {
+		return err
+	}
+
+	session := map[string]interface{}{}
+	sessionable, ok := usr.(SessionableUser)
+	if ok {
+		session = sessionable.GetSession()
+	}
 
 	body := map[string]interface{}{
 		"grant_scope":                 grantedScopes,
-		"grant_access_token_audience": requestedAudience,        // TODO: res.RequestedAudience
-		"session":                     map[string]interface{}{}, // TODO:
+		"grant_access_token_audience": requestedAudience,
+		"session":                     session,
 		"remember":                    rememberMe,
-		"remember_for":                3600, // TODO: envme
+		"remember_for":                a.rememberMe,
 	}
 
-	spew.Dump("BODY", body)
 	accRes, err := a.hClient.AcceptConsent(ch, body)
 	if err != nil {
 		return err
@@ -451,22 +486,14 @@ func (a *HydraConsent) LogoutGet(w http.ResponseWriter, r *http.Request) error {
 
 // TODO: original source code sourced from logout module
 func (a *HydraConsent) LogoutPost(w http.ResponseWriter, r *http.Request) error {
-	// TODO: built in valuer
-	// validatable, err := a.Authboss.Core.BodyReader.Read(PageLogout, r)
-	// if err != nil {
-	// 	return err
-	// }
-	// challengeForm := MustHaveChallenge(validatable)
-	// ch := challengeForm.GetChallenge()
-	// logoutForm := MustHaveLougout(validatable)
-	// userLogout := logoutForm.GetShouldLogout()
-
-	ch := r.FormValue("challenge")
-	shouldLogoutRaw := r.FormValue("should_logout")
-	userLogout, err := strconv.ParseBool(shouldLogoutRaw)
+	validatable, err := a.Authboss.Core.BodyReader.Read(PageLogout, r)
 	if err != nil {
-		return fmt.Errorf("couldn't convert should_logout to bool")
+		return err
 	}
+	challengeForm := MustHaveChallenge(validatable)
+	ch := challengeForm.GetChallenge()
+	logoutForm := MustHaveLougout(validatable)
+	userLogout := logoutForm.GetShouldLogout()
 
 	if !userLogout {
 		res, err := a.hClient.RejectLogout(ch)

@@ -34,14 +34,6 @@ services:
     depends_on:
       - hydra-migrate
 
-  # consent:
-  #   image: oryd/hydra-login-consent-node:v1.0.0-rc.10
-  #   environment:
-  #     - HYDRA_ADMIN_URL=http://hydra:4445
-  #   ports:
-  #     - "3000:3000"
-  #   restart: unless-stopped
-
   postgresd:
     image: postgres:9.6
     ports:

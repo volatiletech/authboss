@@ -14,7 +14,7 @@ import (
 
 	"github.com/volatiletech/authboss"
 	// _ "github.com/volatiletech/authboss/auth"
-	_ "github.com/ashtonian/authboss-hydra-consent/module"
+	_ "github.com/ashtonian/authboss/hydra"
 	"github.com/volatiletech/authboss/confirm"
 	"github.com/volatiletech/authboss/defaults"
 	"github.com/volatiletech/authboss/lock"

@@ -9,7 +9,7 @@ import (
 	"strconv"
 	"time"
 
-	hconsenter "github.com/Ashtonian/hConsenter"
+	hconsenter "github.com/ashtonian/hConsenter"
 	"github.com/davecgh/go-spew/spew"
 	"github.com/volatiletech/authboss"
 	"golang.org/x/crypto/bcrypt"

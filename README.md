@@ -855,7 +855,7 @@ system into that interface.
 
 If you're building an API that's mostly backed by a javascript front-end, then you'll probably
 want to use a renderer that converts the data to JSON. There is a simple json renderer available in
-the [defaults package](https://github.com/volatiletech/authboss/defaults) package if you wish to
+the [defaults package](https://github.com/volatiletech/authboss/tree/master/defaults) package if you wish to
 use that.
 
 ### Data

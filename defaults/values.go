@@ -174,7 +174,7 @@ func NewHTTPBodyReader(readJSON, useUsernameNotEmail bool) *HTTPBodyReader {
 		pidRules = Rules{
 			FieldName: pid, Required: true,
 			MatchError: "Must be a valid e-mail address",
-			MustMatch:  regexp.MustCompile(`.*@.*\.[a-z]{1,}`),
+			MustMatch:  regexp.MustCompile(`.*@.*\.[a-z]+`),
 		}
 	}
 

@@ -39,7 +39,7 @@ func (h HTTPFormValidator) Validate() []error {
 
 		confirm := h.Values[h.ConfirmFields[i+1]]
 		if len(confirm) == 0 || main != confirm {
-			errList = append(errList, FieldError{h.ConfirmFields[i+1], fmt.Errorf("Does not match %s", h.ConfirmFields[i])})
+			errList = append(errList, FieldError{h.ConfirmFields[i+1], fmt.Errorf("does not match %s", h.ConfirmFields[i])})
 		}
 	}
 

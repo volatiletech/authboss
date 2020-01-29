@@ -12,9 +12,9 @@ import (
 
 // Constants for returning in the FindUserDetails call
 const (
-	OAuth2UID   = "uid"
-	OAuth2Email = "email"
-	OAuth2Name  = "name"
+	UID   = "uid"
+	Email = "email"
+	Name  = "name"
 )
 
 const (
@@ -51,8 +51,8 @@ func GoogleUserDetails(ctx context.Context, cfg oauth2.Config, token *oauth2.Tok
 	}
 
 	return map[string]string{
-		OAuth2UID:   response.ID,
-		OAuth2Email: response.Email,
+		UID:   response.ID,
+		Email: response.Email,
 	}, nil
 }
 
@@ -83,8 +83,8 @@ func FacebookUserDetails(ctx context.Context, cfg oauth2.Config, token *oauth2.T
 	}
 
 	return map[string]string{
-		OAuth2UID:   response.ID,
-		OAuth2Email: response.Email,
-		OAuth2Name:  response.Name,
+		UID:   response.ID,
+		Email: response.Email,
+		Name:  response.Name,
 	}, nil
 }

@@ -37,10 +37,10 @@ func TestGoogle(t *testing.T) {
 		t.Error(err)
 	}
 
-	if uid, ok := details[OAuth2UID]; !ok || uid != "id" {
+	if uid, ok := details[UID]; !ok || uid != "id" {
 		t.Error("UID wrong:", uid)
 	}
-	if email, ok := details[OAuth2Email]; !ok || email != "email" {
+	if email, ok := details[Email]; !ok || email != "email" {
 		t.Error("Email wrong:", email)
 	}
 }
@@ -61,13 +61,13 @@ func TestFacebook(t *testing.T) {
 		t.Error(err)
 	}
 
-	if uid, ok := details[OAuth2UID]; !ok || uid != "id" {
+	if uid, ok := details[UID]; !ok || uid != "id" {
 		t.Error("UID wrong:", uid)
 	}
-	if email, ok := details[OAuth2Email]; !ok || email != "email" {
+	if email, ok := details[Email]; !ok || email != "email" {
 		t.Error("Email wrong:", email)
 	}
-	if name, ok := details[OAuth2Name]; !ok || name != "name" {
+	if name, ok := details[Name]; !ok || name != "name" {
 		t.Error("Name wrong:", name)
 	}
 }

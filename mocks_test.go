@@ -234,21 +234,6 @@ func newMockAPIRequest(postKeyValues ...string) *http.Request {
 	return req
 }
 
-type mockRenderer struct {
-	expectName string
-}
-
-func (m mockRenderer) Load(names ...string) error { return nil }
-
-func (m mockRenderer) Render(ctx context.Context, name string, data HTMLData) ([]byte, string, error) {
-	if len(m.expectName) != 0 && m.expectName != name {
-		panic(fmt.Sprintf("want template name: %s, but got: %s", m.expectName, name))
-	}
-
-	b, err := json.Marshal(data)
-	return b, "application/json", err
-}
-
 type mockEmailRenderer struct{}
 
 func (m mockEmailRenderer) Load(names ...string) error { return nil }

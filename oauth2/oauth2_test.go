@@ -131,11 +131,11 @@ func TestStart(t *testing.T) {
 		t.Error("code was wrong:", h.redirector.Options.Code)
 	}
 
-	url, err := url.Parse(h.redirector.Options.RedirectPath)
+	redirectPathUrl, err := url.Parse(h.redirector.Options.RedirectPath)
 	if err != nil {
 		t.Fatal(err)
 	}
-	query := url.Query()
+	query := redirectPathUrl.Query()
 	if state := query.Get("state"); len(state) == 0 {
 		t.Error("our nonce should have been here")
 	}
@@ -145,8 +145,8 @@ func TestStart(t *testing.T) {
 	if clientID := query.Get("client_id"); clientID != "jazz" {
 		t.Error("clientID was wrong:", clientID)
 	}
-	if url.Host != "accounts.google.com" {
-		t.Error("host was wrong:", url.Host)
+	if redirectPathUrl.Host != "accounts.google.com" {
+		t.Error("host was wrong:", redirectPathUrl.Host)
 	}
 
 	if h.session.ClientValues[authboss.SessionOAuth2State] != query.Get("state") {

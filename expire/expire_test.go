@@ -17,7 +17,7 @@ func TestExpireSetup(t *testing.T) {
 	clientRW := mocks.NewClientRW()
 	ab.Storage.SessionState = clientRW
 
-	Setup(ab)
+	_ = Setup(ab)
 
 	w := httptest.NewRecorder()
 	wr := ab.NewResponse(w)

@@ -79,7 +79,7 @@ func TestStateResponseWriterLastSecondWriteWrite(t *testing.T) {
 
 	PutSession(w, "one", "two")
 
-	io.WriteString(w, "Hello world!")
+	_, _ = io.WriteString(w, "Hello world!")
 
 	got := strings.TrimSpace(w.Header().Get("test_session"))
 	if got != `{"one":"two"}` {

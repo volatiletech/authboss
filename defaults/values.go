@@ -215,7 +215,7 @@ func (h HTTPBodyReader) Read(page string, r *http.Request) (authboss.Validator, 
 
 	if h.ReadJSON {
 		b, err := ioutil.ReadAll(r.Body)
-		r.Body.Close()
+		_ = r.Body.Close()
 		if err != nil {
 			return nil, errors.Wrap(err, "failed to read http body")
 		}

@@ -57,7 +57,7 @@ func (r *Router) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 		router = r.deletes
 	default:
 		w.WriteHeader(http.StatusMethodNotAllowed)
-		io.WriteString(w, "method not allowed")
+		_, _ = io.WriteString(w, "method not allowed")
 		return
 	}
 

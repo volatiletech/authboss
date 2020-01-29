@@ -20,10 +20,10 @@ func NewLogger(writer io.Writer) Logger {
 
 // Info logs go here
 func (l Logger) Info(s string) {
-	fmt.Fprintf(l.Writer, "%s [INFO]: %s\n", time.Now().UTC().Format(time.RFC3339), s)
+	_, _ = fmt.Fprintf(l.Writer, "%s [INFO]: %s\n", time.Now().UTC().Format(time.RFC3339), s)
 }
 
 // Error logs go here
 func (l Logger) Error(s string) {
-	fmt.Fprintf(l.Writer, "%s [EROR]: %s\n", time.Now().UTC().Format(time.RFC3339), s)
+	_, _ = fmt.Fprintf(l.Writer, "%s [EROR]: %s\n", time.Now().UTC().Format(time.RFC3339), s)
 }

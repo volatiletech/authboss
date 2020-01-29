@@ -42,7 +42,7 @@ func TestEvents(t *testing.T) {
 		t.Error("Expected after not to be called.")
 	}
 
-	ab.Events.FireAfter(EventRegister, nil, nil)
+	_, _ = ab.Events.FireAfter(EventRegister, nil, nil)
 	if !afterCalled {
 		t.Error("Expected after to be called.")
 	}

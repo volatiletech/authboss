@@ -15,11 +15,11 @@ func TestValidate(t *testing.T) {
 			"email":    "john@john.com",
 		},
 		Ruleset: []Rules{
-			Rules{
+			{
 				FieldName: "username",
 				MinLength: 5,
 			},
-			Rules{
+			{
 				FieldName: "missing_field",
 				Required:  true,
 			},

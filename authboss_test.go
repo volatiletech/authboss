@@ -55,7 +55,7 @@ func TestAuthbossMiddleware(t *testing.T) {
 	ab.Core.Logger = mockLogger{}
 	ab.Storage.Server = &mockServerStorer{
 		Users: map[string]*mockUser{
-			"test@test.com": &mockUser{},
+			"test@test.com": {},
 		},
 	}
 

@@ -76,7 +76,7 @@ func TestModuleLoadedMiddleware(t *testing.T) {
 		"oauth2":  nil,
 	}
 	ab.Config.Modules.OAuth2Providers = map[string]OAuth2Provider{
-		"google": OAuth2Provider{},
+		"google": {},
 	}
 
 	var mods map[string]bool

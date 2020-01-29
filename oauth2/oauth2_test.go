@@ -23,7 +23,7 @@ func init() {
 }
 
 var testProviders = map[string]authboss.OAuth2Provider{
-	"google": authboss.OAuth2Provider{
+	"google": {
 		OAuth2Config: &oauth2.Config{
 			ClientID:     `jazz`,
 			ClientSecret: `hands`,
@@ -35,7 +35,7 @@ var testProviders = map[string]authboss.OAuth2Provider{
 		FindUserDetails:  GoogleUserDetails,
 		AdditionalParams: url.Values{"include_requested_scopes": []string{"true"}},
 	},
-	"facebook": authboss.OAuth2Provider{
+	"facebook": {
 		OAuth2Config: &oauth2.Config{
 			ClientID:     `jazz`,
 			ClientSecret: `hands`,

@@ -14,9 +14,7 @@ import (
 )
 
 var (
-	// ErrUserFound should be returned from Create (see ConfirmUser)
-	// when the primaryID of the record is found.
-	ErrUserFound = errors.New("user found")
+
 	// ErrUserNotFound should be returned from Get when the record is not found.
 	ErrUserNotFound = errors.New("user not found")
 	// ErrTokenNotFound should be returned from UseToken when the

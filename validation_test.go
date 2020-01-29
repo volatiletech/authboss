@@ -88,5 +88,5 @@ func TestErrorList_MapHelper(t *testing.T) {
 		mockFieldError{"password", errors.New("")},
 	}
 
-	var _ map[string][]string = ErrorMap(errList)
+	var _ = ErrorMap(errList)
 }

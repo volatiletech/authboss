@@ -21,7 +21,7 @@ func TestErrorHandler(t *testing.T) {
 		return errors.New("error occurred")
 	})
 	// Assert that it's the right type
-	var _ http.Handler = handler
+	var _ = handler
 
 	handler.ServeHTTP(nil, httptest.NewRequest("GET", "/target", nil))
 

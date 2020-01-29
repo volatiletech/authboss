@@ -19,7 +19,6 @@ const (
 	// (like 2fa). It needs to be separate to EventAuth because other modules
 	// do checks that would also interrupt event handlers with an authentication
 	// failure so there's an ordering problem.
-	EventAuthHijack
 	EventOAuth2
 	EventAuthFail
 	EventOAuth2Fail

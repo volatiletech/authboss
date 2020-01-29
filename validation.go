@@ -4,11 +4,6 @@ import (
 	"bytes"
 )
 
-const (
-	// ConfirmPrefix is prepended to names of confirm fields.
-	ConfirmPrefix = "confirm_"
-)
-
 // Validator takes a form name and a set of inputs and returns any
 // validation errors for the inputs.
 type Validator interface {

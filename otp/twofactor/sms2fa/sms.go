@@ -44,9 +44,7 @@ const (
 	PageSMSValidate       = "sms2fa_validate"
 )
 
-// Data constants
 const (
-	DataSMSSecret      = SessionSMSSecret
 	DataSMSPhoneNumber = "sms_phone_number"
 )
 

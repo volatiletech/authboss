@@ -7,30 +7,7 @@ import (
 
 // Keys for use in HTMLData that are meaningful
 const (
-	// DataErr is for one off errors that don't really belong to
-	// a particular field. It should be a string.
-	DataErr = "error"
-	// DataValidation is for validation errors, it should always
-	// have been created using the Map() style functions in the
-	// validation method so that html/text template users don't
-	// struggle in displaying them.
-	//
-	// It is: map[string][]string, where the key in the map is the field
-	// and the []string on the other side is the list of problems
-	// with that field.
-	//
-	// It's also important to note that if the errors that were Map()'d
-	// did not implement FieldError or for generic errors
-	// the empty string ("") is used as a key in the map for those
-	// errors that couldn't be fit to a specific field.
-	DataValidation = "errors"
-	// DataPreserve preserves fields during large form exercises
-	// like user registration so we don't have to re-type safe
-	// information like addresses etc.
-	//
-	// This data looks like map[string]string, and is simply
-	// keyed by the field name, and the value is the field value.
-	DataPreserve = "preserve"
+
 	// DataModules contains a map[string]bool of which modules are loaded
 	// The bool is largely extraneous and can be ignored, if the module is
 	// loaded it will be present in the map, if not it will be missing.

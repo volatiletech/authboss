@@ -9,13 +9,6 @@ import (
 	"github.com/volatiletech/authboss"
 )
 
-// Storage key constants
-const (
-	StoreAttemptNumber = "attempt_number"
-	StoreAttemptTime   = "attempt_time"
-	StoreLocked        = "locked"
-)
-
 func init() {
 	authboss.RegisterModule("lock", &Lock{})
 }

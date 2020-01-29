@@ -53,12 +53,6 @@ type FieldError struct {
 	FieldErr  error
 }
 
-// NewFieldError literally only exists because of poor name planning
-// where name and err can't be exported on the struct due to the method names
-func NewFieldError(name string, err error) FieldError {
-	return FieldError{FieldName: name, FieldErr: err}
-}
-
 // Name of the field the error is about
 func (f FieldError) Name() string {
 	return f.FieldName

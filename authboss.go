@@ -82,13 +82,6 @@ func (a *Authboss) UpdatePassword(ctx context.Context, user AuthableUser, newPas
 	return rmStorer.DelRememberTokens(ctx, user.GetPID())
 }
 
-// VerifyPassword uses authboss mechanisms to check that a password is correct.
-// Returns nil on success otherwise there will be an error. Simply a helper
-// to do the bcrypt comparison.
-func VerifyPassword(user AuthableUser, password string) error {
-	return bcrypt.CompareHashAndPassword([]byte(user.GetPassword()), []byte(password))
-}
-
 // MWRequirements are user requirements for authboss.Middleware
 // in order to access the routes in protects. Requirements is a bit-set integer
 // to be able to easily combine requirements like so:

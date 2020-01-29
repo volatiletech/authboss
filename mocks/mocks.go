@@ -3,10 +3,7 @@ package mocks
 
 import (
 	"context"
-	"io"
 	"net/http"
-	"net/url"
-	"strings"
 	"time"
 
 	"github.com/pkg/errors"
@@ -196,14 +193,6 @@ type ServerStorer struct {
 	RMTokens map[string][]string
 }
 
-// NewServerStorer constructor
-func NewServerStorer() *ServerStorer {
-	return &ServerStorer{
-		Users:    make(map[string]*User),
-		RMTokens: make(map[string][]string),
-	}
-}
-
 // New constructs a blank user to later be created
 func (s *ServerStorer) New(context.Context) authboss.User {
 	return &User{}
@@ -358,19 +347,6 @@ type ClientState struct {
 }
 
 // NewClientState constructs a ClientStorer
-func NewClientState(data ...string) *ClientState {
-	if len(data) != 0 && len(data)%2 != 0 {
-		panic("It should be a key value list of arguments.")
-	}
-
-	values := make(map[string]string)
-
-	for i := 0; i < len(data)-1; i += 2 {
-		values[data[i]] = data[i+1]
-	}
-
-	return &ClientState{Values: values}
-}
 
 // Get a key's value
 func (m *ClientState) Get(key string) (string, bool) {
@@ -396,11 +372,6 @@ type ClientStateRW struct {
 
 // NewClientRW takes the data from a client state
 // and returns.
-func NewClientRW() *ClientStateRW {
-	return &ClientStateRW{
-		ClientValues: make(map[string]string),
-	}
-}
 
 // ReadState from memory
 func (c *ClientStateRW) ReadState(*http.Request) (authboss.ClientState, error) {
@@ -422,34 +393,6 @@ func (c *ClientStateRW) WriteState(w http.ResponseWriter, cstate authboss.Client
 }
 
 // Request returns a new request with optional key-value body (form-post)
-func Request(method string, postKeyValues ...string) *http.Request {
-	var body io.Reader
-	location := "http://localhost"
-
-	if len(postKeyValues) > 0 {
-		urlValues := make(url.Values)
-		for i := 0; i < len(postKeyValues); i += 2 {
-			urlValues.Set(postKeyValues[i], postKeyValues[i+1])
-		}
-
-		if method == "POST" || method == "PUT" {
-			body = strings.NewReader(urlValues.Encode())
-		} else {
-			location += "?" + urlValues.Encode()
-		}
-	}
-
-	req, err := http.NewRequest(method, location, body)
-	if err != nil {
-		panic(err.Error())
-	}
-
-	if len(postKeyValues) > 0 {
-		req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
-	}
-
-	return req
-}
 
 // Mailer helps simplify mailer testing by storing the last sent email
 type Mailer struct {
@@ -458,9 +401,6 @@ type Mailer struct {
 }
 
 // NewMailer constructs a  mailer
-func NewMailer() *Mailer {
-	return &Mailer{}
-}
 
 // Send an e-mail
 func (m *Mailer) Send(ctx context.Context, email authboss.Email) error {
@@ -479,16 +419,6 @@ type AfterCallback struct {
 }
 
 // NewAfterCallback constructs a new aftercallback.
-func NewAfterCallback() *AfterCallback {
-	m := AfterCallback{}
-
-	m.Fn = func(http.ResponseWriter, *http.Request, bool) (bool, error) {
-		m.HasBeenCalled = true
-		return false, nil
-	}
-
-	return &m
-}
 
 // Renderer mock
 type Renderer struct {

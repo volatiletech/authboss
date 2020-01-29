@@ -39,7 +39,7 @@ func (r *Remember) Init(ab *authboss.Authboss) error {
 }
 
 // RememberAfterAuth creates a remember token and saves it in the user's cookies.
-func (r *Remember) RememberAfterAuth(w http.ResponseWriter, req *http.Request, handled bool) (bool, error) {
+func (r *Remember) RememberAfterAuth(w http.ResponseWriter, req *http.Request, _ bool) (bool, error) {
 	rmIntf := req.Context().Value(authboss.CTXKeyValues)
 	if rmIntf == nil {
 		return false, nil
@@ -146,7 +146,7 @@ func Authenticate(ab *authboss.Authboss, w http.ResponseWriter, req **http.Reque
 
 // AfterPasswordReset is called after the password has been reset, since
 // it should invalidate all tokens associated to that user.
-func (r *Remember) AfterPasswordReset(w http.ResponseWriter, req *http.Request, handled bool) (bool, error) {
+func (r *Remember) AfterPasswordReset(w http.ResponseWriter, req *http.Request, _ bool) (bool, error) {
 	user, err := r.Authboss.CurrentUser(req)
 	if err != nil {
 		return false, err

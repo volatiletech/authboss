@@ -49,7 +49,7 @@ type mockServerStorer struct {
 	Tokens map[string][]string
 }
 
-func (m *mockServerStorer) Load(ctx context.Context, key string) (User, error) {
+func (m *mockServerStorer) Load(_ context.Context, key string) (User, error) {
 	u, ok := m.Users[key]
 	if !ok {
 		return nil, ErrUserNotFound
@@ -58,24 +58,24 @@ func (m *mockServerStorer) Load(ctx context.Context, key string) (User, error) {
 	return u, nil
 }
 
-func (m *mockServerStorer) Save(ctx context.Context, user User) error {
+func (m *mockServerStorer) Save(_ context.Context, user User) error {
 	u := user.(*mockUser)
 	m.Users[u.Email] = u
 
 	return nil
 }
 
-func (m *mockServerStorer) AddRememberToken(ctx context.Context, pid, token string) error {
+func (m *mockServerStorer) AddRememberToken(_ context.Context, pid, token string) error {
 	m.Tokens[pid] = append(m.Tokens[pid], token)
 	return nil
 }
 
-func (m *mockServerStorer) DelRememberTokens(ctx context.Context, pid string) error {
+func (m *mockServerStorer) DelRememberTokens(_ context.Context, pid string) error {
 	delete(m.Tokens, pid)
 	return nil
 }
 
-func (m *mockServerStorer) UseRememberToken(ctx context.Context, pid, token string) error {
+func (m *mockServerStorer) UseRememberToken(_ context.Context, pid, token string) error {
 	arr, ok := m.Tokens[pid]
 	if !ok {
 		return ErrTokenNotFound
@@ -93,18 +93,18 @@ func (m *mockServerStorer) UseRememberToken(ctx context.Context, pid, token stri
 }
 
 // This section of functions was purely for test coverage
-func (m *mockServerStorer) New(ctx context.Context) User                { panic("not impl") }
-func (m *mockServerStorer) Create(ctx context.Context, user User) error { panic("not impl") }
-func (m *mockServerStorer) NewFromOAuth2(ctx context.Context, provider string, details map[string]string) (OAuth2User, error) {
+func (m *mockServerStorer) New(_ context.Context) User             { panic("not impl") }
+func (m *mockServerStorer) Create(_ context.Context, _ User) error { panic("not impl") }
+func (m *mockServerStorer) NewFromOAuth2(_ context.Context, _ string, _ map[string]string) (OAuth2User, error) {
 	panic("not impl")
 }
-func (m *mockServerStorer) LoadByConfirmSelector(ctx context.Context, selector string) (ConfirmableUser, error) {
+func (m *mockServerStorer) LoadByConfirmSelector(_ context.Context, _ string) (ConfirmableUser, error) {
 	panic("not impl")
 }
-func (m *mockServerStorer) LoadByRecoverSelector(ctx context.Context, selector string) (RecoverableUser, error) {
+func (m *mockServerStorer) LoadByRecoverSelector(_ context.Context, _ string) (RecoverableUser, error) {
 	panic("not impl")
 }
-func (m *mockServerStorer) SaveOAuth2(ctx context.Context, user OAuth2User) error { panic("not impl") }
+func (m *mockServerStorer) SaveOAuth2(_ context.Context, _ OAuth2User) error { panic("not impl") }
 
 func (m mockUser) GetPID() string                             { return m.Email }
 func (m mockUser) GetEmail() string                           { return m.Email }
@@ -162,7 +162,7 @@ func newMockClientStateRW(keyValue ...string) mockClientStateReadWriter {
 	return mockClientStateReadWriter{state}
 }
 
-func (m mockClientStateReadWriter) ReadState(r *http.Request) (ClientState, error) {
+func (m mockClientStateReadWriter) ReadState(_ *http.Request) (ClientState, error) {
 	return m.state, nil
 }
 
@@ -238,9 +238,9 @@ type mockRenderer struct {
 	expectName string
 }
 
-func (m mockRenderer) Load(names ...string) error { return nil }
+func (m mockRenderer) Load(_ ...string) error { return nil }
 
-func (m mockRenderer) Render(ctx context.Context, name string, data HTMLData) ([]byte, string, error) {
+func (m mockRenderer) Render(_ context.Context, name string, data HTMLData) ([]byte, string, error) {
 	if len(m.expectName) != 0 && m.expectName != name {
 		panic(fmt.Sprintf("want template name: %s, but got: %s", m.expectName, name))
 	}
@@ -251,9 +251,9 @@ func (m mockRenderer) Render(ctx context.Context, name string, data HTMLData) ([
 
 type mockEmailRenderer struct{}
 
-func (m mockEmailRenderer) Load(names ...string) error { return nil }
+func (m mockEmailRenderer) Load(_ ...string) error { return nil }
 
-func (m mockEmailRenderer) Render(ctx context.Context, name string, data HTMLData) ([]byte, string, error) {
+func (m mockEmailRenderer) Render(_ context.Context, name string, _ HTMLData) ([]byte, string, error) {
 	switch name {
 	case "text":
 		return []byte("a development text e-mail template"), "text/plain", nil
@@ -266,5 +266,5 @@ func (m mockEmailRenderer) Render(ctx context.Context, name string, data HTMLDat
 
 type mockLogger struct{}
 
-func (m mockLogger) Info(s string)  {}
-func (m mockLogger) Error(s string) {}
+func (m mockLogger) Info(_ string)  {}
+func (m mockLogger) Error(_ string) {}

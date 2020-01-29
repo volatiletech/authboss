@@ -171,7 +171,7 @@ func TestExpireRefreshExpiry(t *testing.T) {
 	r := httptest.NewRequest("GET", "/", nil)
 	w := ab.NewResponse(httptest.NewRecorder())
 
-	RefreshExpiry(w, r)
+	RefreshExpiry(w)
 	w.WriteHeader(200)
 	if _, ok := clientRW.ClientValues[authboss.SessionLastAction]; !ok {
 		t.Error("this key should have been set")

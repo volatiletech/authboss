@@ -77,7 +77,7 @@ func (c *Confirm) Init(ab *authboss.Authboss) (err error) {
 // PreventAuth stops the EventAuth from succeeding when a user is not confirmed
 // This relies on the fact that the context holds the user at this point in time
 // loaded by the auth module (or something else).
-func (c *Confirm) PreventAuth(w http.ResponseWriter, r *http.Request, handled bool) (bool, error) {
+func (c *Confirm) PreventAuth(w http.ResponseWriter, r *http.Request, _ bool) (bool, error) {
 	logger := c.Authboss.RequestLogger(r)
 
 	user, err := c.Authboss.CurrentUser(r)
@@ -102,14 +102,14 @@ func (c *Confirm) PreventAuth(w http.ResponseWriter, r *http.Request, handled bo
 
 // StartConfirmationWeb hijacks a request and forces a user to be confirmed
 // first it's assumed that the current user is loaded into the request context.
-func (c *Confirm) StartConfirmationWeb(w http.ResponseWriter, r *http.Request, handled bool) (bool, error) {
+func (c *Confirm) StartConfirmationWeb(w http.ResponseWriter, r *http.Request, _ bool) (bool, error) {
 	user, err := c.Authboss.CurrentUser(r)
 	if err != nil {
 		return false, err
 	}
 
 	cuser := authboss.MustBeConfirmable(user)
-	if err = c.StartConfirmation(r.Context(), cuser, true); err != nil {
+	if err = c.StartConfirmation(r.Context(), cuser); err != nil {
 		return false, err
 	}
 
@@ -123,7 +123,7 @@ func (c *Confirm) StartConfirmationWeb(w http.ResponseWriter, r *http.Request, h
 
 // StartConfirmation begins confirmation on a user by setting them to require
 // confirmation via a created token, and optionally sending them an e-mail.
-func (c *Confirm) StartConfirmation(ctx context.Context, user authboss.ConfirmableUser, sendEmail bool) error {
+func (c *Confirm) StartConfirmation(ctx context.Context, user authboss.ConfirmableUser) error {
 	logger := c.Authboss.Logger(ctx)
 
 	selector, verifier, token, err := GenerateConfirmCreds()

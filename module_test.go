@@ -20,7 +20,7 @@ func init() {
 
 type testModule struct{}
 
-func (t *testModule) Init(a *Authboss) error { return nil }
+func (t *testModule) Init(_ *Authboss) error { return nil }
 
 func TestRegister(t *testing.T) {
 	t.Parallel()

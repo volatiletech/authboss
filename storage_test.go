@@ -7,8 +7,8 @@ import (
 
 type testAssertionFailStorer struct{}
 
-func (testAssertionFailStorer) Load(ctx context.Context, key string) (User, error) { return nil, nil }
-func (testAssertionFailStorer) Save(ctx context.Context, user User) error          { return nil }
+func (testAssertionFailStorer) Load(_ context.Context, _ string) (User, error) { return nil, nil }
+func (testAssertionFailStorer) Save(_ context.Context, _ User) error           { return nil }
 
 func TestStorageAssertions(t *testing.T) {
 	t.Parallel()

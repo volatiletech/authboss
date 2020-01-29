@@ -15,7 +15,7 @@ import (
 
 type smsHolderSender string
 
-func (s *smsHolderSender) Send(ctx context.Context, number, text string) error {
+func (s *smsHolderSender) Send(_ context.Context, _, text string) error {
 	*s = smsHolderSender(text)
 	return nil
 }

@@ -38,7 +38,7 @@ func (l *Lock) Init(ab *authboss.Authboss) error {
 }
 
 // BeforeAuth ensures the account is not locked.
-func (l *Lock) BeforeAuth(w http.ResponseWriter, r *http.Request, handled bool) (bool, error) {
+func (l *Lock) BeforeAuth(w http.ResponseWriter, r *http.Request, _ bool) (bool, error) {
 	user, err := l.Authboss.CurrentUser(r)
 	if err != nil {
 		return false, err
@@ -58,7 +58,7 @@ func (l *Lock) BeforeAuth(w http.ResponseWriter, r *http.Request, handled bool) 
 }
 
 // AfterAuthSuccess resets the attempt number field.
-func (l *Lock) AfterAuthSuccess(w http.ResponseWriter, r *http.Request, handled bool) (bool, error) {
+func (l *Lock) AfterAuthSuccess(_ http.ResponseWriter, r *http.Request, _ bool) (bool, error) {
 	user, err := l.Authboss.CurrentUser(r)
 	if err != nil {
 		return false, err
@@ -73,7 +73,7 @@ func (l *Lock) AfterAuthSuccess(w http.ResponseWriter, r *http.Request, handled 
 
 // AfterAuthFail adjusts the attempt number and time negatively
 // and locks the user if they're beyond limits.
-func (l *Lock) AfterAuthFail(w http.ResponseWriter, r *http.Request, handled bool) (bool, error) {
+func (l *Lock) AfterAuthFail(w http.ResponseWriter, r *http.Request, _ bool) (bool, error) {
 	user, err := l.Authboss.CurrentUser(r)
 	if err != nil {
 		return false, err

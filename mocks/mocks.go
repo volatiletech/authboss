@@ -210,7 +210,7 @@ func (s *ServerStorer) New(context.Context) authboss.User {
 }
 
 // Create a user
-func (s *ServerStorer) Create(ctx context.Context, user authboss.User) error {
+func (s *ServerStorer) Create(_ context.Context, user authboss.User) error {
 	u := user.(*User)
 	if _, ok := s.Users[u.Email]; ok {
 		return authboss.ErrUserFound
@@ -220,7 +220,7 @@ func (s *ServerStorer) Create(ctx context.Context, user authboss.User) error {
 }
 
 // Load a user
-func (s *ServerStorer) Load(ctx context.Context, key string) (authboss.User, error) {
+func (s *ServerStorer) Load(_ context.Context, key string) (authboss.User, error) {
 	user, ok := s.Users[key]
 	if ok {
 		return user, nil
@@ -230,7 +230,7 @@ func (s *ServerStorer) Load(ctx context.Context, key string) (authboss.User, err
 }
 
 // Save a user
-func (s *ServerStorer) Save(ctx context.Context, user authboss.User) error {
+func (s *ServerStorer) Save(_ context.Context, user authboss.User) error {
 	u := user.(*User)
 	if _, ok := s.Users[u.Email]; !ok {
 		return authboss.ErrUserNotFound
@@ -240,7 +240,7 @@ func (s *ServerStorer) Save(ctx context.Context, user authboss.User) error {
 }
 
 // NewFromOAuth2 finds a user with the given details, or returns a new one
-func (s *ServerStorer) NewFromOAuth2(ctx context.Context, provider string, details map[string]string) (authboss.OAuth2User, error) {
+func (s *ServerStorer) NewFromOAuth2(_ context.Context, provider string, details map[string]string) (authboss.OAuth2User, error) {
 	uid := details["uid"]
 	email := details["email"]
 	name := details["name"]
@@ -262,7 +262,7 @@ func (s *ServerStorer) NewFromOAuth2(ctx context.Context, provider string, detai
 }
 
 // SaveOAuth2 creates a user if not found, or updates one that exists.
-func (s *ServerStorer) SaveOAuth2(ctx context.Context, user authboss.OAuth2User) error {
+func (s *ServerStorer) SaveOAuth2(_ context.Context, user authboss.OAuth2User) error {
 	u := user.(*User)
 
 	pid := authboss.MakeOAuth2PID(u.OAuth2Provider, u.OAuth2UID)
@@ -273,7 +273,7 @@ func (s *ServerStorer) SaveOAuth2(ctx context.Context, user authboss.OAuth2User)
 }
 
 // LoadByConfirmSelector finds a user by his confirm selector
-func (s *ServerStorer) LoadByConfirmSelector(ctx context.Context, selector string) (authboss.ConfirmableUser, error) {
+func (s *ServerStorer) LoadByConfirmSelector(_ context.Context, selector string) (authboss.ConfirmableUser, error) {
 	for _, v := range s.Users {
 		if v.ConfirmSelector == selector {
 			return v, nil
@@ -284,7 +284,7 @@ func (s *ServerStorer) LoadByConfirmSelector(ctx context.Context, selector strin
 }
 
 // LoadByRecoverSelector finds a user by his recover token
-func (s *ServerStorer) LoadByRecoverSelector(ctx context.Context, selector string) (authboss.RecoverableUser, error) {
+func (s *ServerStorer) LoadByRecoverSelector(_ context.Context, selector string) (authboss.RecoverableUser, error) {
 	for _, v := range s.Users {
 		if v.RecoverSelector == selector {
 			return v, nil
@@ -295,20 +295,20 @@ func (s *ServerStorer) LoadByRecoverSelector(ctx context.Context, selector strin
 }
 
 // AddRememberToken for remember me
-func (s *ServerStorer) AddRememberToken(ctx context.Context, key, token string) error {
+func (s *ServerStorer) AddRememberToken(_ context.Context, key, token string) error {
 	arr := s.RMTokens[key]
 	s.RMTokens[key] = append(arr, token)
 	return nil
 }
 
 // DelRememberTokens for a user
-func (s *ServerStorer) DelRememberTokens(ctx context.Context, key string) error {
+func (s *ServerStorer) DelRememberTokens(_ context.Context, key string) error {
 	delete(s.RMTokens, key)
 	return nil
 }
 
 // UseRememberToken if it exists, deleting it in the process
-func (s *ServerStorer) UseRememberToken(ctx context.Context, givenKey, token string) (err error) {
+func (s *ServerStorer) UseRememberToken(_ context.Context, givenKey, token string) (err error) {
 	arr, ok := s.RMTokens[givenKey]
 	if !ok {
 		return authboss.ErrTokenNotFound
@@ -337,17 +337,17 @@ type FailStorer struct {
 }
 
 // Create fails
-func (FailStorer) Create(context.Context) error {
+func (FailStorer) Create() error {
 	return errors.New("fail storer: create")
 }
 
 // Save fails
-func (FailStorer) Save(context.Context) error {
+func (FailStorer) Save() error {
 	return errors.New("fail storer: put")
 }
 
 // Load fails
-func (FailStorer) Load(context.Context) error {
+func (FailStorer) Load() error {
 	return errors.New("fail storer: get")
 }
 
@@ -408,7 +408,7 @@ func (c *ClientStateRW) ReadState(*http.Request) (authboss.ClientState, error) {
 }
 
 // WriteState to memory
-func (c *ClientStateRW) WriteState(w http.ResponseWriter, cstate authboss.ClientState, cse []authboss.ClientStateEvent) error {
+func (c *ClientStateRW) WriteState(_ http.ResponseWriter, _ authboss.ClientState, cse []authboss.ClientStateEvent) error {
 	for _, e := range cse {
 		switch e.Kind {
 		case authboss.ClientStateEventPut:
@@ -463,7 +463,7 @@ func NewMailer() *Mailer {
 }
 
 // Send an e-mail
-func (m *Mailer) Send(ctx context.Context, email authboss.Email) error {
+func (m *Mailer) Send(_ context.Context, email authboss.Email) error {
 	if len(m.SendErr) > 0 {
 		return errors.New(m.SendErr)
 	}
@@ -538,7 +538,7 @@ type Responder struct {
 }
 
 // Respond stores the arguments in the struct
-func (r *Responder) Respond(w http.ResponseWriter, req *http.Request, code int, page string, data authboss.HTMLData) error {
+func (r *Responder) Respond(_ http.ResponseWriter, _ *http.Request, code int, page string, data authboss.HTMLData) error {
 	r.Status = code
 	r.Page = page
 	r.Data = data
@@ -568,7 +568,7 @@ type Emailer struct {
 }
 
 // Send an e-mail
-func (e *Emailer) Send(ctx context.Context, email authboss.Email) error {
+func (e *Emailer) Send(_ context.Context, email authboss.Email) error {
 	e.Email = email
 	return nil
 }
@@ -579,7 +579,7 @@ type BodyReader struct {
 }
 
 // Read the return values
-func (b BodyReader) Read(page string, r *http.Request) (authboss.Validator, error) {
+func (b BodyReader) Read(_ string, _ *http.Request) (authboss.Validator, error) {
 	return b.Return, nil
 }
 
@@ -681,7 +681,7 @@ type Router struct {
 }
 
 // ServeHTTP does nothing
-func (Router) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+func (Router) ServeHTTP(_ http.ResponseWriter, _ *http.Request) {
 }
 
 // Get records the path in the router

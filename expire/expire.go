@@ -51,7 +51,7 @@ func timeToExpiry(r *http.Request, expireAfter time.Duration) time.Duration {
 
 // RefreshExpiry updates the last action for the user, so he doesn't
 // become expired.
-func RefreshExpiry(w http.ResponseWriter, r *http.Request) {
+func RefreshExpiry(w http.ResponseWriter) {
 	refreshExpiry(w)
 }
 

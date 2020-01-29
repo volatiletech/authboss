@@ -35,7 +35,7 @@ type SMTPMailer struct {
 }
 
 // Send an e-mail
-func (s SMTPMailer) Send(ctx context.Context, mail authboss.Email) error {
+func (s SMTPMailer) Send(_ context.Context, mail authboss.Email) error {
 	if len(mail.TextBody) == 0 && len(mail.HTMLBody) == 0 {
 		return errors.New("refusing to send mail without text or html body")
 	}

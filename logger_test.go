@@ -22,8 +22,8 @@ func (t *testLogger) Error(s string) {
 	t.error += s
 }
 
-func (t testLogger) FromContext(ctx context.Context) Logger { return testCtxLogger{} }
-func (t testLogger) FromRequest(r *http.Request) Logger     { return &testLogger{} }
+func (t testLogger) FromContext(_ context.Context) Logger { return testCtxLogger{} }
+func (t testLogger) FromRequest(_ *http.Request) Logger   { return &testLogger{} }
 
 func (t testCtxLogger) Info(string)  {}
 func (t testCtxLogger) Error(string) {}

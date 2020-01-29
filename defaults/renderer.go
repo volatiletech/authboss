@@ -21,12 +21,12 @@ type JSONRenderer struct {
 }
 
 // Load is a no-op since json doesn't require any templates
-func (JSONRenderer) Load(names ...string) error {
+func (JSONRenderer) Load(_ ...string) error {
 	return nil
 }
 
 // Render the data
-func (j JSONRenderer) Render(ctx context.Context, page string, data authboss.HTMLData) (output []byte, contentType string, err error) {
+func (j JSONRenderer) Render(_ context.Context, _ string, data authboss.HTMLData) (output []byte, contentType string, err error) {
 	if data == nil {
 		return []byte(`{"status":"success"}`), "application/json", nil
 	}

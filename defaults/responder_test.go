@@ -16,7 +16,7 @@ type testRenderer struct {
 	Callback func(context.Context, string, authboss.HTMLData) ([]byte, string, error)
 }
 
-func (t testRenderer) Load(names ...string) error {
+func (t testRenderer) Load(_ ...string) error {
 	return nil
 }
 
@@ -24,7 +24,7 @@ func (t testRenderer) Render(ctx context.Context, name string, data authboss.HTM
 	return t.Callback(ctx, name, data)
 }
 
-func testJSONRender(ctx context.Context, name string, data authboss.HTMLData) ([]byte, string, error) {
+func testJSONRender(_ context.Context, _ string, data authboss.HTMLData) ([]byte, string, error) {
 	b, err := json.Marshal(data)
 	if err != nil {
 		panic(err)

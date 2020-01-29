@@ -20,7 +20,7 @@ func NewLogMailer(writer io.Writer) *LogMailer {
 }
 
 // Send an e-mail
-func (l LogMailer) Send(ctx context.Context, mail authboss.Email) error {
+func (l LogMailer) Send(_ context.Context, mail authboss.Email) error {
 	buf := &bytes.Buffer{}
 
 	data := struct {

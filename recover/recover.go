@@ -204,12 +204,12 @@ func (r *Recover) EndPost(w http.ResponseWriter, req *http.Request) error {
 	rawToken, err := base64.URLEncoding.DecodeString(token)
 	if err != nil {
 		logger.Infof("invalid recover token submitted, base64 decode failed: %+v", err)
-		return r.invalidToken(PageRecoverEnd, w, req)
+		return r.invalidToken(w, req)
 	}
 
 	if len(rawToken) != recoverTokenSize {
 		logger.Infof("invalid recover token submitted, size was wrong: %d", len(rawToken))
-		return r.invalidToken(PageRecoverEnd, w, req)
+		return r.invalidToken(w, req)
 	}
 
 	selectorBytes := sha512.Sum512(rawToken[:recoverTokenSplit])
@@ -220,26 +220,26 @@ func (r *Recover) EndPost(w http.ResponseWriter, req *http.Request) error {
 	user, err := storer.LoadByRecoverSelector(req.Context(), selector)
 	if err == authboss.ErrUserNotFound {
 		logger.Info("invalid recover token submitted, user not found")
-		return r.invalidToken(PageRecoverEnd, w, req)
+		return r.invalidToken(w, req)
 	} else if err != nil {
 		return err
 	}
 
 	if time.Now().UTC().After(user.GetRecoverExpiry()) {
 		logger.Infof("invalid recover token submitted, already expired: %+v", err)
-		return r.invalidToken(PageRecoverEnd, w, req)
+		return r.invalidToken(w, req)
 	}
 
 	dbVerifierBytes, err := base64.StdEncoding.DecodeString(user.GetRecoverVerifier())
 	if err != nil {
 		logger.Infof("invalid recover verifier stored in database: %s", user.GetRecoverVerifier())
-		return r.invalidToken(PageRecoverEnd, w, req)
+		return r.invalidToken(w, req)
 	}
 
 	if subtle.ConstantTimeEq(int32(len(verifierBytes)), int32(len(dbVerifierBytes))) != 1 ||
 		subtle.ConstantTimeCompare(verifierBytes[:], dbVerifierBytes) != 1 {
 		logger.Info("stored recover verifier does not match provided one")
-		return r.invalidToken(PageRecoverEnd, w, req)
+		return r.invalidToken(w, req)
 	}
 
 	pass, err := bcrypt.GenerateFromPassword([]byte(password), r.Authboss.Config.Modules.BCryptCost)
@@ -270,7 +270,7 @@ func (r *Recover) EndPost(w http.ResponseWriter, req *http.Request) error {
 	return r.Authboss.Config.Core.Redirector.Redirect(w, req, ro)
 }
 
-func (r *Recover) invalidToken(page string, w http.ResponseWriter, req *http.Request) error {
+func (r *Recover) invalidToken(w http.ResponseWriter, req *http.Request) error {
 	errors := []error{errors.New("recovery token is invalid")}
 	data := authboss.HTMLData{authboss.DataValidation: authboss.ErrorMap(errors)}
 	return r.Authboss.Core.Responder.Respond(w, req, http.StatusOK, PageRecoverEnd, data)

@@ -1,13 +1,10 @@
 package authboss
 
 import (
-	"bytes"
 	"context"
 	"encoding/json"
 	"fmt"
 	"net/http"
-	"net/url"
-	"strings"
 	"time"
 )
 
@@ -196,42 +193,6 @@ func (m mockClientStateReadWriter) WriteState(w http.ResponseWriter, cs ClientSt
 func (m mockClientState) Get(key string) (string, bool) {
 	val, ok := m[key]
 	return val, ok
-}
-
-func newMockRequest(postKeyValues ...string) *http.Request {
-	urlValues := make(url.Values)
-	for i := 0; i < len(postKeyValues); i += 2 {
-		urlValues.Set(postKeyValues[i], postKeyValues[i+1])
-	}
-
-	req, err := http.NewRequest("POST", "http://localhost", strings.NewReader(urlValues.Encode()))
-	if err != nil {
-		panic(err.Error())
-	}
-	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
-
-	return req
-}
-
-func newMockAPIRequest(postKeyValues ...string) *http.Request {
-	kv := map[string]string{}
-	for i := 0; i < len(postKeyValues); i += 2 {
-		key, value := postKeyValues[i], postKeyValues[i+1]
-		kv[key] = value
-	}
-
-	b, err := json.Marshal(kv)
-	if err != nil {
-		panic(err)
-	}
-
-	req, err := http.NewRequest("POST", "http://localhost", bytes.NewReader(b))
-	if err != nil {
-		panic(err)
-	}
-	req.Header.Set("Content-Type", "application/json")
-
-	return req
 }
 
 type mockRenderer struct {

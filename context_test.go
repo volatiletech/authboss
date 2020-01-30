@@ -21,7 +21,7 @@ func testSetupContext() (*Authboss, *http.Request) {
 	ab.Storage.SessionState = newMockClientStateRW(SessionKey, "george-pid")
 	ab.Storage.Server = &mockServerStorer{
 		Users: map[string]*mockUser{
-			"george-pid": &mockUser{Email: "george-pid", Password: "unreadable"},
+			"george-pid": {Email: "george-pid", Password: "unreadable"},
 		},
 	}
 	r := httptest.NewRequest("GET", "/", nil)

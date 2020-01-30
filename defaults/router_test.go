@@ -12,7 +12,7 @@ func TestRouter(t *testing.T) {
 	t.Parallel()
 
 	r := NewRouter()
-	var get, post, delete string
+	var get, post, del string
 	wantGet, wantPost, wantDelete := "testget", "testpost", "testdelete"
 
 	r.Get("/test", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -37,7 +37,7 @@ func TestRouter(t *testing.T) {
 			panic(err)
 		}
 
-		delete = string(b)
+		del = string(b)
 	}))
 
 	wr := httptest.NewRecorder()
@@ -46,8 +46,8 @@ func TestRouter(t *testing.T) {
 	if get != wantGet {
 		t.Error("want:", wantGet, "got:", get)
 	}
-	if len(post) != 0 || len(delete) != 0 {
-		t.Error("should be empty:", post, delete)
+	if len(post) != 0 || len(del) != 0 {
+		t.Error("should be empty:", post, del)
 	}
 
 	wr = httptest.NewRecorder()
@@ -56,15 +56,15 @@ func TestRouter(t *testing.T) {
 	if post != wantPost {
 		t.Error("want:", wantPost, "got:", post)
 	}
-	if len(delete) != 0 {
-		t.Error("should be empty:", delete)
+	if len(del) != 0 {
+		t.Error("should be empty:", del)
 	}
 
 	wr = httptest.NewRecorder()
 	req = httptest.NewRequest("DELETE", "/test", strings.NewReader("testdelete"))
 	r.ServeHTTP(wr, req)
-	if delete != wantDelete {
-		t.Error("want:", wantDelete, "got:", delete)
+	if del != wantDelete {
+		t.Error("want:", wantDelete, "got:", del)
 	}
 }
 

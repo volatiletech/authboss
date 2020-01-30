@@ -262,7 +262,7 @@ func (t *TOTP) PostConfirm(w http.ResponseWriter, r *http.Request) error {
 	ok = totp.Validate(inputCode, totpSecret)
 	if !ok {
 		data := authboss.HTMLData{
-			authboss.DataValidation: map[string][]string{FormValueCode: []string{"2fa code was invalid"}},
+			authboss.DataValidation: map[string][]string{FormValueCode: {"2fa code was invalid"}},
 			DataTOTPSecret:          totpSecret,
 		}
 		return t.Authboss.Core.Responder.Respond(w, r, http.StatusOK, PageTOTPConfirm, data)
@@ -310,7 +310,7 @@ func (t *TOTP) PostRemove(w http.ResponseWriter, r *http.Request) error {
 		return err
 	case !ok:
 		data := authboss.HTMLData{
-			authboss.DataValidation: map[string][]string{FormValueCode: []string{"2fa code was invalid"}},
+			authboss.DataValidation: map[string][]string{FormValueCode: {"2fa code was invalid"}},
 		}
 		return t.Authboss.Core.Responder.Respond(w, r, http.StatusOK, PageTOTPRemove, data)
 	}
@@ -355,7 +355,7 @@ func (t *TOTP) PostValidate(w http.ResponseWriter, r *http.Request) error {
 
 		logger.Infof("user %s totp 2fa failure (wrong code)", user.GetPID())
 		data := authboss.HTMLData{
-			authboss.DataValidation: map[string][]string{FormValueCode: []string{"2fa code was invalid"}},
+			authboss.DataValidation: map[string][]string{FormValueCode: {"2fa code was invalid"}},
 		}
 		return t.Authboss.Core.Responder.Respond(w, r, http.StatusOK, PageTOTPValidate, data)
 	}

@@ -28,8 +28,8 @@ func TestTOTPSetup(t *testing.T) {
 	ab.Config.Core.ViewRenderer = renderer
 	ab.Config.Core.ErrorHandler = errHandler
 
-	totp := &TOTP{Authboss: ab}
-	if err := totp.Setup(); err != nil {
+	totpNew := &TOTP{Authboss: ab}
+	if err := totpNew.Setup(); err != nil {
 		t.Fatal(err)
 	}
 

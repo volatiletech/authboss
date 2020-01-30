@@ -355,7 +355,7 @@ func TestValidatorPostSend(t *testing.T) {
 		t.Error("should have sent a code")
 	}
 
-	*h.sender = smsHolderSender("")
+	*h.sender = ""
 
 	// When action is confirm, it retrieves the phone number from
 	// the session, not the user.

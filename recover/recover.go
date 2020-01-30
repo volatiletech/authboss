@@ -271,8 +271,8 @@ func (r *Recover) EndPost(w http.ResponseWriter, req *http.Request) error {
 }
 
 func (r *Recover) invalidToken(page string, w http.ResponseWriter, req *http.Request) error {
-	errors := []error{errors.New("recovery token is invalid")}
-	data := authboss.HTMLData{authboss.DataValidation: authboss.ErrorMap(errors)}
+	errorsAll := []error{errors.New("recovery token is invalid")}
+	data := authboss.HTMLData{authboss.DataValidation: authboss.ErrorMap(errorsAll)}
 	return r.Authboss.Core.Responder.Respond(w, req, http.StatusOK, PageRecoverEnd, data)
 }
 

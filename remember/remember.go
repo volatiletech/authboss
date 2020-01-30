@@ -166,7 +166,7 @@ func (r *Remember) AfterPasswordReset(w http.ResponseWriter, req *http.Request, 
 // GenerateToken creates a remember me token
 func GenerateToken(pid string) (hash string, token string, err error) {
 	rawToken := make([]byte, nNonceSize+len(pid)+1)
-	copy(rawToken, []byte(pid))
+	copy(rawToken, pid)
 	rawToken[len(pid)] = ';'
 
 	if _, err := io.ReadFull(rand.Reader, rawToken[len(pid)+1:]); err != nil {

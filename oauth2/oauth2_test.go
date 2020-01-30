@@ -23,7 +23,7 @@ func init() {
 }
 
 var testProviders = map[string]authboss.OAuth2Provider{
-	"google": authboss.OAuth2Provider{
+	"google": {
 		OAuth2Config: &oauth2.Config{
 			ClientID:     `jazz`,
 			ClientSecret: `hands`,
@@ -35,7 +35,7 @@ var testProviders = map[string]authboss.OAuth2Provider{
 		FindUserDetails:  GoogleUserDetails,
 		AdditionalParams: url.Values{"include_requested_scopes": []string{"true"}},
 	},
-	"facebook": authboss.OAuth2Provider{
+	"facebook": {
 		OAuth2Config: &oauth2.Config{
 			ClientID:     `jazz`,
 			ClientSecret: `hands`,
@@ -131,11 +131,11 @@ func TestStart(t *testing.T) {
 		t.Error("code was wrong:", h.redirector.Options.Code)
 	}
 
-	url, err := url.Parse(h.redirector.Options.RedirectPath)
+	redirectPathUrl, err := url.Parse(h.redirector.Options.RedirectPath)
 	if err != nil {
 		t.Fatal(err)
 	}
-	query := url.Query()
+	query := redirectPathUrl.Query()
 	if state := query.Get("state"); len(state) == 0 {
 		t.Error("our nonce should have been here")
 	}
@@ -145,8 +145,8 @@ func TestStart(t *testing.T) {
 	if clientID := query.Get("client_id"); clientID != "jazz" {
 		t.Error("clientID was wrong:", clientID)
 	}
-	if url.Host != "accounts.google.com" {
-		t.Error("host was wrong:", url.Host)
+	if redirectPathUrl.Host != "accounts.google.com" {
+		t.Error("host was wrong:", redirectPathUrl.Host)
 	}
 
 	if h.session.ClientValues[authboss.SessionOAuth2State] != query.Get("state") {

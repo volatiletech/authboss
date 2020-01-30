@@ -15,11 +15,11 @@ func TestValidate(t *testing.T) {
 			"email":    "john@john.com",
 		},
 		Ruleset: []Rules{
-			Rules{
+			{
 				FieldName: "username",
 				MinLength: 5,
 			},
-			Rules{
+			{
 				FieldName: "missing_field",
 				Required:  true,
 			},
@@ -76,7 +76,7 @@ func TestValidate_Confirm(t *testing.T) {
 		}
 	}()
 
-	errs = authboss.ErrorList(validator.Validate())
+	errs = validator.Validate()
 	if len(errs) != 0 {
 		t.Error("Expected no errors:", errs)
 	}

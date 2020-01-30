@@ -65,6 +65,8 @@ func (c *Confirm) Init(ab *authboss.Authboss) (err error) {
 		callbackMethod = c.Authboss.Config.Core.Router.Get
 	case http.MethodPost:
 		callbackMethod = c.Authboss.Config.Core.Router.Post
+	default:
+		panic("invalid config for ConfirmMethod/MailRouteMethod")
 	}
 	callbackMethod("/confirm", c.Authboss.Config.Core.ErrorHandler.Wrap(c.Get))
 

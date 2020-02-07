@@ -81,6 +81,7 @@ func testEmailVerifySetup() *testEmailVerifyHarness {
 	harness.ab.Config.Storage.Server = harness.storer
 
 	harness.ab.Config.Modules.TwoFactorEmailAuthRequired = true
+	harness.ab.Config.Modules.MailNoGoroutine = true
 
 	harness.emailverify = EmailVerify{
 		Authboss:          harness.ab,
@@ -132,17 +133,8 @@ func TestEmailVerifyGetStart(t *testing.T) {
 }
 
 func TestEmailVerifyPostStart(t *testing.T) {
-	// NOT t.Parallel()
+	t.Parallel()
 	h := testEmailVerifySetup()
-
-	save := goVerifyEmail
-	goVerifyEmail = func(e EmailVerify, ctx context.Context, to string, token string) {
-		e.SendVerifyEmail(ctx, to, token)
-	}
-
-	defer func() {
-		goVerifyEmail = save
-	}()
 
 	rec := httptest.NewRecorder()
 	r := mocks.Request("POST")

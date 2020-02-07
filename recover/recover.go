@@ -118,7 +118,11 @@ func (r *Recover) StartPost(w http.ResponseWriter, req *http.Request) error {
 		return err
 	}
 
-	goRecoverEmail(r, req.Context(), ru.GetEmail(), token)
+	if r.Authboss.Modules.MailNoGoroutine {
+		r.SendRecoverEmail(req.Context(), ru.GetEmail(), token)
+	} else {
+		go r.SendRecoverEmail(req.Context(), ru.GetEmail(), token)
+	}
 
 	logger.Infof("user %s password recovery initiated", ru.GetPID())
 	ro := authboss.RedirectOptions{
@@ -127,10 +131,6 @@ func (r *Recover) StartPost(w http.ResponseWriter, req *http.Request) error {
 		Success:      recoverInitiateSuccessFlash,
 	}
 	return r.Authboss.Core.Redirector.Redirect(w, req, ro)
-}
-
-var goRecoverEmail = func(r *Recover, ctx context.Context, to, encodedToken string) {
-	r.SendRecoverEmail(ctx, to, encodedToken)
 }
 
 // SendRecoverEmail to a specific e-mail address passing along the encodedToken

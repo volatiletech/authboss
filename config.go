@@ -101,6 +101,19 @@ type Config struct {
 		// used.
 		MailRouteMethod string
 
+		// MailNoGoroutine is used to prevent the mailer from being launched
+		// in a goroutine by the Authboss modules.
+		//
+		// This behavior will become the default in Authboss v3 and each
+		// Mailer implementation will be required to use goroutines if it sees
+		// fit.
+		//
+		// It's important that this is the case if you are using contexts
+		// as the http request context will be cancelled by the Go http server
+		// and it may interrupt your use of the context that the Authboss module
+		// is passing to you, preventing proper use of it.
+		MailNoGoroutine bool
+
 		// RegisterPreserveFields are fields used with registration that are
 		// to be rendered when post fails in a normal way
 		// (for example validation errors), they will be passed back in the

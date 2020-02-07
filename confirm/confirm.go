@@ -142,14 +142,13 @@ func (c *Confirm) StartConfirmation(ctx context.Context, user authboss.Confirmab
 		return errors.Wrap(err, "failed to save user during StartConfirmation, user data may be in weird state")
 	}
 
-	goConfirmEmail(c, ctx, user.GetEmail(), token)
+	if c.Authboss.Config.Modules.MailNoGoroutine {
+		c.SendConfirmEmail(ctx, user.GetEmail(), token)
+	} else {
+		go c.SendConfirmEmail(ctx, user.GetEmail(), token)
+	}
 
 	return nil
-}
-
-// This is here so it can be mocked out by a test
-var goConfirmEmail = func(c *Confirm, ctx context.Context, to, token string) {
-	go c.SendConfirmEmail(ctx, to, token)
 }
 
 // SendConfirmEmail sends a confirmation e-mail to a user

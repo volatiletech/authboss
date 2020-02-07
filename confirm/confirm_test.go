@@ -67,6 +67,7 @@ func testSetup() *testHarness {
 
 	harness.ab.Paths.ConfirmOK = "/confirm/ok"
 	harness.ab.Paths.ConfirmNotOK = "/confirm/not/ok"
+	harness.ab.Modules.MailNoGoroutine = true
 
 	harness.ab.Config.Core.BodyReader = harness.bodyReader
 	harness.ab.Config.Core.Logger = mocks.Logger{}
@@ -137,16 +138,7 @@ func TestPreventDisallow(t *testing.T) {
 }
 
 func TestStartConfirmationWeb(t *testing.T) {
-	// no t.Parallel(), global var mangling
-
-	oldConfirmEmail := goConfirmEmail
-	goConfirmEmail = func(c *Confirm, ctx context.Context, to, token string) {
-		c.SendConfirmEmail(ctx, to, token)
-	}
-
-	defer func() {
-		goConfirmEmail = oldConfirmEmail
-	}()
+	t.Parallel()
 
 	harness := testSetup()
 

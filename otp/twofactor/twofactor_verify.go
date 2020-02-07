@@ -101,7 +101,11 @@ func (e EmailVerify) PostStart(w http.ResponseWriter, r *http.Request) error {
 
 	authboss.PutSession(w, authboss.Session2FAAuthToken, token)
 	logger.Infof("generated new 2fa e-mail verify token for user: %s", user.GetPID())
-	goVerifyEmail(e, ctx, user.GetEmail(), token)
+	if e.Authboss.Config.Modules.MailNoGoroutine {
+		e.SendVerifyEmail(ctx, user.GetEmail(), token)
+	} else {
+		go e.SendVerifyEmail(ctx, user.GetEmail(), token)
+	}
 
 	ro := authboss.RedirectOptions{
 		Code:         http.StatusTemporaryRedirect,
@@ -109,11 +113,6 @@ func (e EmailVerify) PostStart(w http.ResponseWriter, r *http.Request) error {
 		Success:      "An e-mail has been sent to confirm 2FA activation.",
 	}
 	return e.Authboss.Config.Core.Redirector.Redirect(w, r, ro)
-}
-
-// This is here so it can be mocked out by a test
-var goVerifyEmail = func(e EmailVerify, ctx context.Context, to, token string) {
-	go e.SendVerifyEmail(ctx, to, token)
 }
 
 // SendVerifyEmail to the user

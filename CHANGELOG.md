@@ -3,6 +3,15 @@
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
+## [2.4.0] - 2020-02-07
+
+### Added
+
+- Add config option MailNoGoroutine which prevents the modules from using a
+  goroutine to launch the mailer. This is important because the context
+  that it passes from the http request will be cancelled in a race condition
+  and will affect mailer implementations that honor context cancellation.
+
 ## [2.3.2] - 2020-01-30
 
 ### Fixed

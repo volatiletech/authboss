@@ -2,7 +2,6 @@ package recover
 
 import (
 	"bytes"
-	"context"
 	"crypto/sha512"
 	"encoding/base64"
 	"errors"
@@ -82,6 +81,7 @@ func testSetup() *testHarness {
 	harness.storer = mocks.NewServerStorer()
 
 	harness.ab.Paths.RecoverOK = "/recover/ok"
+	harness.ab.Modules.MailNoGoroutine = true
 
 	harness.ab.Config.Core.BodyReader = harness.bodyReader
 	harness.ab.Config.Core.Logger = mocks.Logger{}
@@ -121,16 +121,7 @@ func TestStartGet(t *testing.T) {
 }
 
 func TestStartPostSuccess(t *testing.T) {
-	// no t.Parallel(), global var mangling
-
-	oldRecoverEmail := goRecoverEmail
-	goRecoverEmail = func(r *Recover, ctx context.Context, to, token string) {
-		r.SendRecoverEmail(ctx, to, token)
-	}
-
-	defer func() {
-		goRecoverEmail = oldRecoverEmail
-	}()
+	t.Parallel()
 
 	h := testSetup()
 

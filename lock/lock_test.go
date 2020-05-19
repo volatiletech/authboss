@@ -72,8 +72,10 @@ func TestBeforeAuthAllow(t *testing.T) {
 	harness := testSetup()
 
 	user := &mocks.User{
+		Email:  "test@test.com",
 		Locked: time.Time{},
 	}
+	harness.storer.Users["test@test.com"] = user
 
 	r := mocks.Request("GET")
 	r = r.WithContext(context.WithValue(r.Context(), authboss.CTXKeyUser, user))
@@ -94,8 +96,10 @@ func TestBeforeAuthDisallow(t *testing.T) {
 	harness := testSetup()
 
 	user := &mocks.User{
+		Email:  "test@test.com",
 		Locked: time.Now().UTC().Add(time.Hour),
 	}
+	harness.storer.Users["test@test.com"] = user
 
 	r := mocks.Request("GET")
 	r = r.WithContext(context.WithValue(r.Context(), authboss.CTXKeyUser, user))

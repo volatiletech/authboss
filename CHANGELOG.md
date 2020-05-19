@@ -3,6 +3,19 @@
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
+## [2.4.1] - 2020-05-18
+
+### Fixed
+
+Fix a security issue where a user could brute-force a password based on
+differing responses that are returned from the site when the incorrect password
+is entered versus the correct password.
+
+This comes with a slight change in behavior to minimize differences between the
+code paths of a correct vs incorrect password: The "attempt" time is always
+bumped in the DB no matter if it was the right or wrong password when being
+rejected for locking.
+
 ## [2.4.0] - 2020-02-07
 
 ### Added

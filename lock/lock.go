@@ -39,22 +39,7 @@ func (l *Lock) Init(ab *authboss.Authboss) error {
 
 // BeforeAuth ensures the account is not locked.
 func (l *Lock) BeforeAuth(w http.ResponseWriter, r *http.Request, handled bool) (bool, error) {
-	user, err := l.Authboss.CurrentUser(r)
-	if err != nil {
-		return false, err
-	}
-
-	lu := authboss.MustBeLockable(user)
-	if !IsLocked(lu) {
-		return false, nil
-	}
-
-	ro := authboss.RedirectOptions{
-		Code:         http.StatusTemporaryRedirect,
-		Failure:      "Your account is locked. Please contact the administrator.",
-		RedirectPath: l.Authboss.Config.Paths.LockNotOK,
-	}
-	return true, l.Authboss.Config.Core.Redirector.Redirect(w, r, ro)
+	return l.updateLockedState(w, r, true)
 }
 
 // AfterAuthSuccess resets the attempt number field.
@@ -74,27 +59,33 @@ func (l *Lock) AfterAuthSuccess(w http.ResponseWriter, r *http.Request, handled 
 // AfterAuthFail adjusts the attempt number and time negatively
 // and locks the user if they're beyond limits.
 func (l *Lock) AfterAuthFail(w http.ResponseWriter, r *http.Request, handled bool) (bool, error) {
+	return l.updateLockedState(w, r, false)
+}
+
+// updateLockedState exists to minimize any differences between a success and
+// a failure path in the case where a correct/incorrect password is entered
+func (l *Lock) updateLockedState(w http.ResponseWriter, r *http.Request, wasCorrectPassword bool) (bool, error) {
 	user, err := l.Authboss.CurrentUser(r)
 	if err != nil {
 		return false, err
 	}
 
+	// Fetch things
 	lu := authboss.MustBeLockable(user)
 	last := lu.GetLastAttempt()
 	attempts := lu.GetAttemptCount()
 	attempts++
 
-	nowLocked := false
+	if !wasCorrectPassword {
+		if time.Now().UTC().Sub(last) <= l.Modules.LockWindow {
+			if attempts >= l.Modules.LockAfter {
+				lu.PutLocked(time.Now().UTC().Add(l.Modules.LockDuration))
+			}
 
-	if time.Now().UTC().Sub(last) <= l.Modules.LockWindow {
-		if attempts >= l.Modules.LockAfter {
-			lu.PutLocked(time.Now().UTC().Add(l.Modules.LockDuration))
-			nowLocked = true
+			lu.PutAttemptCount(attempts)
+		} else {
+			lu.PutAttemptCount(1)
 		}
-
-		lu.PutAttemptCount(attempts)
-	} else {
-		lu.PutAttemptCount(1)
 	}
 	lu.PutLastAttempt(time.Now().UTC())
 
@@ -102,7 +93,7 @@ func (l *Lock) AfterAuthFail(w http.ResponseWriter, r *http.Request, handled boo
 		return false, err
 	}
 
-	if !nowLocked {
+	if !IsLocked(lu) {
 		return false, nil
 	}
 

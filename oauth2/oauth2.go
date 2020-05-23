@@ -255,7 +255,7 @@ func (o *OAuth2) End(w http.ResponseWriter, r *http.Request) error {
 	}
 
 	// Fully log user in
-	authboss.PutSession(w, authboss.SessionKey, authboss.MakeOAuth2PID(provider, user.GetOAuth2UID()))
+	authboss.PutSession(w, authboss.SessionKey, user.GetPID())
 	authboss.DelSession(w, authboss.SessionHalfAuthKey)
 
 	// Create a query string from all the pieces we've received

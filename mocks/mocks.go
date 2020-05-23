@@ -45,7 +45,12 @@ type User struct {
 }
 
 // GetPID from user
-func (u User) GetPID() string { return u.Email }
+func (u User) GetPID() string {
+	if u.IsOAuth2User() {
+		return authboss.MakeOAuth2PID(u.OAuth2Provider, u.OAuth2UID)
+	}
+	return u.Email
+}
 
 // GetEmail from user
 func (u User) GetEmail() string { return u.Email }

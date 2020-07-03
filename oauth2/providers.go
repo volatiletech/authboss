@@ -6,7 +6,7 @@ import (
 	"io/ioutil"
 	"net/http"
 
-	"github.com/pkg/errors"
+	"github.com/friendsofgo/errors"
 	"golang.org/x/oauth2"
 )
 

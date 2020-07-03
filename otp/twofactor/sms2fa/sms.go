@@ -13,9 +13,9 @@ import (
 	"strings"
 	"time"
 
-	"github.com/pkg/errors"
-	"github.com/volatiletech/authboss"
-	"github.com/volatiletech/authboss/otp/twofactor"
+	"github.com/friendsofgo/errors"
+	"github.com/volatiletech/authboss/v3"
+	"github.com/volatiletech/authboss/v3/otp/twofactor"
 )
 
 // Session keys

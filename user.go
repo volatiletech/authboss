@@ -5,7 +5,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/pkg/errors"
+	"github.com/friendsofgo/errors"
 )
 
 // User has functions for each piece of data it requires.

@@ -9,8 +9,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/pkg/errors"
-	"github.com/volatiletech/authboss"
+	"github.com/friendsofgo/errors"
+	"github.com/volatiletech/authboss/v3"
 )
 
 // User represents all possible fields a authboss User may have

@@ -13,9 +13,9 @@ import (
 	"net/url"
 	"path"
 
-	"github.com/pkg/errors"
+	"github.com/friendsofgo/errors"
 
-	"github.com/volatiletech/authboss"
+	"github.com/volatiletech/authboss/v3"
 )
 
 const (

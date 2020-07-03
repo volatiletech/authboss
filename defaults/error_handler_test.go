@@ -7,7 +7,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/pkg/errors"
+	"github.com/friendsofgo/errors"
 )
 
 func TestErrorHandler(t *testing.T) {

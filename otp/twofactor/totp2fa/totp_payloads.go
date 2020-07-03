@@ -3,7 +3,7 @@ package totp2fa
 import (
 	"fmt"
 
-	"github.com/volatiletech/authboss"
+	"github.com/volatiletech/authboss/v3"
 )
 
 // TOTPCodeValuer returns a code from the body

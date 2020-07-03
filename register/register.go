@@ -6,9 +6,9 @@ import (
 	"net/http"
 	"sort"
 
-	"github.com/pkg/errors"
+	"github.com/friendsofgo/errors"
 
-	"github.com/volatiletech/authboss"
+	"github.com/volatiletech/authboss/v3"
 	"golang.org/x/crypto/bcrypt"
 )
 

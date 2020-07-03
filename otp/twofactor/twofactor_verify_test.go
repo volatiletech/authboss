@@ -7,8 +7,8 @@ import (
 	"regexp"
 	"testing"
 
-	"github.com/volatiletech/authboss"
-	"github.com/volatiletech/authboss/mocks"
+	"github.com/volatiletech/authboss/v3"
+	"github.com/volatiletech/authboss/v3/mocks"
 )
 
 func TestSetupEmailVerify(t *testing.T) {

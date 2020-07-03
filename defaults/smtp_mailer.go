@@ -10,8 +10,8 @@ import (
 	"text/template"
 	"time"
 
-	"github.com/pkg/errors"
-	"github.com/volatiletech/authboss"
+	"github.com/friendsofgo/errors"
+	"github.com/volatiletech/authboss/v3"
 )
 
 // NewSMTPMailer creates an SMTP Mailer to send emails with.

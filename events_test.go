@@ -4,7 +4,7 @@ import (
 	"net/http"
 	"testing"
 
-	"github.com/pkg/errors"
+	"github.com/friendsofgo/errors"
 )
 
 func TestEvents(t *testing.T) {

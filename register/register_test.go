@@ -7,9 +7,9 @@ import (
 
 	"golang.org/x/crypto/bcrypt"
 
-	"github.com/pkg/errors"
-	"github.com/volatiletech/authboss"
-	"github.com/volatiletech/authboss/mocks"
+	"github.com/friendsofgo/errors"
+	"github.com/volatiletech/authboss/v3"
+	"github.com/volatiletech/authboss/v3/mocks"
 )
 
 func TestRegisterInit(t *testing.T) {

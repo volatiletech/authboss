@@ -13,7 +13,7 @@ import (
 	"net/url"
 	"path"
 
-	"github.com/pkg/errors"
+	"github.com/friendsofgo/errors"
 	"golang.org/x/crypto/bcrypt"
 )
 

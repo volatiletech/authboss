@@ -9,8 +9,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/volatiletech/authboss"
-	"github.com/volatiletech/authboss/mocks"
+	"github.com/volatiletech/authboss/v3"
+	"github.com/volatiletech/authboss/v3/mocks"
 	"golang.org/x/oauth2"
 	"golang.org/x/oauth2/facebook"
 	"golang.org/x/oauth2/google"

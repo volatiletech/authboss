@@ -10,7 +10,7 @@ package authboss
 import (
 	"context"
 
-	"github.com/pkg/errors"
+	"github.com/friendsofgo/errors"
 )
 
 var (

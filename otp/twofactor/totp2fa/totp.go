@@ -12,11 +12,11 @@ import (
 	"net/url"
 	"path"
 
-	"github.com/pkg/errors"
+	"github.com/friendsofgo/errors"
 	"github.com/pquerna/otp"
 	"github.com/pquerna/otp/totp"
-	"github.com/volatiletech/authboss"
-	"github.com/volatiletech/authboss/otp/twofactor"
+	"github.com/volatiletech/authboss/v3"
+	"github.com/volatiletech/authboss/v3/otp/twofactor"
 )
 
 const (

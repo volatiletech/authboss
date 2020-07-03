@@ -4,8 +4,8 @@ package logout
 import (
 	"net/http"
 
-	"github.com/pkg/errors"
-	"github.com/volatiletech/authboss"
+	"github.com/friendsofgo/errors"
+	"github.com/volatiletech/authboss/v3"
 )
 
 func init() {

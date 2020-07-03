@@ -27,7 +27,13 @@ var (
 // ServerStorer represents the data store that's capable of loading users
 // and giving them a context with which to store themselves.
 type ServerStorer interface {
-	// Load will look up the user based on the passed the PrimaryID
+	// Load will look up the user based on the passed the PrimaryID. Under
+	// normal circumstances this comes from GetPID() of the user.
+	//
+	// OAuth2 logins are special-cased to return an OAuth2 pid (combination of
+	// provider:oauth2uid), and therefore key be special cased in a Load()
+	// implementation to handle that form, use ParseOAuth2PID to see
+	// if key is an OAuth2PID or not.
 	Load(ctx context.Context, key string) (User, error)
 
 	// Save persists the user in the database, this should never
@@ -50,6 +56,10 @@ type CreatingServerStorer interface {
 }
 
 // OAuth2ServerStorer has the ability to create users from data from the provider.
+//
+// A correct implementation of OAuth2ServerStorer will have a Load() method
+// that special cases the key parameter to be aware of possible OAuth2 pids
+// by using the ParseOAuth2PID method.
 type OAuth2ServerStorer interface {
 	ServerStorer
 

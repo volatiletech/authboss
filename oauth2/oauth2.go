@@ -23,11 +23,14 @@
 //      get user details (handled by OAuth2Provider.FindUserDetails)
 //   4. The creation of a user from the user details returned from the
 //      FindUserDetails (authboss.OAuth2ServerStorer)
+//   5. The special casing of the ServerStorer implementation's Load()
+//      function to deal properly with incoming OAuth2 pids. See
+//      authboss.ParseOAuth2PID as a way to do this.
 //
 // Of these parts, the responsibility of the authboss library consumer
-// is on 1, 3, and 4. Configuration of providers that should be used is totally
-// up to the consumer. The FindUserDetails function is typically up to the
-// user, but we have some basic ones included in this package too.
+// is on 1, 3, 4, and 5. Configuration of providers that should be used is
+// totally up to the consumer. The FindUserDetails function is typically up to
+// the user, but we have some basic ones included in this package too.
 // The creation of users from the FindUserDetail's map[string]string return
 // is handled as part of the implementation of the OAuth2ServerStorer.
 package oauth2

@@ -1,0 +1,28 @@
+name: test
+on: [push, pull_request]
+
+jobs:
+  test:
+    name: test
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        go: [1.14.4]
+    steps:
+      - name: checkout
+        uses: actions/checkout@v2
+        with: { fetch-depth: 1 }
+
+      - name: go
+        uses: actions/setup-go@v1
+        with:
+          go-version: ${{matrix.go}}
+
+      - name: deps
+        run: go mod download
+        env: { GOPROXY: 'https://proxy.golang.org' }
+
+      - name: test
+        run: >
+          cd $GITHUB_WORKSPACE
+          && go test -v ./...

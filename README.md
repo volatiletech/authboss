@@ -110,9 +110,8 @@ or the best practice when implementing a piece of functionality. Please note the
 Of course the standard practice of fetching the library is just the beginning:
 
 ```bash
-# Get the latest, keep in mind you should be vendoring with dep or using vgo at this point
-# To ensure versions don't get messed up underneath you
-go get -u github.com/volatiletech/authboss
+# Get the latest, you must be using Go modules as of v3 of Authboss.
+go get -u github.com/volatiletech/authboss/v3
 ```
 
 Here's a bit of starter code that was stolen from the sample.

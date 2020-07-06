@@ -325,6 +325,7 @@ Confirm   | github.com/volatiletech/authboss/v3/confirm  | Prevents login before
 Expire    | github.com/volatiletech/authboss/v3/expire   | Expires a user's login
 Lock      | github.com/volatiletech/authboss/v3/lock     | Locks user accounts after authentication failures.
 Logout    | github.com/volatiletech/authboss/v3/logout   | Destroys user sessions for auth/oauth2.
+OAuth1    | github.com/stephenafamo/authboss-oauth1      | Provides oauth1 authentication for users.
 OAuth2    | github.com/volatiletech/authboss/v3/oauth2   | Provides oauth2 authentication for users.
 Recover   | github.com/volatiletech/authboss/v3/recover  | Allows for password resets via e-mail.
 Register  | github.com/volatiletech/authboss/v3/register | User-initiated account creation.
@@ -410,6 +411,41 @@ To enable this side-effect import the auth module, and ensure that the requireme
 It's very likely that you'd also want to enable the logout module in addition to this.
 
 Direct a user to `GET /login` to have them enter their credentials and log in.
+
+## User Auth via OAuth1
+
+| Info and Requirements |          |
+| --------------------- | -------- |
+Module        | oauth1
+Pages         | _None_
+Routes        | /oauth1/{provider}, /oauth1/callback/{provider}
+Emails        | _None_
+Middlewares   | [LoadClientStateMiddleware](https://pkg.go.dev/github.com/volatiletech/authboss/#Authboss.LoadClientStateMiddleware)
+ClientStorage | Session
+ServerStorer  | [OAuth1ServerStorer](https://pkg.go.dev/github.com/stephenafamo/authboss-oauth1?tab=doc#ServerStorer)
+User          | [OAuth1User](https://pkg.go.dev/github.com/stephenafamo/authboss-oauth1?tab=doc#User)
+Values        | _None_
+Mailer        | _None_
+
+This is a tougher implementation than most modules because there's a lot going on. In addition to the
+requirements stated above, you must also configure the `oauth1.Providers`. It's a public variable in the module.
+
+```go
+import oauth1 "github.com/stephenafamo/authboss-oauth1"
+
+oauth1.Providers = map[string]oauth1.Provider{}
+```
+
+The providers require an oauth1 configuration that's typical for the Go oauth1 package, but in addition
+to that they need a `FindUserDetails` method which has to take the token that's retrieved from the oauth1
+provider, and call an endpoint that retrieves details about the user (at LEAST user's uid).
+These parameters are returned in `map[string]string` form and passed into the `oauth1.ServerStorer`.
+
+Please see the following documentation for more details:
+
+* [Package docs for oauth1](https://pkg.go.dev/github.com/stephenafamo/authboss-oauth1)
+* [oauth1.Provider](https://pkg.go.dev/github.com/stephenafamo/authboss-oauth1?tab=doc#Provider)
+* [oauth1.ServerStorer](https://pkg.go.dev/github.com/stephenafamo/authboss-oauth1/#OAuth1ServerStorer)
 
 ## User Auth via OAuth2
 

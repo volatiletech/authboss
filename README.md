@@ -127,7 +127,7 @@ ab.Config.Paths.Mount = "/authboss"
 ab.Config.Paths.RootURL = "https://www.example.com/"
 
 // This is using the renderer from: github.com/volatiletech/authboss
-ab.Config.Core.ViewRenderer = abrenderer.New("/auth")
+ab.Config.Core.ViewRenderer = abrenderer.NewHTML("/auth", "ab_views")
 // Probably want a MailRenderer here too.
 
 

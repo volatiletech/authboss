@@ -130,8 +130,11 @@ ab.Config.Paths.RootURL = "https://www.example.com/"
 ab.Config.Core.ViewRenderer = abrenderer.New("/auth")
 // Probably want a MailRenderer here too.
 
-// Set up defaults for basically everything besides the ViewRenderer/MailRenderer in the HTTP stack
-defaults.SetCore(&ab.Config, false)
+
+// This instantiates and uses every default implementation
+// in the Config.Core area that exist in the defaults package.
+// Just a convenient helper if you don't want to do anything fancy.
+ defaults.SetCore(&ab.Config, false, false)
 
 if err := ab.Init(); err != nil {
     panic(err)

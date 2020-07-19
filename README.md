@@ -70,6 +70,7 @@ Here are a few bullet point reasons you might like to try it out:
     - [Get Current User](#get-current-user)
     - [Reset Password](#reset-password)
     - [User Auth via Password](#user-auth-via-password)
+    - [User Auth via OAuth1](#user-auth-via-oauth1)
     - [User Auth via OAuth2](#user-auth-via-oauth2)
     - [User Registration](#user-registration)
     - [Confirming Registrations](#confirming-registrations)

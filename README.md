@@ -160,7 +160,7 @@ in a different way already, so it punts the responsibility.
 
 ### CSRF Protection
 
-What this means is you should apply a middleware that can protect the application from crsf
+What this means is you should apply a middleware that can protect the application from csrf
 attacks or you may be vulnerable. Authboss previously handled this but it took on a dependency
 that was unnecessary and it complicated the code. Because Authboss does not render views nor
 consumes data directly from the user, it no longer does this.

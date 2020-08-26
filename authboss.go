@@ -186,6 +186,9 @@ func MountedMiddleware2(ab *Authboss, mountPathed bool, reqs MWRequirements, fai
 					if mountPathed && len(ab.Config.Paths.Mount) != 0 {
 						redirURL = path.Join(ab.Config.Paths.Mount, redirURL)
 					}
+					if len(r.URL.RawQuery) != 0 {
+						redirURL += "?" + r.URL.RawQuery
+					}
 					vals.Set(FormValueRedirect, redirURL)
 
 					ro := RedirectOptions{

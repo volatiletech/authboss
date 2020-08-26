@@ -59,7 +59,7 @@ func TestAuthbossMiddleware(t *testing.T) {
 		},
 	}
 
-	setupMore := func(mountPathed, redirect, allowHalfAuth, force2fa bool) (*httptest.ResponseRecorder, bool, bool) {
+	setupMore := func(mountPathed bool, requirements MWRequirements, failResponse MWRespondOnFailure) (*httptest.ResponseRecorder, bool, bool) {
 		r := httptest.NewRequest("GET", "/super/secret", nil)
 		rec := httptest.NewRecorder()
 		w := ab.NewResponse(rec)
@@ -72,9 +72,9 @@ func TestAuthbossMiddleware(t *testing.T) {
 
 		var mid func(http.Handler) http.Handler
 		if !mountPathed {
-			mid = Middleware(ab, redirect, allowHalfAuth, force2fa)
+			mid = Middleware2(ab, requirements, failResponse)
 		} else {
-			mid = MountedMiddleware(ab, true, redirect, allowHalfAuth, force2fa)
+			mid = MountedMiddleware2(ab, true, requirements, failResponse)
 		}
 		var called, hadUser bool
 		server := mid(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -93,7 +93,7 @@ func TestAuthbossMiddleware(t *testing.T) {
 			state: mockClientState{SessionKey: "test@test.com"},
 		}
 
-		_, called, hadUser := setupMore(false, false, false, false)
+		_, called, hadUser := setupMore(false, RequireNone, RespondNotFound)
 
 		if !called {
 			t.Error("should have been called")
@@ -107,7 +107,7 @@ func TestAuthbossMiddleware(t *testing.T) {
 			state: mockClientState{SessionKey: "test@test.com", SessionHalfAuthKey: "true"},
 		}
 
-		_, called, hadUser := setupMore(false, false, false, false)
+		_, called, hadUser := setupMore(false, RequireNone, RespondNotFound)
 
 		if !called {
 			t.Error("should have been called")
@@ -121,7 +121,7 @@ func TestAuthbossMiddleware(t *testing.T) {
 			state: mockClientState{SessionKey: "test@test.com", Session2FA: "sms"},
 		}
 
-		_, called, hadUser := setupMore(false, false, false, true)
+		_, called, hadUser := setupMore(false, Require2FA, RespondNotFound)
 
 		if !called {
 			t.Error("should have been called")
@@ -130,10 +130,10 @@ func TestAuthbossMiddleware(t *testing.T) {
 			t.Error("should have had user")
 		}
 	})
-	t.Run("Reject404", func(t *testing.T) {
+	t.Run("RejectNotFound", func(t *testing.T) {
 		ab.Storage.SessionState = mockClientStateReadWriter{}
 
-		rec, called, hadUser := setupMore(false, false, false, false)
+		rec, called, hadUser := setupMore(false, RequireNone, RespondNotFound)
 
 		if rec.Code != http.StatusNotFound {
 			t.Error("wrong code:", rec.Code)
@@ -145,29 +145,10 @@ func TestAuthbossMiddleware(t *testing.T) {
 			t.Error("should not have had user")
 		}
 	})
-	t.Run("Reject401", func(t *testing.T) {
+	t.Run("RejectUnauthorized", func(t *testing.T) {
 		ab.Storage.SessionState = mockClientStateReadWriter{}
 
-		r := httptest.NewRequest("GET", "/super/secret", nil)
-		rec := httptest.NewRecorder()
-		w := ab.NewResponse(rec)
-
-		var err error
-		r, err = ab.LoadClientState(w, r)
-		if err != nil {
-			t.Fatal(err)
-		}
-
-		var mid func(http.Handler) http.Handler
-		mid = Middleware2(ab, RequireNone, RespondUnauthorized)
-		var called, hadUser bool
-		server := mid(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			called = true
-			hadUser = r.Context().Value(CTXKeyUser) != nil
-			w.WriteHeader(http.StatusOK)
-		}))
-
-		server.ServeHTTP(w, r)
+		rec, called, hadUser := setupMore(false, RequireNone, RespondUnauthorized)
 
 		if rec.Code != http.StatusUnauthorized {
 			t.Error("wrong code:", rec.Code)
@@ -185,7 +166,7 @@ func TestAuthbossMiddleware(t *testing.T) {
 
 		ab.Storage.SessionState = mockClientStateReadWriter{}
 
-		_, called, hadUser := setupMore(false, true, false, false)
+		_, called, hadUser := setupMore(false, RequireNone, RespondRedirect)
 
 		if redir.Opts.Code != http.StatusTemporaryRedirect {
 			t.Error("code was wrong:", redir.Opts.Code)
@@ -206,7 +187,7 @@ func TestAuthbossMiddleware(t *testing.T) {
 
 		ab.Storage.SessionState = mockClientStateReadWriter{}
 
-		_, called, hadUser := setupMore(true, true, false, false)
+		_, called, hadUser := setupMore(true, RequireNone, RespondRedirect)
 
 		if redir.Opts.Code != http.StatusTemporaryRedirect {
 			t.Error("code was wrong:", redir.Opts.Code)
@@ -221,13 +202,12 @@ func TestAuthbossMiddleware(t *testing.T) {
 			t.Error("should not have had user")
 		}
 	})
-	t.Run("RejectHalfAuth", func(t *testing.T) {
+	t.Run("RequireFullAuth", func(t *testing.T) {
 		ab.Storage.SessionState = mockClientStateReadWriter{
 			state: mockClientState{SessionKey: "test@test.com", SessionHalfAuthKey: "true"},
 		}
 
-		rec, called, hadUser := setupMore(false, false, true, false)
-
+		rec, called, hadUser := setupMore(false, RequireFullAuth, RespondNotFound)
 		if rec.Code != http.StatusNotFound {
 			t.Error("wrong code:", rec.Code)
 		}
@@ -238,12 +218,12 @@ func TestAuthbossMiddleware(t *testing.T) {
 			t.Error("should not have had user")
 		}
 	})
-	t.Run("RejectNo2FA", func(t *testing.T) {
+	t.Run("Require2FA", func(t *testing.T) {
 		ab.Storage.SessionState = mockClientStateReadWriter{
 			state: mockClientState{SessionKey: "test@test.com"},
 		}
 
-		rec, called, hadUser := setupMore(false, false, true, true)
+		rec, called, hadUser := setupMore(false, Require2FA, RespondNotFound)
 
 		if rec.Code != http.StatusNotFound {
 			t.Error("wrong code:", rec.Code)

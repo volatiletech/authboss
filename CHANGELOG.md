@@ -3,6 +3,19 @@
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
+## [3.0.1] - 2020-08-25
+
+### Added
+
+- Add the ability to carry query string parameters in the redirection to and
+  away from the login page.
+
+## [3.0.0] - 2020-07-03
+
+### Added
+
+- Move to Go modules
+
 ## [2.4.1] - 2020-05-18
 
 ### Fixed

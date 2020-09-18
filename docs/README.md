@@ -5,6 +5,7 @@
 [![GoDoc](https://img.shields.io/badge/godoc-reference-5272B4)](https://pkg.go.dev/mod/github.com/volatiletech/authboss/v3)
 ![ActionsCI](https://github.com/volatiletech/authboss/workflows/test/badge.svg)
 [![Mail](https://img.shields.io/badge/mail%20list-authboss-lightgrey.svg)](https://groups.google.com/a/volatile.tech/forum/#!forum/authboss)
+![TestCoverage](https://img.shields.io/badge/Go%20Coverage-84.9%25-brightgreen.svg?longCache=true&style=flat)
 
 Authboss is a modular authentication system for the web.
 

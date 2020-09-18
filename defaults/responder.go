@@ -77,6 +77,10 @@ func (r *Redirector) Redirect(w http.ResponseWriter, req *http.Request, ro authb
 func (r Redirector) redirectAPI(w http.ResponseWriter, req *http.Request, ro authboss.RedirectOptions) error {
 	path := ro.RedirectPath
 	redir := req.FormValue(r.FormValueName)
+	if strings.Contains(redir, "://") {
+		// Guard against Open Redirect: https://cwe.mitre.org/data/definitions/601.html
+		redir = ""
+	}
 	if len(redir) != 0 && ro.FollowRedirParam {
 		path = redir
 	}

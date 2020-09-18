@@ -38,9 +38,9 @@ const (
 	// CookieRemember is used for cookies and form input names.
 	CookieRemember = "rm"
 
-	// FlashSuccessKey is used for storing sucess flash messages on the session
+	// FlashSuccessKey is used for storing success flash messages on the session
 	FlashSuccessKey = "flash_success"
-	// FlashErrorKey is used for storing sucess flash messages on the session
+	// FlashErrorKey is used for storing success flash messages on the session
 	FlashErrorKey = "flash_error"
 )
 

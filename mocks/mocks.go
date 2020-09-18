@@ -113,7 +113,7 @@ func (u User) GetTOTPSecretKey() string { return u.TOTPSecretKey }
 // GetSMSPhoneNumber from user
 func (u User) GetSMSPhoneNumber() string { return u.SMSPhoneNumber }
 
-// GetSMSPhoneNumber from user
+// GetSMSPhoneNumberSeed from user
 func (u User) GetSMSPhoneNumberSeed() string { return u.SMSPhoneNumberSeed }
 
 // GetRecoveryCodes from user

@@ -78,7 +78,7 @@ func init() {
 func (o *OAuth2) Init(ab *authboss.Authboss) error {
 	o.Authboss = ab
 
-	// Do annoying sorting on keys so we can have predictible
+	// Do annoying sorting on keys so we can have predictable
 	// route registration (both for consistency inside the router but
 	// also for tests -_-)
 	var keys []string

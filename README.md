@@ -39,6 +39,8 @@ Here are a few bullet point reasons you might like to try it out:
 * Saves you mistakes (at least using Authboss, people can bug fix as a collective and all benefit)
 * Should integrate with or without any web framework
 
+# [Click Here To Get Started]("TODO")
+
 # Readme Table of Contents
 <!-- TOC -->
 

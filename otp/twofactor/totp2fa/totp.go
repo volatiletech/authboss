@@ -353,7 +353,7 @@ func (t *TOTP) PostValidate(w http.ResponseWriter, r *http.Request) error {
 			return nil
 		}
 
-		logger.Infof("user %s totp 2fa failure (wrong code)", user.GetPID())
+		logger.Infof("login failed: user %s totp 2fa failure (wrong code)", user.GetPID())
 		data := authboss.HTMLData{
 			authboss.DataValidation: map[string][]string{FormValueCode: []string{"認証コードが無効です。"}},
 		}

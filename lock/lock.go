@@ -118,6 +118,10 @@ func (l *Lock) AfterAuthFail(w http.ResponseWriter, r *http.Request, handled boo
 		Failure:      "Your account has been locked, please contact the administrator.",
 		RedirectPath: l.Authboss.Config.Paths.LockNotOK,
 	}
+
+	logger := l.RequestLogger(r)
+	logger.Info("login failed: user has been locked")
+
 	return true, l.Authboss.Config.Core.Redirector.Redirect(w, r, ro)
 }
 

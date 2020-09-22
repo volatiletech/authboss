@@ -77,7 +77,7 @@ type Config struct {
 
 		// LockAfter this many tries.
 		LockAfter int
-		// LockWindow is the waiting time before the number of attemps are reset.
+		// LockWindow is the waiting time before the number of attempts are reset.
 		LockWindow time.Duration
 		// LockDuration is how long an account is locked for.
 		LockDuration time.Duration

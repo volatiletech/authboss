@@ -72,10 +72,10 @@ func TestErrorList_Map(t *testing.T) {
 
 	unknownErrs := m[""]
 	if len(unknownErrs) != 1 {
-		t.Error("Wrong number of unkown errors:", len(unknownErrs))
+		t.Error("Wrong number of unknown errors:", len(unknownErrs))
 	}
 	if unknownErrs[0] != errAsploded {
-		t.Error("Wrong unkown error at 0:", unknownErrs[0])
+		t.Error("Wrong unknown error at 0:", unknownErrs[0])
 	}
 }
 

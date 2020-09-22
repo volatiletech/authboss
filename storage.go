@@ -1,6 +1,6 @@
 package authboss
 
-// A concious decision was made to put all storer
+// A conscious decision was made to put all storer
 // and user types into this file despite them truly
 // belonging to outside modules. The reason for this
 // is because documentation-wise, it was previously

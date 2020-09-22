@@ -88,7 +88,7 @@ type ArbitraryUser interface {
 }
 
 // OAuth2User allows reading and writing values relating to OAuth2
-// Also see MakeOAuthPID/ParseOAuthPID for helpers to fullfill the User
+// Also see MakeOAuthPID/ParseOAuthPID for helpers to fulfill the User
 // part of the interface.
 type OAuth2User interface {
 	User

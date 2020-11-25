@@ -290,9 +290,10 @@ func (o *OAuth2) End(w http.ResponseWriter, r *http.Request) error {
 	}
 
 	ro := authboss.RedirectOptions{
-		Code:         http.StatusTemporaryRedirect,
-		RedirectPath: redirect,
-		Success:      fmt.Sprintf("Logged in successfully with %s.", strings.Title(provider)),
+		Code:             http.StatusTemporaryRedirect,
+		RedirectPath:     redirect,
+		FollowRedirParam: true,
+		Success:          fmt.Sprintf("Logged in successfully with %s.", strings.Title(provider)),
 	}
 	return o.Authboss.Config.Core.Redirector.Redirect(w, r, ro)
 }

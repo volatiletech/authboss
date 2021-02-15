@@ -3,6 +3,23 @@
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
+## [3.0.3] - 2021-02-14
+
+### Fixed
+
+- Fix that EventRecoverStart/EventRecoverEnd were not being called.
+
+### Changed
+
+- Change Remember module to listen to `After(EventRecoverEnd)` in order to
+  invoke its handler to delete the remember cookie & tokens. This previously
+  was not being called so it could be viewed as new behavior though this only
+  applies if you are using both `remember` and `recover` modules.
+
+### Deprecate
+
+- EventPasswordReset is used nowhere and is no longer intended to be used.
+
 ## [3.0.2] - 2020-09-17
 
 ### Fixed

@@ -27,6 +27,7 @@ const (
 	EventRecoverEnd
 	EventGetUser
 	EventGetUserSession
+	// Deprecated: EventPasswordReset is used nowhere
 	EventPasswordReset
 	EventLogout
 )

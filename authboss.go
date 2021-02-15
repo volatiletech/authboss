@@ -59,8 +59,11 @@ func (a *Authboss) Init(modulesToLoad ...string) error {
 // In addition to that, it also invalidates any remember me tokens, if the
 // storer supports that kind of operation.
 //
-// If it's also desirable to log the user out, use:
-// authboss.DelKnown(Session|Cookie)
+// Note that it's best practice after having called this method to also delete
+// all the user's logged in sessions. The CURRENT logged in session can be
+// deleted with `authboss.DelKnown(Session|Cookie)` but to delete ALL logged
+// in sessions for a user requires special mechanisms not currently provided
+// by authboss.
 func (a *Authboss) UpdatePassword(ctx context.Context, user AuthableUser, newPassword string) error {
 	pass, err := bcrypt.GenerateFromPassword([]byte(newPassword), a.Config.Modules.BCryptCost)
 	if err != nil {

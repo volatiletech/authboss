@@ -33,7 +33,7 @@ func (r *Remember) Init(ab *authboss.Authboss) error {
 
 	r.Events.After(authboss.EventAuth, r.RememberAfterAuth)
 	r.Events.After(authboss.EventOAuth2, r.RememberAfterAuth)
-	r.Events.After(authboss.EventPasswordReset, r.AfterPasswordReset)
+	r.Events.After(authboss.EventRecoverEnd, r.AfterPasswordReset)
 
 	return nil
 }

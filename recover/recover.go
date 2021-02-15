@@ -105,6 +105,14 @@ func (r *Recover) StartPost(w http.ResponseWriter, req *http.Request) error {
 
 	ru := authboss.MustBeRecoverable(user)
 
+	req = req.WithContext(context.WithValue(req.Context(), authboss.CTXKeyUser, user))
+	handled, err := r.Authboss.Events.FireBefore(authboss.EventRecoverStart, w, req)
+	if err != nil {
+		return err
+	} else if handled {
+		return nil
+	}
+
 	selector, verifier, token, err := GenerateRecoverCreds()
 	if err != nil {
 		return err
@@ -122,6 +130,11 @@ func (r *Recover) StartPost(w http.ResponseWriter, req *http.Request) error {
 		r.SendRecoverEmail(req.Context(), ru.GetEmail(), token)
 	} else {
 		go r.SendRecoverEmail(req.Context(), ru.GetEmail(), token)
+	}
+
+	_, err = r.Authboss.Events.FireAfter(authboss.EventRecoverStart, w, req)
+	if err != nil {
+		return err
 	}
 
 	logger.Infof("user %s password recovery initiated", ru.GetPID())
@@ -242,6 +255,14 @@ func (r *Recover) EndPost(w http.ResponseWriter, req *http.Request) error {
 		return r.invalidToken(PageRecoverEnd, w, req)
 	}
 
+	req = req.WithContext(context.WithValue(req.Context(), authboss.CTXKeyUser, user))
+	handled, err := r.Authboss.Events.FireBefore(authboss.EventRecoverEnd, w, req)
+	if err != nil {
+		return err
+	} else if handled {
+		return nil
+	}
+
 	pass, err := bcrypt.GenerateFromPassword([]byte(password), r.Authboss.Config.Modules.BCryptCost)
 	if err != nil {
 		return err
@@ -260,6 +281,11 @@ func (r *Recover) EndPost(w http.ResponseWriter, req *http.Request) error {
 	if r.Authboss.Config.Modules.RecoverLoginAfterRecovery {
 		authboss.PutSession(w, authboss.SessionKey, user.GetPID())
 		successMsg += " and logged in"
+	}
+
+	_, err = r.Authboss.Events.FireAfter(authboss.EventRecoverEnd, w, req)
+	if err != nil {
+		return err
 	}
 
 	ro := authboss.RedirectOptions{

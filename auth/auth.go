@@ -41,6 +41,8 @@ func (a *Auth) Init(ab *authboss.Authboss) (err error) {
 // LoginGet simply displays the login form
 func (a *Auth) LoginGet(w http.ResponseWriter, r *http.Request) error {
 	data := authboss.HTMLData{}
+	data["MicrosoftClientID"] = a.Config.Customized.MicrosoftClientID
+	data["GoogleClientID"] = a.Config.Customized.GoogleClientID
 	if redir := r.URL.Query().Get(authboss.FormValueRedirect); len(redir) != 0 {
 		data[authboss.FormValueRedirect] = redir
 	}
@@ -63,9 +65,15 @@ func (a *Auth) LoginPost(w http.ResponseWriter, r *http.Request) error {
 
 	pid := creds.GetPID()
 	pidUser, err := a.Authboss.Storage.Server.Load(r.Context(), pid)
+
+	errMessage := "ログイン情報を正しく入力してください。"
+	if a.Config.Customized.LoginFailedNotice != "" {
+		errMessage = a.Config.Customized.LoginFailedNotice
+	}
+
 	if err == authboss.ErrUserNotFound {
 		logger.Infof("login failed: failed to load user requested by pid: %s", pid)
-		data := authboss.HTMLData{authboss.DataErr: "ログイン情報を正しく入力してください。"}
+		data := authboss.HTMLData{authboss.DataErr: errMessage}
 		return a.Authboss.Core.Responder.Respond(w, r, http.StatusOK, PageLogin, data)
 	} else if err != nil {
 		return err
@@ -87,7 +95,7 @@ func (a *Auth) LoginPost(w http.ResponseWriter, r *http.Request) error {
 		}
 
 		logger.Infof("login failed: user %s failed to log in", pid)
-		data := authboss.HTMLData{authboss.DataErr: "ログイン情報を正しく入力してください。"}
+		data := authboss.HTMLData{authboss.DataErr: errMessage}
 		return a.Authboss.Core.Responder.Respond(w, r, http.StatusOK, PageLogin, data)
 	}
 

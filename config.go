@@ -9,6 +9,12 @@ import (
 
 // Config holds all the configuration for both authboss and it's modules.
 type Config struct {
+	Customized struct {
+		LoginFailedNotice string
+		MicrosoftClientID string
+		GoogleClientID    string
+	}
+
 	Paths struct {
 		// Mount is the path to mount authboss's routes at (eg /auth).
 		Mount string

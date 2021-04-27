@@ -221,6 +221,7 @@ func (t *TOTP) GetQRCode(w http.ResponseWriter, r *http.Request) error {
 		return errors.Wrap(err, "failed to encode qr code to png")
 	}
 
+	w.Header().Set("Cache-Control", "no-store")
 	w.Header().Set("Content-Type", "image/png")
 	w.WriteHeader(http.StatusOK)
 	_, err = io.Copy(w, buf)

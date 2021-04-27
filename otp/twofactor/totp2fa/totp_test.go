@@ -256,6 +256,9 @@ func TestGetQRCode(t *testing.T) {
 	if got := wr.Header().Get("Content-Type"); got != "image/png" {
 		t.Error("content type wrong:", got)
 	}
+	if got := wr.Header().Get("Cache-Control"); got != "no-store" {
+		t.Error("cache control header wrong:", got)
+	}
 	if wr.Body.Len() == 0 {
 		t.Error("body should have been sizable")
 	}

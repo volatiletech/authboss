@@ -3,6 +3,12 @@
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
+## [3.0.5] - 2021-05-18
+
+- Fix an open redirect security issue. This is technically a breaking change
+  if you are redirecting to some other site or front-end that's not on your
+  server.
+
 ## [3.0.4] - 2021-04-27
 
 ### Changed

@@ -509,9 +509,6 @@ func TestValidatorPostOk(t *testing.T) {
 		if !opts.FollowRedirParam {
 			t.Error("redir param is not set")
 		}
-		if opts.Success != "Successfully Authenticated" {
-			t.Error("should have had a success message")
-		}
 
 		if pid := h.session.ClientValues[authboss.SessionKey]; pid != user.Email {
 			t.Error("session pid should be set:", pid)

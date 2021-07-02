@@ -514,6 +514,30 @@ func TestPostValidate(t *testing.T) {
 		}
 	})
 
+	t.Run("ReusedCode", func(t *testing.T) {
+		h := testSetup()
+
+		r, w, _ := h.newHTTP("POST")
+		h.loadClientState(w, &r)
+
+		user := setupMore(h)
+		secret := makeSecretKey(h, user.Email)
+		user.TOTPSecretKey = secret
+		user.TOTPLastCode = "duplicate"
+		h.bodyReader.Return = mocks.Values{Code: "duplicate"}
+
+		if err := h.totp.PostValidate(w, r); err != nil {
+			t.Error(err)
+		}
+
+		if h.responder.Page != PageTOTPValidate {
+			t.Error("page wrong:", h.responder.Page)
+		}
+		if got := h.responder.Data[authboss.DataValidation].(map[string][]string); got[FormValueCode][0] != "2fa code was previously used" {
+			t.Error("data wrong:", got)
+		}
+	})
+
 	t.Run("OkRecovery", func(t *testing.T) {
 		h := testSetup()
 

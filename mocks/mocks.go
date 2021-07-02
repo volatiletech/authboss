@@ -36,6 +36,7 @@ type User struct {
 
 	OTPs           string
 	TOTPSecretKey  string
+	TOTPLastCode   string
 	SMSPhoneNumber string
 	RecoveryCodes  string
 
@@ -110,6 +111,9 @@ func (u User) GetOTPs() string { return u.OTPs }
 // GetTOTPSecretKey from user
 func (u User) GetTOTPSecretKey() string { return u.TOTPSecretKey }
 
+// GetTOTPLastCode from user
+func (u User) GetTOTPLastCode() string { return u.TOTPLastCode }
+
 // GetSMSPhoneNumber from user
 func (u User) GetSMSPhoneNumber() string { return u.SMSPhoneNumber }
 
@@ -183,6 +187,9 @@ func (u *User) PutOTPs(otps string) { u.OTPs = otps }
 
 // PutTOTPSecretKey into user
 func (u *User) PutTOTPSecretKey(key string) { u.TOTPSecretKey = key }
+
+// PutTOTPLastCode into user
+func (u *User) PutTOTPLastCode(key string) { u.TOTPLastCode = key }
 
 // PutSMSPhoneNumber into user
 func (u *User) PutSMSPhoneNumber(number string) { u.SMSPhoneNumber = number }

@@ -49,6 +49,13 @@ const (
 	DataTOTPSecret = SessionTOTPSecret
 )
 
+// validation constants
+const (
+	validationSuccess        = "success"
+	validationErrRepeatCode  = "2fa code was previously used"
+	validationErrInvalidCode = "2fa code was invalid"
+)
+
 var (
 	errNoTOTPEnabled = errors.New("user does not have totp 2fa enabled")
 )
@@ -59,6 +66,14 @@ type User interface {
 
 	GetTOTPSecretKey() string
 	PutTOTPSecretKey(string)
+}
+
+// UserOneTime allows totp codes to be one-time use only
+type UserOneTime interface {
+	User
+
+	GetTOTPLastCode() string
+	PutTOTPLastCode(string)
 }
 
 // TOTP implements time based one time passwords
@@ -282,6 +297,9 @@ func (t *TOTP) PostConfirm(w http.ResponseWriter, r *http.Request) error {
 	// Save the user which activates 2fa
 	user.PutTOTPSecretKey(totpSecret)
 	user.PutRecoveryCodes(twofactor.EncodeRecoveryCodes(crypted))
+	if oneTime, ok := user.(UserOneTime); ok {
+		oneTime.PutTOTPLastCode(inputCode)
+	}
 	if err = t.Authboss.Config.Storage.Server.Save(r.Context(), user); err != nil {
 		return err
 	}
@@ -303,16 +321,19 @@ func (t *TOTP) GetRemove(w http.ResponseWriter, r *http.Request) error {
 
 // PostRemove removes totp
 func (t *TOTP) PostRemove(w http.ResponseWriter, r *http.Request) error {
-	user, ok, err := t.validate(r)
+	logger := t.RequestLogger(r)
+
+	user, status, err := t.validate(r)
 	switch {
 	case err == errNoTOTPEnabled:
 		data := authboss.HTMLData{authboss.DataErr: "totp 2fa not active"}
 		return t.Authboss.Core.Responder.Respond(w, r, http.StatusOK, PageTOTPRemove, data)
 	case err != nil:
 		return err
-	case !ok:
+	case status != validationSuccess:
+		logger.Infof("user %s totp 2fa removal failure (%s)", user.GetPID(), status)
 		data := authboss.HTMLData{
-			authboss.DataValidation: map[string][]string{FormValueCode: {"2fa code was invalid"}},
+			authboss.DataValidation: map[string][]string{FormValueCode: {status}},
 		}
 		return t.Authboss.Core.Responder.Respond(w, r, http.StatusOK, PageTOTPRemove, data)
 	}
@@ -323,7 +344,6 @@ func (t *TOTP) PostRemove(w http.ResponseWriter, r *http.Request) error {
 		return err
 	}
 
-	logger := t.RequestLogger(r)
 	logger.Infof("user %s disabled totp 2fa", user.GetPID())
 
 	return t.Authboss.Core.Responder.Respond(w, r, http.StatusOK, PageTOTPRemoveSuccess, nil)
@@ -338,7 +358,7 @@ func (t *TOTP) GetValidate(w http.ResponseWriter, r *http.Request) error {
 func (t *TOTP) PostValidate(w http.ResponseWriter, r *http.Request) error {
 	logger := t.RequestLogger(r)
 
-	user, ok, err := t.validate(r)
+	user, status, err := t.validate(r)
 	switch {
 	case err == errNoTOTPEnabled:
 		logger.Infof("user %s totp failure (not enabled)", user.GetPID())
@@ -346,7 +366,7 @@ func (t *TOTP) PostValidate(w http.ResponseWriter, r *http.Request) error {
 		return t.Authboss.Core.Responder.Respond(w, r, http.StatusOK, PageTOTPValidate, data)
 	case err != nil:
 		return err
-	case !ok:
+	case status != validationSuccess:
 		r = r.WithContext(context.WithValue(r.Context(), authboss.CTXKeyUser, user))
 		handled, err := t.Authboss.Events.FireAfter(authboss.EventAuthFail, w, r)
 		if err != nil {
@@ -355,11 +375,20 @@ func (t *TOTP) PostValidate(w http.ResponseWriter, r *http.Request) error {
 			return nil
 		}
 
-		logger.Infof("user %s totp 2fa failure (wrong code)", user.GetPID())
+		logger.Infof("user %s totp 2fa failure (%s)", user.GetPID(), status)
 		data := authboss.HTMLData{
-			authboss.DataValidation: map[string][]string{FormValueCode: {"2fa code was invalid"}},
+			authboss.DataValidation: map[string][]string{FormValueCode: {status}},
 		}
 		return t.Authboss.Core.Responder.Respond(w, r, http.StatusOK, PageTOTPValidate, data)
+	}
+
+	// In the case where we care about re-using codes, validate will have set
+	// this and we need to preserve it. Normally there's no database hit
+	// required because we are only reading the secret and validating.
+	if _, ok := user.(UserOneTime); ok {
+		if err = t.Authboss.Config.Storage.Server.Save(r.Context(), user); err != nil {
+			return err
+		}
 	}
 
 	authboss.PutSession(w, authboss.SessionKey, user.GetPID())
@@ -387,7 +416,12 @@ func (t *TOTP) PostValidate(w http.ResponseWriter, r *http.Request) error {
 	return t.Authboss.Core.Redirector.Redirect(w, r, ro)
 }
 
-func (t *TOTP) validate(r *http.Request) (User, bool, error) {
+// validate returns the user, a string representing a validation status (see
+// validation* constants) and an error. The string return is completely invalid
+// if err != nil.
+//
+// validate will set the previously used code to the input
+func (t *TOTP) validate(r *http.Request) (User, string, error) {
 	logger := t.RequestLogger(r)
 
 	// Look up CurrentUser first, otherwise session persistence can allow
@@ -401,19 +435,19 @@ func (t *TOTP) validate(r *http.Request) (User, bool, error) {
 		}
 	}
 	if err != nil {
-		return nil, false, err
+		return nil, "", err
 	}
 
 	user := abUser.(User)
 
 	secret := user.GetTOTPSecretKey()
 	if len(secret) == 0 {
-		return user, false, errNoTOTPEnabled
+		return user, "", errNoTOTPEnabled
 	}
 
 	validator, err := t.Authboss.Config.Core.BodyReader.Read(PageTOTPValidate, r)
 	if err != nil {
-		return nil, false, err
+		return nil, "", err
 	}
 
 	totpCodeValues := MustHaveTOTPCodeValues(validator)
@@ -427,14 +461,26 @@ func (t *TOTP) validate(r *http.Request) (User, bool, error) {
 			logger.Infof("user %s used recovery code instead of sms2fa", user.GetPID())
 			user.PutRecoveryCodes(twofactor.EncodeRecoveryCodes(recoveryCodes))
 			if err := t.Authboss.Config.Storage.Server.Save(r.Context(), user); err != nil {
-				return nil, false, err
+				return nil, "", err
 			}
 		}
 
-		return user, ok, nil
+		return user, validationSuccess, nil
 	}
 
 	input := totpCodeValues.GetCode()
 
-	return user, totp.Validate(input, secret), nil
+	if oneTime, ok := user.(UserOneTime); ok {
+		oldCode := oneTime.GetTOTPLastCode()
+		if oldCode == input {
+			return user, validationErrRepeatCode, nil
+		}
+		oneTime.PutTOTPLastCode(input)
+	}
+
+	if !totp.Validate(input, secret) {
+		return user, validationErrInvalidCode, nil
+	}
+
+	return user, validationSuccess, nil
 }

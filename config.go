@@ -132,10 +132,9 @@ type Config struct {
 		// RecoverTokenDuration controls how long a token sent via
 		// email for password recovery is valid for.
 		RecoverTokenDuration time.Duration
-		// RecoverLoginAfterRecovery says for the recovery module after a
-		// user has successfully recovered the password, are they simply
-		// logged in, or are they redirected to the login page with an
-		// "updated password" message.
+		// RecoverLoginAfterRecovery if true will log users in after password
+		// recovery, if false they will be redirected and need to log in
+		// again manually.
 		RecoverLoginAfterRecovery bool
 
 		// OAuth2Providers lists all providers that can be used. See

@@ -432,6 +432,7 @@ func (s *SMSValidator) validateCode(w http.ResponseWriter, r *http.Request, user
 			return err
 		}
 
+		authboss.DelSession(w, authboss.Session2FAAuthed)
 		authboss.DelSession(w, SessionSMSSecret)
 		authboss.DelSession(w, SessionSMSNumber)
 
@@ -466,7 +467,6 @@ func (s *SMSValidator) validateCode(w http.ResponseWriter, r *http.Request, user
 
 		ro := authboss.RedirectOptions{
 			Code:             http.StatusTemporaryRedirect,
-			Success:          "Successfully Authenticated",
 			RedirectPath:     s.Authboss.Config.Paths.AuthLoginOK,
 			FollowRedirParam: true,
 		}

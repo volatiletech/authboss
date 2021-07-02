@@ -287,6 +287,7 @@ func (t *TOTP) PostConfirm(w http.ResponseWriter, r *http.Request) error {
 	}
 
 	authboss.DelSession(w, SessionTOTPSecret)
+	authboss.DelSession(w, authboss.Session2FAAuthed)
 
 	logger := t.RequestLogger(r)
 	logger.Infof("user %s enabled totp 2fa", user.GetPID())
@@ -380,7 +381,6 @@ func (t *TOTP) PostValidate(w http.ResponseWriter, r *http.Request) error {
 
 	ro := authboss.RedirectOptions{
 		Code:             http.StatusTemporaryRedirect,
-		Success:          "Successfully Authenticated",
 		RedirectPath:     t.Authboss.Config.Paths.AuthLoginOK,
 		FollowRedirParam: true,
 	}

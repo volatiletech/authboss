@@ -3,6 +3,27 @@
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
+## [3.1.0] - 2021-07-01
+
+### Added
+
+- Add an optional interface in totp2fa that when implemented on the authboss
+  User struct can prevent re-use of totp 2fa codes. This normally should have
+  been a requirement for this module's usage but due to backward compatibility
+  it's being added as optional and will become mandatory in the next major
+  version.
+
+### Changed
+
+- Change totp/sms email validation to delete the "email validation" session
+  key after successfully adding 2fa to an account. This requires a second
+  email verification in the same session if a user deletes and re-adds
+  2fa. This change is a behavior change but is not worthy of a larger version
+  bump and should slightly increase security.
+- Change "Successfully Authenticated" flash message when logging in with
+  totp/sms 2fa methods. This was a difference between logging in with the
+  auth module. It now has no flash message.
+
 ## [3.0.5] - 2021-05-18
 
 - Fix an open redirect security issue. This is technically a breaking change

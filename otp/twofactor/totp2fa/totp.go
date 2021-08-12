@@ -310,6 +310,13 @@ func (t *TOTP) PostConfirm(w http.ResponseWriter, r *http.Request) error {
 	logger := t.RequestLogger(r)
 	logger.Infof("user %s enabled totp 2fa", user.GetPID())
 
+	r = r.WithContext(context.WithValue(r.Context(), authboss.CTXKeyUser, user))
+	if handled, err := t.Authboss.Events.FireAfter(authboss.EventTwoFactorAdded, w, r); err != nil {
+		return err
+	} else if handled {
+		return nil
+	}
+
 	data := authboss.HTMLData{twofactor.DataRecoveryCodes: codes}
 	return t.Authboss.Core.Responder.Respond(w, r, http.StatusOK, PageTOTPConfirmSuccess, data)
 }
@@ -345,6 +352,13 @@ func (t *TOTP) PostRemove(w http.ResponseWriter, r *http.Request) error {
 	}
 
 	logger.Infof("user %s disabled totp 2fa", user.GetPID())
+
+	r = r.WithContext(context.WithValue(r.Context(), authboss.CTXKeyUser, user))
+	if handled, err := t.Authboss.Events.FireAfter(authboss.EventTwoFactorRemoved, w, r); err != nil {
+		return err
+	} else if handled {
+		return nil
+	}
 
 	return t.Authboss.Core.Responder.Respond(w, r, http.StatusOK, PageTOTPRemoveSuccess, nil)
 }

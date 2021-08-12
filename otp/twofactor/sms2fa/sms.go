@@ -438,6 +438,14 @@ func (s *SMSValidator) validateCode(w http.ResponseWriter, r *http.Request, user
 
 		logger.Infof("user %s enabled sms 2fa", user.GetPID())
 		data = authboss.HTMLData{twofactor.DataRecoveryCodes: codes}
+
+		r = r.WithContext(context.WithValue(r.Context(), authboss.CTXKeyUser, user))
+		if handled, err := s.Authboss.Events.FireAfter(authboss.EventTwoFactorAdded, w, r); err != nil {
+			return err
+		} else if handled {
+			return nil
+		}
+
 	case PageSMSRemove:
 		user.PutSMSPhoneNumber("")
 		if err := s.Authboss.Config.Storage.Server.Save(r.Context(), user); err != nil {
@@ -445,6 +453,13 @@ func (s *SMSValidator) validateCode(w http.ResponseWriter, r *http.Request, user
 		}
 
 		authboss.DelSession(w, authboss.Session2FA)
+
+		r = r.WithContext(context.WithValue(r.Context(), authboss.CTXKeyUser, user))
+		if handled, err := s.Authboss.Events.FireAfter(authboss.EventTwoFactorRemoved, w, r); err != nil {
+			return err
+		} else if handled {
+			return nil
+		}
 
 		logger.Infof("user %s disabled sms 2fa", user.GetPID())
 	case PageSMSValidate:

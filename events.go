@@ -30,6 +30,8 @@ const (
 	// Deprecated: EventPasswordReset is used nowhere
 	EventPasswordReset
 	EventLogout
+	EventTwoFactorAdded
+	EventTwoFactorRemoved
 )
 
 // EventHandler reacts to events that are fired by Authboss controllers.

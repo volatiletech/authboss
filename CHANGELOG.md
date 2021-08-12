@@ -3,6 +3,13 @@
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
+## [3.2.0] - 2021-08-11
+
+### Added
+
+- Add additional events so users can take domain-specific actions when a user
+  adds or removes 2fa.
+
 ## [3.1.1] - 2021-07-01
 
 ### Fixed

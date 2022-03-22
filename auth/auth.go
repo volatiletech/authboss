@@ -52,6 +52,11 @@ func (a *Auth) LoginGet(w http.ResponseWriter, r *http.Request) error {
 // LoginPost attempts to validate the credentials passed in
 // to log in a user.
 func (a *Auth) LoginPost(w http.ResponseWriter, r *http.Request) error {
+	data := authboss.HTMLData{
+		"MicrosoftClientID": a.Config.Customized.MicrosoftClientID,
+		"GoogleClientID":    a.Config.Customized.GoogleClientID,
+	}
+
 	logger := a.RequestLogger(r)
 
 	validatable, err := a.Authboss.Core.BodyReader.Read(PageLogin, r)
@@ -73,7 +78,7 @@ func (a *Auth) LoginPost(w http.ResponseWriter, r *http.Request) error {
 
 	if err == authboss.ErrUserNotFound {
 		logger.Infof("login failed: failed to load user requested by pid: %s", pid)
-		data := authboss.HTMLData{authboss.DataErr: errMessage}
+		data[authboss.DataErr] = errMessage
 		return a.Authboss.Core.Responder.Respond(w, r, http.StatusOK, PageLogin, data)
 	} else if err != nil {
 		return err
@@ -95,7 +100,7 @@ func (a *Auth) LoginPost(w http.ResponseWriter, r *http.Request) error {
 		}
 
 		logger.Infof("login failed: user %s failed to log in", pid)
-		data := authboss.HTMLData{authboss.DataErr: errMessage}
+		data[authboss.DataErr] = errMessage
 		return a.Authboss.Core.Responder.Respond(w, r, http.StatusOK, PageLogin, data)
 	}
 

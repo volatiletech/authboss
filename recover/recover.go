@@ -16,7 +16,6 @@ import (
 	"time"
 
 	"github.com/volatiletech/authboss/v3"
-	"golang.org/x/crypto/bcrypt"
 )
 
 // Constants for templates etc.
@@ -263,12 +262,12 @@ func (r *Recover) EndPost(w http.ResponseWriter, req *http.Request) error {
 		return nil
 	}
 
-	pass, err := bcrypt.GenerateFromPassword([]byte(password), r.Authboss.Config.Modules.BCryptCost)
+	pass, err := r.Authboss.Config.Core.Hasher.GenerateHash(password)
 	if err != nil {
 		return err
 	}
 
-	user.PutPassword(string(pass))
+	user.PutPassword(pass)
 	user.PutRecoverSelector("")             // Don't allow another recovery
 	user.PutRecoverVerifier("")             // Don't allow another recovery
 	user.PutRecoverExpiry(time.Now().UTC()) // Put current time for those DBs that can't handle 0 time

@@ -9,7 +9,6 @@ import (
 	"github.com/friendsofgo/errors"
 
 	"github.com/volatiletech/authboss/v3"
-	"golang.org/x/crypto/bcrypt"
 )
 
 // Pages
@@ -92,13 +91,13 @@ func (r *Register) Post(w http.ResponseWriter, req *http.Request) error {
 	storer := authboss.EnsureCanCreate(r.Config.Storage.Server)
 	user := authboss.MustBeAuthable(storer.New(req.Context()))
 
-	pass, err := bcrypt.GenerateFromPassword([]byte(password), r.Config.Modules.BCryptCost)
+	pass, err := r.Authboss.Config.Core.Hasher.GenerateHash(password)
 	if err != nil {
 		return err
 	}
 
 	user.PutPID(pid)
-	user.PutPassword(string(pass))
+	user.PutPassword(pass)
 
 	if arbUser, ok := user.(authboss.ArbitraryUser); ok && arbitrary != nil {
 		arbUser.PutArbitrary(arbitrary)

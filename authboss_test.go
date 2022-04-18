@@ -25,6 +25,7 @@ func TestAuthbossUpdatePassword(t *testing.T) {
 
 	ab := New()
 	ab.Config.Storage.Server = storer
+	ab.Config.Core.Hasher = mockHasher{}
 
 	if err := ab.UpdatePassword(context.Background(), user, "hello world"); err != nil {
 		t.Error(err)

@@ -5,6 +5,7 @@ import (
 	"crypto/sha512"
 	"encoding/base64"
 	"errors"
+	"github.com/volatiletech/authboss/v3/defaults"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -85,6 +86,7 @@ func testSetup() *testHarness {
 
 	harness.ab.Config.Core.BodyReader = harness.bodyReader
 	harness.ab.Config.Core.Logger = mocks.Logger{}
+	harness.ab.Config.Core.Hasher = defaults.NewBCryptHasher(harness.ab.Config.Modules.BCryptCost)
 	harness.ab.Config.Core.Mailer = harness.mailer
 	harness.ab.Config.Core.Redirector = harness.redirector
 	harness.ab.Config.Core.MailRenderer = harness.renderer

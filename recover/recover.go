@@ -3,13 +3,10 @@ package recover
 
 import (
 	"context"
-	"crypto/rand"
-	"crypto/sha512"
 	"crypto/subtle"
 	"encoding/base64"
 	"errors"
 	"fmt"
-	"io"
 	"net/http"
 	"net/url"
 	"path"
@@ -33,9 +30,6 @@ const (
 	PageRecoverEnd    = "recover_end"
 
 	recoverInitiateSuccessFlash = "An email has been sent to you with further instructions on how to reset your password."
-
-	recoverTokenSize  = 64
-	recoverTokenSplit = recoverTokenSize / 2
 )
 
 func init() {
@@ -112,7 +106,7 @@ func (r *Recover) StartPost(w http.ResponseWriter, req *http.Request) error {
 		return nil
 	}
 
-	selector, verifier, token, err := GenerateRecoverCreds()
+	selector, verifier, token, err := r.Authboss.Config.Core.CredsGenerator.GenerateCreds()
 	if err != nil {
 		return err
 	}
@@ -227,13 +221,14 @@ func (r *Recover) EndPost(w http.ResponseWriter, req *http.Request) error {
 		return r.invalidToken(PageRecoverEnd, w, req)
 	}
 
-	if len(rawToken) != recoverTokenSize {
+	credsGenerator := r.Authboss.Core.CredsGenerator
+
+	if len(rawToken) != credsGenerator.TokenSize() {
 		logger.Infof("invalid recover token submitted, size was wrong: %d", len(rawToken))
 		return r.invalidToken(PageRecoverEnd, w, req)
 	}
 
-	selectorBytes := sha512.Sum512(rawToken[:recoverTokenSplit])
-	verifierBytes := sha512.Sum512(rawToken[recoverTokenSplit:])
+	selectorBytes, verifierBytes := credsGenerator.ParseToken(string(rawToken))
 	selector := base64.StdEncoding.EncodeToString(selectorBytes[:])
 
 	storer := authboss.EnsureCanRecover(r.Authboss.Config.Storage.Server)
@@ -339,24 +334,4 @@ func (r *Recover) mailURL(token string) string {
 
 	p := path.Join(r.Config.Paths.Mount, "recover/end")
 	return fmt.Sprintf("%s%s?%s", r.Config.Paths.RootURL, p, query.Encode())
-}
-
-// GenerateRecoverCreds generates pieces needed for user recovery
-// selector: hash of the first half of a 64 byte value
-// (to be stored in the database and used in SELECT query)
-// verifier: hash of the second half of a 64 byte value
-// (to be stored in database but never used in SELECT query)
-// token: the user-facing base64 encoded selector+verifier
-func GenerateRecoverCreds() (selector, verifier, token string, err error) {
-	rawToken := make([]byte, recoverTokenSize)
-	if _, err = io.ReadFull(rand.Reader, rawToken); err != nil {
-		return "", "", "", err
-	}
-	selectorBytes := sha512.Sum512(rawToken[:recoverTokenSplit])
-	verifierBytes := sha512.Sum512(rawToken[recoverTokenSplit:])
-
-	return base64.StdEncoding.EncodeToString(selectorBytes[:]),
-		base64.StdEncoding.EncodeToString(verifierBytes[:]),
-		base64.URLEncoding.EncodeToString(rawToken),
-		nil
 }

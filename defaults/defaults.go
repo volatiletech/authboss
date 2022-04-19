@@ -26,5 +26,6 @@ func SetCore(config *authboss.Config, readJSON, useUsername bool) {
 	config.Core.BodyReader = NewHTTPBodyReader(readJSON, useUsername)
 	config.Core.Mailer = NewLogMailer(os.Stdout)
 	config.Core.Hasher = NewBCryptHasher(config.Modules.BCryptCost)
+	config.Core.CredsGenerator = NewSha512CredsGenerator()
 	config.Core.Logger = logger
 }

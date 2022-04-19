@@ -444,7 +444,7 @@ func TestGenerateRecoverCreds(t *testing.T) {
 
 	selector, verifier, token, err := credsGenerator.GenerateCreds()
 	if err != nil {
-		t.Fatal(err)
+		t.Error(err)
 	}
 	recoverTokenSplit := credsGenerator.TokenSize() / 2
 

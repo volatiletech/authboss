@@ -36,4 +36,10 @@ func TestSetCore(t *testing.T) {
 	if config.Core.Logger == nil {
 		t.Error("logger should be set")
 	}
+	if config.Core.Hasher == nil {
+		t.Error("hasher should be set")
+	}
+	if config.Core.CredsGenerator == nil {
+		t.Error("creds-generator should be set")
+	}
 }

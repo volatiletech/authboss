@@ -3,12 +3,9 @@ package confirm
 
 import (
 	"context"
-	"crypto/rand"
-	"crypto/sha512"
 	"crypto/subtle"
 	"encoding/base64"
 	"fmt"
-	"io"
 	"net/http"
 	"net/url"
 	"path"
@@ -33,9 +30,6 @@ const (
 	// DataConfirmURL is the name of the e-mail template variable
 	// that gives the url to send to the user for confirmation.
 	DataConfirmURL = "url"
-
-	confirmTokenSize  = 64
-	confirmTokenSplit = confirmTokenSize / 2
 )
 
 func init() {
@@ -128,7 +122,7 @@ func (c *Confirm) StartConfirmationWeb(w http.ResponseWriter, r *http.Request, h
 func (c *Confirm) StartConfirmation(ctx context.Context, user authboss.ConfirmableUser, sendEmail bool) error {
 	logger := c.Authboss.Logger(ctx)
 
-	selector, verifier, token, err := GenerateConfirmCreds()
+	selector, verifier, token, err := c.Authboss.Core.CredsGenerator.GenerateCreds()
 	if err != nil {
 		return err
 	}
@@ -198,13 +192,14 @@ func (c *Confirm) Get(w http.ResponseWriter, r *http.Request) error {
 		return c.invalidToken(w, r)
 	}
 
-	if len(rawToken) != confirmTokenSize {
+	credsGenerator := c.Authboss.Core.CredsGenerator
+
+	if len(rawToken) != credsGenerator.TokenSize() {
 		logger.Infof("invalid confirm token submitted, size was wrong: %d", len(rawToken))
 		return c.invalidToken(w, r)
 	}
 
-	selectorBytes := sha512.Sum512(rawToken[:confirmTokenSplit])
-	verifierBytes := sha512.Sum512(rawToken[confirmTokenSplit:])
+	selectorBytes, verifierBytes := credsGenerator.ParseToken(string(rawToken))
 	selector := base64.StdEncoding.EncodeToString(selectorBytes[:])
 
 	storer := authboss.EnsureCanConfirm(c.Authboss.Config.Storage.Server)
@@ -295,24 +290,4 @@ func Middleware(ab *authboss.Authboss) func(http.Handler) http.Handler {
 			}
 		})
 	}
-}
-
-// GenerateConfirmCreds generates pieces needed for user confirm
-// selector: hash of the first half of a 64 byte value
-// (to be stored in the database and used in SELECT query)
-// verifier: hash of the second half of a 64 byte value
-// (to be stored in database but never used in SELECT query)
-// token: the user-facing base64 encoded selector+verifier
-func GenerateConfirmCreds() (selector, verifier, token string, err error) {
-	rawToken := make([]byte, confirmTokenSize)
-	if _, err = io.ReadFull(rand.Reader, rawToken); err != nil {
-		return "", "", "", err
-	}
-	selectorBytes := sha512.Sum512(rawToken[:confirmTokenSplit])
-	verifierBytes := sha512.Sum512(rawToken[confirmTokenSplit:])
-
-	return base64.StdEncoding.EncodeToString(selectorBytes[:]),
-		base64.StdEncoding.EncodeToString(verifierBytes[:]),
-		base64.URLEncoding.EncodeToString(rawToken),
-		nil
 }

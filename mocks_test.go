@@ -225,3 +225,7 @@ func (m mockHasher) GenerateHash(s string) (string, error) {
 
 	return string(hash), nil
 }
+
+func (m mockHasher) CompareHashAndPassword(hashedPassword, password string) error {
+	return bcrypt.CompareHashAndPassword([]byte(hashedPassword), []byte(password))
+}

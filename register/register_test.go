@@ -5,8 +5,6 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"golang.org/x/crypto/bcrypt"
-
 	"github.com/friendsofgo/errors"
 	"github.com/volatiletech/authboss/v3"
 	"github.com/volatiletech/authboss/v3/defaults"
@@ -132,7 +130,7 @@ func TestRegisterPostSuccess(t *testing.T) {
 		if !ok {
 			t.Error("user was not persisted in the DB")
 		}
-		if err := bcrypt.CompareHashAndPassword([]byte(user.Password), []byte("hello world")); err != nil {
+		if err := h.ab.Config.Core.Hasher.CompareHashAndPassword(user.Password, "hello world"); err != nil {
 			t.Error("password was not properly encrypted:", err)
 		}
 
@@ -175,7 +173,7 @@ func TestRegisterPostSuccess(t *testing.T) {
 		if !ok {
 			t.Error("user was not persisted in the DB")
 		}
-		if err := bcrypt.CompareHashAndPassword([]byte(user.Password), []byte("hello world")); err != nil {
+		if err := h.ab.Config.Core.Hasher.CompareHashAndPassword(user.Password, "hello world"); err != nil {
 			t.Error("password was not properly encrypted:", err)
 		}
 

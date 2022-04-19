@@ -91,6 +91,7 @@ func testSetup() *testHarness {
 
 	harness.ab.Config.Core.BodyReader = harness.bodyReader
 	harness.ab.Config.Core.Logger = mocks.Logger{}
+	harness.ab.Config.Core.Hasher = mocks.Hasher{}
 	harness.ab.Config.Core.Responder = harness.responder
 	harness.ab.Config.Core.Redirector = harness.redirector
 	harness.ab.Config.Storage.SessionState = harness.session

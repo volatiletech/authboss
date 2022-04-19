@@ -89,6 +89,9 @@ func (a *Authboss) UpdatePassword(ctx context.Context, user AuthableUser, newPas
 // Returns nil on success otherwise there will be an error. Simply a helper
 // to do the bcrypt comparison.
 func VerifyPassword(user AuthableUser, password string) error {
+	// TODO: function can be used ONLY if no custom hasher was configured in global ab.config
+	//       function should be either deprecated, or he we should have access to global ab's config
+	//       (also, we can't use defaults.NewBcryptHasher, because it will be cyclic dep)
 	return bcrypt.CompareHashAndPassword([]byte(user.GetPassword()), []byte(password))
 }
 

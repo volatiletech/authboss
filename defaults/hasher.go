@@ -18,3 +18,7 @@ func (h *BCryptHasher) GenerateHash(raw string) (string, error) {
 
 	return string(hash), nil
 }
+
+func (h *BCryptHasher) CompareHashAndPassword(hashedPassword, password string) error {
+	return bcrypt.CompareHashAndPassword([]byte(hashedPassword), []byte(password))
+}

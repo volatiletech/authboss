@@ -3,6 +3,7 @@ package mocks
 
 import (
 	"context"
+	"golang.org/x/crypto/bcrypt"
 	"io"
 	"net/http"
 	"net/url"
@@ -750,4 +751,20 @@ func (e *ErrorHandler) Wrap(handler func(w http.ResponseWriter, r *http.Request)
 			e.Error = err
 		}
 	})
+}
+
+// Hasher is actually just a normal bcrypt hasher
+type Hasher struct{}
+
+func (m Hasher) GenerateHash(s string) (string, error) {
+	hash, err := bcrypt.GenerateFromPassword([]byte(s), bcrypt.DefaultCost)
+	if err != nil {
+		return "", err
+	}
+
+	return string(hash), nil
+}
+
+func (m Hasher) CompareHashAndPassword(hashedPassword, password string) error {
+	return bcrypt.CompareHashAndPassword([]byte(hashedPassword), []byte(password))
 }

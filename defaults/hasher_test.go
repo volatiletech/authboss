@@ -26,4 +26,12 @@ func TestHasher(t *testing.T) {
 	if !strings.HasPrefix(hash, "$2a$10$") {
 		t.Error("hash was wrong", hash)
 	}
+
+	if err := hasher.CompareHashAndPassword(hash, "qwerty"); err != nil {
+		t.Error("compare-hash-and-password for valid password must be ok", err)
+	}
+
+	if err := hasher.CompareHashAndPassword(hash, "qwerty-invalid"); err == nil {
+		t.Error("compare-hash-and-password for invalid password must fail")
+	}
 }

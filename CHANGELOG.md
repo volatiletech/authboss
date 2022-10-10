@@ -3,6 +3,25 @@
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
+## [3.2.1] - 2022-10-10
+
+### Security
+
+- Change it such that events are fired around recovery. Some important events
+  were not occurring despite being logged in that would manage state like
+  remember cookies, locking state, etc.
+
+  A significant side effect of this is that when 2fa is currently turned on on
+  an account, it could be bypassed by using the Recover functionality with the
+  `RecoverLoginAfterRecovery` feature which was not otherwise flagged as a
+  dangerous option.
+
+  While it is true that recover uses an email to invoke the flow and therefore
+  some second factor has been utilizied, it should be considered insecure to
+  bypass an authenticator or sms verification for any login and therefore
+  this large change in behavior is being shipped as a security fix (meaning it
+  becomes a minor change).
+
 ## [3.2.0] - 2021-08-11
 
 ### Added

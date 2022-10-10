@@ -276,6 +276,36 @@ func TestEndPostSuccessLogin(t *testing.T) {
 		RecoverTokenExpiry: time.Now().UTC().AddDate(0, 0, 1),
 	}
 
+	callbacks := 0
+	h.ab.Events.After(authboss.EventRecoverEnd, func(w http.ResponseWriter, r *http.Request, handled bool) (bool, error) {
+		if callbacks != 0 {
+			t.Error("after recover end was not called 1st")
+		}
+		callbacks += 1
+		return false, nil
+	})
+	h.ab.Events.Before(authboss.EventAuth, func(w http.ResponseWriter, r *http.Request, handled bool) (bool, error) {
+		if callbacks != 1 {
+			t.Error("before auth was not called 2nd")
+		}
+		callbacks += 1
+		return false, nil
+	})
+	h.ab.Events.Before(authboss.EventAuthHijack, func(w http.ResponseWriter, r *http.Request, handled bool) (bool, error) {
+		if callbacks != 2 {
+			t.Error("before auth hijack was not called 3rd")
+		}
+		callbacks += 1
+		return false, nil
+	})
+	h.ab.Events.After(authboss.EventAuth, func(w http.ResponseWriter, r *http.Request, handled bool) (bool, error) {
+		if callbacks != 3 {
+			t.Error("after auth was not called 4th")
+		}
+		callbacks += 1
+		return false, nil
+	})
+
 	r := mocks.Request("POST")
 	w := httptest.NewRecorder()
 
@@ -294,6 +324,9 @@ func TestEndPostSuccessLogin(t *testing.T) {
 	}
 	if !strings.Contains(h.redirector.Options.Success, "logged in") {
 		t.Error("should talk about logging in")
+	}
+	if callbacks != 4 {
+		t.Error("all 4 callbacks were not called")
 	}
 }
 

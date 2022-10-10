@@ -278,14 +278,35 @@ func (r *Recover) EndPost(w http.ResponseWriter, req *http.Request) error {
 	}
 
 	successMsg := "Successfully updated password"
-	if r.Authboss.Config.Modules.RecoverLoginAfterRecovery {
-		authboss.PutSession(w, authboss.SessionKey, user.GetPID())
-		successMsg += " and logged in"
-	}
-
 	_, err = r.Authboss.Events.FireAfter(authboss.EventRecoverEnd, w, req)
 	if err != nil {
 		return err
+	}
+
+	if r.Authboss.Config.Modules.RecoverLoginAfterRecovery {
+		handled, err = r.Events.FireBefore(authboss.EventAuth, w, req)
+		if err != nil {
+			return err
+		} else if handled {
+			return nil
+		}
+
+		handled, err = r.Events.FireBefore(authboss.EventAuthHijack, w, req)
+		if err != nil {
+			return err
+		} else if handled {
+			return nil
+		}
+
+		authboss.PutSession(w, authboss.SessionKey, user.GetPID())
+		successMsg += " and logged in"
+
+		handled, err = r.Authboss.Events.FireAfter(authboss.EventAuth, w, req)
+		if err != nil {
+			return err
+		} else if handled {
+			return nil
+		}
 	}
 
 	ro := authboss.RedirectOptions{

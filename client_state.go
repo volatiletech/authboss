@@ -231,6 +231,11 @@ func (c *ClientStateResponseWriter) UnderlyingResponseWriter() http.ResponseWrit
 	return c.ResponseWriter
 }
 
+// Unwrap is used by http.ResponseController in Go 1.20
+func (c *ClientStateResponseWriter) Unwrap() http.ResponseWriter {
+	return c.ResponseWriter
+}
+
 func (c *ClientStateResponseWriter) putClientState() error {
 	if c.hasWritten {
 		panic("should not call putClientState twice")

@@ -118,6 +118,8 @@ func (r *Recover) StartPost(w http.ResponseWriter, req *http.Request) error {
 		return err
 	}
 
+	ruWithSecondaries, hasSecondaryEmails := authboss.CanBeRecoverableUserWithSecondaryEmails(user)
+
 	ru.PutRecoverSelector(selector)
 	ru.PutRecoverVerifier(verifier)
 	ru.PutRecoverExpiry(time.Now().UTC().Add(r.Config.Modules.RecoverTokenDuration))
@@ -126,10 +128,16 @@ func (r *Recover) StartPost(w http.ResponseWriter, req *http.Request) error {
 		return err
 	}
 
+	recoveryEmailRecipients := []string{ru.GetEmail()}
+
+	if hasSecondaryEmails {
+		recoveryEmailRecipients = append(recoveryEmailRecipients, ruWithSecondaries.GetSecondaryEmails()...)
+	}
+
 	if r.Authboss.Modules.MailNoGoroutine {
-		r.SendRecoverEmail(req.Context(), ru.GetEmail(), token)
+		r.SendRecoverEmail(req.Context(), recoveryEmailRecipients, token)
 	} else {
-		go r.SendRecoverEmail(req.Context(), ru.GetEmail(), token)
+		go r.SendRecoverEmail(req.Context(), recoveryEmailRecipients, token)
 	}
 
 	_, err = r.Authboss.Events.FireAfter(authboss.EventRecoverStart, w, req)
@@ -148,13 +156,13 @@ func (r *Recover) StartPost(w http.ResponseWriter, req *http.Request) error {
 
 // SendRecoverEmail to a specific e-mail address passing along the encodedToken
 // in an escaped URL to the templates.
-func (r *Recover) SendRecoverEmail(ctx context.Context, to, encodedToken string) {
+func (r *Recover) SendRecoverEmail(ctx context.Context, to []string, encodedToken string) {
 	logger := r.Authboss.Logger(ctx)
 
 	mailURL := r.mailURL(encodedToken)
 
 	email := authboss.Email{
-		To:       []string{to},
+		To:       to,
 		From:     r.Authboss.Config.Mail.From,
 		FromName: r.Authboss.Config.Mail.FromName,
 		Subject:  r.Authboss.Config.Mail.SubjectPrefix + "Password Reset",

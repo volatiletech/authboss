@@ -597,6 +597,34 @@ func TestPostValidate(t *testing.T) {
 			t.Error("path wrong:", opts.RedirectPath)
 		}
 	})
+
+	t.Run("InvalidRecovery", func(t *testing.T) {
+		h := testSetup()
+
+		r, w, _ := h.newHTTP("POST")
+		user := setupMore(h)
+		secret := makeSecretKey(h, user.Email)
+		user.TOTPSecretKey = secret
+
+		// User inputs invalid recovery code
+		h.bodyReader.Return = mocks.Values{Recovery: "INVALID"}
+
+		h.setSession(SessionTOTPPendingPID, user.Email)
+		h.setSession(SessionTOTPSecret, "secret")
+		h.setSession(authboss.SessionHalfAuthKey, "true")
+		h.loadClientState(w, &r)
+
+		if err := h.totp.PostValidate(w, r); err != nil {
+			t.Error(err)
+		}
+
+		// Flush client state
+		w.WriteHeader(http.StatusOK)
+
+		if got := h.responder.Data[authboss.DataValidation].(map[string][]string); got[FormValueCode][0] != "2fa code was invalid" {
+			t.Error("data wrong:", got)
+		}
+	})
 }
 
 func makeSecretKey(h *testHarness, email string) string {

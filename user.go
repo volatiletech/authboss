@@ -73,6 +73,12 @@ type RecoverableUser interface {
 	PutRecoverExpiry(expiry time.Time)
 }
 
+type RecoverableUserWithSecondaryEmails interface {
+	RecoverableUser
+
+	GetSecondaryEmails() (secondaryEmails []string)
+}
+
 // ArbitraryUser allows arbitrary data from the web form through. You should
 // definitely only pull the keys you want from the map, since this is unfiltered
 // input from a web request and is an attack vector.
@@ -140,6 +146,13 @@ func MustBeRecoverable(u User) RecoverableUser {
 		return lu
 	}
 	panic(fmt.Sprintf("could not upgrade user to a recoverable user, given type: %T", u))
+}
+
+func CanBeRecoverableUserWithSecondaryEmails(u User) (RecoverableUserWithSecondaryEmails, bool) {
+	if lu, ok := u.(RecoverableUserWithSecondaryEmails); ok {
+		return lu, true
+	}
+	return nil, false
 }
 
 // MustBeOAuthable forces an upgrade to an OAuth2User or panic.

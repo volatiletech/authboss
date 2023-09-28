@@ -525,6 +525,33 @@ func TestValidatorPostOk(t *testing.T) {
 		}
 	})
 
+	t.Run("InvalidRecovery", func(t *testing.T) {
+		h := testSetup()
+		r, w, _ := h.newHTTP("POST")
+		v := &SMSValidator{SMS: h.sms, Page: PageSMSValidate}
+
+		user := &mocks.User{Email: "test@test.com", SMSPhoneNumber: "number"}
+		h.storer.Users[user.Email] = user
+		h.setSession(authboss.SessionKey, user.Email)
+
+		h.setSession(SessionSMSSecret, "code-user-never-got")
+		h.bodyReader.Return = mocks.Values{Recovery: "INVALID"}
+
+		h.loadClientState(w, &r)
+
+		if err := v.Post(w, r); err != nil {
+			t.Fatal(err)
+		}
+
+		// Flush client state
+		w.WriteHeader(http.StatusOK)
+
+		validation := h.responder.Data[authboss.DataValidation].(map[string][]string)
+		if got := validation[FormValueCode][0]; got != "2fa code was invalid" {
+			t.Error("data wrong:", got)
+		}
+	})
+
 	t.Run("FailRemoveCode", func(t *testing.T) {
 		h := testSetup()
 		r, w, _ := h.newHTTP("POST")

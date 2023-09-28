@@ -477,6 +477,8 @@ func (t *TOTP) validate(r *http.Request) (User, string, error) {
 			if err := t.Authboss.Config.Storage.Server.Save(r.Context(), user); err != nil {
 				return nil, "", err
 			}
+		} else {
+			return user, validationErrInvalidCode, nil
 		}
 
 		return user, validationSuccess, nil

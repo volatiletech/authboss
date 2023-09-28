@@ -606,7 +606,7 @@ func TestPostValidate(t *testing.T) {
 		secret := makeSecretKey(h, user.Email)
 		user.TOTPSecretKey = secret
 
-		// User inputs the only code he has
+		// User inputs invalid recovery code
 		h.bodyReader.Return = mocks.Values{Recovery: "INVALID"}
 
 		h.setSession(SessionTOTPPendingPID, user.Email)

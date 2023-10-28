@@ -7,7 +7,6 @@ import (
 
 	"github.com/friendsofgo/errors"
 	"github.com/volatiletech/authboss/v3"
-	"github.com/volatiletech/authboss/v3/defaults"
 	"github.com/volatiletech/authboss/v3/mocks"
 )
 
@@ -87,7 +86,7 @@ func testSetup() *testHarness {
 
 	harness.ab.Config.Core.BodyReader = harness.bodyReader
 	harness.ab.Config.Core.Logger = mocks.Logger{}
-	harness.ab.Config.Core.Hasher = defaults.NewBCryptHasher(harness.ab.Modules.BCryptCost)
+	harness.ab.Config.Core.Hasher = mocks.Hasher{}
 	harness.ab.Config.Core.Responder = harness.responder
 	harness.ab.Config.Core.Redirector = harness.redirector
 	harness.ab.Config.Storage.SessionState = harness.session

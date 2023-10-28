@@ -1,4 +1,4 @@
-package defaults
+package authboss
 
 import (
 	"encoding/base64"

@@ -61,6 +61,7 @@ type Config struct {
 
 	Modules struct {
 		// BCryptCost is the cost of the bcrypt password hashing function.
+		// Deprecated: Use Hasher instead.
 		BCryptCost int
 
 		// ConfirmMethod IS DEPRECATED! See MailRouteMethod instead.
@@ -278,4 +279,6 @@ func (c *Config) Defaults() {
 	c.Modules.MailRouteMethod = http.MethodGet
 	c.Modules.RecoverLoginAfterRecovery = false
 	c.Modules.RecoverTokenDuration = 24 * time.Hour
+
+	c.Core.CredsGenerator = NewSha512CredsGenerator()
 }

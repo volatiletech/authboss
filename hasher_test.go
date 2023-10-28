@@ -1,12 +1,13 @@
-package defaults
+package authboss
 
 import (
-	"golang.org/x/crypto/bcrypt"
 	"strings"
 	"testing"
+
+	"golang.org/x/crypto/bcrypt"
 )
 
-func TestHasher(t *testing.T) {
+func TestBcryptHasher(t *testing.T) {
 	t.Parallel()
 
 	hasher := NewBCryptHasher(bcrypt.DefaultCost)
@@ -18,7 +19,6 @@ func TestHasher(t *testing.T) {
 
 	if hash == "" {
 		t.Error("Result Hash must be not empty")
-
 	}
 	if len(hash) != 60 {
 		t.Error("hash was invalid length", len(hash))

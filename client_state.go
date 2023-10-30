@@ -95,6 +95,13 @@ type UnderlyingResponseWriter interface {
 	UnderlyingResponseWriter() http.ResponseWriter
 }
 
+// UnwrapableResponseWriter is a response writer that can be unwrapped
+// is is used identically to [UnderlyingResponseWriter] but uses the standard
+// set out in [http.ResponseContoller]
+type UnwrapableResponseWriter interface {
+	Unwrap() http.ResponseWriter
+}
+
 // ClientState represents the client's current state and can answer queries
 // about it.
 type ClientState interface {
@@ -182,6 +189,11 @@ func MustClientStateResponseWriter(w http.ResponseWriter) *ClientStateResponseWr
 
 		if u, ok := w.(UnderlyingResponseWriter); ok {
 			w = u.UnderlyingResponseWriter()
+			continue
+		}
+
+		if u, ok := w.(UnwrapableResponseWriter); ok {
+			w = u.Unwrap()
 			continue
 		}
 

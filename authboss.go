@@ -94,13 +94,21 @@ func (a *Authboss) UpdatePassword(ctx context.Context, user AuthableUser, newPas
 	return rmStorer.DelRememberTokens(ctx, user.GetPID())
 }
 
+// VerifyPassword check that the provided password for the user is correct.
+// Returns nil on success otherwise there will be an error.
+// Simply a wrapper for [a.Core.Hasher.CompareHashAndPassword]
+func (a *Authboss) VerifyPassword(user AuthableUser, password string) error {
+	return a.Core.Hasher.CompareHashAndPassword(user.GetPassword(), password)
+}
+
 // VerifyPassword uses authboss mechanisms to check that a password is correct.
 // Returns nil on success otherwise there will be an error. Simply a helper
 // to do the bcrypt comparison.
+//
+// NOTE: This function will work ONLY if no custom hasher was configured in global ab.config
+//
+// Deperecated: use [a.VerifyPassword] instead
 func VerifyPassword(user AuthableUser, password string) error {
-	// TODO: function can be used ONLY if no custom hasher was configured in global ab.config
-	//       function should be either deprecated, or he we should have access to global ab's config
-	//       (also, we can't use defaults.NewBcryptHasher, because it will be cyclic dep)
 	return bcrypt.CompareHashAndPassword([]byte(user.GetPassword()), []byte(password))
 }
 

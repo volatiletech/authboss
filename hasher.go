@@ -1,20 +1,17 @@
 package authboss
 
 import (
-	"errors"
-
-	"github.com/alexedwards/argon2id"
 	"golang.org/x/crypto/bcrypt"
 )
 
-var ErrArgonMismatchedHashAndPassword = errors.New("hashedPassword is not the hash of the given password")
-
+// Hasher is the interface that wraps the hashing and comparison of passwords
 type Hasher interface {
 	CompareHashAndPassword(hash, password string) error
 	GenerateHash(password string) (string, error)
 }
 
-func NewBCryptHasher(cost int) Hasher {
+// NewBCryptHasher creates a new bcrypt hasher with the given cost
+func NewBCryptHasher(cost int) *bcryptHasher {
 	return &bcryptHasher{cost: cost}
 }
 
@@ -33,31 +30,4 @@ func (h *bcryptHasher) GenerateHash(password string) (string, error) {
 
 func (h *bcryptHasher) CompareHashAndPassword(hashedPassword, password string) error {
 	return bcrypt.CompareHashAndPassword([]byte(hashedPassword), []byte(password))
-}
-
-func NewArgon2Hasher(params *argon2id.Params) Hasher {
-	if params == nil {
-		params = argon2id.DefaultParams
-	}
-	return &argon2Hasher{params: *params}
-}
-
-type argon2Hasher struct {
-	params argon2id.Params
-}
-
-func (h argon2Hasher) GenerateHash(password string) (string, error) {
-	return argon2id.CreateHash(password, argon2id.DefaultParams)
-}
-
-func (h *argon2Hasher) CompareHashAndPassword(hashedPassword, password string) error {
-	matched, err := argon2id.ComparePasswordAndHash(password, hashedPassword)
-	if err != nil {
-		return err
-	}
-	if !matched {
-		return ErrArgonMismatchedHashAndPassword
-	}
-
-	return nil
 }

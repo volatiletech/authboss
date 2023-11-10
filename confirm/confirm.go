@@ -3,15 +3,17 @@ package confirm
 
 import (
 	"context"
+	"crypto/rand"
+	"crypto/sha512"
 	"crypto/subtle"
 	"encoding/base64"
 	"fmt"
+	"io"
 	"net/http"
 	"net/url"
 	"path"
 
 	"github.com/friendsofgo/errors"
-
 	"github.com/volatiletech/authboss/v3"
 )
 
@@ -290,4 +292,30 @@ func Middleware(ab *authboss.Authboss) func(http.Handler) http.Handler {
 			}
 		})
 	}
+}
+
+// GenerateConfirmCreds generates pieces needed for user confirm
+// selector: hash of the first half of a 64 byte value
+// (to be stored in the database and used in SELECT query)
+// verifier: hash of the second half of a 64 byte value
+// (to be stored in database but never used in SELECT query)
+// token: the user-facing base64 encoded selector+verifier
+//
+// Deprecated: use [authboss.CredsGenerator] instead.
+func GenerateConfirmCreds() (selector, verifier, token string, err error) {
+	confirmTokenSize := 64
+	confirmTokenSplit := confirmTokenSize / 2
+
+	rawToken := make([]byte, confirmTokenSize)
+	if _, err = io.ReadFull(rand.Reader, rawToken); err != nil {
+		return "", "", "", err
+	}
+
+	selectorBytes := sha512.Sum512(rawToken[:confirmTokenSplit])
+	verifierBytes := sha512.Sum512(rawToken[confirmTokenSplit:])
+
+	return base64.StdEncoding.EncodeToString(selectorBytes[:]),
+		base64.StdEncoding.EncodeToString(verifierBytes[:]),
+		base64.URLEncoding.EncodeToString(rawToken),
+		nil
 }

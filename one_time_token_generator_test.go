@@ -5,12 +5,12 @@ import (
 	"testing"
 )
 
-func TestCredsGenerator(t *testing.T) {
+func TestOneTimeTokenGenerator(t *testing.T) {
 	t.Parallel()
 
-	credsGenerator := NewSha512CredsGenerator()
+	credsGenerator := NewSha512TokenGenerator()
 
-	selector, verifier, tokenEncoded, err := credsGenerator.GenerateCreds()
+	selector, verifier, tokenEncoded, err := credsGenerator.GenerateToken()
 	if err != nil {
 		t.Error(err)
 	}

@@ -109,7 +109,7 @@ func (r *Recover) StartPost(w http.ResponseWriter, req *http.Request) error {
 		return nil
 	}
 
-	selector, verifier, token, err := r.Authboss.Config.Core.CredsGenerator.GenerateCreds()
+	selector, verifier, token, err := r.Authboss.Config.Core.OneTimeTokenGenerator.GenerateToken()
 	if err != nil {
 		return err
 	}
@@ -224,7 +224,7 @@ func (r *Recover) EndPost(w http.ResponseWriter, req *http.Request) error {
 		return r.invalidToken(PageRecoverEnd, w, req)
 	}
 
-	credsGenerator := r.Authboss.Core.CredsGenerator
+	credsGenerator := r.Authboss.Core.OneTimeTokenGenerator
 
 	if len(rawToken) != credsGenerator.TokenSize() {
 		logger.Infof("invalid recover token submitted, size was wrong: %d", len(rawToken))
@@ -346,7 +346,7 @@ func (r *Recover) mailURL(token string) string {
 // (to be stored in database but never used in SELECT query)
 // token: the user-facing base64 encoded selector+verifier
 //
-// Deprecated: Use authboss.CredsGenerator instead.
+// Deprecated: Use [authboss.OneTimeTokenGenerator] instead.
 func GenerateRecoverCreds() (selector, verifier, token string, err error) {
 	recoverTokenSize := 64
 	recoverTokenSplit := recoverTokenSize / 2

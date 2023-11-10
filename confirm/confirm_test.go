@@ -177,7 +177,7 @@ func TestGetSuccess(t *testing.T) {
 
 	harness := testSetup()
 
-	selector, verifier, token, err := harness.ab.Config.Core.CredsGenerator.GenerateCreds()
+	selector, verifier, token, err := harness.ab.Config.Core.OneTimeTokenGenerator.GenerateToken()
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -272,7 +272,7 @@ func TestGetUserNotFoundFailure(t *testing.T) {
 
 	harness := testSetup()
 
-	_, _, token, err := harness.ab.Config.Core.CredsGenerator.GenerateCreds()
+	_, _, token, err := harness.ab.Config.Core.OneTimeTokenGenerator.GenerateToken()
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -381,9 +381,9 @@ func TestMailURL(t *testing.T) {
 func TestGenerateRecoverCreds(t *testing.T) {
 	t.Parallel()
 
-	credsGenerator := authboss.NewSha512CredsGenerator()
+	credsGenerator := authboss.NewSha512TokenGenerator()
 
-	selector, verifier, token, err := credsGenerator.GenerateCreds()
+	selector, verifier, token, err := credsGenerator.GenerateToken()
 	if err != nil {
 		t.Error(err)
 	}

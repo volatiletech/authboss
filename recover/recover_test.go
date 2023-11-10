@@ -471,9 +471,9 @@ func invalidCheck(t *testing.T, h *testHarness, w *httptest.ResponseRecorder) {
 func TestGenerateRecoverCreds(t *testing.T) {
 	t.Parallel()
 
-	credsGenerator := authboss.NewSha512CredsGenerator()
+	credsGenerator := authboss.NewSha512TokenGenerator()
 
-	selector, verifier, token, err := credsGenerator.GenerateCreds()
+	selector, verifier, token, err := credsGenerator.GenerateToken()
 	if err != nil {
 		t.Error(err)
 	}

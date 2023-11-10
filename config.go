@@ -243,8 +243,8 @@ type Config struct {
 		// Hasher hashes passwords into hashes
 		Hasher Hasher
 
-		// CredsGenerator generates credentials (selector+verified+token)
-		CredsGenerator CredsGenerator
+		// OneTimeTokenGenerator generates credentials (selector+verified+token)
+		OneTimeTokenGenerator OneTimeTokenGenerator
 
 		// Logger implies just a few log levels for use, can optionally
 		// also implement the ContextLogger to be able to upgrade to a
@@ -280,5 +280,5 @@ func (c *Config) Defaults() {
 	c.Modules.RecoverLoginAfterRecovery = false
 	c.Modules.RecoverTokenDuration = 24 * time.Hour
 
-	c.Core.CredsGenerator = NewSha512CredsGenerator()
+	c.Core.OneTimeTokenGenerator = NewSha512TokenGenerator()
 }

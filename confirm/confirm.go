@@ -124,7 +124,7 @@ func (c *Confirm) StartConfirmationWeb(w http.ResponseWriter, r *http.Request, h
 func (c *Confirm) StartConfirmation(ctx context.Context, user authboss.ConfirmableUser, sendEmail bool) error {
 	logger := c.Authboss.Logger(ctx)
 
-	selector, verifier, token, err := c.Authboss.Core.CredsGenerator.GenerateCreds()
+	selector, verifier, token, err := c.Authboss.Core.OneTimeTokenGenerator.GenerateToken()
 	if err != nil {
 		return err
 	}
@@ -194,7 +194,7 @@ func (c *Confirm) Get(w http.ResponseWriter, r *http.Request) error {
 		return c.invalidToken(w, r)
 	}
 
-	credsGenerator := c.Authboss.Core.CredsGenerator
+	credsGenerator := c.Authboss.Core.OneTimeTokenGenerator
 
 	if len(rawToken) != credsGenerator.TokenSize() {
 		logger.Infof("invalid confirm token submitted, size was wrong: %d", len(rawToken))
@@ -301,7 +301,7 @@ func Middleware(ab *authboss.Authboss) func(http.Handler) http.Handler {
 // (to be stored in database but never used in SELECT query)
 // token: the user-facing base64 encoded selector+verifier
 //
-// Deprecated: use [authboss.CredsGenerator] instead.
+// Deprecated: use [authboss.OneTimeTokenGenerator] instead.
 func GenerateConfirmCreds() (selector, verifier, token string, err error) {
 	confirmTokenSize := 64
 	confirmTokenSplit := confirmTokenSize / 2

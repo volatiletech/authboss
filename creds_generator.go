@@ -8,9 +8,9 @@ import (
 )
 
 type CredsGenerator interface {
-	// GenerateCreds generates pieces needed as credentials
-	// selector: to be stored in the database and used in SELECT query
-	// verifier: to be stored in database but never used in SELECT query
+	// Generate generates a one-time use 2-part token for authenticating a request.
+	// selector: to be stored in the database and ALWAYS used in select query
+	// verifier: to be stored in database but NEVER used in select query
 	// token: the user-facing base64 encoded selector+verifier
 	GenerateCreds() (selector, verifier, token string, err error)
 

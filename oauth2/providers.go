@@ -3,7 +3,7 @@ package oauth2
 import (
 	"context"
 	"encoding/json"
-	"io/ioutil"
+	"io"
 	"net/http"
 
 	"github.com/friendsofgo/errors"
@@ -40,7 +40,7 @@ func GoogleUserDetails(ctx context.Context, cfg oauth2.Config, token *oauth2.Tok
 	}
 
 	defer resp.Body.Close()
-	byt, err := ioutil.ReadAll(resp.Body)
+	byt, err := io.ReadAll(resp.Body)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to read body from google oauth2 endpoint")
 	}
@@ -72,7 +72,7 @@ func FacebookUserDetails(ctx context.Context, cfg oauth2.Config, token *oauth2.T
 	}
 
 	defer resp.Body.Close()
-	byt, err := ioutil.ReadAll(resp.Body)
+	byt, err := io.ReadAll(resp.Body)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to read body from facebook oauth2 endpoint")
 	}

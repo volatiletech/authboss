@@ -2,7 +2,7 @@ package oauth2
 
 import (
 	"context"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"strings"
 	"testing"
@@ -16,7 +16,7 @@ func init() {
 	// get, but it'll safely be ignored.
 	clientGet = func(_ *http.Client, url string) (*http.Response, error) {
 		return &http.Response{
-			Body: ioutil.NopCloser(strings.NewReader(`{"id":"id", "email":"email", "name": "name"}`)),
+			Body: io.NopCloser(strings.NewReader(`{"id":"id", "email":"email", "name": "name"}`)),
 		}, nil
 	}
 }

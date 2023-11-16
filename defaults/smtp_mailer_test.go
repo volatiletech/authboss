@@ -5,8 +5,8 @@ import (
 	"encoding/json"
 	"flag"
 	"fmt"
-	"io/ioutil"
 	"net/smtp"
+	"os"
 	"testing"
 
 	"github.com/volatiletech/authboss/v3"
@@ -30,7 +30,7 @@ func TestSMTPMailer(t *testing.T) {
 		Password string `json:"password,omitempty"`
 	}{}
 
-	b, err := ioutil.ReadFile("smtp_mailer_test.json")
+	b, err := os.ReadFile("smtp_mailer_test.json")
 	if err != nil {
 		t.Fatal(`error reading file: "smtp_mailer_test.json`, err)
 	}

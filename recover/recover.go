@@ -16,7 +16,6 @@ import (
 	"time"
 
 	"github.com/volatiletech/authboss/v3"
-	"golang.org/x/crypto/bcrypt"
 )
 
 // Constants for templates etc.
@@ -34,9 +33,6 @@ const (
 	PageRecoverEnd    = "recover_end"
 
 	recoverInitiateSuccessFlash = "An email has been sent to you with further instructions on how to reset your password."
-
-	recoverTokenSize  = 64
-	recoverTokenSplit = recoverTokenSize / 2
 )
 
 func init() {
@@ -113,7 +109,7 @@ func (r *Recover) StartPost(w http.ResponseWriter, req *http.Request) error {
 		return nil
 	}
 
-	selector, verifier, token, err := GenerateRecoverCreds()
+	selector, verifier, token, err := r.Authboss.Config.Core.OneTimeTokenGenerator.GenerateToken()
 	if err != nil {
 		return err
 	}
@@ -228,13 +224,14 @@ func (r *Recover) EndPost(w http.ResponseWriter, req *http.Request) error {
 		return r.invalidToken(PageRecoverEnd, w, req)
 	}
 
-	if len(rawToken) != recoverTokenSize {
+	credsGenerator := r.Authboss.Core.OneTimeTokenGenerator
+
+	if len(rawToken) != credsGenerator.TokenSize() {
 		logger.Infof("invalid recover token submitted, size was wrong: %d", len(rawToken))
 		return r.invalidToken(PageRecoverEnd, w, req)
 	}
 
-	selectorBytes := sha512.Sum512(rawToken[:recoverTokenSplit])
-	verifierBytes := sha512.Sum512(rawToken[recoverTokenSplit:])
+	selectorBytes, verifierBytes := credsGenerator.ParseToken(string(rawToken))
 	selector := base64.StdEncoding.EncodeToString(selectorBytes[:])
 
 	storer := authboss.EnsureCanRecover(r.Authboss.Config.Storage.Server)
@@ -271,12 +268,12 @@ func (r *Recover) EndPost(w http.ResponseWriter, req *http.Request) error {
 		return nil
 	}
 
-	pass, err := bcrypt.GenerateFromPassword([]byte(password), r.Authboss.Config.Modules.BCryptCost)
+	pass, err := r.Authboss.Config.Core.Hasher.GenerateHash(password)
 	if err != nil {
 		return err
 	}
 
-	user.PutPassword(string(pass))
+	user.PutPassword(pass)
 	user.PutRecoverSelector("")             // Don't allow another recovery
 	user.PutRecoverVerifier("")             // Don't allow another recovery
 	user.PutRecoverExpiry(time.Now().UTC()) // Put current time for those DBs that can't handle 0 time
@@ -348,7 +345,12 @@ func (r *Recover) mailURL(token string) string {
 // verifier: hash of the second half of a 64 byte value
 // (to be stored in database but never used in SELECT query)
 // token: the user-facing base64 encoded selector+verifier
+//
+// Deprecated: Use [authboss.OneTimeTokenGenerator] instead.
 func GenerateRecoverCreds() (selector, verifier, token string, err error) {
+	recoverTokenSize := 64
+	recoverTokenSplit := recoverTokenSize / 2
+
 	rawToken := make([]byte, recoverTokenSize)
 	if _, err = io.ReadFull(rand.Reader, rawToken); err != nil {
 		return "", "", "", err

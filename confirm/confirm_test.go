@@ -71,6 +71,7 @@ func testSetup() *testHarness {
 
 	harness.ab.Config.Core.BodyReader = harness.bodyReader
 	harness.ab.Config.Core.Logger = mocks.Logger{}
+	harness.ab.Config.Core.Hasher = mocks.Hasher{}
 	harness.ab.Config.Core.Mailer = harness.mailer
 	harness.ab.Config.Core.Redirector = harness.redirector
 	harness.ab.Config.Core.MailRenderer = harness.renderer
@@ -176,7 +177,7 @@ func TestGetSuccess(t *testing.T) {
 
 	harness := testSetup()
 
-	selector, verifier, token, err := GenerateConfirmCreds()
+	selector, verifier, token, err := harness.ab.Config.Core.OneTimeTokenGenerator.GenerateToken()
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -271,7 +272,7 @@ func TestGetUserNotFoundFailure(t *testing.T) {
 
 	harness := testSetup()
 
-	_, _, token, err := GenerateConfirmCreds()
+	_, _, token, err := harness.ab.Config.Core.OneTimeTokenGenerator.GenerateToken()
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -380,7 +381,9 @@ func TestMailURL(t *testing.T) {
 func TestGenerateRecoverCreds(t *testing.T) {
 	t.Parallel()
 
-	selector, verifier, token, err := GenerateConfirmCreds()
+	credsGenerator := authboss.NewSha512TokenGenerator()
+
+	selector, verifier, token, err := credsGenerator.GenerateToken()
 	if err != nil {
 		t.Error(err)
 	}
@@ -388,6 +391,8 @@ func TestGenerateRecoverCreds(t *testing.T) {
 	if verifier == selector {
 		t.Error("the verifier and selector should be different")
 	}
+
+	confirmTokenSplit := credsGenerator.TokenSize() / 2
 
 	// base64 length: n = 64; 4*(64/3) = 85.3; round to nearest 4: 88
 	if len(verifier) != 88 {

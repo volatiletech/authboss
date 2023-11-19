@@ -85,6 +85,7 @@ func testSetup() *testHarness {
 
 	harness.ab.Config.Core.BodyReader = harness.bodyReader
 	harness.ab.Config.Core.Logger = mocks.Logger{}
+	harness.ab.Config.Core.Hasher = mocks.Hasher{}
 	harness.ab.Config.Core.Mailer = harness.mailer
 	harness.ab.Config.Core.Redirector = harness.redirector
 	harness.ab.Config.Core.MailRenderer = harness.renderer
@@ -470,10 +471,13 @@ func invalidCheck(t *testing.T, h *testHarness, w *httptest.ResponseRecorder) {
 func TestGenerateRecoverCreds(t *testing.T) {
 	t.Parallel()
 
-	selector, verifier, token, err := GenerateRecoverCreds()
+	credsGenerator := authboss.NewSha512TokenGenerator()
+
+	selector, verifier, token, err := credsGenerator.GenerateToken()
 	if err != nil {
 		t.Error(err)
 	}
+	recoverTokenSplit := credsGenerator.TokenSize() / 2
 
 	if verifier == selector {
 		t.Error("the verifier and selector should be different")

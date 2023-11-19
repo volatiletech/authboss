@@ -5,8 +5,6 @@ import (
 	"context"
 	"net/http"
 
-	"golang.org/x/crypto/bcrypt"
-
 	"github.com/volatiletech/authboss/v3"
 )
 
@@ -77,7 +75,7 @@ func (a *Auth) LoginPost(w http.ResponseWriter, r *http.Request) error {
 	r = r.WithContext(context.WithValue(r.Context(), authboss.CTXKeyUser, pidUser))
 
 	var handled bool
-	err = bcrypt.CompareHashAndPassword([]byte(password), []byte(creds.GetPassword()))
+	err = a.Authboss.Core.Hasher.CompareHashAndPassword(password, creds.GetPassword())
 	if err != nil {
 		handled, err = a.Authboss.Events.FireAfter(authboss.EventAuthFail, w, r)
 		if err != nil {

@@ -39,6 +39,15 @@ func New() *Authboss {
 
 // Init authboss, modules, renderers
 func (a *Authboss) Init(modulesToLoad ...string) error {
+	// Create the hasher
+	// Have to do it in Init for backwards compatibility.
+	// If a user did not previously use defaults.SetCore() then they will
+	// suddenly start getting panics
+	// We also cannot use config.Defaults() so we can respect the user's BCryptCost
+	if a.Config.Core.Hasher == nil {
+		a.Config.Core.Hasher = NewBCryptHasher(a.Config.Modules.BCryptCost)
+	}
+
 	if len(modulesToLoad) == 0 {
 		modulesToLoad = RegisteredModules()
 	}
@@ -65,12 +74,12 @@ func (a *Authboss) Init(modulesToLoad ...string) error {
 // in sessions for a user requires special mechanisms not currently provided
 // by authboss.
 func (a *Authboss) UpdatePassword(ctx context.Context, user AuthableUser, newPassword string) error {
-	pass, err := bcrypt.GenerateFromPassword([]byte(newPassword), a.Config.Modules.BCryptCost)
+	pass, err := a.Config.Core.Hasher.GenerateHash(newPassword)
 	if err != nil {
 		return err
 	}
 
-	user.PutPassword(string(pass))
+	user.PutPassword(pass)
 
 	storer := a.Config.Storage.Server
 	if err := storer.Save(ctx, user); err != nil {
@@ -85,9 +94,20 @@ func (a *Authboss) UpdatePassword(ctx context.Context, user AuthableUser, newPas
 	return rmStorer.DelRememberTokens(ctx, user.GetPID())
 }
 
+// VerifyPassword check that the provided password for the user is correct.
+// Returns nil on success otherwise there will be an error.
+// Simply a wrapper for [a.Core.Hasher.CompareHashAndPassword]
+func (a *Authboss) VerifyPassword(user AuthableUser, password string) error {
+	return a.Core.Hasher.CompareHashAndPassword(user.GetPassword(), password)
+}
+
 // VerifyPassword uses authboss mechanisms to check that a password is correct.
 // Returns nil on success otherwise there will be an error. Simply a helper
 // to do the bcrypt comparison.
+//
+// NOTE: This function will work ONLY if no custom hasher was configured in global ab.config
+//
+// Deperecated: use [a.VerifyPassword] instead
 func VerifyPassword(user AuthableUser, password string) error {
 	return bcrypt.CompareHashAndPassword([]byte(user.GetPassword()), []byte(password))
 }
@@ -96,7 +116,7 @@ func VerifyPassword(user AuthableUser, password string) error {
 // in order to access the routes in protects. Requirements is a bit-set integer
 // to be able to easily combine requirements like so:
 //
-//   authboss.RequireFullAuth | authboss.Require2FA
+//	authboss.RequireFullAuth | authboss.Require2FA
 type MWRequirements int
 
 // MWRespondOnFailure tells authboss.Middleware how to respond to
@@ -153,7 +173,7 @@ func MountedMiddleware(ab *Authboss, mountPathed, redirectToLogin, forceFullAuth
 //
 // requirements are set by logical or'ing together requirements. eg:
 //
-//   authboss.RequireFullAuth | authboss.Require2FA
+//	authboss.RequireFullAuth | authboss.Require2FA
 //
 // failureResponse is how the middleware rejects the users that don't meet
 // the criteria. This should be chosen from the MWRespondOnFailure constants.

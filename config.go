@@ -61,6 +61,7 @@ type Config struct {
 
 	Modules struct {
 		// BCryptCost is the cost of the bcrypt password hashing function.
+		// Deprecated: Use Hasher instead.
 		BCryptCost int
 
 		// ConfirmMethod IS DEPRECATED! See MailRouteMethod instead.
@@ -239,6 +240,12 @@ type Config struct {
 		// Mailer is the mailer being used to send e-mails out via smtp
 		Mailer Mailer
 
+		// Hasher hashes passwords into hashes
+		Hasher Hasher
+
+		// OneTimeTokenGenerator generates credentials (selector+verified+token)
+		OneTimeTokenGenerator OneTimeTokenGenerator
+
 		// Logger implies just a few log levels for use, can optionally
 		// also implement the ContextLogger to be able to upgrade to a
 		// request specific logger.
@@ -272,4 +279,6 @@ func (c *Config) Defaults() {
 	c.Modules.MailRouteMethod = http.MethodGet
 	c.Modules.RecoverLoginAfterRecovery = false
 	c.Modules.RecoverTokenDuration = 24 * time.Hour
+
+	c.Core.OneTimeTokenGenerator = NewSha512TokenGenerator()
 }

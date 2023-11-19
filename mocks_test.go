@@ -3,6 +3,7 @@ package authboss
 import (
 	"context"
 	"encoding/json"
+	"golang.org/x/crypto/bcrypt"
 	"net/http"
 	"time"
 )
@@ -213,3 +214,18 @@ type mockLogger struct{}
 
 func (m mockLogger) Info(s string)  {}
 func (m mockLogger) Error(s string) {}
+
+type mockHasher struct{}
+
+func (m mockHasher) GenerateHash(s string) (string, error) {
+	hash, err := bcrypt.GenerateFromPassword([]byte(s), bcrypt.DefaultCost)
+	if err != nil {
+		return "", err
+	}
+
+	return string(hash), nil
+}
+
+func (m mockHasher) CompareHashAndPassword(hashedPassword, password string) error {
+	return bcrypt.CompareHashAndPassword([]byte(hashedPassword), []byte(password))
+}

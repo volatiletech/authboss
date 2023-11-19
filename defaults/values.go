@@ -2,7 +2,7 @@ package defaults
 
 import (
 	"encoding/json"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"net/url"
 	"regexp"
@@ -214,7 +214,7 @@ func (h HTTPBodyReader) Read(page string, r *http.Request) (authboss.Validator, 
 	var values map[string]string
 
 	if h.ReadJSON {
-		b, err := ioutil.ReadAll(r.Body)
+		b, err := io.ReadAll(r.Body)
 		r.Body.Close()
 		if err != nil {
 			return nil, errors.Wrap(err, "failed to read http body")

@@ -1,7 +1,7 @@
 package defaults
 
 import (
-	"io/ioutil"
+	"io"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -16,7 +16,7 @@ func TestRouter(t *testing.T) {
 	wantGet, wantPost, wantDelete := "testget", "testpost", "testdelete"
 
 	r.Get("/test", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		b, err := ioutil.ReadAll(r.Body)
+		b, err := io.ReadAll(r.Body)
 		if err != nil {
 			panic(err)
 		}
@@ -24,7 +24,7 @@ func TestRouter(t *testing.T) {
 		get = string(b)
 	}))
 	r.Post("/test", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		b, err := ioutil.ReadAll(r.Body)
+		b, err := io.ReadAll(r.Body)
 		if err != nil {
 			panic(err)
 		}
@@ -32,7 +32,7 @@ func TestRouter(t *testing.T) {
 		post = string(b)
 	}))
 	r.Delete("/test", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		b, err := ioutil.ReadAll(r.Body)
+		b, err := io.ReadAll(r.Body)
 		if err != nil {
 			panic(err)
 		}

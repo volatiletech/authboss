@@ -250,6 +250,9 @@ type Config struct {
 		// also implement the ContextLogger to be able to upgrade to a
 		// request specific logger.
 		Logger Logger
+
+		// Translator is used to translate strings into different languages.
+		Translator Translator
 	}
 }
 

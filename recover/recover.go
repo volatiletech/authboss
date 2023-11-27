@@ -32,7 +32,10 @@ const (
 	PageRecoverMiddle = "recover_middle"
 	PageRecoverEnd    = "recover_end"
 
-	recoverInitiateSuccessFlash = "An email has been sent to you with further instructions on how to reset your password."
+	TranslateRecoverInitiateSuccessFlash = "An email has been sent to you with further instructions on how to reset your password."
+	TranslatePasswordResetEmailSubject   = "Password Reset"
+	TranslateRecoverSuccessMsg           = "Successfully updated password"
+	TranslateRecoverAndLoginSuccessMsg   = "Successfully updated password and logged in"
 )
 
 func init() {
@@ -94,7 +97,7 @@ func (r *Recover) StartPost(w http.ResponseWriter, req *http.Request) error {
 		ro := authboss.RedirectOptions{
 			Code:         http.StatusTemporaryRedirect,
 			RedirectPath: r.Authboss.Config.Paths.RecoverOK,
-			Success:      recoverInitiateSuccessFlash,
+			Success:      TranslateRecoverInitiateSuccessFlash,
 		}
 		return r.Authboss.Core.Redirector.Redirect(w, req, ro)
 	}
@@ -145,7 +148,7 @@ func (r *Recover) StartPost(w http.ResponseWriter, req *http.Request) error {
 	ro := authboss.RedirectOptions{
 		Code:         http.StatusTemporaryRedirect,
 		RedirectPath: r.Authboss.Config.Paths.RecoverOK,
-		Success:      recoverInitiateSuccessFlash,
+		Success:      TranslateRecoverInitiateSuccessFlash,
 	}
 	return r.Authboss.Core.Redirector.Redirect(w, req, ro)
 }
@@ -161,7 +164,7 @@ func (r *Recover) SendRecoverEmail(ctx context.Context, to []string, encodedToke
 		To:       to,
 		From:     r.Authboss.Config.Mail.From,
 		FromName: r.Authboss.Config.Mail.FromName,
-		Subject:  r.Authboss.Config.Mail.SubjectPrefix + "Password Reset",
+		Subject:  r.Authboss.Config.Mail.SubjectPrefix + r.Translate(ctx, TranslatePasswordResetEmailSubject),
 	}
 
 	ro := authboss.EmailResponseOptions{
@@ -282,12 +285,12 @@ func (r *Recover) EndPost(w http.ResponseWriter, req *http.Request) error {
 		return err
 	}
 
-	successMsg := "Successfully updated password"
 	_, err = r.Authboss.Events.FireAfter(authboss.EventRecoverEnd, w, req)
 	if err != nil {
 		return err
 	}
 
+	successMsg := r.Translate(req.Context(), TranslateRecoverSuccessMsg)
 	if r.Authboss.Config.Modules.RecoverLoginAfterRecovery {
 		handled, err = r.Events.FireBefore(authboss.EventAuth, w, req)
 		if err != nil {
@@ -304,7 +307,7 @@ func (r *Recover) EndPost(w http.ResponseWriter, req *http.Request) error {
 		}
 
 		authboss.PutSession(w, authboss.SessionKey, user.GetPID())
-		successMsg += " and logged in"
+		successMsg = r.Translate(req.Context(), TranslateRecoverAndLoginSuccessMsg)
 
 		handled, err = r.Authboss.Events.FireAfter(authboss.EventAuth, w, req)
 		if err != nil {

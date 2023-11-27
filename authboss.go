@@ -17,6 +17,8 @@ import (
 	"golang.org/x/crypto/bcrypt"
 )
 
+const TranslateAuthFailed = "please re-login"
+
 // Authboss contains a configuration and other details for running.
 type Authboss struct {
 	Config
@@ -99,6 +101,21 @@ func (a *Authboss) UpdatePassword(ctx context.Context, user AuthableUser, newPas
 // Simply a wrapper for [a.Core.Hasher.CompareHashAndPassword]
 func (a *Authboss) VerifyPassword(user AuthableUser, password string) error {
 	return a.Core.Hasher.CompareHashAndPassword(user.GetPassword(), password)
+}
+
+// Translate is a helper to translate a key using the translator
+// If the translator is nil or returns an empty string,
+// then the string is returned without translation
+func (a *Authboss) Translate(ctx context.Context, text string) string {
+	if a.Config.Core.Translator == nil {
+		return text
+	}
+
+	if translated := a.Config.Core.Translator.Translate(ctx, text); translated != "" {
+		return translated
+	}
+
+	return text
 }
 
 // VerifyPassword uses authboss mechanisms to check that a password is correct.
@@ -216,7 +233,7 @@ func MountedMiddleware2(ab *Authboss, mountPathed bool, reqs MWRequirements, fai
 
 					ro := RedirectOptions{
 						Code:         http.StatusTemporaryRedirect,
-						Failure:      "please re-login",
+						Failure:      ab.Translate(r.Context(), TranslateAuthFailed),
 						RedirectPath: path.Join(ab.Config.Paths.Mount, fmt.Sprintf("/login?%s", vals.Encode())),
 					}
 

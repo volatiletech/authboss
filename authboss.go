@@ -106,16 +106,16 @@ func (a *Authboss) VerifyPassword(user AuthableUser, password string) error {
 // Translate is a helper to translate a key using the translator
 // If the translator is nil or returns an empty string,
 // then the string is returned without translation
-func (a *Authboss) Translate(ctx context.Context, text string) string {
+func (a *Authboss) Translate(ctx context.Context, text string, args ...any) string {
 	if a.Config.Core.Translator == nil {
-		return text
+		return fmt.Sprintf(text, args...)
 	}
 
 	if translated := a.Config.Core.Translator.Translate(ctx, text); translated != "" {
 		return translated
 	}
 
-	return text
+	return fmt.Sprintf(text, args...)
 }
 
 // VerifyPassword uses authboss mechanisms to check that a password is correct.

@@ -235,7 +235,7 @@ func TestGetValidationFailure(t *testing.T) {
 	if p := harness.redirector.Options.RedirectPath; p != harness.ab.Paths.ConfirmNotOK {
 		t.Error("redir path was wrong:", p)
 	}
-	if reason := harness.redirector.Options.Failure; reason != "confirm token is invalid" {
+	if reason := harness.redirector.Options.Failure; reason != harness.ab.Localize(context.Background(), TranslateInvalidConfirmToken) {
 		t.Error("reason for failure was wrong:", reason)
 	}
 }
@@ -262,7 +262,7 @@ func TestGetBase64DecodeFailure(t *testing.T) {
 	if p := harness.redirector.Options.RedirectPath; p != harness.ab.Paths.ConfirmNotOK {
 		t.Error("redir path was wrong:", p)
 	}
-	if reason := harness.redirector.Options.Failure; reason != "confirm token is invalid" {
+	if reason := harness.redirector.Options.Failure; reason != harness.ab.Localize(context.Background(), TranslateInvalidConfirmToken) {
 		t.Error("reason for failure was wrong:", reason)
 	}
 }
@@ -294,7 +294,7 @@ func TestGetUserNotFoundFailure(t *testing.T) {
 	if p := harness.redirector.Options.RedirectPath; p != harness.ab.Paths.ConfirmNotOK {
 		t.Error("redir path was wrong:", p)
 	}
-	if reason := harness.redirector.Options.Failure; reason != "confirm token is invalid" {
+	if reason := harness.redirector.Options.Failure; reason != harness.ab.Localize(context.Background(), TranslateInvalidConfirmToken) {
 		t.Error("reason for failure was wrong:", reason)
 	}
 }

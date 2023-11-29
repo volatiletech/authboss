@@ -64,7 +64,7 @@ func (a *Auth) LoginPost(w http.ResponseWriter, r *http.Request) error {
 	pidUser, err := a.Authboss.Storage.Server.Load(r.Context(), pid)
 	if err == authboss.ErrUserNotFound {
 		logger.Infof("failed to load user requested by pid: %s", pid)
-		data := authboss.HTMLData{authboss.DataErr: a.Translate(r.Context(), TranslationInvalidCredentials)}
+		data := authboss.HTMLData{authboss.DataErr: a.Localize(r.Context(), TranslationInvalidCredentials)}
 		return a.Authboss.Core.Responder.Respond(w, r, http.StatusOK, PageLogin, data)
 	} else if err != nil {
 		return err
@@ -86,7 +86,7 @@ func (a *Auth) LoginPost(w http.ResponseWriter, r *http.Request) error {
 		}
 
 		logger.Infof("user %s failed to log in", pid)
-		data := authboss.HTMLData{authboss.DataErr: a.Translate(r.Context(), TranslationInvalidCredentials)}
+		data := authboss.HTMLData{authboss.DataErr: a.Localize(r.Context(), TranslationInvalidCredentials)}
 		return a.Authboss.Core.Responder.Respond(w, r, http.StatusOK, PageLogin, data)
 	}
 

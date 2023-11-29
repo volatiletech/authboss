@@ -251,8 +251,8 @@ type Config struct {
 		// request specific logger.
 		Logger Logger
 
-		// Translator is used to translate strings into different languages.
-		Translator Translator
+		// Localizer is used to translate strings into different languages.
+		Localizer Localizer
 	}
 }
 

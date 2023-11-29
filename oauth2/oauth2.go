@@ -216,7 +216,7 @@ func (o *OAuth2) End(w http.ResponseWriter, r *http.Request) error {
 		ro := authboss.RedirectOptions{
 			Code:         http.StatusTemporaryRedirect,
 			RedirectPath: o.Authboss.Config.Paths.OAuth2LoginNotOK,
-			Failure:      o.Translate(r.Context(), TranslationOAuth2LoginNotOK, provider),
+			Failure:      o.Localize(r.Context(), TranslationOAuth2LoginNotOK, provider),
 		}
 		return o.Authboss.Core.Redirector.Redirect(w, r, ro)
 	}
@@ -294,7 +294,7 @@ func (o *OAuth2) End(w http.ResponseWriter, r *http.Request) error {
 	ro := authboss.RedirectOptions{
 		Code:         http.StatusTemporaryRedirect,
 		RedirectPath: redirect,
-		Success:      o.Translate(r.Context(), TranslationOAuth2LoginOK, provider),
+		Success:      o.Localize(r.Context(), TranslationOAuth2LoginOK, provider),
 	}
 	return o.Authboss.Config.Core.Redirector.Redirect(w, r, ro)
 }

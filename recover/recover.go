@@ -164,7 +164,7 @@ func (r *Recover) SendRecoverEmail(ctx context.Context, to []string, encodedToke
 		To:       to,
 		From:     r.Authboss.Config.Mail.From,
 		FromName: r.Authboss.Config.Mail.FromName,
-		Subject:  r.Authboss.Config.Mail.SubjectPrefix + r.Translate(ctx, TranslatePasswordResetEmailSubject),
+		Subject:  r.Authboss.Config.Mail.SubjectPrefix + r.Localize(ctx, TranslatePasswordResetEmailSubject),
 	}
 
 	ro := authboss.EmailResponseOptions{
@@ -290,7 +290,7 @@ func (r *Recover) EndPost(w http.ResponseWriter, req *http.Request) error {
 		return err
 	}
 
-	successMsg := r.Translate(req.Context(), TranslateRecoverSuccessMsg)
+	successMsg := r.Localize(req.Context(), TranslateRecoverSuccessMsg)
 	if r.Authboss.Config.Modules.RecoverLoginAfterRecovery {
 		handled, err = r.Events.FireBefore(authboss.EventAuth, w, req)
 		if err != nil {
@@ -307,7 +307,7 @@ func (r *Recover) EndPost(w http.ResponseWriter, req *http.Request) error {
 		}
 
 		authboss.PutSession(w, authboss.SessionKey, user.GetPID())
-		successMsg = r.Translate(req.Context(), TranslateRecoverAndLoginSuccessMsg)
+		successMsg = r.Localize(req.Context(), TranslateRecoverAndLoginSuccessMsg)
 
 		handled, err = r.Authboss.Events.FireAfter(authboss.EventAuth, w, req)
 		if err != nil {

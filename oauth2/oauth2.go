@@ -59,10 +59,6 @@ import (
 const (
 	FormValueOAuth2State = "state"
 	FormValueOAuth2Redir = "redir"
-
-	// Translations
-	TranslationOAuth2LoginOK    = "Logged in successfully with %s."
-	TranslationOAuth2LoginNotOK = "%s login cancelled or failed"
 )
 
 var errOAuthStateValidation = errors.New("could not validate oauth2 state param")
@@ -216,7 +212,7 @@ func (o *OAuth2) End(w http.ResponseWriter, r *http.Request) error {
 		ro := authboss.RedirectOptions{
 			Code:         http.StatusTemporaryRedirect,
 			RedirectPath: o.Authboss.Config.Paths.OAuth2LoginNotOK,
-			Failure:      o.Localize(r.Context(), TranslationOAuth2LoginNotOK, provider),
+			Failure:      o.Localize(r.Context(), authboss.TxtOAuth2LoginNotOK, provider),
 		}
 		return o.Authboss.Core.Redirector.Redirect(w, r, ro)
 	}
@@ -294,7 +290,7 @@ func (o *OAuth2) End(w http.ResponseWriter, r *http.Request) error {
 	ro := authboss.RedirectOptions{
 		Code:         http.StatusTemporaryRedirect,
 		RedirectPath: redirect,
-		Success:      o.Localize(r.Context(), TranslationOAuth2LoginOK, provider),
+		Success:      o.Localize(r.Context(), authboss.TxtOAuth2LoginOK, provider),
 	}
 	return o.Authboss.Config.Core.Redirector.Redirect(w, r, ro)
 }

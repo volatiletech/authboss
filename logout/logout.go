@@ -8,8 +8,6 @@ import (
 	"github.com/volatiletech/authboss/v3"
 )
 
-const TranslateLoggedOut = "You have been logged out"
-
 func init() {
 	authboss.RegisterModule("logout", &Logout{})
 }
@@ -73,7 +71,7 @@ func (l *Logout) Logout(w http.ResponseWriter, r *http.Request) error {
 	ro := authboss.RedirectOptions{
 		Code:         http.StatusTemporaryRedirect,
 		RedirectPath: l.Authboss.Paths.LogoutOK,
-		Success:      TranslateLoggedOut,
+		Success:      authboss.TxtLoggedOut,
 	}
 	return l.Authboss.Core.Redirector.Redirect(w, r, ro)
 }

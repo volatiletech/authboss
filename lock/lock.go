@@ -14,7 +14,6 @@ const (
 	StoreAttemptNumber = "attempt_number"
 	StoreAttemptTime   = "attempt_time"
 	StoreLocked        = "locked"
-	TranslationLocked  = "Your account has been locked, please contact the administrator."
 )
 
 func init() {
@@ -100,7 +99,7 @@ func (l *Lock) updateLockedState(w http.ResponseWriter, r *http.Request, wasCorr
 
 	ro := authboss.RedirectOptions{
 		Code:         http.StatusTemporaryRedirect,
-		Failure:      l.Localize(r.Context(), TranslationLocked),
+		Failure:      l.Localize(r.Context(), authboss.TxtLocked),
 		RedirectPath: l.Authboss.Config.Paths.LockNotOK,
 	}
 	return true, l.Authboss.Config.Core.Redirector.Redirect(w, r, ro)
@@ -159,7 +158,7 @@ func Middleware(ab *authboss.Authboss) func(http.Handler) http.Handler {
 			logger.Infof("user %s prevented from accessing %s: locked", user.GetPID(), r.URL.Path)
 			ro := authboss.RedirectOptions{
 				Code:         http.StatusTemporaryRedirect,
-				Failure:      ab.Localize(r.Context(), TranslationLocked),
+				Failure:      ab.Localize(r.Context(), authboss.TxtLocked),
 				RedirectPath: ab.Config.Paths.LockNotOK,
 			}
 			if err := ab.Config.Core.Redirector.Redirect(w, r, ro); err != nil {

@@ -10,6 +10,8 @@ type Localizer interface {
 
 // Translation constants
 const (
+	TxtSuccess = "success"
+
 	// Used in the auth module
 	TxtInvalidCredentials = "Invalid Credentials"
 	TxtAuthFailed         = "Please login"
@@ -40,4 +42,18 @@ const (
 	TxtPasswordResetEmailSubject   = "Password Reset"
 	TxtRecoverSuccessMsg           = "Successfully updated password"
 	TxtRecoverAndLoginSuccessMsg   = "Successfully updated password and logged in"
+
+	// Used in the otp module
+	TxtTooManyOTPs = "You cannot have more than %d one time passwords"
+
+	// Used in the 2fa module
+	TxtEmailVerifyTriggered        = "An e-mail has been sent to confirm 2FA activation"
+	TxtEmailVerifySubject          = "Add 2FA to Account"
+	TxtInvalid2FAVerificationToken = "Invalid 2FA email verification token"
+	Txt2FAAuthorizationRequired    = "You must first authorize adding 2fa by e-mail"
+	TxtInvalid2FACode              = "2FA code was invalid"
+	TxtRepeated2FACode             = "2FA code was previously used"
+	TxtTOTP2FANotActive            = "TOTP 2FA is not active"
+	TxtSMSNumberRequired           = "You must provide a phone number"
+	TxtSMSWaitToResend             = "Please wait a few moments before resending the SMS code"
 )

@@ -118,7 +118,7 @@ func (o *OTP) LoginPost(w http.ResponseWriter, r *http.Request) error {
 	pidUser, err := o.Authboss.Storage.Server.Load(r.Context(), pid)
 	if err == authboss.ErrUserNotFound {
 		logger.Infof("failed to load user requested by pid: %s", pid)
-		data := authboss.HTMLData{authboss.DataErr: o.Localize(r.Context(), authboss.TxtInvalidCredentials)}
+		data := authboss.HTMLData{authboss.DataErr: o.Localizef(r.Context(), authboss.TxtInvalidCredentials)}
 		return o.Authboss.Core.Responder.Respond(w, r, http.StatusOK, PageLogin, data)
 	} else if err != nil {
 		return err
@@ -153,7 +153,7 @@ func (o *OTP) LoginPost(w http.ResponseWriter, r *http.Request) error {
 		}
 
 		logger.Infof("user %s failed to log in with otp", pid)
-		data := authboss.HTMLData{authboss.DataErr: o.Localize(r.Context(), authboss.TxtInvalidCredentials)}
+		data := authboss.HTMLData{authboss.DataErr: o.Localizef(r.Context(), authboss.TxtInvalidCredentials)}
 		return o.Authboss.Core.Responder.Respond(w, r, http.StatusOK, PageLogin, data)
 	}
 
@@ -218,7 +218,7 @@ func (o *OTP) AddPost(w http.ResponseWriter, r *http.Request) error {
 	currentOTPs := splitOTPs(otpUser.GetOTPs())
 
 	if len(currentOTPs) >= maxOTPs {
-		data := authboss.HTMLData{authboss.DataValidation: o.Localize(r.Context(), authboss.TxtTooManyOTPs, maxOTPs)}
+		data := authboss.HTMLData{authboss.DataValidation: o.Localizef(r.Context(), authboss.TxtTooManyOTPs, maxOTPs)}
 		return o.Core.Responder.Respond(w, r, http.StatusOK, PageAdd, data)
 	}
 

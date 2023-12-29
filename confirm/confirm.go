@@ -93,7 +93,7 @@ func (c *Confirm) PreventAuth(w http.ResponseWriter, r *http.Request, handled bo
 	ro := authboss.RedirectOptions{
 		Code:         http.StatusTemporaryRedirect,
 		RedirectPath: c.Authboss.Config.Paths.ConfirmNotOK,
-		Failure:      c.Localize(r.Context(), authboss.TxtAccountNotConfirmed),
+		Failure:      c.Localizef(r.Context(), authboss.TxtAccountNotConfirmed),
 	}
 	return true, c.Authboss.Config.Core.Redirector.Redirect(w, r, ro)
 }
@@ -114,7 +114,7 @@ func (c *Confirm) StartConfirmationWeb(w http.ResponseWriter, r *http.Request, h
 	ro := authboss.RedirectOptions{
 		Code:         http.StatusTemporaryRedirect,
 		RedirectPath: c.Authboss.Config.Paths.ConfirmNotOK,
-		Success:      c.Localize(r.Context(), authboss.TxtConfirmYourAccount),
+		Success:      c.Localizef(r.Context(), authboss.TxtConfirmYourAccount),
 	}
 	return true, c.Authboss.Config.Core.Redirector.Redirect(w, r, ro)
 }
@@ -157,7 +157,7 @@ func (c *Confirm) SendConfirmEmail(ctx context.Context, to, token string) {
 		To:       []string{to},
 		From:     c.Config.Mail.From,
 		FromName: c.Config.Mail.FromName,
-		Subject:  c.Config.Mail.SubjectPrefix + c.Localize(ctx, authboss.TxtConfirmEmailSubject),
+		Subject:  c.Config.Mail.SubjectPrefix + c.Localizef(ctx, authboss.TxtConfirmEmailSubject),
 	}
 
 	logger.Infof("sending confirm e-mail to: %s", to)
@@ -236,7 +236,7 @@ func (c *Confirm) Get(w http.ResponseWriter, r *http.Request) error {
 
 	ro := authboss.RedirectOptions{
 		Code:         http.StatusTemporaryRedirect,
-		Success:      c.Localize(r.Context(), authboss.TxtConfrimationSuccess),
+		Success:      c.Localizef(r.Context(), authboss.TxtConfrimationSuccess),
 		RedirectPath: c.Authboss.Config.Paths.ConfirmOK,
 	}
 	return c.Authboss.Config.Core.Redirector.Redirect(w, r, ro)
@@ -256,7 +256,7 @@ func (c *Confirm) mailURL(token string) string {
 func (c *Confirm) invalidToken(w http.ResponseWriter, r *http.Request) error {
 	ro := authboss.RedirectOptions{
 		Code:         http.StatusTemporaryRedirect,
-		Failure:      c.Localize(r.Context(), authboss.TxtInvalidConfirmToken),
+		Failure:      c.Localizef(r.Context(), authboss.TxtInvalidConfirmToken),
 		RedirectPath: c.Authboss.Config.Paths.ConfirmNotOK,
 	}
 	return c.Authboss.Config.Core.Redirector.Redirect(w, r, ro)
@@ -284,7 +284,7 @@ func Middleware(ab *authboss.Authboss) func(http.Handler) http.Handler {
 			logger.Infof("user %s prevented from accessing %s: not confirmed", user.GetPID(), r.URL.Path)
 			ro := authboss.RedirectOptions{
 				Code:         http.StatusTemporaryRedirect,
-				Failure:      ab.Localize(r.Context(), authboss.TxtAccountNotConfirmed),
+				Failure:      ab.Localizef(r.Context(), authboss.TxtAccountNotConfirmed),
 				RedirectPath: ab.Config.Paths.ConfirmNotOK,
 			}
 			if err := ab.Config.Core.Redirector.Redirect(w, r, ro); err != nil {

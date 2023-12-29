@@ -101,15 +101,15 @@ func (a *Authboss) VerifyPassword(user AuthableUser, password string) error {
 	return a.Core.Hasher.CompareHashAndPassword(user.GetPassword(), password)
 }
 
-// Localize is a helper to translate a key using the translator
+// Localizef is a helper to translate a key using the translator
 // If the localizer is nil or returns an empty string,
 // then the original text will be returned using [fmt.Sprintf] to interpolate the args.
-func (a *Authboss) Localize(ctx context.Context, text string, args ...any) string {
+func (a *Authboss) Localizef(ctx context.Context, text string, args ...any) string {
 	if a.Config.Core.Localizer == nil {
 		return fmt.Sprintf(text, args...)
 	}
 
-	if translated := a.Config.Core.Localizer.Localize(ctx, text, args...); translated != "" {
+	if translated := a.Config.Core.Localizer.Localizef(ctx, text, args...); translated != "" {
 		return translated
 	}
 
@@ -231,7 +231,7 @@ func MountedMiddleware2(ab *Authboss, mountPathed bool, reqs MWRequirements, fai
 
 					ro := RedirectOptions{
 						Code:         http.StatusTemporaryRedirect,
-						Failure:      ab.Localize(r.Context(), TxtAuthFailed),
+						Failure:      ab.Localizef(r.Context(), TxtAuthFailed),
 						RedirectPath: path.Join(ab.Config.Paths.Mount, fmt.Sprintf("/login?%s", vals.Encode())),
 					}
 

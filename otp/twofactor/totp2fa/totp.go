@@ -269,7 +269,7 @@ func (t *TOTP) PostConfirm(w http.ResponseWriter, r *http.Request) error {
 	if !ok {
 		data := authboss.HTMLData{
 			authboss.DataValidation: map[string][]string{FormValueCode: {
-				t.Localize(r.Context(), authboss.TxtInvalid2FACode),
+				t.Localizef(r.Context(), authboss.TxtInvalid2FACode),
 			}},
 			DataTOTPSecret: totpSecret,
 		}
@@ -325,11 +325,11 @@ func (t *TOTP) PostRemove(w http.ResponseWriter, r *http.Request) error {
 	user, status, err := t.validate(r)
 	switch {
 	case err == errNoTOTPEnabled:
-		data := authboss.HTMLData{authboss.DataErr: t.Localize(r.Context(), authboss.TxtTOTP2FANotActive)}
+		data := authboss.HTMLData{authboss.DataErr: t.Localizef(r.Context(), authboss.TxtTOTP2FANotActive)}
 		return t.Authboss.Core.Responder.Respond(w, r, http.StatusOK, PageTOTPRemove, data)
 	case err != nil:
 		return err
-	case status != t.Localize(r.Context(), authboss.TxtSuccess):
+	case status != t.Localizef(r.Context(), authboss.TxtSuccess):
 		logger.Infof("user %s totp 2fa removal failure (%s)", user.GetPID(), status)
 		data := authboss.HTMLData{
 			authboss.DataValidation: map[string][]string{FormValueCode: {status}},
@@ -368,12 +368,12 @@ func (t *TOTP) PostValidate(w http.ResponseWriter, r *http.Request) error {
 	switch {
 	case err == errNoTOTPEnabled:
 		logger.Infof("user %s totp failure (not enabled)", user.GetPID())
-		data := authboss.HTMLData{authboss.DataErr: t.Localize(
+		data := authboss.HTMLData{authboss.DataErr: t.Localizef(
 			r.Context(), authboss.TxtTOTP2FANotActive)}
 		return t.Authboss.Core.Responder.Respond(w, r, http.StatusOK, PageTOTPValidate, data)
 	case err != nil:
 		return err
-	case status != t.Localize(r.Context(), authboss.TxtSuccess):
+	case status != t.Localizef(r.Context(), authboss.TxtSuccess):
 		r = r.WithContext(context.WithValue(r.Context(), authboss.CTXKeyUser, user))
 		handled, err := t.Authboss.Events.FireAfter(authboss.EventAuthFail, w, r)
 		if err != nil {
@@ -471,10 +471,10 @@ func (t *TOTP) validate(r *http.Request) (User, string, error) {
 				return nil, "", err
 			}
 		} else {
-			return user, t.Localize(r.Context(), authboss.TxtInvalid2FACode), nil
+			return user, t.Localizef(r.Context(), authboss.TxtInvalid2FACode), nil
 		}
 
-		return user, t.Localize(r.Context(), authboss.TxtSuccess), nil
+		return user, t.Localizef(r.Context(), authboss.TxtSuccess), nil
 	}
 
 	input := totpCodeValues.GetCode()
@@ -482,14 +482,14 @@ func (t *TOTP) validate(r *http.Request) (User, string, error) {
 	if oneTime, ok := user.(UserOneTime); ok {
 		oldCode := oneTime.GetTOTPLastCode()
 		if oldCode == input {
-			return user, t.Localize(r.Context(), authboss.TxtRepeated2FACode), nil
+			return user, t.Localizef(r.Context(), authboss.TxtRepeated2FACode), nil
 		}
 		oneTime.PutTOTPLastCode(input)
 	}
 
 	if !totp.Validate(input, secret) {
-		return user, t.Localize(r.Context(), authboss.TxtInvalid2FACode), nil
+		return user, t.Localizef(r.Context(), authboss.TxtInvalid2FACode), nil
 	}
 
-	return user, t.Localize(r.Context(), authboss.TxtSuccess), nil
+	return user, t.Localizef(r.Context(), authboss.TxtSuccess), nil
 }

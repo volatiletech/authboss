@@ -272,7 +272,7 @@ func TestPostSetup(t *testing.T) {
 			t.Error("page wrong:", h.responder.Page)
 		}
 		validation := h.responder.Data[authboss.DataValidation].(map[string][]string)
-		if got := validation[FormValuePhoneNumber][0]; got != h.ab.Localize(context.Background(), authboss.TxtSMSNumberRequired) {
+		if got := validation[FormValuePhoneNumber][0]; got != h.ab.Localizef(context.Background(), authboss.TxtSMSNumberRequired) {
 			t.Error("data wrong:", got)
 		}
 	})
@@ -547,7 +547,7 @@ func TestValidatorPostOk(t *testing.T) {
 		w.WriteHeader(http.StatusOK)
 
 		validation := h.responder.Data[authboss.DataValidation].(map[string][]string)
-		if got := validation[FormValueCode][0]; got != h.ab.Localize(context.Background(), authboss.TxtInvalid2FACode) {
+		if got := validation[FormValueCode][0]; got != h.ab.Localizef(context.Background(), authboss.TxtInvalid2FACode) {
 			t.Error("data wrong:", got)
 		}
 	})
@@ -574,7 +574,7 @@ func TestValidatorPostOk(t *testing.T) {
 			t.Error("page wrong:", h.responder.Page)
 		}
 		validation := h.responder.Data[authboss.DataValidation].(map[string][]string)
-		if got := validation[FormValueCode][0]; got != h.ab.Localize(context.Background(), authboss.TxtInvalid2FACode) {
+		if got := validation[FormValueCode][0]; got != h.ab.Localizef(context.Background(), authboss.TxtInvalid2FACode) {
 			t.Error("data wrong:", got)
 		}
 	})

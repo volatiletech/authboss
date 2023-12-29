@@ -278,7 +278,7 @@ func TestRegisterPostUserExists(t *testing.T) {
 	}
 
 	errList := h.responder.Data[authboss.DataValidation].(map[string][]string)
-	if e := errList[""][0]; e != h.ab.Localize(context.Background(), authboss.TxtUserAlreadyExists) {
+	if e := errList[""][0]; e != h.ab.Localizef(context.Background(), authboss.TxtUserAlreadyExists) {
 		t.Error("validation error wrong:", e)
 	}
 

@@ -264,7 +264,7 @@ func (s *SMS) PostSetup(w http.ResponseWriter, r *http.Request) error {
 	if len(number) == 0 {
 		data := authboss.HTMLData{
 			authboss.DataValidation: map[string][]string{FormValuePhoneNumber: {
-				s.Localize(r.Context(), authboss.TxtSMSNumberRequired),
+				s.Localizef(r.Context(), authboss.TxtSMSNumberRequired),
 			}},
 		}
 		return s.Core.Responder.Respond(w, r, http.StatusOK, PageSMSSetup, data)
@@ -357,7 +357,7 @@ func (s *SMSValidator) sendCode(w http.ResponseWriter, r *http.Request, user Use
 	var data authboss.HTMLData
 	err := s.SendCodeToUser(w, r, user.GetPID(), phoneNumber)
 	if err == errSMSRateLimit {
-		data = authboss.HTMLData{authboss.DataErr: s.Localize(r.Context(), authboss.TxtSMSWaitToResend)}
+		data = authboss.HTMLData{authboss.DataErr: s.Localizef(r.Context(), authboss.TxtSMSWaitToResend)}
 	} else if err != nil {
 		return err
 	}
@@ -403,7 +403,7 @@ func (s *SMSValidator) validateCode(w http.ResponseWriter, r *http.Request, user
 
 		logger.Infof("user %s sms 2fa failure (wrong code)", user.GetPID())
 		data := authboss.HTMLData{
-			authboss.DataValidation: map[string][]string{FormValueCode: {s.Localize(r.Context(), authboss.TxtInvalid2FACode)}},
+			authboss.DataValidation: map[string][]string{FormValueCode: {s.Localizef(r.Context(), authboss.TxtInvalid2FACode)}},
 		}
 		return s.Authboss.Core.Responder.Respond(w, r, http.StatusOK, s.Page, data)
 	}

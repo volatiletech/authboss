@@ -153,7 +153,7 @@ func TestEmailVerifyPostStart(t *testing.T) {
 		t.Error("code wrong:", ro.Code)
 	}
 
-	if ro.Success != h.ab.Localize(context.Background(), authboss.TxtEmailVerifyTriggered) {
+	if ro.Success != h.ab.Localizef(context.Background(), authboss.TxtEmailVerifyTriggered) {
 		t.Error("message was wrong:", ro.Success)
 	}
 
@@ -240,7 +240,7 @@ func TestEmailVerifyEndFail(t *testing.T) {
 		t.Error("redir path wrong:", ro.RedirectPath)
 	}
 
-	if ro.Failure != h.ab.Localize(context.Background(), authboss.TxtInvalid2FAVerificationToken) {
+	if ro.Failure != h.ab.Localizef(context.Background(), authboss.TxtInvalid2FAVerificationToken) {
 		t.Error("did not get correct failure")
 	}
 
@@ -317,7 +317,7 @@ func TestEmailVerifyWrap(t *testing.T) {
 			t.Error("redir path wrong:", ro.RedirectPath)
 		}
 
-		if ro.Failure != h.ab.Localize(context.Background(), authboss.Txt2FAAuthorizationRequired) {
+		if ro.Failure != h.ab.Localizef(context.Background(), authboss.Txt2FAAuthorizationRequired) {
 			t.Error("did not get correct failure")
 		}
 	})

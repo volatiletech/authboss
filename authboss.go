@@ -104,16 +104,16 @@ func (a *Authboss) VerifyPassword(user AuthableUser, password string) error {
 // Localizef is a helper to translate a key using the translator
 // If the localizer is nil or returns an empty string,
 // then the original text will be returned using [fmt.Sprintf] to interpolate the args.
-func (a *Authboss) Localizef(ctx context.Context, text string, args ...any) string {
+func (a *Authboss) Localizef(ctx context.Context, key LocalizationKey, args ...any) string {
 	if a.Config.Core.Localizer == nil {
-		return fmt.Sprintf(text, args...)
+		return fmt.Sprintf(key.Default, args...)
 	}
 
-	if translated := a.Config.Core.Localizer.Localizef(ctx, text, args...); translated != "" {
+	if translated := a.Config.Core.Localizer.Localizef(ctx, key, args...); translated != "" {
 		return translated
 	}
 
-	return fmt.Sprintf(text, args...)
+	return fmt.Sprintf(key.Default, args...)
 }
 
 // VerifyPassword uses authboss mechanisms to check that a password is correct.

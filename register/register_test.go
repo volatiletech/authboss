@@ -1,6 +1,7 @@
 package register
 
 import (
+	"context"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -277,7 +278,7 @@ func TestRegisterPostUserExists(t *testing.T) {
 	}
 
 	errList := h.responder.Data[authboss.DataValidation].(map[string][]string)
-	if e := errList[""][0]; e != "user already exists" {
+	if e := errList[""][0]; e != h.ab.Localizef(context.Background(), authboss.TxtUserAlreadyExists) {
 		t.Error("validation error wrong:", e)
 	}
 

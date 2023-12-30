@@ -153,7 +153,7 @@ func TestEmailVerifyPostStart(t *testing.T) {
 		t.Error("code wrong:", ro.Code)
 	}
 
-	if ro.Success != "An e-mail has been sent to confirm 2FA activation." {
+	if ro.Success != h.ab.Localizef(context.Background(), authboss.TxtEmailVerifyTriggered) {
 		t.Error("message was wrong:", ro.Success)
 	}
 
@@ -240,7 +240,7 @@ func TestEmailVerifyEndFail(t *testing.T) {
 		t.Error("redir path wrong:", ro.RedirectPath)
 	}
 
-	if ro.Failure != "invalid 2fa e-mail verification token" {
+	if ro.Failure != h.ab.Localizef(context.Background(), authboss.TxtInvalid2FAVerificationToken) {
 		t.Error("did not get correct failure")
 	}
 
@@ -317,7 +317,7 @@ func TestEmailVerifyWrap(t *testing.T) {
 			t.Error("redir path wrong:", ro.RedirectPath)
 		}
 
-		if ro.Failure != "You must first authorize adding 2fa by e-mail." {
+		if ro.Failure != h.ab.Localizef(context.Background(), authboss.Txt2FAAuthorizationRequired) {
 			t.Error("did not get correct failure")
 		}
 	})

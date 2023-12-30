@@ -110,7 +110,7 @@ func (e EmailVerify) PostStart(w http.ResponseWriter, r *http.Request) error {
 	ro := authboss.RedirectOptions{
 		Code:         http.StatusTemporaryRedirect,
 		RedirectPath: e.Authboss.Config.Paths.TwoFactorEmailAuthNotOK,
-		Success:      "An e-mail has been sent to confirm 2FA activation.",
+		Success:      e.Localizef(ctx, authboss.TxtEmailVerifyTriggered),
 	}
 	return e.Authboss.Config.Core.Redirector.Redirect(w, r, ro)
 }
@@ -125,7 +125,7 @@ func (e EmailVerify) SendVerifyEmail(ctx context.Context, to, token string) {
 		To:       []string{to},
 		From:     e.Config.Mail.From,
 		FromName: e.Config.Mail.FromName,
-		Subject:  e.Config.Mail.SubjectPrefix + "Add 2FA to Account",
+		Subject:  e.Config.Mail.SubjectPrefix + e.Localizef(ctx, authboss.TxtEmailVerifySubject),
 	}
 
 	logger.Infof("sending add 2fa verification e-mail to: %s", to)
@@ -168,7 +168,7 @@ func (e EmailVerify) End(w http.ResponseWriter, r *http.Request) error {
 	if 1 != subtle.ConstantTimeCompare([]byte(wantToken), []byte(givenToken)) {
 		ro := authboss.RedirectOptions{
 			Code:         http.StatusTemporaryRedirect,
-			Failure:      "invalid 2fa e-mail verification token",
+			Failure:      e.Localizef(r.Context(), authboss.TxtInvalid2FAVerificationToken),
 			RedirectPath: e.Authboss.Config.Paths.TwoFactorEmailAuthNotOK,
 		}
 		return e.Authboss.Core.Redirector.Redirect(w, r, ro)
@@ -203,7 +203,7 @@ func (e EmailVerify) Wrap(handler http.Handler) http.Handler {
 		redirURL := path.Join(e.Authboss.Config.Paths.Mount, "2fa", e.TwofactorKind, "email/verify")
 		ro := authboss.RedirectOptions{
 			Code:         http.StatusTemporaryRedirect,
-			Failure:      "You must first authorize adding 2fa by e-mail.",
+			Failure:      e.Localizef(r.Context(), authboss.Txt2FAAuthorizationRequired),
 			RedirectPath: redirURL,
 		}
 

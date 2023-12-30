@@ -107,7 +107,7 @@ func (r *Register) Post(w http.ResponseWriter, req *http.Request) error {
 	switch {
 	case err == authboss.ErrUserFound:
 		logger.Infof("user %s attempted to re-register", pid)
-		errs = []error{errors.New("user already exists")}
+		errs = []error{errors.New(r.Localizef(req.Context(), authboss.TxtUserAlreadyExists))}
 		data := authboss.HTMLData{
 			authboss.DataValidation: authboss.ErrorMap(errs),
 		}
@@ -134,7 +134,7 @@ func (r *Register) Post(w http.ResponseWriter, req *http.Request) error {
 	logger.Infof("registered and logged in user %s", pid)
 	ro := authboss.RedirectOptions{
 		Code:         http.StatusTemporaryRedirect,
-		Success:      "Account successfully created, you are now logged in",
+		Success:      r.Localizef(req.Context(), authboss.TxtRegisteredAndLoggedIn),
 		RedirectPath: r.Config.Paths.RegisterOK,
 	}
 	return r.Config.Core.Redirector.Redirect(w, req, ro)

@@ -380,7 +380,7 @@ func TestPostRemove(t *testing.T) {
 		if h.responder.Page != PageTOTPRemove {
 			t.Error("page wrong:", h.responder.Page)
 		}
-		if got := h.responder.Data[authboss.DataErr]; got != "totp 2fa not active" {
+		if got := h.responder.Data[authboss.DataErr]; got != h.ab.Localizef(context.Background(), authboss.TxtTOTP2FANotActive) {
 			t.Error("data wrong:", got)
 		}
 	})
@@ -404,7 +404,7 @@ func TestPostRemove(t *testing.T) {
 		if h.responder.Page != PageTOTPRemove {
 			t.Error("page wrong:", h.responder.Page)
 		}
-		if got := h.responder.Data[authboss.DataValidation].(map[string][]string); got[FormValueCode][0] != "2fa code was invalid" {
+		if got := h.responder.Data[authboss.DataValidation].(map[string][]string); got[FormValueCode][0] != h.ab.Localizef(context.Background(), authboss.TxtInvalid2FACode) {
 			t.Error("data wrong:", got)
 		}
 	})
@@ -486,7 +486,7 @@ func TestPostValidate(t *testing.T) {
 		if h.responder.Page != PageTOTPValidate {
 			t.Error("page wrong:", h.responder.Page)
 		}
-		if got := h.responder.Data[authboss.DataErr]; got != "totp 2fa not active" {
+		if got := h.responder.Data[authboss.DataErr]; got != h.ab.Localizef(context.Background(), authboss.TxtTOTP2FANotActive) {
 			t.Error("data wrong:", got)
 		}
 	})
@@ -509,7 +509,7 @@ func TestPostValidate(t *testing.T) {
 		if h.responder.Page != PageTOTPValidate {
 			t.Error("page wrong:", h.responder.Page)
 		}
-		if got := h.responder.Data[authboss.DataValidation].(map[string][]string); got[FormValueCode][0] != "2fa code was invalid" {
+		if got := h.responder.Data[authboss.DataValidation].(map[string][]string); got[FormValueCode][0] != h.ab.Localizef(context.Background(), authboss.TxtInvalid2FACode) {
 			t.Error("data wrong:", got)
 		}
 	})
@@ -533,7 +533,7 @@ func TestPostValidate(t *testing.T) {
 		if h.responder.Page != PageTOTPValidate {
 			t.Error("page wrong:", h.responder.Page)
 		}
-		if got := h.responder.Data[authboss.DataValidation].(map[string][]string); got[FormValueCode][0] != "2fa code was previously used" {
+		if got := h.responder.Data[authboss.DataValidation].(map[string][]string); got[FormValueCode][0] != h.ab.Localizef(context.Background(), authboss.TxtRepeated2FACode) {
 			t.Error("data wrong:", got)
 		}
 	})
@@ -621,7 +621,7 @@ func TestPostValidate(t *testing.T) {
 		// Flush client state
 		w.WriteHeader(http.StatusOK)
 
-		if got := h.responder.Data[authboss.DataValidation].(map[string][]string); got[FormValueCode][0] != "2fa code was invalid" {
+		if got := h.responder.Data[authboss.DataValidation].(map[string][]string); got[FormValueCode][0] != h.ab.Localizef(context.Background(), authboss.TxtInvalid2FACode) {
 			t.Error("data wrong:", got)
 		}
 	})
